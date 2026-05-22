@@ -376,8 +376,10 @@ The system architecture consists of:
 
 ## Suggested Technologies
 
-- Node.js
-- Express.js / NestJS
+- Java 17
+- Spring Boot
+- Spring Security
+- Spring Data JPA
 
 ---
 

@@ -1,12 +1,10 @@
-# Architecture.md
-
 # CohiveBackend Architecture
 
 ## Overview
 
-Cohiveis a modular SaaS Training & Course Management Platform built using:
+Cohive is a modular SaaS Training & Course Management Platform built using:
 
-- Spring Boot
+- Spring Boot (Java 17)
 - PostgreSQL (Neon)
 - JWT Authentication
 - Modular Feature-Based Architecture
@@ -22,13 +20,9 @@ The backend architecture prioritizes:
 
 # Architectural Style
 
-The application follows:
-
-## Layered Modular Architecture
-
 Flow:
 
-Controller → Service → Repository → Database
+Controller -> Service -> Repository -> Database
 
 ---
 
@@ -66,7 +60,7 @@ PostgreSQL (Neon)
 
 ## 1. Feature-Based Modularity
 
-Every feature is isolated into its own module.
+Each feature is isolated into its own module.
 
 Example:
 
@@ -86,7 +80,7 @@ Benefits:
 
 ---
 
-# 2. Separation of Concerns
+## 2. Separation of Concerns
 
 Each layer has a single responsibility.
 
@@ -101,7 +95,7 @@ Each layer has a single responsibility.
 
 ---
 
-# 3. Stateless Authentication
+## 3. Stateless Authentication
 
 Authentication uses JWT.
 
@@ -129,88 +123,9 @@ Advantages:
 
 ---
 
-# Module Responsibilities
-
-## Auth Module
-
-Handles:
-- login
-- registration
-- JWT generation
-- token validation
-
----
-
-## User Module
-
-Handles:
-- user accounts
-- profile information
-- identity management
-
----
-
-## Organization Module
-
-Handles:
-- organizations
-- ownership
-- organization management
-
----
-
-## Student Module
-
-Handles:
-- student entities
-- student enrollment context
-
----
-
-## Course Module
-
-Handles:
-- courses
-- course management
-- course metadata
-
----
-
-## Enrollment Module
-
-Handles:
-- course enrollments
-- student-course relationships
-
----
-
-## Resource Module
-
-Handles:
-- educational resources
-- course-resource linking
-
----
-
-## Quiz Module
-
-Handles:
-- quizzes
-- assessments
-
----
-
-## Certificate Module
-
-Handles:
-- certificate issuance
-- student certification
-
----
-
 # Package Structure
 
-src/main/java/com/nexora
+src/main/java/com/library/cohive
 │
 ├── config
 ├── common
@@ -399,18 +314,6 @@ Security layers:
 Base path:
 
 /api/v1
-
----
-
-# Response Format
-
-All APIs should return:
-
-{
-  "success": true,
-  "message": "Operation successful",
-  "data": {}
-}
 
 ---
 

@@ -87,9 +87,13 @@ POST /api/v1/auth/register
 {
   "name": "John Doe",
   "email": "john@example.com",
-  "password": "password123"
+  "password": "password123",
+  "role": "OWNER"
 }
 ```
+
+Notes:
+- `role` is optional and defaults to `STUDENT`.
 
 ### Response
 
@@ -97,6 +101,16 @@ POST /api/v1/auth/register
 {
   "success": true,
   "message": "User registered successfully",
+### Request
+
+```json
+{
+  "name": "Jane Doe",
+  "email": "jane@example.com",
+  "password": "password123"
+}
+```
+
   "data": {
     "token": "jwt_token"
   }
@@ -184,6 +198,26 @@ GET /api/v1/organizations/{id}
 ## Delete Organization
 
 DELETE /api/v1/organizations/{id}
+
+---
+
+## Add Student to Organization
+
+POST /api/v1/organizations/{id}/students
+
+### Request
+
+```json
+{
+  "studentId": "uuid"
+}
+```
+
+---
+
+## Get Organization Students
+
+GET /api/v1/organizations/{id}/students
 
 ---
 
@@ -295,6 +329,9 @@ POST /api/v1/resources
 }
 ```
 
+Supported `type` values:
+- LINK
+
 ---
 
 ## Get Course Resources
@@ -337,7 +374,8 @@ POST /api/v1/certificates
 ```json
 {
   "studentId": "uuid",
-  "courseId": "uuid"
+  "courseId": "uuid",
+  "title": "Certificate of Completion"
 }
 ```
 

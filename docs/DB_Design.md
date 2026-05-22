@@ -1,54 +1,74 @@
 Table users {
-  id int [pk]
+  id uuid [pk]
   name varchar
-  email varchar
+  email varchar [unique]
+  password_hash varchar
+  role varchar
+  created_at timestamptz
+  updated_at timestamptz
 }
 
 Table students {
-  id int [pk]
-  user_id int [unique]
+  id uuid [pk]
+  user_id uuid [unique]
+  created_at timestamptz
+  updated_at timestamptz
 }
 
 Table organizations {
-  id int [pk]
+  id uuid [pk]
   name varchar
-  owner_id int
+  owner_id uuid
+  created_at timestamptz
+  updated_at timestamptz
 }
 
 Table organization_students {
-  organization_id int
-  student_id int
+  organization_id uuid
+  student_id uuid
+  created_at timestamptz
 }
 
 Table courses {
-  id int [pk]
+  id uuid [pk]
   title varchar
-  organization_id int
+  description varchar
+  organization_id uuid
+  created_at timestamptz
+  updated_at timestamptz
 }
 
 Table course_students {
-  course_id int
-  student_id int
+  course_id uuid
+  student_id uuid
+  created_at timestamptz
 }
 
 Table quizzes {
-  id int [pk]
+  id uuid [pk]
   title varchar
-  course_id int
+  course_id uuid
+  created_at timestamptz
+  updated_at timestamptz
 }
 
 Table resources {
-  id int [pk]
+  id uuid [pk]
   title varchar
+  type varchar
   url varchar
-  course_id int
+  course_id uuid
+  created_at timestamptz
+  updated_at timestamptz
 }
 
 Table certificates {
-  id int [pk]
+  id uuid [pk]
   title varchar
-  course_id int
-  student_id int
+  course_id uuid
+  student_id uuid
+  created_at timestamptz
+  updated_at timestamptz
 }
 
 // Relationships
@@ -63,5 +83,3 @@ Ref: quizzes.course_id > courses.id
 Ref: resources.course_id > courses.id
 Ref: certificates.course_id > courses.id
 Ref: certificates.student_id > students.id
-
-Ref: "users"."id" < "users"."email"
