@@ -1,10 +1,10 @@
 # Architecture.md
 
-# Nexora Backend Architecture
+# CohiveBackend Architecture
 
 ## Overview
 
-Nexora is a modular SaaS Training & Course Management Platform built using:
+Cohiveis a modular SaaS Training & Course Management Platform built using:
 
 - Spring Boot
 - PostgreSQL (Neon)
