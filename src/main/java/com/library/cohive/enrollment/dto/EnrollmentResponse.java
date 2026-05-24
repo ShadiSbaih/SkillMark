@@ -1,6 +1,7 @@
 package com.library.cohive.enrollment.dto;
 
 import com.library.cohive.enrollment.entity.Enrollment;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -15,9 +16,15 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(name = "EnrollmentResponse", description = "Enrollment relationship returned by the API.")
 public class EnrollmentResponse {
+    @Schema(format = "uuid")
     private UUID courseId;
+
+    @Schema(format = "uuid")
     private UUID studentId;
+
+    @Schema(format = "date-time")
     private Instant createdAt;
 
     public static EnrollmentResponse fromEntity(Enrollment enrollment) {

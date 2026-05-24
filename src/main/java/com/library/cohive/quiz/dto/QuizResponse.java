@@ -1,6 +1,7 @@
 package com.library.cohive.quiz.dto;
 
 import com.library.cohive.quiz.entity.Quiz;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -15,10 +16,18 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(name = "QuizResponse", description = "Quiz details returned by the API.")
 public class QuizResponse {
+    @Schema(format = "uuid")
     private UUID id;
+
+    @Schema(example = "Java Quiz")
     private String title;
+
+    @Schema(format = "uuid")
     private UUID courseId;
+
+    @Schema(format = "date-time")
     private Instant createdAt;
 
     public static QuizResponse fromEntity(Quiz quiz) {

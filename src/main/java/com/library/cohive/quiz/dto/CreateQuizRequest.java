@@ -1,5 +1,6 @@
 package com.library.cohive.quiz.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -15,10 +16,13 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(name = "CreateQuizRequest", description = "Creates a quiz inside a course owned by the authenticated organization owner.")
 public class CreateQuizRequest {
     @NotBlank
+    @Schema(description = "Quiz title.", example = "Java Quiz")
     private String title;
 
     @NotNull
+    @Schema(description = "Course identifier that will own the quiz.", format = "uuid")
     private UUID courseId;
 }

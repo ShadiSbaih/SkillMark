@@ -14,6 +14,8 @@ class ResourceTypeTests {
     void documentTypeExposesExpectedMetadata() {
         assertEquals(ResourceCategory.LEARNING_CONTENT, ResourceType.DOCUMENT.getCategory());
         assertEquals("Document", ResourceType.DOCUMENT.getDisplayName());
+        assertEquals("Document-style material referenced through an external URL.", ResourceType.DOCUMENT.getDescription());
+        assertEquals("URL must be absolute and use one of: http, https", ResourceType.DOCUMENT.getValidationRule());
         assertTrue(ResourceType.DOCUMENT.isPreviewable());
         assertTrue(ResourceType.DOCUMENT.isDownloadable());
         assertTrue(ResourceType.DOCUMENT.getAllowedSchemes().contains("https"));

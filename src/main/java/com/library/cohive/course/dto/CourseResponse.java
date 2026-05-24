@@ -1,6 +1,7 @@
 package com.library.cohive.course.dto;
 
 import com.library.cohive.course.entity.Course;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -15,11 +16,21 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(name = "CourseResponse", description = "Course details returned by the API.")
 public class CourseResponse {
+    @Schema(format = "uuid")
     private UUID id;
+
+    @Schema(example = "Spring Boot Basics")
     private String title;
+
+    @Schema(example = "Backend fundamentals", nullable = true)
     private String description;
+
+    @Schema(format = "uuid")
     private UUID organizationId;
+
+    @Schema(format = "date-time")
     private Instant createdAt;
 
     public static CourseResponse fromEntity(Course course) {

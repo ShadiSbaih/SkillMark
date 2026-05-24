@@ -1,6 +1,7 @@
 package com.library.cohive.certificate.dto;
 
 import com.library.cohive.certificate.entity.Certificate;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -15,11 +16,21 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(name = "CertificateResponse", description = "Certificate details returned by the API.")
 public class CertificateResponse {
+    @Schema(format = "uuid")
     private UUID id;
+
+    @Schema(example = "Certificate of Completion")
     private String title;
+
+    @Schema(format = "uuid")
     private UUID courseId;
+
+    @Schema(format = "uuid")
     private UUID studentId;
+
+    @Schema(format = "date-time")
     private Instant createdAt;
 
     public static CertificateResponse fromEntity(Certificate certificate) {

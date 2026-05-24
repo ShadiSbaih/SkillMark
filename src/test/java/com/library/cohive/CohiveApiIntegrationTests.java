@@ -67,12 +67,22 @@ class CohiveApiIntegrationTests {
                 .andExpect(jsonPath("$.info.description", containsString("Versioning strategy: path-based versioning under `/api/v1`.")))
                 .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.type", is("http")))
                 .andExpect(jsonPath("$.components.responses.TooManyRequests.description", containsString("rate limit")))
+                .andExpect(jsonPath("$.paths['/api/v1/auth/register'].post.responses['201'].description", is("User account created and JWT token issued.")))
                 .andExpect(jsonPath("$.paths['/api/v1/courses'].get.summary", is("List courses")))
+                .andExpect(jsonPath("$.paths['/api/v1/courses'].get.responses['200'].description", containsString("organizationId")))
+                .andExpect(jsonPath("$.paths['/api/v1/courses'].get.responses['200'].headers['Cache-Control'].schema.example", is("private, max-age=60, must-revalidate")))
+                .andExpect(jsonPath("$.paths['/api/v1/courses'].get.responses['200'].headers['Vary'].schema.example", is("Authorization")))
                 .andExpect(jsonPath("$.paths['/api/v1/courses'].get.responses['429'].$ref", is("#/components/responses/TooManyRequests")))
                 .andExpect(jsonPath("$.paths['/api/v1/students'].post.summary", is("Create a student")))
+                .andExpect(jsonPath("$.paths['/api/v1/students'].post.responses['201'].headers['Cache-Control'].schema.example", is("no-store")))
                 .andExpect(jsonPath("$.paths['/api/v1/users/me'].get.summary", is("Get current user")))
                 .andExpect(jsonPath("$.paths['/api/v1/resources'].post.description", containsString("Supported types are LINK, ARTICLE, VIDEO, DOCUMENT, and REPOSITORY")))
+                .andExpect(jsonPath("$.components.schemas.RegisterRequest.properties.role.description", containsString("Defaults to `STUDENT`")))
+                .andExpect(jsonPath("$.components.schemas.CourseResponse.properties.organizationId.format", is("uuid")))
+                .andExpect(jsonPath("$.components.schemas.UserResponse.properties.role.description", containsString("authorization")))
                 .andExpect(jsonPath("$.components.schemas.ResourceResponse.properties.typeCategory.type", is("string")))
+                .andExpect(jsonPath("$.components.schemas.ResourceResponse.properties.typeDescription.example", is("Document-style material referenced through an external URL.")))
+                .andExpect(jsonPath("$.components.schemas.ResourceResponse.properties.typeValidationRule.example", is("URL must be absolute and use one of: http, https")))
                 .andExpect(jsonPath("$.components.schemas.CreateResourceRequest.properties.type.enum", hasItem("DOCUMENT")));
     }
 
@@ -104,7 +114,9 @@ class CohiveApiIntegrationTests {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.type", is("DOCUMENT")))
                 .andExpect(jsonPath("$.data.typeDisplayName", is("Document")))
+                .andExpect(jsonPath("$.data.typeDescription", is("Document-style material referenced through an external URL.")))
                 .andExpect(jsonPath("$.data.typeCategory", is("LEARNING_CONTENT")))
+                .andExpect(jsonPath("$.data.typeValidationRule", is("URL must be absolute and use one of: http, https")))
                 .andExpect(jsonPath("$.data.previewable", is(true)))
                 .andExpect(jsonPath("$.data.downloadable", is(true)))
                 .andExpect(jsonPath("$.data.allowedUrlSchemes", hasItem("https")));

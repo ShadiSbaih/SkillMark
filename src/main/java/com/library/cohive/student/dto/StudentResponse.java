@@ -1,6 +1,7 @@
 package com.library.cohive.student.dto;
 
 import com.library.cohive.student.entity.Student;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -15,11 +16,21 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(name = "StudentResponse", description = "Student profile details returned by the API.")
 public class StudentResponse {
+    @Schema(format = "uuid")
     private UUID id;
+
+    @Schema(format = "uuid")
     private UUID userId;
+
+    @Schema(example = "Jane Doe")
     private String name;
+
+    @Schema(example = "jane@example.com")
     private String email;
+
+    @Schema(format = "date-time")
     private Instant createdAt;
 
     public static StudentResponse fromEntity(Student student) {

@@ -91,7 +91,8 @@ public class OpenApiConfig {
 
 						appendSpecificationNotes(operation, method, path);
 						addStandardResponses(path, method, responses);
-						addResponseHeaders(responses);
+						addSuccessResponseDescriptions(path, method, responses);
+						addResponseHeaders(method, responses);
 					}));
 		};
 	}
@@ -154,7 +155,19 @@ public class OpenApiConfig {
 		responses.addApiResponse("500", new ApiResponse().$ref("#/components/responses/InternalServerError"));
 	}
 
-	private void addResponseHeaders(ApiResponses responses) {
+	private void addSuccessResponseDescriptions(String path, PathItem.HttpMethod method, ApiResponses responses) {
+		String successDescription = successDescriptionFor(path, method);
+		responses.forEach((status, response) -> {
+			if (response == null || !status.startsWith("2")) {
+				return;
+			}
+			if (response.getDescription() == null || response.getDescription().isBlank()) {
+				response.setDescription(successDescription);
+			}
+		});
+	}
+
+	private void addResponseHeaders(PathItem.HttpMethod method, ApiResponses responses) {
 		responses.forEach((status, response) -> {
 			if (response == null) {
 				return;
@@ -176,9 +189,61 @@ public class OpenApiConfig {
 			if (status.startsWith("2")) {
 				response.addHeaderObject("Cache-Control", new Header()
 						.description("Cache policy applied to the response.")
-						.schema(new StringSchema().example("private, max-age=60, must-revalidate")));
+						.schema(new StringSchema().example(cacheControlExample(method))));
+			}
+			if (status.startsWith("2") && method == PathItem.HttpMethod.GET) {
+				response.addHeaderObject("Vary", new Header()
+						.description("Cache key variance applied to authenticated GET responses.")
+						.schema(new StringSchema().example("Authorization")));
 			}
 		});
+	}
+
+	private String cacheControlExample(PathItem.HttpMethod method) {
+		return method == PathItem.HttpMethod.GET
+				? "private, max-age=60, must-revalidate"
+				: "no-store";
+	}
+
+	private String successDescriptionFor(String path, PathItem.HttpMethod method) {
+		return switch (path) {
+			case "/api/v1/auth/register" -> "User account created and JWT token issued.";
+			case "/api/v1/auth/login" -> "User authenticated and JWT token issued.";
+			case "/api/v1/auth/logout" -> "Logout acknowledged successfully.";
+			case "/api/v1/users/me" -> "Current authenticated user profile returned.";
+			case "/api/v1/organizations" -> method == PathItem.HttpMethod.GET
+					? "Paginated organization collection returned. Supports `page`, `size`, and `sort`."
+					: "Organization created successfully.";
+			case "/api/v1/courses" -> method == PathItem.HttpMethod.GET
+					? "Paginated course collection returned. Supports `page`, `size`, `sort`, and optional `organizationId` filtering."
+					: "Course created successfully.";
+			case "/api/v1/students" -> method == PathItem.HttpMethod.GET
+					? "Paginated student collection returned. Supports `page`, `size`, and `sort`."
+					: "Student created successfully.";
+			case "/api/v1/resources" -> "Resource created successfully.";
+			case "/api/v1/quizzes" -> "Quiz created successfully.";
+			case "/api/v1/enrollments" -> "Enrollment created successfully.";
+			case "/api/v1/certificates" -> "Certificate issued successfully.";
+			case "/api/v1/organizations/{id}/students" -> method == PathItem.HttpMethod.GET
+					? "Paginated organization student collection returned. Supports `page`, `size`, and `sort`."
+					: "Student added to organization successfully.";
+			default -> defaultSuccessDescription(path, method);
+		};
+	}
+
+	private String defaultSuccessDescription(String path, PathItem.HttpMethod method) {
+		if (method == PathItem.HttpMethod.GET) {
+			return path.contains("{")
+					? "Requested resource returned successfully."
+					: "Requested collection returned successfully.";
+		}
+		if (method == PathItem.HttpMethod.PUT) {
+			return "Resource updated successfully.";
+		}
+		if (method == PathItem.HttpMethod.DELETE) {
+			return "Resource deleted successfully.";
+		}
+		return "Operation completed successfully.";
 	}
 
 	private boolean isPublicOperation(String path, PathItem.HttpMethod method) {

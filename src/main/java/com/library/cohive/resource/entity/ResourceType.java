@@ -1,5 +1,7 @@
 package com.library.cohive.resource.entity;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.net.URI;
 import java.util.Set;
 
@@ -10,6 +12,7 @@ import java.util.Set;
  * constrains the accepted URI scheme and exposes metadata that can be reused by validation,
  * persistence, and API documentation layers.</p>
  */
+@Schema(description = "Supported URL-backed resource types for course learning materials.")
 public enum ResourceType {
 
     /**
@@ -133,6 +136,7 @@ public enum ResourceType {
      * Returns a human-readable summary of the URI requirements for this type.
      */
     public String getValidationRule() {
-        return "URL must be absolute and use one of: " + String.join(", ", allowedSchemes);
+        return "URL must be absolute and use one of: "
+                + allowedSchemes.stream().sorted().collect(java.util.stream.Collectors.joining(", "));
     }
 }

@@ -36,15 +36,25 @@ public class ResourceResponse {
     @Schema(example = "Document")
     private String typeDisplayName;
 
+    @Schema(example = "Document-style material referenced through an external URL.")
+    private String typeDescription;
+
+    @Schema(description = "Broad category used to group related resource types.", example = "LEARNING_CONTENT")
     private ResourceCategory typeCategory;
+
+    @Schema(example = "URL must be absolute and use one of: http, https")
+    private String typeValidationRule;
 
     @Schema(example = "https://docs.spring.io/spring-boot/reference/")
     private String url;
 
+    @Schema(description = "Whether the client can safely render an inline preview.", example = "true")
     private boolean previewable;
 
+    @Schema(description = "Whether the resource is expected to be downloadable.", example = "true")
     private boolean downloadable;
 
+    @Schema(description = "Allowed URI schemes for the selected type.")
     private List<String> allowedUrlSchemes;
 
     @Schema(format = "uuid")
@@ -62,7 +72,9 @@ public class ResourceResponse {
                 .title(resource.getTitle())
                 .type(resource.getType())
                 .typeDisplayName(resource.getType().getDisplayName())
+                .typeDescription(resource.getType().getDescription())
                 .typeCategory(resource.getType().getCategory())
+                .typeValidationRule(resource.getType().getValidationRule())
                 .url(resource.getUrl().toString())
                 .previewable(resource.getType().isPreviewable())
                 .downloadable(resource.getType().isDownloadable())

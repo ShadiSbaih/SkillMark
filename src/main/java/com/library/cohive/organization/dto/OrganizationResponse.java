@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import com.library.cohive.organization.entity.Organization;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,10 +17,18 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(name = "OrganizationResponse", description = "Organization details returned by the API.")
 public class OrganizationResponse {
+    @Schema(format = "uuid")
     private UUID id;
+
+    @Schema(example = "Tech Academy")
     private String name;
+
+    @Schema(format = "uuid")
     private UUID ownerId;
+
+    @Schema(format = "date-time")
     private Instant createdAt;
 
     public static OrganizationResponse fromEntity(Organization organization) {
