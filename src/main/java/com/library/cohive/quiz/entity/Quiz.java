@@ -1,6 +1,6 @@
 package com.library.cohive.quiz.entity;
 
-import com.library.cohive.common.entity.AuditableEntity;
+import com.library.cohive.common.entity.TimestampedEntity;
 import com.library.cohive.course.entity.Course;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -21,7 +21,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @Entity
 @Table(name = "quizzes")
-public class Quiz extends AuditableEntity {
+public class Quiz extends TimestampedEntity {
 
     @Column(nullable = false)
     private String title;

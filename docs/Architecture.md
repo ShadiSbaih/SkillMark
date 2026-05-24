@@ -85,7 +85,6 @@ resource
 quiz
 certificate
 file
-audit
 
 Shared packages:
 
@@ -345,13 +344,12 @@ certificates
 refresh_tokens
 email_verification_tokens
 password_reset_tokens
-audit_logs
 
 Design expectations:
 
 normalized relationships
 explicit ownership and membership checks
-audit timestamps on major entities
+created/updated timestamps on major entities
 status fields for soft deletion
 indexes for organization and user access patterns
 File Storage Architecture
@@ -401,7 +399,7 @@ organization owner manages quizzes
 students can only attempt published quizzes for enrolled courses
 correct answers must not be exposed before submission
 backend calculates score and pass/fail
-attempts are stored for audit/history
+attempts are stored for history/review
 Certificate Architecture
 
 Certificates are production-friendly and verifiable.
@@ -433,35 +431,6 @@ Rules:
 public endpoint exposes only safe certificate data
 certificates can be revoked
 duplicate active certificates for the same user and course are not allowed
-Audit Logging
-
-Sensitive actions should be logged.
-
-Recommended audit actions:
-
-USER_REGISTERED
-USER_LOGIN_FAILED
-ORGANIZATION_CREATED
-MEMBER_ADDED
-MEMBER_REMOVED
-COURSE_CREATED
-COURSE_DELETED
-RESOURCE_CREATED
-QUIZ_CREATED
-QUIZ_SUBMITTED
-CERTIFICATE_ISSUED
-CERTIFICATE_REVOKED
-
-Audit logs may include:
-
-actor user ID
-organization ID
-action
-entity type
-entity ID
-IP address
-user agent
-metadata JSON
 Development Principles
 
 Prefer:

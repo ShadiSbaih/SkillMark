@@ -42,7 +42,6 @@ The backend manages:
 - authentication tokens
 - account verification flows
 - password reset flows
-- audit logs
 
 The backend exposes REST APIs and enforces:
 
@@ -269,7 +268,6 @@ The backend system is responsible for:
 - returning standardized API responses
 - protecting organization boundaries
 - preventing cross-tenant data leakage
-- maintaining audit records for sensitive actions
 
 ---
 
@@ -880,7 +878,7 @@ Remove or disable an organization.
 
 * Only owner can delete/disable.
 * Organization is not hard-deleted if historical data exists.
-* Courses, certificates, and audit data remain consistent.
+* Courses and certificates remain consistent.
 
 ### Out of Boundary
 
@@ -1031,7 +1029,7 @@ Remove or disable a member from an organization.
 
 * Member is no longer active in organization.
 * Removed member can no longer access organization data.
-* Historical certificates and audit records remain intact.
+* Historical certificates remain intact.
 
 ### Out of Boundary
 
@@ -2187,59 +2185,6 @@ Revoke an issued certificate.
 
 ---
 
-# 14. Audit Log Scenarios
-
----
-
-## Scenario L1: Record Sensitive Action
-
-### Actor
-
-System
-
-### Goal
-
-Store audit logs for sensitive backend actions.
-
-### Trigger Actions
-
-Audit logs should be created for:
-
-* organization creation
-* organization deletion/disable
-* member added
-* member removed
-* course created
-* course updated
-* course deleted/archived
-* resource created
-* quiz published
-* certificate issued
-* certificate revoked
-* login failure
-* password reset completion
-
-### Success Criteria
-
-* Audit record is created.
-* Actor user ID is stored when available.
-* Organization ID is stored when applicable.
-* Action name is clear.
-* Metadata is safe and does not expose secrets.
-
-### Out of Boundary
-
-* Full SIEM integration
-* Advanced analytics dashboard
-
-### Test Ideas
-
-* Create organization and verify audit log.
-* Issue certificate and verify audit log.
-* Ensure password reset token is not stored in audit metadata.
-
----
-
 # 15. Authorization Service Expectations
 
 The backend should centralize repeated authorization logic in an AuthorizationService.
@@ -2439,15 +2384,6 @@ The backend should reject:
 * revoked certificate shows revoked status
 * owner revokes certificate
 * non-owner cannot revoke certificate
-
-## Audit
-
-* organization creation logs audit
-* member add/remove logs audit
-* certificate issue/revoke logs audit
-* sensitive tokens are not logged
-
----
 
 # 20. Notes for QA and Developers
 

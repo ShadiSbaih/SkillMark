@@ -1,6 +1,6 @@
 package com.library.cohive.organization.entity;
 
-import com.library.cohive.common.entity.AuditableEntity;
+import com.library.cohive.common.entity.TimestampedEntity;
 import com.library.cohive.user.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -21,7 +21,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @Entity
 @Table(name = "organizations")
-public class Organization extends AuditableEntity {
+public class Organization extends TimestampedEntity {
 
     @Column(nullable = false)
     private String name;

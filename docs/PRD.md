@@ -46,7 +46,6 @@ The backend provides APIs for:
 - password reset
 - email verification
 - refresh token session management
-- audit logging for sensitive actions
 
 The platform is intended for:
 
@@ -795,54 +794,6 @@ A revoked certificate must remain historically visible and verifiable as revoked
 
 ---
 
-# 4.9 Audit Logging
-
-## Description
-
-The system shall record important security and business actions.
-
-## Functional Requirements
-
-### FR-56: Audit Sensitive Actions
-
-The system shall record audit logs for sensitive actions, including:
-
-* organization creation
-* organization update
-* organization deletion or disabling
-* member added
-* member removed
-* course created
-* course updated
-* course archived or deleted
-* resource created
-* resource deleted
-* quiz published
-* certificate issued
-* certificate revoked
-* login failures
-* password reset completion
-
----
-
-### FR-57: Audit Metadata
-
-Audit logs may include:
-
-* actorUserId
-* organizationId
-* action
-* entityType
-* entityId
-* ipAddress
-* userAgent
-* metadata
-* createdAt
-
-Audit metadata must not include plaintext passwords, raw tokens, or secrets.
-
----
-
 # 5. Non-Functional Requirements
 
 ---
@@ -1022,7 +973,6 @@ Recommended modules:
 * resource
 * quiz
 * certificate
-* audit
 * common
 * security
 * config
@@ -1250,7 +1200,6 @@ The system contains the following primary entities:
 * RefreshToken
 * EmailVerificationToken
 * PasswordResetToken
-* AuditLog
 
 The system should not use these old entities as primary design elements:
 
@@ -1535,25 +1484,6 @@ Important fields:
 
 ---
 
-## AuditLog
-
-Represents sensitive action history.
-
-Important fields:
-
-* id
-* actorUserId
-* organizationId
-* action
-* entityType
-* entityId
-* ipAddress
-* userAgent
-* metadata
-* createdAt
-
----
-
 # 7.3 Relationships
 
 * A User may own many Organizations.
@@ -1579,7 +1509,6 @@ Important fields:
 * A User may have many RefreshTokens.
 * A User may have many EmailVerificationTokens.
 * A User may have many PasswordResetTokens.
-* AuditLogs may reference Users and Organizations.
 
 ---
 
@@ -1841,16 +1770,6 @@ Responsibilities:
 * file storage abstraction
 * upload handling
 * storage provider independence
-
----
-
-## AuditLog
-
-Responsibilities:
-
-* sensitive action history
-* traceability
-* compliance support
 
 ---
 

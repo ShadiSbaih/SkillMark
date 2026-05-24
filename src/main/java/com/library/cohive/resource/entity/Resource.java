@@ -1,6 +1,6 @@
 package com.library.cohive.resource.entity;
 
-import com.library.cohive.common.entity.AuditableEntity;
+import com.library.cohive.common.entity.TimestampedEntity;
 import com.library.cohive.course.entity.Course;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -26,7 +26,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @Entity
 @Table(name = "resources")
-public class Resource extends AuditableEntity {
+public class Resource extends TimestampedEntity {
 
     @NotBlank
     @Size(max = 255)

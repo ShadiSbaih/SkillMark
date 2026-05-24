@@ -120,6 +120,5 @@ Current phase:
 * refresh tokens
 * email verification
 * password reset
-* audit logging
 
 

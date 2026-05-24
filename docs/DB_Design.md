@@ -294,31 +294,6 @@ Table password_reset_tokens {
   }
 }
 
-Table audit_logs {
-  id uuid [pk]
-
-  actor_user_id uuid
-  organization_id uuid
-
-  action varchar [not null]
-  entity_type varchar
-  entity_id uuid
-
-  ip_address varchar
-  user_agent text
-  metadata jsonb
-
-  created_at timestamptz [not null]
-
-  indexes {
-    actor_user_id
-    organization_id
-    action
-    created_at
-  }
-}
-
-
 // Relationships
 
 Ref: organizations.owner_id > users.id
@@ -355,6 +330,3 @@ Ref: refresh_tokens.replaced_by_token_id > refresh_tokens.id
 Ref: email_verification_tokens.user_id > users.id
 
 Ref: password_reset_tokens.user_id > users.id
-
-Ref: audit_logs.actor_user_id > users.id
-Ref: audit_logs.organization_id > organizations.id

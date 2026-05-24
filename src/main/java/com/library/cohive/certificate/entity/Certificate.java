@@ -1,6 +1,6 @@
 package com.library.cohive.certificate.entity;
 
-import com.library.cohive.common.entity.AuditableEntity;
+import com.library.cohive.common.entity.TimestampedEntity;
 import com.library.cohive.course.entity.Course;
 import com.library.cohive.student.entity.Student;
 import jakarta.persistence.Column;
@@ -29,7 +29,7 @@ import lombok.Setter;
                 columnNames = {"course_id", "student_id"}
         )
 )
-public class Certificate extends AuditableEntity {
+public class Certificate extends TimestampedEntity {
 
     @Column(nullable = false)
     private String title;

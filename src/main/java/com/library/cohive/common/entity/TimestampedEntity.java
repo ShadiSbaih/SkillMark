@@ -16,7 +16,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @MappedSuperclass
-public abstract class AuditableEntity {
+public abstract class TimestampedEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
