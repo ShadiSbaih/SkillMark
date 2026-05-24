@@ -11,16 +11,22 @@ public record CertificateResponse(
         String certificateNumber,
         String verificationCode,
         UUID organizationId,
+        UUID programId,
         UUID quizId,
         UUID userId,
         UUID attemptId,
         String title,
         String participantNameSnapshot,
         String quizTitleSnapshot,
+        String programTitleSnapshot,
         String organizationNameSnapshot,
         CertificateStatus status,
         Instant issuedAt,
-        Instant revokedAt
+        Instant revokedAt,
+        String pdfUrl,
+        String pdfObjectKey,
+        String qrCodeUrl,
+        String qrCodeObjectKey
 ) {
     public static CertificateResponse from(Certificate certificate) {
         return new CertificateResponse(
@@ -28,16 +34,22 @@ public record CertificateResponse(
                 certificate.getCertificateNumber(),
                 certificate.getVerificationCode(),
                 certificate.getOrganization().getId(),
+                certificate.getProgram().getId(),
                 certificate.getQuiz().getId(),
                 certificate.getUser().getId(),
                 certificate.getAttempt().getId(),
                 certificate.getTitle(),
                 certificate.getParticipantNameSnapshot(),
                 certificate.getQuizTitleSnapshot(),
+                certificate.getProgramTitleSnapshot(),
                 certificate.getOrganizationNameSnapshot(),
                 certificate.getStatus(),
                 certificate.getIssuedAt(),
-                certificate.getRevokedAt()
+                certificate.getRevokedAt(),
+                certificate.getPdfUrl(),
+                certificate.getPdfObjectKey(),
+                certificate.getQrCodeUrl(),
+                certificate.getQrCodeObjectKey()
         );
     }
 }

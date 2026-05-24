@@ -8,6 +8,7 @@ import com.library.Skillmark.certificate.repository.*;
 import com.library.Skillmark.certificate.service.*;
 import com.library.Skillmark.attempt.entity.QuizAttempt;
 import com.library.Skillmark.organization.entity.Organization;
+import com.library.Skillmark.program.entity.Program;
 import com.library.Skillmark.quiz.entity.Quiz;
 import com.library.Skillmark.user.entity.User;
 import jakarta.persistence.*;
@@ -33,6 +34,10 @@ public class Certificate {
     private Organization organization;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "program_id", nullable = false)
+    private Program program;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "quiz_id", nullable = false)
     private Quiz quiz;
 
@@ -53,6 +58,9 @@ public class Certificate {
     @Column(name = "quiz_title_snapshot", nullable = false)
     private String quizTitleSnapshot;
 
+    @Column(name = "program_title_snapshot", nullable = false)
+    private String programTitleSnapshot;
+
     @Column(name = "organization_name_snapshot", nullable = false, length = 200)
     private String organizationNameSnapshot;
 
@@ -71,6 +79,15 @@ public class Certificate {
 
     @Column(name = "pdf_url", columnDefinition = "TEXT")
     private String pdfUrl;
+
+    @Column(name = "pdf_object_key", columnDefinition = "TEXT")
+    private String pdfObjectKey;
+
+    @Column(name = "qr_code_url", columnDefinition = "TEXT")
+    private String qrCodeUrl;
+
+    @Column(name = "qr_code_object_key", columnDefinition = "TEXT")
+    private String qrCodeObjectKey;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -100,6 +117,8 @@ public class Certificate {
     public void setVerificationCode(String verificationCode) { this.verificationCode = verificationCode; }
     public Organization getOrganization() { return organization; }
     public void setOrganization(Organization organization) { this.organization = organization; }
+    public Program getProgram() { return program; }
+    public void setProgram(Program program) { this.program = program; }
     public Quiz getQuiz() { return quiz; }
     public void setQuiz(Quiz quiz) { this.quiz = quiz; }
     public User getUser() { return user; }
@@ -112,6 +131,8 @@ public class Certificate {
     public void setParticipantNameSnapshot(String participantNameSnapshot) { this.participantNameSnapshot = participantNameSnapshot; }
     public String getQuizTitleSnapshot() { return quizTitleSnapshot; }
     public void setQuizTitleSnapshot(String quizTitleSnapshot) { this.quizTitleSnapshot = quizTitleSnapshot; }
+    public String getProgramTitleSnapshot() { return programTitleSnapshot; }
+    public void setProgramTitleSnapshot(String programTitleSnapshot) { this.programTitleSnapshot = programTitleSnapshot; }
     public String getOrganizationNameSnapshot() { return organizationNameSnapshot; }
     public void setOrganizationNameSnapshot(String organizationNameSnapshot) { this.organizationNameSnapshot = organizationNameSnapshot; }
     public CertificateStatus getStatus() { return status; }
@@ -121,4 +142,12 @@ public class Certificate {
     public void setRevokedAt(Instant revokedAt) { this.revokedAt = revokedAt; }
     public String getRevokeReason() { return revokeReason; }
     public void setRevokeReason(String revokeReason) { this.revokeReason = revokeReason; }
+    public String getPdfUrl() { return pdfUrl; }
+    public void setPdfUrl(String pdfUrl) { this.pdfUrl = pdfUrl; }
+    public String getPdfObjectKey() { return pdfObjectKey; }
+    public void setPdfObjectKey(String pdfObjectKey) { this.pdfObjectKey = pdfObjectKey; }
+    public String getQrCodeUrl() { return qrCodeUrl; }
+    public void setQrCodeUrl(String qrCodeUrl) { this.qrCodeUrl = qrCodeUrl; }
+    public String getQrCodeObjectKey() { return qrCodeObjectKey; }
+    public void setQrCodeObjectKey(String qrCodeObjectKey) { this.qrCodeObjectKey = qrCodeObjectKey; }
 }

@@ -16,5 +16,7 @@ public interface CertificateRepository extends JpaRepository<Certificate, UUID> 
     boolean existsByQuizIdAndUserIdAndStatus(UUID quizId, UUID userId, CertificateStatus status);
     List<Certificate> findByUserId(UUID userId);
     List<Certificate> findByOrganizationId(UUID organizationId);
+    long countByOrganizationId(UUID organizationId);
+    long countByProgramId(UUID programId);
     Optional<Certificate> findByVerificationCode(String verificationCode);
 }

@@ -5,6 +5,11 @@ import com.library.Skillmark.audit.service.AuditLogService;
 import com.library.Skillmark.common.exception.NotFoundException;
 import com.library.Skillmark.common.response.PageResponse;
 import com.library.Skillmark.organization.repository.OrganizationRepository;
+import com.library.Skillmark.enrollment.enums.EnrollmentStatus;
+import com.library.Skillmark.enrollment.repository.ProgramEnrollmentRepository;
+import com.library.Skillmark.membership.enums.MembershipRole;
+import com.library.Skillmark.membership.enums.MembershipStatus;
+import com.library.Skillmark.membership.repository.OrganizationMembershipRepository;
 import com.library.Skillmark.program.dto.CreateProgramRequest;
 import com.library.Skillmark.program.dto.ProgramResponse;
 import com.library.Skillmark.program.dto.UpdateProgramRequest;
@@ -23,15 +28,21 @@ import java.util.UUID;
 public class ProgramService {
     private final ProgramRepository programRepository;
     private final OrganizationRepository organizationRepository;
+    private final ProgramEnrollmentRepository enrollmentRepository;
+    private final OrganizationMembershipRepository membershipRepository;
     private final AuthorizationService authorizationService;
     private final AuditLogService auditLogService;
 
     public ProgramService(ProgramRepository programRepository,
                           OrganizationRepository organizationRepository,
+                          ProgramEnrollmentRepository enrollmentRepository,
+                          OrganizationMembershipRepository membershipRepository,
                           AuthorizationService authorizationService,
                           AuditLogService auditLogService) {
         this.programRepository = programRepository;
         this.organizationRepository = organizationRepository;
+        this.enrollmentRepository = enrollmentRepository;
+        this.membershipRepository = membershipRepository;
         this.authorizationService = authorizationService;
         this.auditLogService = auditLogService;
     }
@@ -52,7 +63,15 @@ public class ProgramService {
     @Transactional(readOnly = true)
     public PageResponse<ProgramResponse> list(UUID organizationId, UUID actorId, int page, int size) {
         authorizationService.ensureOrganizationMember(organizationId, actorId);
-        return PageResponse.fromList(programRepository.findByOrganizationIdAndStatusNot(organizationId, ProgramStatus.DELETED).stream()
+        boolean owner = membershipRepository.existsByOrganizationIdAndUserIdAndRoleAndStatus(
+                organizationId, actorId, MembershipRole.OWNER, MembershipStatus.ACTIVE);
+        var programs = owner
+                ? programRepository.findByOrganizationIdAndStatusNot(organizationId, ProgramStatus.DELETED).stream()
+                : enrollmentRepository.findByUserIdAndStatus(actorId, EnrollmentStatus.ACTIVE).stream()
+                .map(enrollment -> enrollment.getProgram())
+                .filter(program -> program.getOrganization().getId().equals(organizationId))
+                .filter(program -> program.getStatus() != ProgramStatus.DELETED);
+        return PageResponse.fromList(programs
                 .sorted(Comparator.comparing(Program::getCreatedAt).reversed())
                 .map(ProgramResponse::from)
                 .toList(), page, size);

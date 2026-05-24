@@ -70,7 +70,7 @@ public class QuizAttemptService {
         if (!quiz.isPublished() || quiz.getStatus() != QuizStatus.PUBLISHED) {
             throw new BusinessRuleException("Quiz is not open for attempts");
         }
-        authorizationService.ensureActiveParticipantMember(quiz.getOrganization().getId(), userId);
+        authorizationService.ensureProgramEnrollment(quiz.getProgram().getId(), userId);
         if (attemptRepository.existsByQuizIdAndUserIdAndStatus(quizId, userId, AttemptStatus.IN_PROGRESS)) {
             throw new ConflictException("An in-progress attempt already exists for this quiz");
         }
@@ -133,7 +133,7 @@ public class QuizAttemptService {
         attempt.setPassed(passed);
         attempt.setStatus(AttemptStatus.SUBMITTED);
         attempt.setSubmittedAt(Instant.now());
-        auditLogService.record(userId, attempt.getQuiz().getOrganization().getId(), AuditAction.ATTEMPT_SUBMITTED, "QuizAttempt", attemptId);
+        auditLogService.record(userId, attempt.getQuiz().getProgram().getOrganization().getId(), AuditAction.ATTEMPT_SUBMITTED, "QuizAttempt", attemptId);
 
         var certificate = certificateService.issueAutomaticallyIfEligible(attempt);
         return new AttemptResultResponse(attempt.getId(), awarded, percentage, passed, attempt.getStatus(),

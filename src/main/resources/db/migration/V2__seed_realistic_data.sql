@@ -1,3 +1,3 @@
 -- Seed data intentionally omitted for the Skillmark MVP schema.
--- Create data through the API so refresh tokens, memberships, attempts, and certificates
+-- Create data through the API so Clerk users, memberships, attempts, and certificates
 -- are generated through the same business rules used in production.

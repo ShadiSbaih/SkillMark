@@ -3,6 +3,11 @@ package com.library.Skillmark.stats.dto;
 public record OrganizationStatsResponse(
         long totalPrograms,
         long totalMembers,
-        long totalCertificates
+        long totalEnrolledParticipants,
+        long totalQuizzes,
+        long totalAttempts,
+        long totalCertificates,
+        double averageScore,
+        double passRate
 ) {
 }

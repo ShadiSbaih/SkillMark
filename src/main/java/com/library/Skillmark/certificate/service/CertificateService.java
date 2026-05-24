@@ -63,10 +63,10 @@ public class CertificateService {
         if (certificateRepository.existsByQuizIdAndUserIdAndStatus(quiz.getId(), attempt.getUser().getId(), CertificateStatus.ACTIVE)) {
             return Optional.empty();
         }
-        authorizationService.ensureActiveParticipantMember(quiz.getOrganization().getId(), attempt.getUser().getId());
+        authorizationService.ensureProgramEnrollment(quiz.getProgram().getId(), attempt.getUser().getId());
         Certificate certificate = createCertificate(quiz, attempt.getUser(), attempt,
                 quiz.getTitle() + " Certificate");
-        auditLogService.record(attempt.getUser().getId(), quiz.getOrganization().getId(), AuditAction.CERTIFICATE_ISSUED,
+        auditLogService.record(attempt.getUser().getId(), quiz.getProgram().getOrganization().getId(), AuditAction.CERTIFICATE_ISSUED,
                 "Certificate", certificate.getId());
         return Optional.of(certificate);
     }
@@ -74,7 +74,7 @@ public class CertificateService {
     @Transactional
     public CertificateResponse issue(IssueCertificateRequest request, UUID actorId) {
         Quiz quiz = quizRepository.findById(request.quizId()).orElseThrow(() -> new NotFoundException("Quiz not found"));
-        authorizationService.ensureOrganizationOwner(quiz.getOrganization().getId(), actorId);
+        authorizationService.ensureOrganizationOwner(quiz.getProgram().getOrganization().getId(), actorId);
         if (!quiz.isCertificateEnabled() || quiz.getCertificateIssueMode() != CertificateIssueMode.MANUAL) {
             throw new BusinessRuleException("Manual certificate issuing is available only for MANUAL certificate quizzes");
         }
@@ -83,7 +83,7 @@ public class CertificateService {
         validateEligibility(quiz, user.getId(), attempt);
         Certificate certificate = createCertificate(quiz, user, attempt,
                 request.title() == null || request.title().isBlank() ? quiz.getTitle() + " Certificate" : request.title().trim());
-        auditLogService.record(actorId, quiz.getOrganization().getId(), AuditAction.CERTIFICATE_ISSUED, "Certificate", certificate.getId());
+        auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.CERTIFICATE_ISSUED, "Certificate", certificate.getId());
         return CertificateResponse.from(certificate);
     }
 
@@ -133,7 +133,7 @@ public class CertificateService {
     }
 
     private void validateEligibility(Quiz quiz, UUID userId, QuizAttempt attempt) {
-        authorizationService.ensureActiveParticipantMember(quiz.getOrganization().getId(), userId);
+        authorizationService.ensureProgramEnrollment(quiz.getProgram().getId(), userId);
         if (!attempt.getUser().getId().equals(userId) || !attempt.getQuiz().getId().equals(quiz.getId())) {
             throw new BusinessRuleException("Attempt does not belong to the target user and quiz");
         }
@@ -150,14 +150,16 @@ public class CertificateService {
         Certificate certificate = new Certificate();
         certificate.setCertificateNumber(nextCertificateNumber());
         certificate.setVerificationCode(TokenGenerator.randomToken());
-        certificate.setOrganization(quiz.getOrganization());
+        certificate.setOrganization(quiz.getProgram().getOrganization());
+        certificate.setProgram(quiz.getProgram());
         certificate.setQuiz(quiz);
         certificate.setUser(user);
         certificate.setAttempt(attempt);
         certificate.setTitle(title);
         certificate.setParticipantNameSnapshot(user.getName());
         certificate.setQuizTitleSnapshot(quiz.getTitle());
-        certificate.setOrganizationNameSnapshot(quiz.getOrganization().getName());
+        certificate.setProgramTitleSnapshot(quiz.getProgram().getTitle());
+        certificate.setOrganizationNameSnapshot(quiz.getProgram().getOrganization().getName());
         return certificateRepository.save(certificate);
     }
 

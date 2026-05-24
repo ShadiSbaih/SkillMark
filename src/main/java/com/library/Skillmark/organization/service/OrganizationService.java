@@ -52,6 +52,7 @@ public class OrganizationService {
         Organization organization = new Organization();
         organization.setName(request.name().trim());
         organization.setDescription(request.description());
+        organization.setLogoUrl(request.logoUrl());
         organization.setOwner(owner);
         Organization saved = organizationRepository.save(organization);
 
@@ -91,6 +92,7 @@ public class OrganizationService {
                 .orElseThrow(() -> new NotFoundException("Organization not found"));
         organization.setName(request.name().trim());
         organization.setDescription(request.description());
+        organization.setLogoUrl(request.logoUrl());
         auditLogService.record(userId, organizationId, AuditAction.ORGANIZATION_UPDATED, "Organization", organizationId);
         return OrganizationResponse.from(organization);
     }

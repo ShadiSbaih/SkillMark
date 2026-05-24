@@ -5,6 +5,7 @@ import com.library.Skillmark.config.OpenApiConfig;
 import com.library.Skillmark.security.SecurityUtil;
 import com.library.Skillmark.stats.dto.OrganizationStatsResponse;
 import com.library.Skillmark.stats.dto.ProgramStatsResponse;
+import com.library.Skillmark.stats.dto.QuizStatsResponse;
 import com.library.Skillmark.stats.service.StatsService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -33,5 +34,11 @@ public class StatsController {
     ApiResponse<ProgramStatsResponse> programStats(@PathVariable UUID programId, Authentication authentication) {
         return ApiResponse.success("Program stats retrieved successfully",
                 statsService.programStats(programId, SecurityUtil.userId(authentication)));
+    }
+
+    @GetMapping("/api/v1/quizzes/{quizId}/stats")
+    ApiResponse<QuizStatsResponse> quizStats(@PathVariable UUID quizId, Authentication authentication) {
+        return ApiResponse.success("Quiz stats retrieved successfully",
+                statsService.quizStats(quizId, SecurityUtil.userId(authentication)));
     }
 }

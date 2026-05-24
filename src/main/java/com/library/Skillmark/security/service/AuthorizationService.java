@@ -90,18 +90,18 @@ public class AuthorizationService {
 
     public Quiz ensureQuizOwner(UUID quizId, UUID userId) {
         Quiz quiz = quizRepository.findById(quizId).orElseThrow(() -> new NotFoundException("Quiz not found"));
-        ensureOrganizationOwner(quiz.getOrganization().getId(), userId);
+        ensureOrganizationOwner(quiz.getProgram().getOrganization().getId(), userId);
         return quiz;
     }
 
     public Quiz ensureQuizAccessible(UUID quizId, UUID userId) {
         Quiz quiz = quizRepository.findById(quizId).orElseThrow(() -> new NotFoundException("Quiz not found"));
-        UUID organizationId = quiz.getOrganization().getId();
+        UUID organizationId = quiz.getProgram().getOrganization().getId();
         if (membershipRepository.existsByOrganizationIdAndUserIdAndRoleAndStatus(
                 organizationId, userId, MembershipRole.OWNER, MembershipStatus.ACTIVE)) {
             return quiz;
         }
-        ensureOrganizationMember(organizationId, userId);
+        ensureProgramEnrollment(quiz.getProgram().getId(), userId);
         if (!quiz.isPublished() || quiz.getStatus() != QuizStatus.PUBLISHED) {
             throw new ForbiddenException("Quiz is not available");
         }
@@ -123,7 +123,7 @@ public class AuthorizationService {
         if (attempt.getUser().getId().equals(userId)) {
             return attempt;
         }
-        ensureOrganizationOwner(attempt.getQuiz().getOrganization().getId(), userId);
+        ensureOrganizationOwner(attempt.getQuiz().getProgram().getOrganization().getId(), userId);
         return attempt;
     }
 

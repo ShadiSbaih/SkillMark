@@ -22,7 +22,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/quizzes")
 @Tag(name = "Quizzes")
 @SecurityRequirement(name = OpenApiConfig.BEARER_AUTH)
 public class QuizController {
@@ -32,15 +31,16 @@ public class QuizController {
         this.quizService = quizService;
     }
 
-    @PostMapping
-    @Operation(summary = "Create quiz", description = "Creates a draft quiz in an owned organization.")
-    ResponseEntity<ApiResponse<QuizResponse>> create(@Valid @RequestBody CreateQuizRequest request,
+    @PostMapping("/api/v1/programs/{programId}/quizzes")
+    @Operation(summary = "Create quiz", description = "Creates a draft quiz in an owned program.")
+    ResponseEntity<ApiResponse<QuizResponse>> create(@PathVariable UUID programId,
+                                                     @Valid @RequestBody CreateQuizRequest request,
                                                      Authentication authentication) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Quiz created successfully",
-                quizService.create(request, SecurityUtil.userId(authentication))));
+                quizService.create(programId, request, SecurityUtil.userId(authentication))));
     }
 
-    @GetMapping
+    @GetMapping("/api/v1/quizzes")
     @Operation(summary = "List accessible quizzes", description = "Owners see organization quizzes; participants see published quizzes in organizations where they are active members.")
     ApiResponse<PageResponse<QuizResponse>> list(Authentication authentication,
                                                  @RequestParam(defaultValue = "0") int page,
@@ -49,23 +49,23 @@ public class QuizController {
                 quizService.listAccessible(SecurityUtil.userId(authentication), page, size));
     }
 
-    @GetMapping("/organization/{organizationId}")
-    @Operation(summary = "List organization quizzes", description = "Owners see all non-deleted quizzes; participants see only published quizzes.")
-    ApiResponse<PageResponse<QuizResponse>> listByOrganization(@PathVariable UUID organizationId,
-                                                               Authentication authentication,
-                                                               @RequestParam(defaultValue = "0") int page,
-                                                               @RequestParam(defaultValue = "10") int size) {
+    @GetMapping("/api/v1/programs/{programId}/quizzes")
+    @Operation(summary = "List program quizzes", description = "Owners see all non-deleted quizzes; participants see only published quizzes if enrolled.")
+    ApiResponse<PageResponse<QuizResponse>> listByProgram(@PathVariable UUID programId,
+                                                          Authentication authentication,
+                                                          @RequestParam(defaultValue = "0") int page,
+                                                          @RequestParam(defaultValue = "10") int size) {
         return ApiResponse.success("Quizzes retrieved successfully",
-                quizService.listByOrganization(organizationId, SecurityUtil.userId(authentication), page, size));
+                quizService.listByProgram(programId, SecurityUtil.userId(authentication), page, size));
     }
 
-    @GetMapping("/{quizId}")
+    @GetMapping("/api/v1/quizzes/{quizId}")
     @Operation(summary = "Get quiz", description = "Returns quiz details for the organization owner or active member when the quiz is published.")
     ApiResponse<QuizResponse> get(@PathVariable UUID quizId, Authentication authentication) {
         return ApiResponse.success("Quiz retrieved successfully", quizService.get(quizId, SecurityUtil.userId(authentication)));
     }
 
-    @PutMapping("/{quizId}")
+    @PutMapping("/api/v1/quizzes/{quizId}")
     @Operation(summary = "Update quiz", description = "Updates quiz settings. After attempts exist, only title and description can change.")
     ApiResponse<QuizResponse> update(@PathVariable UUID quizId,
                                      @Valid @RequestBody UpdateQuizRequest request,
@@ -74,14 +74,14 @@ public class QuizController {
                 quizService.update(quizId, request, SecurityUtil.userId(authentication)));
     }
 
-    @DeleteMapping("/{quizId}")
+    @DeleteMapping("/api/v1/quizzes/{quizId}")
     @Operation(summary = "Archive quiz", description = "Archives a quiz using a soft deletion policy. Requires owner permission.")
     ApiResponse<Void> archive(@PathVariable UUID quizId, Authentication authentication) {
         quizService.archive(quizId, SecurityUtil.userId(authentication));
         return ApiResponse.success("Quiz archived successfully", null);
     }
 
-    @PostMapping("/{quizId}/questions")
+    @PostMapping("/api/v1/quizzes/{quizId}/questions")
     @Operation(summary = "Add quiz question", description = "Adds a SINGLE_CHOICE question with options. Exactly one option must be correct.")
     ResponseEntity<ApiResponse<QuestionResponse>> addQuestion(@PathVariable UUID quizId,
                                                               @Valid @RequestBody CreateQuestionRequest request,
@@ -90,7 +90,7 @@ public class QuizController {
                 quizService.addQuestion(quizId, request, SecurityUtil.userId(authentication))));
     }
 
-    @PostMapping("/{quizId}/publish")
+    @PostMapping("/api/v1/quizzes/{quizId}/publish")
     @Operation(summary = "Publish quiz", description = "Publishes a quiz after validating that it has valid questions, options, settings, and exactly one correct option per SINGLE_CHOICE question.")
     ApiResponse<QuizResponse> publish(@PathVariable UUID quizId, Authentication authentication) {
         return ApiResponse.success("Quiz published successfully", quizService.publish(quizId, SecurityUtil.userId(authentication)));

@@ -20,6 +20,10 @@ import com.library.Skillmark.membership.enums.*;
 import com.library.Skillmark.membership.repository.*;
 import com.library.Skillmark.membership.service.*;
 import com.library.Skillmark.organization.repository.OrganizationRepository;
+import com.library.Skillmark.enrollment.enums.EnrollmentStatus;
+import com.library.Skillmark.enrollment.repository.ProgramEnrollmentRepository;
+import com.library.Skillmark.program.entity.Program;
+import com.library.Skillmark.program.repository.ProgramRepository;
 import com.library.Skillmark.security.service.AuthorizationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,7 +37,8 @@ public class QuizService {
     private final QuizQuestionRepository questionRepository;
     private final QuizOptionRepository optionRepository;
     private final QuizAttemptRepository attemptRepository;
-    private final OrganizationRepository organizationRepository;
+    private final ProgramRepository programRepository;
+    private final ProgramEnrollmentRepository enrollmentRepository;
     private final OrganizationMembershipRepository membershipRepository;
     private final AuthorizationService authorizationService;
     private final AuditLogService auditLogService;
@@ -42,7 +47,8 @@ public class QuizService {
                        QuizQuestionRepository questionRepository,
                        QuizOptionRepository optionRepository,
                        QuizAttemptRepository attemptRepository,
-                       OrganizationRepository organizationRepository,
+                       ProgramRepository programRepository,
+                       ProgramEnrollmentRepository enrollmentRepository,
                        OrganizationMembershipRepository membershipRepository,
                        AuthorizationService authorizationService,
                        AuditLogService auditLogService) {
@@ -50,20 +56,19 @@ public class QuizService {
         this.questionRepository = questionRepository;
         this.optionRepository = optionRepository;
         this.attemptRepository = attemptRepository;
-        this.organizationRepository = organizationRepository;
+        this.programRepository = programRepository;
+        this.enrollmentRepository = enrollmentRepository;
         this.membershipRepository = membershipRepository;
         this.authorizationService = authorizationService;
         this.auditLogService = auditLogService;
     }
 
     @Transactional
-    public QuizResponse create(CreateQuizRequest request, UUID actorId) {
-        authorizationService.ensureOrganizationOwner(request.organizationId(), actorId);
+    public QuizResponse create(UUID programId, CreateQuizRequest request, UUID actorId) {
+        Program program = authorizationService.ensureProgramOwner(programId, actorId);
         validateCertificateMode(request.certificateEnabled(), request.certificateIssueMode());
-        var organization = organizationRepository.findById(request.organizationId())
-                .orElseThrow(() -> new NotFoundException("Organization not found"));
         Quiz quiz = new Quiz();
-        quiz.setOrganization(organization);
+        quiz.setProgram(program);
         quiz.setTitle(request.title().trim());
         quiz.setDescription(request.description());
         quiz.setPassingScore(request.passingScore());
@@ -72,30 +77,39 @@ public class QuizService {
         quiz.setCertificateEnabled(Boolean.TRUE.equals(request.certificateEnabled()));
         quiz.setCertificateIssueMode(mode(request.certificateEnabled(), request.certificateIssueMode()));
         Quiz saved = quizRepository.save(quiz);
-        auditLogService.record(actorId, request.organizationId(), AuditAction.QUIZ_CREATED, "Quiz", saved.getId());
+        auditLogService.record(actorId, program.getOrganization().getId(), AuditAction.QUIZ_CREATED, "Quiz", saved.getId());
         return toResponse(saved, true);
     }
 
     @Transactional(readOnly = true)
     public PageResponse<QuizResponse> listAccessible(UUID actorId, int page, int size) {
         var quizzes = membershipRepository.findByUserIdAndStatus(actorId, MembershipStatus.ACTIVE).stream()
-                .flatMap(membership -> quizzesForMembership(membership).stream())
+                .flatMap(membership -> quizzesForOwnerMembership(membership).stream())
+                .distinct()
+                .map(quiz -> toResponse(quiz, true))
+                .toList();
+        var enrolledQuizzes = enrollmentRepository.findByUserIdAndStatus(actorId, EnrollmentStatus.ACTIVE).stream()
+                .flatMap(enrollment -> quizRepository.findByProgramIdAndPublishedTrueAndStatus(
+                        enrollment.getProgram().getId(), QuizStatus.PUBLISHED).stream())
                 .distinct()
                 .sorted(Comparator.comparing(Quiz::getCreatedAt).reversed())
                 .map(quiz -> toResponse(quiz, membershipRepository.existsByOrganizationIdAndUserIdAndRoleAndStatus(
-                        quiz.getOrganization().getId(), actorId, MembershipRole.OWNER, MembershipStatus.ACTIVE)))
+                        quiz.getProgram().getOrganization().getId(), actorId, MembershipRole.OWNER, MembershipStatus.ACTIVE)))
                 .toList();
-        return PageResponse.fromList(quizzes, page, size);
+        return PageResponse.fromList(java.util.stream.Stream.concat(quizzes.stream(), enrolledQuizzes.stream())
+                .distinct()
+                .sorted(Comparator.comparing(QuizResponse::createdAt).reversed())
+                .toList(), page, size);
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<QuizResponse> listByOrganization(UUID organizationId, UUID actorId, int page, int size) {
-        authorizationService.ensureOrganizationMember(organizationId, actorId);
+    public PageResponse<QuizResponse> listByProgram(UUID programId, UUID actorId, int page, int size) {
+        Program program = authorizationService.ensureProgramAccessible(programId, actorId);
         boolean owner = membershipRepository.existsByOrganizationIdAndUserIdAndRoleAndStatus(
-                organizationId, actorId, MembershipRole.OWNER, MembershipStatus.ACTIVE);
+                program.getOrganization().getId(), actorId, MembershipRole.OWNER, MembershipStatus.ACTIVE);
         List<Quiz> quizzes = owner
-                ? quizRepository.findByOrganizationIdAndStatusNot(organizationId, QuizStatus.DELETED)
-                : quizRepository.findByOrganizationIdAndPublishedTrueAndStatus(organizationId, QuizStatus.PUBLISHED);
+                ? quizRepository.findByProgramIdAndStatusNot(programId, QuizStatus.DELETED)
+                : quizRepository.findByProgramIdAndPublishedTrueAndStatus(programId, QuizStatus.PUBLISHED);
         return PageResponse.fromList(quizzes.stream()
                 .sorted(Comparator.comparing(Quiz::getCreatedAt).reversed())
                 .map(quiz -> toResponse(quiz, owner))
@@ -106,7 +120,7 @@ public class QuizService {
     public QuizResponse get(UUID quizId, UUID actorId) {
         Quiz quiz = authorizationService.ensureQuizAccessible(quizId, actorId);
         boolean owner = membershipRepository.existsByOrganizationIdAndUserIdAndRoleAndStatus(
-                quiz.getOrganization().getId(), actorId, MembershipRole.OWNER, MembershipStatus.ACTIVE);
+                quiz.getProgram().getOrganization().getId(), actorId, MembershipRole.OWNER, MembershipStatus.ACTIVE);
         return toResponse(quiz, owner);
     }
 
@@ -124,7 +138,7 @@ public class QuizService {
         quiz.setMaxAttempts(request.maxAttempts());
         quiz.setCertificateEnabled(Boolean.TRUE.equals(request.certificateEnabled()));
         quiz.setCertificateIssueMode(mode(request.certificateEnabled(), request.certificateIssueMode()));
-        auditLogService.record(actorId, quiz.getOrganization().getId(), AuditAction.QUIZ_UPDATED, "Quiz", quizId);
+        auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.QUIZ_UPDATED, "Quiz", quizId);
         return toResponse(quiz, true);
     }
 
@@ -134,7 +148,7 @@ public class QuizService {
         quiz.setPublished(false);
         quiz.setStatus(QuizStatus.ARCHIVED);
         quiz.setDeletedAt(Instant.now());
-        auditLogService.record(actorId, quiz.getOrganization().getId(), AuditAction.QUIZ_ARCHIVED, "Quiz", quizId);
+        auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.QUIZ_ARCHIVED, "Quiz", quizId);
     }
 
     @Transactional
@@ -177,16 +191,19 @@ public class QuizService {
         validatePublishable(quiz);
         quiz.setPublished(true);
         quiz.setStatus(QuizStatus.PUBLISHED);
-        auditLogService.record(actorId, quiz.getOrganization().getId(), AuditAction.QUIZ_PUBLISHED, "Quiz", quizId);
+        auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.QUIZ_PUBLISHED, "Quiz", quizId);
         return toResponse(quiz, true);
     }
 
-    private List<Quiz> quizzesForMembership(OrganizationMembership membership) {
+    private List<Quiz> quizzesForOwnerMembership(OrganizationMembership membership) {
         UUID organizationId = membership.getOrganization().getId();
         if (membership.getRole() == MembershipRole.OWNER) {
-            return quizRepository.findByOrganizationIdAndStatusNot(organizationId, QuizStatus.DELETED);
+            return programRepository.findByOrganizationIdAndStatusNot(organizationId, com.library.Skillmark.program.enums.ProgramStatus.DELETED)
+                    .stream()
+                    .flatMap(program -> quizRepository.findByProgramIdAndStatusNot(program.getId(), QuizStatus.DELETED).stream())
+                    .toList();
         }
-        return quizRepository.findByOrganizationIdAndPublishedTrueAndStatus(organizationId, QuizStatus.PUBLISHED);
+        return List.of();
     }
 
     private void validatePublishable(Quiz quiz) {
@@ -250,7 +267,7 @@ public class QuizService {
         List<QuestionResponse> questions = questionRepository.findByQuizIdOrderByPositionAsc(quiz.getId()).stream()
                 .map(question -> toQuestionResponse(question, includeCorrectAnswers))
                 .toList();
-        return new QuizResponse(quiz.getId(), quiz.getOrganization().getId(), quiz.getTitle(), quiz.getDescription(),
+        return new QuizResponse(quiz.getId(), quiz.getProgram().getId(), quiz.getProgram().getOrganization().getId(), quiz.getTitle(), quiz.getDescription(),
                 quiz.getPassingScore(), quiz.getDurationMinutes(), quiz.getMaxAttempts(), quiz.isCertificateEnabled(),
                 quiz.getCertificateIssueMode(), quiz.isPublished(), quiz.getStatus(), quiz.getCreatedAt(), questions);
     }

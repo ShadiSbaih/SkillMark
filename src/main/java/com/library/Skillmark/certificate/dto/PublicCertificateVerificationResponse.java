@@ -10,6 +10,7 @@ public record PublicCertificateVerificationResponse(
         CertificateStatus status,
         String participantName,
         String quizTitle,
+        String programTitle,
         String organizationName,
         Instant issuedAt,
         Instant revokedAt
@@ -20,6 +21,7 @@ public record PublicCertificateVerificationResponse(
                 certificate.getStatus(),
                 certificate.getParticipantNameSnapshot(),
                 certificate.getQuizTitleSnapshot(),
+                certificate.getProgramTitleSnapshot(),
                 certificate.getOrganizationNameSnapshot(),
                 certificate.getIssuedAt(),
                 certificate.getRevokedAt()

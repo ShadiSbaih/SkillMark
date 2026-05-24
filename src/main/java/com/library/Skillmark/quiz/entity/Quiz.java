@@ -6,7 +6,7 @@ import com.library.Skillmark.quiz.entity.*;
 import com.library.Skillmark.quiz.enums.*;
 import com.library.Skillmark.quiz.repository.*;
 import com.library.Skillmark.quiz.service.*;
-import com.library.Skillmark.organization.entity.Organization;
+import com.library.Skillmark.program.entity.Program;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
@@ -21,8 +21,8 @@ public class Quiz {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "organization_id", nullable = false)
-    private Organization organization;
+    @JoinColumn(name = "program_id", nullable = false)
+    private Program program;
 
     @Column(nullable = false)
     private String title;
@@ -75,8 +75,8 @@ public class Quiz {
     }
 
     public UUID getId() { return id; }
-    public Organization getOrganization() { return organization; }
-    public void setOrganization(Organization organization) { this.organization = organization; }
+    public Program getProgram() { return program; }
+    public void setProgram(Program program) { this.program = program; }
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
     public String getDescription() { return description; }

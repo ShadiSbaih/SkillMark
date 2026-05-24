@@ -126,6 +126,87 @@ class SkillmarkApiIntegrationTests {
     }
 
     @Test
+    void fullProgramQuizAttemptCertificateFlowUsesEnrollment() throws Exception {
+        String ownerToken = token("clerk_owner", "owner@example.com", "Owner_One");
+        String organizationId = createOrganization(ownerToken, "Computer Science Club");
+        String programId = createPublishedProgram(ownerToken, organizationId);
+
+        String participantToken = token("clerk_student", "student@example.com", "Jane_Student");
+        joinProgram(ownerToken, participantToken, programId);
+
+        String quizId = read(postJson("/api/v1/programs/" + programId + "/quizzes", ownerToken, """
+                {
+                  "title": "Git Basics Final Quiz",
+                  "description": "Final assessment",
+                  "passingScore": 70,
+                  "durationMinutes": 30,
+                  "maxAttempts": 1,
+                  "certificateEnabled": true,
+                  "certificateIssueMode": "AUTO"
+                }
+                """)
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.programId", is(programId)))
+                .andReturn(), "/data/id");
+
+        String correctOptionId = read(postJson("/api/v1/quizzes/" + quizId + "/questions", ownerToken, """
+                {
+                  "text": "Which command creates a branch?",
+                  "type": "SINGLE_CHOICE",
+                  "points": 1,
+                  "position": 1,
+                  "options": [
+                    {"text": "git branch feature", "isCorrect": true, "position": 1},
+                    {"text": "git make feature", "isCorrect": false, "position": 2}
+                  ]
+                }
+                """)
+                .andExpect(status().isCreated())
+                .andReturn(), "/data/options/0/id");
+
+        postJson("/api/v1/quizzes/" + quizId + "/publish", ownerToken, "{}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.isPublished", is(true)));
+
+        String questionId = read(getJson("/api/v1/quizzes/" + quizId, participantToken)
+                .andExpect(status().isOk())
+                .andReturn(), "/data/questions/0/id");
+
+        String attemptId = read(postJson("/api/v1/quizzes/" + quizId + "/attempts", participantToken, "{}")
+                .andExpect(status().isCreated())
+                .andReturn(), "/data/attemptId");
+
+        String certificateId = read(postJson("/api/v1/quiz-attempts/" + attemptId + "/submit", participantToken, """
+                {
+                  "answers": [
+                    {
+                      "questionId": "%s",
+                      "selectedOptionId": "%s"
+                    }
+                  ]
+                }
+                """.formatted(questionId, correctOptionId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.passed", is(true)))
+                .andExpect(jsonPath("$.data.certificateIssued", is(true)))
+                .andReturn(), "/data/certificateId");
+
+        MvcResult certificateResult = getJson("/api/v1/certificates/" + certificateId, participantToken)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.programTitleSnapshot", is("Git Workshop")))
+                .andReturn();
+
+        mockMvc.perform(get("/api/v1/public/certificates/verify/" + read(certificateResult, "/data/verificationCode")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.programTitle", is("Git Workshop")))
+                .andExpect(jsonPath("$.data.organizationName", is("Computer Science Club")));
+
+        getJson("/api/v1/quizzes/" + quizId + "/stats", ownerToken)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.submittedAttempts", is(1)));
+    }
+
+    @Test
     void swaggerEndpointsArePublicAndDescribeClerkScopedApi() throws Exception {
         mockMvc.perform(get("/swagger-ui.html"))
                 .andExpect(status().is3xxRedirection());
@@ -136,6 +217,9 @@ class SkillmarkApiIntegrationTests {
                 .andExpect(jsonPath("$.info.description", containsString("Clerk")))
                 .andExpect(jsonPath("$.paths['/api/v1/users/sync'].post").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/organizations/{organizationId}/programs'].post").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/programs/{programId}/quizzes'].post").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/files/r2/upload-url'].post").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/media/cloudinary/signature'].post").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/public/certificates/verify/{verificationCode}'].get").exists());
     }
 
@@ -148,6 +232,32 @@ class SkillmarkApiIntegrationTests {
                 .andExpect(status().isCreated())
                 .andReturn();
         return read(result, "/data/id");
+    }
+
+    private String createPublishedProgram(String ownerToken, String organizationId) throws Exception {
+        String programId = read(postJson("/api/v1/organizations/" + organizationId + "/programs", ownerToken, """
+                {
+                  "title": "Git Workshop",
+                  "description": "Intro workshop"
+                }
+                """)
+                .andExpect(status().isCreated())
+                .andReturn(), "/data/id");
+        postJson("/api/v1/programs/" + programId + "/publish", ownerToken, "{}")
+                .andExpect(status().isOk());
+        return programId;
+    }
+
+    private void joinProgram(String ownerToken, String participantToken, String programId) throws Exception {
+        String invitationCode = read(postJson("/api/v1/programs/" + programId + "/invitations", ownerToken, """
+                {
+                  "maxUses": 5
+                }
+                """)
+                .andExpect(status().isCreated())
+                .andReturn(), "/data/code");
+        postJson("/api/v1/invitations/" + invitationCode + "/join", participantToken, "{}")
+                .andExpect(status().isOk());
     }
 
     private String token(String clerkId, String email, String name) {

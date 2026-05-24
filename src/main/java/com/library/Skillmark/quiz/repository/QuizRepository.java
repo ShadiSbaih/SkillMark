@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.UUID;
 
 public interface QuizRepository extends JpaRepository<Quiz, UUID> {
-    List<Quiz> findByOrganizationIdAndStatusNot(UUID organizationId, QuizStatus status);
-    List<Quiz> findByOrganizationIdAndPublishedTrueAndStatus(UUID organizationId, QuizStatus status);
+    List<Quiz> findByProgramIdAndStatusNot(UUID programId, QuizStatus status);
+    List<Quiz> findByProgramIdAndPublishedTrueAndStatus(UUID programId, QuizStatus status);
+    long countByProgramIdAndStatusNot(UUID programId, QuizStatus status);
+    long countByProgramOrganizationIdAndStatusNot(UUID organizationId, QuizStatus status);
 }

@@ -10,6 +10,7 @@ public record OrganizationResponse(
         UUID id,
         String name,
         String description,
+        String logoUrl,
         UUID ownerId,
         OrganizationStatus status,
         Instant createdAt
@@ -19,6 +20,7 @@ public record OrganizationResponse(
                 organization.getId(),
                 organization.getName(),
                 organization.getDescription(),
+                organization.getLogoUrl(),
                 organization.getOwner().getId(),
                 organization.getStatus(),
                 organization.getCreatedAt()
