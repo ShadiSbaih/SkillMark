@@ -37,7 +37,7 @@ public class CertificateController {
     }
 
     @GetMapping("/student/{studentId}")
-    @Operation(summary = "List student certificates", description = "Returns the certificates accessible for the selected student.")
+    @Operation(summary = "List student certificates", description = "Returns certificates accessible for the selected student.")
     public ApiResponse<List<CertificateResponse>> getStudentCertificates(@PathVariable UUID studentId) {
         return ApiResponse.success(certificateService.getStudentCertificates(studentId));
     }

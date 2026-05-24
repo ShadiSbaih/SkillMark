@@ -15,9 +15,9 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "AddOrganizationStudentRequest", description = "Associates an existing student profile with an organization.")
+@Schema(description = "Request body for adding an existing student to an organization.")
 public class AddOrganizationStudentRequest {
     @NotNull
-    @Schema(description = "Student identifier to add to the organization.", format = "uuid")
+    @Schema(description = "Student to add to the organization.", format = "uuid")
     private UUID studentId;
 }

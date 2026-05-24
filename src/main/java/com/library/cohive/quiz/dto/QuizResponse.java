@@ -16,7 +16,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "QuizResponse", description = "Quiz details returned by the API.")
+@Schema(description = "Quiz returned by the API.")
 public class QuizResponse {
     @Schema(format = "uuid")
     private UUID id;

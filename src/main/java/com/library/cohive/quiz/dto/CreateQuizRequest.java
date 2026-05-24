@@ -16,13 +16,13 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "CreateQuizRequest", description = "Creates a quiz inside a course owned by the authenticated organization owner.")
+@Schema(description = "Request body for creating a quiz.")
 public class CreateQuizRequest {
     @NotBlank
     @Schema(description = "Quiz title.", example = "Java Quiz")
     private String title;
 
     @NotNull
-    @Schema(description = "Course identifier that will own the quiz.", format = "uuid")
+    @Schema(description = "Course that owns the quiz.", format = "uuid")
     private UUID courseId;
 }

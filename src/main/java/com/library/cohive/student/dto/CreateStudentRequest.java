@@ -18,7 +18,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "CreateStudentRequest", description = "Creates a student user account and profile inside an organization.")
+@Schema(description = "Request body for creating a student account.")
 public class CreateStudentRequest {
     @NotBlank
     @Schema(description = "Student full name.", example = "Jane Doe")
@@ -26,15 +26,15 @@ public class CreateStudentRequest {
 
     @Email
     @NotBlank
-    @Schema(description = "Unique student email address.", example = "jane@example.com")
+    @Schema(description = "Student email address.", example = "jane@example.com")
     private String email;
 
     @NotBlank
     @Size(min = 6)
-    @Schema(description = "Initial password for the student account.", example = "password123", minLength = 6)
+    @Schema(description = "Initial student password.", example = "password123")
     private String password;
 
     @NotNull
-    @Schema(description = "Organization identifier that will own the student membership.", format = "uuid")
+    @Schema(description = "Organization that the student belongs to.", format = "uuid")
     private UUID organizationId;
 }

@@ -16,16 +16,16 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "CreateCourseRequest", description = "Creates a course under an organization owned by the authenticated user.")
+@Schema(description = "Request body for creating a course.")
 public class CreateCourseRequest {
     @NotBlank
     @Schema(description = "Course title.", example = "Spring Boot Basics")
     private String title;
 
-    @Schema(description = "Optional course summary shown to students.", example = "Backend fundamentals", nullable = true)
+    @Schema(description = "Optional course description.", example = "Backend fundamentals")
     private String description;
 
     @NotNull
-    @Schema(description = "Owning organization identifier.", format = "uuid")
+    @Schema(description = "Organization that owns the course.", format = "uuid")
     private UUID organizationId;
 }

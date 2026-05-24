@@ -31,13 +31,13 @@ public class ResourceController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Create a resource", description = "Adds a URL-backed learning resource to a course owned by the authenticated organization owner. Supported types are LINK, ARTICLE, VIDEO, DOCUMENT, and REPOSITORY.")
+    @Operation(summary = "Create a resource", description = "Adds a LINK resource URL to a course owned by the authenticated owner.")
     public ApiResponse<ResourceResponse> createResource(@Valid @RequestBody CreateResourceRequest request) {
         return ApiResponse.success("Resource created successfully", resourceService.createResource(request));
     }
 
     @GetMapping("/course/{courseId}")
-    @Operation(summary = "List course resources", description = "Returns the learning resources visible for the selected course.")
+    @Operation(summary = "List course resources", description = "Returns resources visible for the selected course.")
     public ApiResponse<List<ResourceResponse>> getCourseResources(@PathVariable UUID courseId) {
         return ApiResponse.success(resourceService.getCourseResources(courseId));
     }

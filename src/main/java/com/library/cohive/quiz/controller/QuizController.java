@@ -24,20 +24,20 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/quizzes")
 @RequiredArgsConstructor
-@Tag(name = "Quizzes", description = "Create and retrieve quizzes that belong to a course.")
+@Tag(name = "Quizzes", description = "Create and retrieve quizzes that belong to courses.")
 @SecurityRequirement(name = "bearerAuth")
 public class QuizController {
     private final QuizService quizService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Create a quiz", description = "Creates a quiz for a course owned by the authenticated organization owner.")
+    @Operation(summary = "Create a quiz", description = "Creates a quiz for a course owned by the authenticated owner.")
     public ApiResponse<QuizResponse> createQuiz(@Valid @RequestBody CreateQuizRequest request) {
         return ApiResponse.success("Quiz created successfully", quizService.createQuiz(request));
     }
 
     @GetMapping("/course/{courseId}")
-    @Operation(summary = "List course quizzes", description = "Returns the quizzes visible for the selected course.")
+    @Operation(summary = "List course quizzes", description = "Returns quizzes visible for the selected course.")
     public ApiResponse<List<QuizResponse>> getCourseQuizzes(@PathVariable UUID courseId) {
         return ApiResponse.success(quizService.getCourseQuizzes(courseId));
     }

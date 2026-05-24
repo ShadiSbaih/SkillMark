@@ -14,7 +14,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "LoginRequest", description = "Credentials used to obtain a JWT bearer token.")
+@Schema(description = "Request body for logging in.")
 public class LoginRequest {
     @Email
     @NotBlank
@@ -22,6 +22,6 @@ public class LoginRequest {
     private String email;
 
     @NotBlank
-    @Schema(description = "Plain-text password submitted for authentication.", example = "password123")
+    @Schema(description = "User password.", example = "password123")
     private String password;
 }

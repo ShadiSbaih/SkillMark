@@ -16,7 +16,6 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
@@ -64,26 +63,21 @@ class CohiveApiIntegrationTests {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.info.title", is("Cohive Backend API")))
-                .andExpect(jsonPath("$.info.description", containsString("Versioning strategy: path-based versioning under `/api/v1`.")))
+                .andExpect(jsonPath("$.info.description", containsString("JWT bearer authentication")))
                 .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.type", is("http")))
-                .andExpect(jsonPath("$.components.responses.TooManyRequests.description", containsString("rate limit")))
-                .andExpect(jsonPath("$.paths['/api/v1/auth/register'].post.responses['201'].description", is("User account created and JWT token issued.")))
+                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.description", containsString("JWT token")))
+                .andExpect(jsonPath("$.paths['/api/v1/auth/register'].post").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/auth/register'].post.summary", is("Register a user")))
+                .andExpect(jsonPath("$.paths['/api/v1/auth/logout'].post.security[0].bearerAuth").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/courses'].get").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/courses'].get.summary", is("List courses")))
-                .andExpect(jsonPath("$.paths['/api/v1/courses'].get.responses['200'].description", containsString("organizationId")))
-                .andExpect(jsonPath("$.paths['/api/v1/courses'].get.responses['200'].headers['Cache-Control'].schema.example", is("private, max-age=60, must-revalidate")))
-                .andExpect(jsonPath("$.paths['/api/v1/courses'].get.responses['200'].headers['Vary'].schema.example", is("Authorization")))
-                .andExpect(jsonPath("$.paths['/api/v1/courses'].get.responses['429'].$ref", is("#/components/responses/TooManyRequests")))
-                .andExpect(jsonPath("$.paths['/api/v1/students'].post.summary", is("Create a student")))
-                .andExpect(jsonPath("$.paths['/api/v1/students'].post.responses['201'].headers['Cache-Control'].schema.example", is("no-store")))
-                .andExpect(jsonPath("$.paths['/api/v1/users/me'].get.summary", is("Get current user")))
-                .andExpect(jsonPath("$.paths['/api/v1/resources'].post.description", containsString("Supported types are LINK, ARTICLE, VIDEO, DOCUMENT, and REPOSITORY")))
-                .andExpect(jsonPath("$.components.schemas.RegisterRequest.properties.role.description", containsString("Defaults to `STUDENT`")))
-                .andExpect(jsonPath("$.components.schemas.CourseResponse.properties.organizationId.format", is("uuid")))
-                .andExpect(jsonPath("$.components.schemas.UserResponse.properties.role.description", containsString("authorization")))
-                .andExpect(jsonPath("$.components.schemas.ResourceResponse.properties.typeCategory.type", is("string")))
-                .andExpect(jsonPath("$.components.schemas.ResourceResponse.properties.typeDescription.example", is("Document-style material referenced through an external URL.")))
-                .andExpect(jsonPath("$.components.schemas.ResourceResponse.properties.typeValidationRule.example", is("URL must be absolute and use one of: http, https")))
-                .andExpect(jsonPath("$.components.schemas.CreateResourceRequest.properties.type.enum", hasItem("DOCUMENT")));
+                .andExpect(jsonPath("$.paths['/api/v1/courses'].get.description", containsString("optionally filtered by organization")))
+                .andExpect(jsonPath("$.paths['/api/v1/resources'].post").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/resources'].post.security[0].bearerAuth").exists())
+                .andExpect(jsonPath("$.components.schemas.RegisterRequest.description", containsString("creating a new user")))
+                .andExpect(jsonPath("$.components.schemas.RegisterRequest.properties.role.description", containsString("Defaults to STUDENT")))
+                .andExpect(jsonPath("$.components.schemas.CreateResourceRequest.properties.url.description", containsString("http:// or https://")))
+                .andExpect(jsonPath("$.components.schemas.CreateResourceRequest.properties.type.enum[0]", is("LINK")));
     }
 
     @Test
@@ -106,20 +100,14 @@ class CohiveApiIntegrationTests {
         postJson("/api/v1/resources", ownerToken, """
                 {
                   "title": "Spring Docs",
-                  "type": "DOCUMENT",
+                  "type": "LINK",
                   "url": "https://docs.spring.io/spring-boot/reference/",
                   "courseId": "%s"
                 }
                 """.formatted(courseId))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.type", is("DOCUMENT")))
-                .andExpect(jsonPath("$.data.typeDisplayName", is("Document")))
-                .andExpect(jsonPath("$.data.typeDescription", is("Document-style material referenced through an external URL.")))
-                .andExpect(jsonPath("$.data.typeCategory", is("LEARNING_CONTENT")))
-                .andExpect(jsonPath("$.data.typeValidationRule", is("URL must be absolute and use one of: http, https")))
-                .andExpect(jsonPath("$.data.previewable", is(true)))
-                .andExpect(jsonPath("$.data.downloadable", is(true)))
-                .andExpect(jsonPath("$.data.allowedUrlSchemes", hasItem("https")));
+                .andExpect(jsonPath("$.data.type", is("LINK")))
+                .andExpect(jsonPath("$.data.url", is("https://docs.spring.io/spring-boot/reference/")));
 
         postJson("/api/v1/quizzes", ownerToken, """
                 {
@@ -161,8 +149,7 @@ class CohiveApiIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data", hasSize(1)))
                 .andExpect(jsonPath("$.data[0].title", is("Spring Docs")))
-                .andExpect(jsonPath("$.data[0].type", is("DOCUMENT")))
-                .andExpect(jsonPath("$.data[0].typeCategory", is("LEARNING_CONTENT")));
+                .andExpect(jsonPath("$.data[0].type", is("LINK")));
 
         getJson("/api/v1/quizzes/course/" + courseId, studentToken)
                 .andExpect(status().isOk())
@@ -211,35 +198,14 @@ class CohiveApiIntegrationTests {
         postJson("/api/v1/resources", ownerToken, """
                 {
                   "title": "Invalid Resource",
-                  "type": "VIDEO",
+                  "type": "LINK",
                   "url": "mailto:trainer@example.com",
                   "courseId": "%s"
                 }
                 """.formatted(courseId))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success", is(false)))
-                .andExpect(jsonPath("$.errors[0]", containsString("URL must be absolute and use one of: http, https")));
-    }
-
-    @Test
-    void apiResponsesExposeCacheHeadersForReadsAndWrites() throws Exception {
-        String ownerToken = register("Owner One", "owner1@example.com", "password123", "OWNER");
-
-        postJson("/api/v1/organizations", ownerToken, """
-                {
-                  "name": "Tech Academy"
-                }
-                """)
-                .andExpect(status().isCreated())
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
-                        .string(HttpHeaders.CACHE_CONTROL, "no-store"));
-
-        getJson("/api/v1/users/me", ownerToken)
-                .andExpect(status().isOk())
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
-                        .string(HttpHeaders.CACHE_CONTROL, containsString("private")))
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
-                        .string(HttpHeaders.VARY, containsString(HttpHeaders.AUTHORIZATION)));
+                .andExpect(jsonPath("$.errors[0]", containsString("URL must start with http:// or https://")));
     }
 
     private String register(String name, String email, String password, String role) throws Exception {

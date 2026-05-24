@@ -1,11 +1,10 @@
 package com.library.cohive.security.jwt;
 
-import com.library.cohive.config.JwtConfig;
 import com.library.cohive.user.entity.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -16,9 +15,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Service
-@RequiredArgsConstructor
 public class JwtService {
-    private final JwtConfig jwtConfig;
+    @Value("${jwt.secret}")
+    private String jwtSecret;
+
+    @Value("${jwt.expiration}")
+    private long jwtExpiration;
 
     public String generateToken(User user) {
         Map<String, Object> claims = new HashMap<>();
@@ -43,7 +45,7 @@ public class JwtService {
 
     private String buildToken(Map<String, Object> claims, String subject) {
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtConfig.getExpiration());
+        Date expiryDate = new Date(now.getTime() + jwtExpiration);
         return Jwts.builder()
                 .claims(claims)
                 .subject(subject)
@@ -62,6 +64,6 @@ public class JwtService {
     }
 
     private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(jwtConfig.getSecret().getBytes(StandardCharsets.UTF_8));
+        return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     }
 }

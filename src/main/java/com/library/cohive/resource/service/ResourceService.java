@@ -16,7 +16,6 @@ import com.library.cohive.user.entity.Role;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 
@@ -39,7 +38,7 @@ public class ResourceService {
         Resource resource = Resource.builder()
                 .title(request.getTitle().trim())
                 .type(request.getType())
-                .url(URI.create(request.getUrl().trim()))
+                .url(request.getUrl().trim())
                 .course(course)
                 .build();
         return ResourceResponse.fromEntity(resourceRepository.save(resource));

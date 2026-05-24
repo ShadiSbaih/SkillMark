@@ -16,10 +16,10 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "RegisterRequest", description = "Payload used to create a new user account.")
+@Schema(description = "Request body for creating a new user account.")
 public class RegisterRequest {
     @NotBlank
-    @Schema(description = "Full display name for the new user.", example = "John Doe")
+    @Schema(description = "Full name of the user.", example = "John Doe")
     private String name;
 
     @Email
@@ -29,9 +29,9 @@ public class RegisterRequest {
 
     @NotBlank
     @Size(min = 6)
-    @Schema(description = "Password with a minimum length of 6 characters.", example = "password123", minLength = 6)
+    @Schema(description = "Password with at least 6 characters.", example = "password123")
     private String password;
 
-    @Schema(description = "Initial platform role. Defaults to `STUDENT` when omitted.", example = "OWNER", nullable = true)
+    @Schema(description = "Optional role. Defaults to STUDENT when omitted.", example = "OWNER")
     private Role role;
 }

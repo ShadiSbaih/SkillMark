@@ -16,7 +16,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "EnrollmentResponse", description = "Enrollment relationship returned by the API.")
+@Schema(description = "Course enrollment returned by the API.")
 public class EnrollmentResponse {
     @Schema(format = "uuid")
     private UUID courseId;

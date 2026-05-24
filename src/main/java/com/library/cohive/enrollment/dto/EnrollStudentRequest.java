@@ -15,13 +15,13 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "EnrollStudentRequest", description = "Creates a course enrollment linking one student to one course.")
+@Schema(description = "Request body for enrolling a student in a course.")
 public class EnrollStudentRequest {
     @NotNull
-    @Schema(description = "Student identifier to enroll.", format = "uuid")
+    @Schema(description = "Student to enroll.", format = "uuid")
     private UUID studentId;
 
     @NotNull
-    @Schema(description = "Course identifier that the student will join.", format = "uuid")
+    @Schema(description = "Course to enroll the student in.", format = "uuid")
     private UUID courseId;
 }

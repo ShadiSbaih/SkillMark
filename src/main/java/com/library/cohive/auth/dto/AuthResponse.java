@@ -12,8 +12,8 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "AuthResponse", description = "Authentication result returned after register or login operations.")
+@Schema(description = "Authentication response returned after register or login.")
 public class AuthResponse {
-    @Schema(description = "JWT bearer token used for authenticated API calls.", example = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1dWlkIn0.signature")
+    @Schema(description = "JWT bearer token used for authenticated requests.")
     private String token;
 }

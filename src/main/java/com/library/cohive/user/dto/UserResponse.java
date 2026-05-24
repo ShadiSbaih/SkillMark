@@ -5,8 +5,8 @@ import java.util.UUID;
 
 import com.library.cohive.user.entity.Role;
 import com.library.cohive.user.entity.User;
-import io.swagger.v3.oas.annotations.media.Schema;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -18,7 +18,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "UserResponse", description = "Authenticated user profile returned by `/api/v1/users/me`.")
+@Schema(description = "Authenticated user profile returned by the API.")
 public class UserResponse {
     @Schema(format = "uuid")
     private UUID id;
@@ -29,6 +29,7 @@ public class UserResponse {
     @Schema(example = "john@example.com")
     private String email;
 
+    @Schema(description = "Role used for authorization.")
     private Role role;
 
     @Schema(format = "date-time")

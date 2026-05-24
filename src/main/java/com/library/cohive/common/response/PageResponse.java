@@ -14,9 +14,9 @@ import org.springframework.data.domain.Page;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "PageResponse", description = "Standard paginated collection response.")
+@Schema(description = "Paginated collection response.")
 public class PageResponse<T> {
-    @Schema(description = "Page items for the current slice.")
+    @Schema(description = "Items in the current page.")
     private List<T> items;
 
     @Schema(description = "Zero-based page index.", example = "0")
@@ -25,10 +25,10 @@ public class PageResponse<T> {
     @Schema(description = "Requested page size.", example = "10")
     private int size;
 
-    @Schema(description = "Total number of available records.", example = "42")
+    @Schema(description = "Total number of available items.", example = "42")
     private long totalElements;
 
-    @Schema(description = "Total available page count.", example = "5")
+    @Schema(description = "Total number of available pages.", example = "5")
     private int totalPages;
 
     public static <T> PageResponse<T> from(Page<T> page) {

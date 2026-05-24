@@ -32,12 +32,6 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.failure(ex.getMessage(), List.of()));
     }
 
-    @ExceptionHandler(BadRequestException.class)
-    public ResponseEntity<ApiResponse<Void>> handleBadRequest(BadRequestException ex) {
-        return ResponseEntity.badRequest()
-                .body(ApiResponse.failure(ex.getMessage(), List.of()));
-    }
-
     @ExceptionHandler({
             HttpMessageNotReadableException.class,
             MethodArgumentTypeMismatchException.class

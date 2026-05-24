@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -26,12 +27,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
-import org.springdoc.core.annotations.ParameterObject;
 
 @RestController
 @RequestMapping("/api/v1/organizations")
 @RequiredArgsConstructor
-@Tag(name = "Organizations", description = "Manage organizations and their student memberships.")
+@Tag(name = "Organizations", description = "Manage organizations and organization student memberships.")
 @SecurityRequirement(name = "bearerAuth")
 public class OrganizationController {
     private final OrganizationService organizationService;
@@ -44,7 +44,7 @@ public class OrganizationController {
     }
 
     @GetMapping
-    @Operation(summary = "List organizations", description = "Returns the organizations visible to the authenticated user.")
+    @Operation(summary = "List organizations", description = "Returns organizations visible to the authenticated user.")
     public ApiResponse<PageResponse<OrganizationResponse>> getOrganizations(
             @ParameterObject @PageableDefault(size = 10) Pageable pageable) {
         Page<OrganizationResponse> page = organizationService.getOrganizations(pageable);
@@ -52,7 +52,7 @@ public class OrganizationController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Get organization details", description = "Returns one organization by ID when the authenticated user belongs to it or owns it.")
+    @Operation(summary = "Get organization details", description = "Returns one organization when the authenticated user has access.")
     public ApiResponse<OrganizationResponse> getOrganization(@PathVariable("id") UUID organizationId) {
         return ApiResponse.success(organizationService.getOrganization(organizationId));
     }
@@ -66,7 +66,7 @@ public class OrganizationController {
 
     @PostMapping("/{id}/students")
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Add student to organization", description = "Adds an existing student to the selected organization.")
+    @Operation(summary = "Add student to organization", description = "Adds an existing student profile to an owned organization.")
     public ApiResponse<Void> addStudent(@PathVariable("id") UUID organizationId,
                                         @Valid @RequestBody AddOrganizationStudentRequest request) {
         organizationService.addStudent(organizationId, request);
@@ -74,7 +74,7 @@ public class OrganizationController {
     }
 
     @GetMapping("/{id}/students")
-    @Operation(summary = "List organization students", description = "Returns a paginated list of students belonging to the selected organization.")
+    @Operation(summary = "List organization students", description = "Returns students belonging to an owned organization.")
     public ApiResponse<PageResponse<StudentResponse>> getOrganizationStudents(
             @PathVariable("id") UUID organizationId,
             @ParameterObject @PageableDefault(size = 10) Pageable pageable) {

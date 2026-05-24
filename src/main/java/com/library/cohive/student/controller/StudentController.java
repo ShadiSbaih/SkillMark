@@ -28,20 +28,20 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/students")
 @RequiredArgsConstructor
-@Tag(name = "Students", description = "Create and browse student profiles within an organization context.")
+@Tag(name = "Students", description = "Create and view student profiles.")
 @SecurityRequirement(name = "bearerAuth")
 public class StudentController {
     private final StudentService studentService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Create a student", description = "Creates a student account and associates it with the selected organization.")
+    @Operation(summary = "Create a student", description = "Creates a student account and adds it to an organization.")
     public ApiResponse<StudentResponse> createStudent(@Valid @RequestBody CreateStudentRequest request) {
         return ApiResponse.success("Student created successfully", studentService.createStudent(request));
     }
 
     @GetMapping
-    @Operation(summary = "List students", description = "Returns a paginated list of students visible to the authenticated user.")
+    @Operation(summary = "List students", description = "Returns students visible to the authenticated owner.")
     public ApiResponse<PageResponse<StudentResponse>> getStudents(
             @ParameterObject @PageableDefault(size = 10) Pageable pageable) {
         Page<StudentResponse> page = studentService.getStudents(pageable);
@@ -49,7 +49,7 @@ public class StudentController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Get student details", description = "Returns one student profile by ID when the authenticated user is allowed to access it.")
+    @Operation(summary = "Get student details", description = "Returns one student profile when the authenticated user has access.")
     public ApiResponse<StudentResponse> getStudent(@PathVariable("id") UUID studentId) {
         return ApiResponse.success(studentService.getStudent(studentId));
     }

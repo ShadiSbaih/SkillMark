@@ -13,12 +13,12 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "UpdateCourseRequest", description = "Updates mutable course attributes.")
+@Schema(description = "Request body for updating a course.")
 public class UpdateCourseRequest {
     @NotBlank
     @Schema(description = "Updated course title.", example = "Advanced Spring Boot")
     private String title;
 
-    @Schema(description = "Updated optional course summary.", example = "Production-focused backend engineering", nullable = true)
+    @Schema(description = "Updated course description.", example = "Production-ready backend concepts")
     private String description;
 }

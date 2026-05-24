@@ -14,18 +14,18 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "ApiResponse", description = "Standard response envelope used by all Cohive REST endpoints.")
+@Schema(description = "Standard API response wrapper.")
 public class ApiResponse<T> {
-    @Schema(description = "Indicates whether the operation completed successfully.", example = "true")
+    @Schema(description = "True when the request completed successfully.", example = "true")
     private boolean success;
 
-    @Schema(description = "Human-readable outcome message.", example = "Operation successful")
+    @Schema(description = "Short human-readable result message.", example = "Operation successful")
     private String message;
 
-    @Schema(description = "Response payload for successful operations. The concrete schema varies by endpoint.")
+    @Schema(description = "Successful response payload.")
     private T data;
 
-    @Schema(description = "Validation or business errors when the operation fails.")
+    @Schema(description = "Validation or business errors for failed requests.")
     private List<String> errors;
 
     public static <T> ApiResponse<T> success(String message, T data) {

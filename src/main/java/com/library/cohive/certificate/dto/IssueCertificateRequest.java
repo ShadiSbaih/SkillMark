@@ -15,16 +15,16 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "IssueCertificateRequest", description = "Issues a course completion certificate to an enrolled student.")
+@Schema(description = "Request body for issuing a certificate.")
 public class IssueCertificateRequest {
     @NotNull
-    @Schema(description = "Student identifier receiving the certificate.", format = "uuid")
+    @Schema(description = "Student receiving the certificate.", format = "uuid")
     private UUID studentId;
 
     @NotNull
-    @Schema(description = "Course identifier tied to the certificate.", format = "uuid")
+    @Schema(description = "Course tied to the certificate.", format = "uuid")
     private UUID courseId;
 
-    @Schema(description = "Certificate title shown to the student.", example = "Certificate of Completion", nullable = true)
+    @Schema(description = "Optional certificate title.", example = "Certificate of Completion")
     private String title;
 }

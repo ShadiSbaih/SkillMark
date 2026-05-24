@@ -13,9 +13,9 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "CreateOrganizationRequest", description = "Creates a new organization owned by the authenticated user.")
+@Schema(description = "Request body for creating an organization.")
 public class CreateOrganizationRequest {
     @NotBlank
-    @Schema(description = "Organization display name.", example = "Tech Academy")
+    @Schema(description = "Organization name.", example = "Tech Academy")
     private String name;
 }

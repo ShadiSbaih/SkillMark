@@ -16,7 +16,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "CertificateResponse", description = "Certificate details returned by the API.")
+@Schema(description = "Certificate returned by the API.")
 public class CertificateResponse {
     @Schema(format = "uuid")
     private UUID id;

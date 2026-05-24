@@ -16,7 +16,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "CourseResponse", description = "Course details returned by the API.")
+@Schema(description = "Course details returned by the API.")
 public class CourseResponse {
     @Schema(format = "uuid")
     private UUID id;
@@ -24,7 +24,7 @@ public class CourseResponse {
     @Schema(example = "Spring Boot Basics")
     private String title;
 
-    @Schema(example = "Backend fundamentals", nullable = true)
+    @Schema(example = "Backend fundamentals")
     private String description;
 
     @Schema(format = "uuid")

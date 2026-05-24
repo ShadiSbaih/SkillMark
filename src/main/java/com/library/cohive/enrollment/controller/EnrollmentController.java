@@ -31,13 +31,13 @@ public class EnrollmentController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Enroll a student", description = "Creates a course enrollment when the authenticated owner has access to the course and student.")
+    @Operation(summary = "Enroll a student", description = "Enrolls a student in a course owned by the authenticated owner.")
     public ApiResponse<EnrollmentResponse> enrollStudent(@Valid @RequestBody EnrollStudentRequest request) {
         return ApiResponse.success("Student enrolled successfully", enrollmentService.enrollStudent(request));
     }
 
     @GetMapping("/course/{courseId}")
-    @Operation(summary = "List course enrollments", description = "Returns enrollments for the selected course that are visible to the authenticated user.")
+    @Operation(summary = "List course enrollments", description = "Returns enrollments for the selected course.")
     public ApiResponse<List<EnrollmentResponse>> getCourseEnrollments(@PathVariable UUID courseId) {
         return ApiResponse.success(enrollmentService.getCourseEnrollments(courseId));
     }
