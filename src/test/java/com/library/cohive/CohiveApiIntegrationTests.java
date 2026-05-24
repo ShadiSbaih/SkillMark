@@ -55,6 +55,20 @@ class CohiveApiIntegrationTests {
     }
 
     @Test
+    void swaggerEndpointsArePublicAndExposeOpenApiMetadata() throws Exception {
+        mockMvc.perform(get("/swagger-ui.html"))
+                .andExpect(status().is3xxRedirection());
+
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.info.title", is("Cohive Backend API")))
+                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.type", is("http")))
+                .andExpect(jsonPath("$.paths['/api/v1/courses'].get.summary", is("List courses")))
+                .andExpect(jsonPath("$.paths['/api/v1/students'].post.summary", is("Create a student")))
+                .andExpect(jsonPath("$.paths['/api/v1/users/me'].get.summary", is("Get current user")));
+    }
+
+    @Test
     void ownerCanRunCoreTrainingFlowAndStudentCanReadAssignedContent() throws Exception {
         String ownerToken = register("Owner One", "owner1@example.com", "password123", "OWNER");
         String organizationId = createOrganization(ownerToken, "Tech Academy");

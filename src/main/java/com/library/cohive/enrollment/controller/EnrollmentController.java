@@ -4,6 +4,9 @@ import com.library.cohive.common.response.ApiResponse;
 import com.library.cohive.enrollment.dto.EnrollStudentRequest;
 import com.library.cohive.enrollment.dto.EnrollmentResponse;
 import com.library.cohive.enrollment.service.EnrollmentService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,21 +24,26 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/enrollments")
 @RequiredArgsConstructor
+@Tag(name = "Enrollments", description = "Manage course enrollments between students and courses.")
+@SecurityRequirement(name = "bearerAuth")
 public class EnrollmentController {
     private final EnrollmentService enrollmentService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Enroll a student", description = "Creates a course enrollment when the authenticated owner has access to the course and student.")
     public ApiResponse<EnrollmentResponse> enrollStudent(@Valid @RequestBody EnrollStudentRequest request) {
         return ApiResponse.success("Student enrolled successfully", enrollmentService.enrollStudent(request));
     }
 
     @GetMapping("/course/{courseId}")
+    @Operation(summary = "List course enrollments", description = "Returns enrollments for the selected course that are visible to the authenticated user.")
     public ApiResponse<List<EnrollmentResponse>> getCourseEnrollments(@PathVariable UUID courseId) {
         return ApiResponse.success(enrollmentService.getCourseEnrollments(courseId));
     }
 
     @GetMapping("/student/{studentId}")
+    @Operation(summary = "List student enrollments", description = "Returns enrollments for the selected student within the caller's authorized scope.")
     public ApiResponse<List<EnrollmentResponse>> getStudentEnrollments(@PathVariable UUID studentId) {
         return ApiResponse.success(enrollmentService.getStudentEnrollments(studentId));
     }

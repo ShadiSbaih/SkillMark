@@ -6,6 +6,9 @@ import com.library.cohive.course.dto.CourseResponse;
 import com.library.cohive.course.dto.CreateCourseRequest;
 import com.library.cohive.course.dto.UpdateCourseRequest;
 import com.library.cohive.course.service.CourseService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -28,16 +31,20 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/courses")
 @RequiredArgsConstructor
+@Tag(name = "Courses", description = "Create, browse, update, and delete course resources.")
+@SecurityRequirement(name = "bearerAuth")
 public class CourseController {
     private final CourseService courseService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Create a course", description = "Creates a new course under an organization owned by the authenticated owner.")
     public ApiResponse<CourseResponse> createCourse(@Valid @RequestBody CreateCourseRequest request) {
         return ApiResponse.success("Course created successfully", courseService.createCourse(request));
     }
 
     @GetMapping
+    @Operation(summary = "List courses", description = "Returns a paginated list of courses visible to the authenticated user, optionally filtered by organization.")
     public ApiResponse<PageResponse<CourseResponse>> getCourses(
             @PageableDefault(size = 10) Pageable pageable,
             @RequestParam(value = "organizationId", required = false) UUID organizationId) {
@@ -46,11 +53,13 @@ public class CourseController {
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Get course details", description = "Returns one course by ID when the authenticated user has access to it.")
     public ApiResponse<CourseResponse> getCourse(@PathVariable("id") UUID courseId) {
         return ApiResponse.success(courseService.getCourse(courseId));
     }
 
     @PutMapping("/{id}")
+    @Operation(summary = "Update a course", description = "Updates the title and description of an existing course owned by the authenticated owner.")
     public ApiResponse<CourseResponse> updateCourse(
             @PathVariable("id") UUID courseId,
             @Valid @RequestBody UpdateCourseRequest request) {
@@ -58,6 +67,7 @@ public class CourseController {
     }
 
     @DeleteMapping("/{id}")
+    @Operation(summary = "Delete a course", description = "Deletes a course owned by the authenticated owner.")
     public ApiResponse<Void> deleteCourse(@PathVariable("id") UUID courseId) {
         courseService.deleteCourse(courseId);
         return ApiResponse.success("Course deleted successfully", null);

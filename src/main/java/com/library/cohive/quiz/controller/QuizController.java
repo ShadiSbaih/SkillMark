@@ -4,6 +4,9 @@ import com.library.cohive.common.response.ApiResponse;
 import com.library.cohive.quiz.dto.CreateQuizRequest;
 import com.library.cohive.quiz.dto.QuizResponse;
 import com.library.cohive.quiz.service.QuizService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,16 +24,20 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/quizzes")
 @RequiredArgsConstructor
+@Tag(name = "Quizzes", description = "Create and retrieve quizzes that belong to a course.")
+@SecurityRequirement(name = "bearerAuth")
 public class QuizController {
     private final QuizService quizService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Create a quiz", description = "Creates a quiz for a course owned by the authenticated organization owner.")
     public ApiResponse<QuizResponse> createQuiz(@Valid @RequestBody CreateQuizRequest request) {
         return ApiResponse.success("Quiz created successfully", quizService.createQuiz(request));
     }
 
     @GetMapping("/course/{courseId}")
+    @Operation(summary = "List course quizzes", description = "Returns the quizzes visible for the selected course.")
     public ApiResponse<List<QuizResponse>> getCourseQuizzes(@PathVariable UUID courseId) {
         return ApiResponse.success(quizService.getCourseQuizzes(courseId));
     }
