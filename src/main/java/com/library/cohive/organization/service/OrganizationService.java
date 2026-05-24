@@ -3,6 +3,7 @@ package com.library.cohive.organization.service;
 import com.library.cohive.common.exception.ConflictException;
 import com.library.cohive.common.exception.ForbiddenException;
 import com.library.cohive.common.exception.ResourceNotFoundException;
+import com.library.cohive.common.util.PageUtils;
 import com.library.cohive.common.util.SecurityUtil;
 import com.library.cohive.organization.dto.AddOrganizationStudentRequest;
 import com.library.cohive.organization.dto.CreateOrganizationRequest;
@@ -20,7 +21,6 @@ import com.library.cohive.user.entity.User;
 import com.library.cohive.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
@@ -64,14 +64,7 @@ public class OrganizationService {
         List<OrganizationResponse> content = organizations.stream()
             .map(OrganizationResponse::fromEntity)
             .toList();
-
-        int start = (int) pageable.getOffset();
-        int end = Math.min(start + pageable.getPageSize(), content.size());
-        List<OrganizationResponse> pageItems = start >= content.size()
-            ? List.of()
-            : content.subList(start, end);
-
-        return new PageImpl<>(pageItems, pageable, content.size());
+        return PageUtils.page(content, pageable);
     }
 
     public OrganizationResponse getOrganization(UUID organizationId) {
@@ -137,14 +130,7 @@ public class OrganizationService {
             .map(OrganizationStudent::getStudent)
             .map(StudentResponse::fromEntity)
             .toList();
-
-        int start = (int) pageable.getOffset();
-        int end = Math.min(start + pageable.getPageSize(), content.size());
-        List<StudentResponse> pageItems = start >= content.size()
-            ? List.of()
-            : content.subList(start, end);
-
-        return new PageImpl<>(pageItems, pageable, content.size());
+        return PageUtils.page(content, pageable);
     }
 
     private void ensureOwnerRole() {

@@ -1,115 +1,41 @@
-# CohiveBackend Architecture
+# Cohive Backend Architecture
 
 ## Overview
 
-Cohive is a modular SaaS Training & Course Management Platform built using:
+Cohive is a modular Spring Boot backend for a multi-organization training platform.
 
-- Spring Boot (Java 17)
+Core stack:
+- Java 17
+- Spring Boot
+- Spring Security + JWT
+- Spring Data JPA
 - PostgreSQL (Neon)
-- JWT Authentication
-- Modular Feature-Based Architecture
 
-The backend architecture prioritizes:
-- scalability
-- maintainability
-- modularity
-- clean code
-- enterprise-grade structure
+Core priorities:
+- keep feature modules isolated
+- keep the API contract stable
+- keep business rules in services
+- keep infrastructure lightweight
 
 ---
 
-# Architectural Style
-
-Flow:
-
-Controller -> Service -> Repository -> Database
-
----
-
-# Architecture Goals
-
-- Clean separation of concerns
-- Reusable modules
-- Scalable structure
-- Secure authentication
-- Maintainable business logic
-- Feature isolation
-- Production-ready organization
-
----
-
-# High-Level System Architecture
+# Request Flow
 
 ```text
-Client (Angular)
-        ↓
-REST API (Spring Boot)
-        ↓
-Controller Layer
-        ↓
-Service Layer
-        ↓
-Repository Layer
-        ↓
-PostgreSQL (Neon)
+Client
+  -> Controller
+  -> Service
+  -> Repository
+  -> Database
 ```
 
----
-
-# Core Architecture Principles
-
-## 1. Feature-Based Modularity
-
-Each feature is isolated into its own module.
-
-Example:
-
-course/
-├── controller
-├── service
-├── repository
-├── entity
-├── dto
-├── mapper
-
-Benefits:
-- scalability
-- maintainability
-- team collaboration
-- easier testing
+Controllers handle HTTP concerns, services enforce business rules, repositories handle persistence, and entities stay inside the persistence layer.
 
 ---
 
-## 2. Separation of Concerns
+# Module Structure
 
-Each layer has a single responsibility.
-
-| Layer | Responsibility |
-|---|---|
-| Controller | HTTP handling |
-| Service | Business logic |
-| Repository | Database access |
-| Entity | Persistence model |
-| DTO | API data transfer |
-| Mapper | Entity ↔ DTO conversion |
-
----
-
-## 3. Stateless Authentication
-
-Authentication uses JWT.
-
-Advantages:
-- scalable
-- stateless
-- frontend-friendly
-- API-ready
-
----
-
-# Backend Modules
-
-## Core Modules
+Each feature keeps its own package:
 
 - auth
 - user
@@ -121,266 +47,176 @@ Advantages:
 - quiz
 - certificate
 
----
+Shared packages:
 
-# Package Structure
+- config
+- common
+- security
 
-src/main/java/com/library/cohive
-│
-├── config
-├── common
-├── security
-├── auth
-├── user
-├── organization
-├── student
-├── course
-├── enrollment
-├── resource
-├── quiz
-├── certificate
+Typical feature layout:
 
----
+```text
+course/
+  controller/
+  dto/
+  entity/
+  repository/
+  service/
+```
 
-# Shared Packages
-
-## config
-
-Contains:
-- application configuration
-- OpenAPI config
-- security config
+Mapper packages are no longer part of the design. Simple entity-to-response conversion lives in response DTO factories.
 
 ---
 
-## common
+# Layer Responsibilities
 
-Contains:
-- exceptions
-- utilities
-- response wrappers
-- constants
+| Layer | Responsibility |
+|---|---|
+| Controller | Accept requests, trigger validation, return standardized responses |
+| Service | Apply authorization, tenancy rules, and business logic |
+| Repository | Execute persistence operations and required query methods |
+| Entity | Represent database state and relationships |
+| DTO | Define API request and response shapes |
 
----
+Rules:
 
-## security
-
-Contains:
-- JWT filters
-- token services
-- security handlers
-
----
-
-# Database Architecture
-
-Database:
-- PostgreSQL (Neon)
-
-Design principles:
-- normalized schema
-- UUID primary keys
-- foreign key integrity
-- indexing
-- auditability
-
----
-
-# Entity Design Rules
-
-All major entities should contain:
-
-- id (UUID)
-- created_at
-- updated_at
-
-Optional:
-- deleted_at
-
----
-
-# Repository Layer
-
-Repositories:
-- extend JpaRepository
-- remain lightweight
-- avoid business logic
-
-Complex querying should use:
-- JPQL
-- Specifications
-- QueryDSL (future)
-
----
-
-# Service Layer
-
-Services contain:
-- business rules
-- validation
-- transactional logic
-
-Services should:
-- remain modular
-- avoid duplication
-- avoid infrastructure coupling
-
----
-
-# Controller Layer
-
-Controllers:
-- expose REST endpoints
-- validate requests
-- return standardized responses
-
-Controllers should NOT:
-- contain business logic
-- directly access repositories
+- controllers do not contain business logic
+- controllers do not access repositories directly
+- services do not expose entities to the API
+- repositories stay thin and contain only persistence-oriented methods
 
 ---
 
 # DTO Strategy
 
-All API communication uses DTOs.
+All external API input and output uses DTOs.
 
-Never expose entities directly.
+Request DTO rules:
+- keep validation annotations on the DTO
+- merge request classes only when the shape and validation rules are truly identical
+- keep API field names unchanged
 
-DTO Types:
-- Request DTOs
-- Response DTOs
+Response DTO rules:
+- map directly from entities through DTO static factories such as `fromEntity(...)`
+- keep mapping logic close to the response shape when the mapping is trivial
+- avoid a separate mapper abstraction for one-to-one field copies
 
-Example:
-- CreateCourseRequest
-- CourseResponse
-
----
-
-# Validation Strategy
-
-Validation uses:
-- Jakarta Validation
-
-Examples:
-- @NotBlank
-- @Email
-- @Size
-- @Valid
-
-Validation belongs in DTOs.
+This keeps simple mappings local without introducing another layer.
 
 ---
 
-# Exception Handling
+# Repository Strategy
 
-Global exception handling uses:
+Repositories extend `JpaRepository` and remain feature-specific.
 
-@ControllerAdvice
+Guidelines:
+- keep one repository interface per aggregate when query methods are needed
+- do not introduce empty repository abstractions just for structure
+- do not move repository access into controllers
+- keep custom methods focused on query intent, not business decisions
 
-Common exceptions:
-- ResourceNotFoundException
-- ValidationException
-- UnauthorizedException
-- BusinessException
+Direct `JpaRepository<Entity, UUID>` injection is not used as a general pattern because several features rely on entity-specific query methods.
+
+---
+
+# Pagination Strategy
+
+List endpoints that are already paginated return:
+
+- `ApiResponse<PageResponse<T>>`
+
+Implementation guidelines:
+- controllers use `PageResponse.from(Page<T>)`
+- services may build `Page<T>` from repository output or from filtered in-memory lists
+- shared pagination helpers belong in `common`
+
+Endpoints that currently return plain lists keep their existing response shape to preserve the API contract.
 
 ---
 
 # Security Architecture
 
-Authentication:
-- JWT-based
+Authentication is stateless and JWT-based.
 
-Authorization:
-- role-based (future-ready)
+Current structure:
+- `auth` contains authentication use cases and auth DTOs
+- `security` contains JWT parsing, filter integration, user details loading, and access handlers
+- `config` wires the security filter chain and related beans
 
-Password storage:
-- BCrypt hashing
+Security rules:
+- `/api/v1/auth/register` and `/api/v1/auth/login` are public
+- Swagger and health endpoints are public
+- all other API routes require authentication
 
-Security layers:
-- JWT filter
-- authentication provider
-- access validation
-
----
-
-# API Design Principles
-
-- RESTful APIs
-- versioned endpoints
-- standardized responses
-- proper status codes
-- pagination support
-
-Base path:
-
-/api/v1
+Implementation guidelines:
+- password hashing uses BCrypt
+- JWT generation and parsing stay centralized
+- exception handlers return the standard API error format
 
 ---
 
-# Logging Strategy
+# Configuration Strategy
 
-Use structured logging.
+Configuration stays small and explicit.
 
-Log:
-- errors
-- authentication events
-- important operations
+Current responsibilities:
+- `SecurityConfig` wires the security filter chain, authentication provider, and password encoder
+- `OpenApiConfig` defines the OpenAPI metadata
+- Neon datasource URL normalization runs before datasource auto-configuration so Spring Boot can keep its default pooled datasource
 
-Avoid:
-- unnecessary logs
-- sensitive data exposure
+The datasource setup intentionally avoids constructing a manual `DataSource` bean because that bypasses Boot-managed pooling.
 
 ---
 
-# Scalability Considerations
+# Validation And Errors
 
-Architecture is prepared for:
-- notifications
-- analytics
-- file storage
-- websocket support
-- RBAC
-- microservice transition
+Validation uses Jakarta Validation on DTOs.
 
----
+Common annotations:
+- `@NotBlank`
+- `@NotNull`
+- `@Email`
+- `@Valid`
 
-# Performance Considerations
-
-Use:
-- pagination
-- lazy loading
-- indexed queries
-- optimized joins
-
-Avoid:
-- N+1 queries
-- eager loading
-- large payloads
+Global exception handling uses `@ControllerAdvice` and keeps responses consistent with the API design.
 
 ---
 
-# Future Extensions
+# Multi-Tenant Rules
 
-Planned scalable additions:
-- notifications
-- attendance
-- assignments
-- analytics
-- audit logs
-- team collaboration
-- mentorship system
+Tenant isolation is enforced in services.
+
+Key rules:
+- owners manage only their own organizations and related data
+- students access only their own profile and authorized course data
+- cross-organization access is rejected
+
+Authorization checks stay close to the business action that requires them.
+
+---
+
+# Database Notes
+
+Persistence uses PostgreSQL with UUID primary keys and Flyway migrations.
+
+Design expectations:
+- normalized relationships
+- explicit ownership and membership checks
+- audit timestamps on major entities
 
 ---
 
 # Development Principles
 
-Always prioritize:
-- readability
-- modularity
-- scalability
-- maintainability
+Prefer:
+- small configs
+- explicit service logic
+- feature-local repositories
+- DTO factories for simple mappings
+- shared helpers only when duplication is repeated
 
 Avoid:
-- monolithic services
-- duplicated logic
-- tightly coupled modules
+- extra abstraction layers for trivial field mapping
+- empty interfaces with no behavior or query intent
+- API shape changes during internal refactoring
+- moving business logic out of services just to reduce file size

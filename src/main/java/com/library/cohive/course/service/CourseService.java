@@ -2,6 +2,7 @@ package com.library.cohive.course.service;
 
 import com.library.cohive.common.exception.ForbiddenException;
 import com.library.cohive.common.exception.ResourceNotFoundException;
+import com.library.cohive.common.util.PageUtils;
 import com.library.cohive.common.util.SecurityUtil;
 import com.library.cohive.course.dto.CourseResponse;
 import com.library.cohive.course.dto.CreateCourseRequest;
@@ -16,7 +17,6 @@ import com.library.cohive.student.repository.StudentRepository;
 import com.library.cohive.user.entity.Role;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
@@ -66,12 +66,7 @@ public class CourseService {
         List<CourseResponse> content = courses.stream()
             .map(CourseResponse::fromEntity)
             .toList();
-        int start = (int) pageable.getOffset();
-        int end = Math.min(start + pageable.getPageSize(), content.size());
-        List<CourseResponse> pageItems = start >= content.size()
-            ? List.of()
-            : content.subList(start, end);
-        return new PageImpl<>(pageItems, pageable, content.size());
+        return PageUtils.page(content, pageable);
     }
 
     public CourseResponse getCourse(UUID courseId) {

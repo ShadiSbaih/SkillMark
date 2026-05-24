@@ -3,6 +3,7 @@ package com.library.cohive.student.service;
 import com.library.cohive.common.exception.ConflictException;
 import com.library.cohive.common.exception.ForbiddenException;
 import com.library.cohive.common.exception.ResourceNotFoundException;
+import com.library.cohive.common.util.PageUtils;
 import com.library.cohive.common.util.SecurityUtil;
 import com.library.cohive.organization.entity.Organization;
 import com.library.cohive.organization.entity.OrganizationStudent;
@@ -18,7 +19,6 @@ import com.library.cohive.user.entity.User;
 import com.library.cohive.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -100,14 +100,7 @@ public class StudentService {
         List<StudentResponse> content = studentRepository.findAllById(studentIds).stream()
             .map(StudentResponse::fromEntity)
             .toList();
-
-        int start = (int) pageable.getOffset();
-        int end = Math.min(start + pageable.getPageSize(), content.size());
-        List<StudentResponse> pageItems = start >= content.size()
-            ? List.of()
-            : content.subList(start, end);
-
-        return new PageImpl<>(pageItems, pageable, content.size());
+        return PageUtils.page(content, pageable);
     }
 
     @Transactional(readOnly = true)
