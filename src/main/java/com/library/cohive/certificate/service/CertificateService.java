@@ -3,7 +3,6 @@ package com.library.cohive.certificate.service;
 import com.library.cohive.certificate.dto.CertificateResponse;
 import com.library.cohive.certificate.dto.IssueCertificateRequest;
 import com.library.cohive.certificate.entity.Certificate;
-import com.library.cohive.certificate.mapper.CertificateMapper;
 import com.library.cohive.certificate.repository.CertificateRepository;
 import com.library.cohive.common.exception.ConflictException;
 import com.library.cohive.common.exception.ForbiddenException;
@@ -31,7 +30,6 @@ public class CertificateService {
     private final StudentRepository studentRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final OrganizationStudentRepository organizationStudentRepository;
-    private final CertificateMapper certificateMapper;
 
     public CertificateResponse issueCertificate(IssueCertificateRequest request) {
         ensureOwnerRole();
@@ -69,7 +67,7 @@ public class CertificateService {
                 .student(student)
                 .build();
 
-        return certificateMapper.toResponse(certificateRepository.save(certificate));
+        return CertificateResponse.fromEntity(certificateRepository.save(certificate));
     }
 
     public List<CertificateResponse> getStudentCertificates(UUID studentId) {
@@ -81,6 +79,8 @@ public class CertificateService {
                 throw new ForbiddenException("Access denied");
             }
         } else {
+            studentRepository.findById(studentId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
             boolean belongsToOwner = organizationStudentRepository
                     .existsByOrganization_Owner_IdAndStudent_Id(SecurityUtil.getCurrentUserId(), studentId);
             if (!belongsToOwner) {
@@ -89,7 +89,9 @@ public class CertificateService {
         }
 
         return certificateRepository.findByStudent_Id(studentId).stream()
-                .map(certificateMapper::toResponse)
+                .filter(certificate -> role == Role.STUDENT
+                        || certificate.getCourse().getOrganization().getOwner().getId().equals(SecurityUtil.getCurrentUserId()))
+            .map(CertificateResponse::fromEntity)
                 .toList();
     }
 

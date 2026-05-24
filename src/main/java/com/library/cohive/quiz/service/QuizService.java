@@ -9,7 +9,6 @@ import com.library.cohive.enrollment.repository.EnrollmentRepository;
 import com.library.cohive.quiz.dto.CreateQuizRequest;
 import com.library.cohive.quiz.dto.QuizResponse;
 import com.library.cohive.quiz.entity.Quiz;
-import com.library.cohive.quiz.mapper.QuizMapper;
 import com.library.cohive.quiz.repository.QuizRepository;
 import com.library.cohive.student.entity.Student;
 import com.library.cohive.student.repository.StudentRepository;
@@ -27,7 +26,6 @@ public class QuizService {
     private final CourseRepository courseRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final StudentRepository studentRepository;
-    private final QuizMapper quizMapper;
 
     public QuizResponse createQuiz(CreateQuizRequest request) {
         ensureOwnerRole();
@@ -41,7 +39,7 @@ public class QuizService {
                 .title(request.getTitle())
                 .course(course)
                 .build();
-        return quizMapper.toResponse(quizRepository.save(quiz));
+        return QuizResponse.fromEntity(quizRepository.save(quiz));
     }
 
     public List<QuizResponse> getCourseQuizzes(UUID courseId) {
@@ -63,7 +61,7 @@ public class QuizService {
         }
 
         return quizRepository.findByCourse_Id(courseId).stream()
-                .map(quizMapper::toResponse)
+            .map(QuizResponse::fromEntity)
                 .toList();
     }
 

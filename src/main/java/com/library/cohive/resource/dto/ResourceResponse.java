@@ -1,5 +1,6 @@
 package com.library.cohive.resource.dto;
 
+import com.library.cohive.resource.entity.Resource;
 import com.library.cohive.resource.entity.ResourceType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,4 +23,18 @@ public class ResourceResponse {
     private String url;
     private UUID courseId;
     private Instant createdAt;
+
+    public static ResourceResponse fromEntity(Resource resource) {
+        if (resource == null) {
+            return null;
+        }
+        return ResourceResponse.builder()
+                .id(resource.getId())
+                .title(resource.getTitle())
+                .type(resource.getType())
+                .url(resource.getUrl())
+                .courseId(resource.getCourse().getId())
+                .createdAt(resource.getCreatedAt())
+                .build();
+    }
 }

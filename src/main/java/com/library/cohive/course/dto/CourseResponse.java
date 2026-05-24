@@ -1,5 +1,6 @@
 package com.library.cohive.course.dto;
 
+import com.library.cohive.course.entity.Course;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -20,4 +21,17 @@ public class CourseResponse {
     private String description;
     private UUID organizationId;
     private Instant createdAt;
+
+    public static CourseResponse fromEntity(Course course) {
+        if (course == null) {
+            return null;
+        }
+        return CourseResponse.builder()
+                .id(course.getId())
+                .title(course.getTitle())
+                .description(course.getDescription())
+                .organizationId(course.getOrganization().getId())
+                .createdAt(course.getCreatedAt())
+                .build();
+    }
 }

@@ -9,7 +9,6 @@ import com.library.cohive.enrollment.repository.EnrollmentRepository;
 import com.library.cohive.resource.dto.CreateResourceRequest;
 import com.library.cohive.resource.dto.ResourceResponse;
 import com.library.cohive.resource.entity.Resource;
-import com.library.cohive.resource.mapper.ResourceMapper;
 import com.library.cohive.resource.repository.ResourceRepository;
 import com.library.cohive.student.entity.Student;
 import com.library.cohive.student.repository.StudentRepository;
@@ -27,7 +26,6 @@ public class ResourceService {
     private final CourseRepository courseRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final StudentRepository studentRepository;
-    private final ResourceMapper resourceMapper;
 
     public ResourceResponse createResource(CreateResourceRequest request) {
         ensureOwnerRole();
@@ -43,7 +41,7 @@ public class ResourceService {
                 .url(request.getUrl())
                 .course(course)
                 .build();
-        return resourceMapper.toResponse(resourceRepository.save(resource));
+        return ResourceResponse.fromEntity(resourceRepository.save(resource));
     }
 
     public List<ResourceResponse> getCourseResources(UUID courseId) {
@@ -65,7 +63,7 @@ public class ResourceService {
         }
 
         return resourceRepository.findByCourse_Id(courseId).stream()
-                .map(resourceMapper::toResponse)
+            .map(ResourceResponse::fromEntity)
                 .toList();
     }
 

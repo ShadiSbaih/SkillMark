@@ -7,7 +7,6 @@ import com.library.cohive.course.dto.CourseResponse;
 import com.library.cohive.course.dto.CreateCourseRequest;
 import com.library.cohive.course.dto.UpdateCourseRequest;
 import com.library.cohive.course.entity.Course;
-import com.library.cohive.course.mapper.CourseMapper;
 import com.library.cohive.course.repository.CourseRepository;
 import com.library.cohive.enrollment.repository.EnrollmentRepository;
 import com.library.cohive.organization.entity.Organization;
@@ -31,7 +30,6 @@ public class CourseService {
     private final OrganizationRepository organizationRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final StudentRepository studentRepository;
-    private final CourseMapper courseMapper;
 
     public CourseResponse createCourse(CreateCourseRequest request) {
         ensureOwnerRole();
@@ -42,7 +40,7 @@ public class CourseService {
                 .description(request.getDescription())
                 .organization(organization)
                 .build();
-        return courseMapper.toResponse(courseRepository.save(course));
+        return CourseResponse.fromEntity(courseRepository.save(course));
     }
 
     public Page<CourseResponse> getCourses(Pageable pageable, UUID organizationId) {
@@ -66,7 +64,7 @@ public class CourseService {
         }
 
         List<CourseResponse> content = courses.stream()
-            .map(courseMapper::toResponse)
+            .map(CourseResponse::fromEntity)
             .toList();
         int start = (int) pageable.getOffset();
         int end = Math.min(start + pageable.getPageSize(), content.size());
@@ -82,7 +80,7 @@ public class CourseService {
         if (role == Role.OWNER) {
             Course course = courseRepository.findByIdAndOrganization_Owner_Id(courseId, SecurityUtil.getCurrentUserId())
                     .orElseThrow(() -> new ResourceNotFoundException("Course not found"));
-            return courseMapper.toResponse(course);
+            return CourseResponse.fromEntity(course);
         }
 
         Student student = studentRepository.findByUser_Id(SecurityUtil.getCurrentUserId())
@@ -93,7 +91,7 @@ public class CourseService {
         }
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found"));
-        return courseMapper.toResponse(course);
+        return CourseResponse.fromEntity(course);
     }
 
     public CourseResponse updateCourse(UUID courseId, UpdateCourseRequest request) {
@@ -103,7 +101,7 @@ public class CourseService {
 
         course.setTitle(request.getTitle());
         course.setDescription(request.getDescription());
-        return courseMapper.toResponse(courseRepository.save(course));
+        return CourseResponse.fromEntity(courseRepository.save(course));
     }
 
     public void deleteCourse(UUID courseId) {

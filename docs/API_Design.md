@@ -269,6 +269,17 @@ DELETE /api/v1/courses/{id}
 
 POST /api/v1/students
 
+### Request
+
+```json
+{
+  "name": "Jane Doe",
+  "email": "jane@example.com",
+  "password": "password123",
+  "organizationId": "uuid"
+}
+```
+
 ---
 
 ## Get Students

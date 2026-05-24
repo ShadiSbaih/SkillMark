@@ -6,12 +6,12 @@ import com.library.cohive.common.exception.ResourceNotFoundException;
 import com.library.cohive.common.util.SecurityUtil;
 import com.library.cohive.organization.entity.Organization;
 import com.library.cohive.organization.entity.OrganizationStudent;
+import com.library.cohive.organization.entity.OrganizationStudentId;
 import com.library.cohive.organization.repository.OrganizationRepository;
 import com.library.cohive.organization.repository.OrganizationStudentRepository;
 import com.library.cohive.student.dto.CreateStudentRequest;
 import com.library.cohive.student.dto.StudentResponse;
 import com.library.cohive.student.entity.Student;
-import com.library.cohive.student.mapper.StudentMapper;
 import com.library.cohive.student.repository.StudentRepository;
 import com.library.cohive.user.entity.Role;
 import com.library.cohive.user.entity.User;
@@ -22,6 +22,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Set;
@@ -35,14 +36,20 @@ public class StudentService {
     private final UserRepository userRepository;
     private final OrganizationRepository organizationRepository;
     private final OrganizationStudentRepository organizationStudentRepository;
-    private final StudentMapper studentMapper;
     private final PasswordEncoder passwordEncoder;
 
+    @Transactional
     public StudentResponse createStudent(CreateStudentRequest request) {
         ensureOwnerRole();
 
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new ConflictException("Email already in use");
+        }
+
+        Organization organization = organizationRepository.findById(request.getOrganizationId())
+                .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
+        if (!organization.getOwner().getId().equals(SecurityUtil.getCurrentUserId())) {
+            throw new ForbiddenException("Access denied");
         }
 
         User user = User.builder()
@@ -58,9 +65,17 @@ public class StudentService {
                 .build();
 
         Student savedStudent = studentRepository.save(student);
-        return studentMapper.toResponse(savedStudent);
+        OrganizationStudent membership = OrganizationStudent.builder()
+                .id(new OrganizationStudentId(organization.getId(), savedStudent.getId()))
+                .organization(organization)
+                .student(savedStudent)
+                .build();
+        organizationStudentRepository.save(membership);
+
+        return StudentResponse.fromEntity(savedStudent);
     }
 
+    @Transactional(readOnly = true)
     public Page<StudentResponse> getStudents(Pageable pageable) {
         ensureOwnerRole();
 
@@ -83,7 +98,7 @@ public class StudentService {
         }
 
         List<StudentResponse> content = studentRepository.findAllById(studentIds).stream()
-            .map(studentMapper::toResponse)
+            .map(StudentResponse::fromEntity)
             .toList();
 
         int start = (int) pageable.getOffset();
@@ -95,6 +110,7 @@ public class StudentService {
         return new PageImpl<>(pageItems, pageable, content.size());
     }
 
+    @Transactional(readOnly = true)
     public StudentResponse getStudent(UUID studentId) {
         Role role = SecurityUtil.getCurrentUserRole();
         if (role == Role.STUDENT) {
@@ -102,7 +118,7 @@ public class StudentService {
             if (!currentStudent.getId().equals(studentId)) {
                 throw new ForbiddenException("Access denied");
             }
-            return studentMapper.toResponse(currentStudent);
+            return StudentResponse.fromEntity(currentStudent);
         }
 
         UUID ownerId = SecurityUtil.getCurrentUserId();
@@ -113,7 +129,7 @@ public class StudentService {
         if (!belongsToOwner) {
             throw new ForbiddenException("Access denied");
         }
-        return studentMapper.toResponse(student);
+        return StudentResponse.fromEntity(student);
     }
 
     public Student getCurrentStudentEntity() {

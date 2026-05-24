@@ -1,5 +1,6 @@
 package com.library.cohive.student.dto;
 
+import com.library.cohive.student.entity.Student;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -20,4 +21,17 @@ public class StudentResponse {
     private String name;
     private String email;
     private Instant createdAt;
+
+    public static StudentResponse fromEntity(Student student) {
+        if (student == null) {
+            return null;
+        }
+        return StudentResponse.builder()
+                .id(student.getId())
+                .userId(student.getUser().getId())
+                .name(student.getUser().getName())
+                .email(student.getUser().getEmail())
+                .createdAt(student.getCreatedAt())
+                .build();
+    }
 }

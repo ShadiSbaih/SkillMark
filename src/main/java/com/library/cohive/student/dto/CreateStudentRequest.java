@@ -2,12 +2,15 @@ package com.library.cohive.student.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -25,4 +28,7 @@ public class CreateStudentRequest {
     @NotBlank
     @Size(min = 6)
     private String password;
+
+    @NotNull
+    private UUID organizationId;
 }

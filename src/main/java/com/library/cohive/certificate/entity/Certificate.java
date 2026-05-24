@@ -9,6 +9,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -21,7 +22,13 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "certificates")
+@Table(
+        name = "certificates",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uq_certificates_course_student",
+                columnNames = {"course_id", "student_id"}
+        )
+)
 public class Certificate extends AuditableEntity {
 
     @Column(nullable = false)

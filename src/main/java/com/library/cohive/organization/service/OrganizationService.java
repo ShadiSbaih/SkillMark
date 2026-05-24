@@ -10,12 +10,10 @@ import com.library.cohive.organization.dto.OrganizationResponse;
 import com.library.cohive.organization.entity.Organization;
 import com.library.cohive.organization.entity.OrganizationStudent;
 import com.library.cohive.organization.entity.OrganizationStudentId;
-import com.library.cohive.organization.mapper.OrganizationMapper;
 import com.library.cohive.organization.repository.OrganizationRepository;
 import com.library.cohive.organization.repository.OrganizationStudentRepository;
 import com.library.cohive.student.dto.StudentResponse;
 import com.library.cohive.student.entity.Student;
-import com.library.cohive.student.mapper.StudentMapper;
 import com.library.cohive.student.repository.StudentRepository;
 import com.library.cohive.user.entity.Role;
 import com.library.cohive.user.entity.User;
@@ -36,8 +34,6 @@ public class OrganizationService {
     private final OrganizationStudentRepository organizationStudentRepository;
     private final UserRepository userRepository;
     private final StudentRepository studentRepository;
-    private final OrganizationMapper organizationMapper;
-    private final StudentMapper studentMapper;
 
     public OrganizationResponse createOrganization(CreateOrganizationRequest request) {
         ensureOwnerRole();
@@ -48,7 +44,7 @@ public class OrganizationService {
                 .owner(owner)
                 .build();
 
-        return organizationMapper.toResponse(organizationRepository.save(organization));
+        return OrganizationResponse.fromEntity(organizationRepository.save(organization));
     }
 
     public Page<OrganizationResponse> getOrganizations(Pageable pageable) {
@@ -66,7 +62,7 @@ public class OrganizationService {
         }
 
         List<OrganizationResponse> content = organizations.stream()
-            .map(organizationMapper::toResponse)
+            .map(OrganizationResponse::fromEntity)
             .toList();
 
         int start = (int) pageable.getOffset();
@@ -95,7 +91,7 @@ public class OrganizationService {
             }
         }
 
-        return organizationMapper.toResponse(organization);
+        return OrganizationResponse.fromEntity(organization);
     }
 
     public void deleteOrganization(UUID organizationId) {
@@ -139,7 +135,7 @@ public class OrganizationService {
         List<StudentResponse> content = organizationStudentRepository.findByOrganization_Id(organizationId)
             .stream()
             .map(OrganizationStudent::getStudent)
-            .map(studentMapper::toResponse)
+            .map(StudentResponse::fromEntity)
             .toList();
 
         int start = (int) pageable.getOffset();

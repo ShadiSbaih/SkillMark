@@ -32,7 +32,7 @@ public class Resource extends AuditableEntity {
     @Column(nullable = false)
     private ResourceType type;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 2000)
     private String url;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

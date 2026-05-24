@@ -10,7 +10,6 @@ import com.library.cohive.enrollment.dto.EnrollStudentRequest;
 import com.library.cohive.enrollment.dto.EnrollmentResponse;
 import com.library.cohive.enrollment.entity.Enrollment;
 import com.library.cohive.enrollment.entity.EnrollmentId;
-import com.library.cohive.enrollment.mapper.EnrollmentMapper;
 import com.library.cohive.enrollment.repository.EnrollmentRepository;
 import com.library.cohive.organization.repository.OrganizationStudentRepository;
 import com.library.cohive.student.entity.Student;
@@ -29,7 +28,6 @@ public class EnrollmentService {
     private final CourseRepository courseRepository;
     private final StudentRepository studentRepository;
     private final OrganizationStudentRepository organizationStudentRepository;
-    private final EnrollmentMapper enrollmentMapper;
 
     public EnrollmentResponse enrollStudent(EnrollStudentRequest request) {
         ensureOwnerRole();
@@ -58,7 +56,7 @@ public class EnrollmentService {
                 .course(course)
                 .student(student)
                 .build();
-        return enrollmentMapper.toResponse(enrollmentRepository.save(enrollment));
+        return EnrollmentResponse.fromEntity(enrollmentRepository.save(enrollment));
     }
 
     public List<EnrollmentResponse> getCourseEnrollments(UUID courseId) {
@@ -69,7 +67,7 @@ public class EnrollmentService {
             throw new ForbiddenException("Access denied");
         }
         return enrollmentRepository.findByCourse_Id(courseId).stream()
-                .map(enrollmentMapper::toResponse)
+            .map(EnrollmentResponse::fromEntity)
                 .toList();
     }
 
@@ -82,6 +80,8 @@ public class EnrollmentService {
                 throw new ForbiddenException("Access denied");
             }
         } else {
+            studentRepository.findById(studentId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
             boolean belongsToOwner = organizationStudentRepository
                     .existsByOrganization_Owner_IdAndStudent_Id(SecurityUtil.getCurrentUserId(), studentId);
             if (!belongsToOwner) {
@@ -90,7 +90,9 @@ public class EnrollmentService {
         }
 
         return enrollmentRepository.findByStudent_Id(studentId).stream()
-                .map(enrollmentMapper::toResponse)
+                .filter(enrollment -> role == Role.STUDENT
+                        || enrollment.getCourse().getOrganization().getOwner().getId().equals(SecurityUtil.getCurrentUserId()))
+            .map(EnrollmentResponse::fromEntity)
                 .toList();
     }
 
