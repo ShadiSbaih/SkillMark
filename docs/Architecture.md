@@ -1,455 +1,851 @@
-# Cohive Backend Architecture
+# Skillmark Architecture
 
+## 1. Overview
 
-## Overview
+This document defines the backend architecture for **Skillmark**, an API-first quiz and certification platform.
 
-Cohive is a modular Spring Boot backend for a multi-organization training platform.
+Skillmark allows organizations such as universities, student clubs, training centers, and technical communities to create quizzes, manage participants, evaluate quiz attempts, and issue verifiable certificates.
 
-The current phase is API-only.
-
-No frontend is required in the current phase.
-
-Core stack:
-
-- Java 17
-- Spring Boot
-- Spring Security + JWT
-- Spring Data JPA
-- PostgreSQL
-- Flyway
-- OpenAPI/Swagger
-
-Core priorities:
-
-- keep feature modules isolated
-- keep the API contract stable
-- keep business rules in services
-- keep infrastructure lightweight
-- enforce organization-level isolation
-- support one user having different roles in different organizations
+The current phase is focused on the **backend API only**. Frontend, mobile apps, dashboards, and full LMS features are outside the current MVP scope.
 
 ---
 
-# Product Model
+## 2. Architecture Goals
 
-Cohive is designed around organizations, courses, resources, quizzes, enrollments, and certificates.
+The architecture should be:
 
-Important identity rule:
+- simple enough for an MVP
+- clean enough for future expansion
+- secure by default
+- easy to test
+- easy to deploy
+- suitable for multi-tenant organization-based access
+- based on clear separation of concerns
 
-A `User` is only an account identity.
+The system should avoid unnecessary microservices in the MVP.
 
-A user must not be treated as globally `OWNER` or globally `STUDENT`.
+Recommended architecture style:
 
-Instead, organization-level permissions are stored in:
+```text
+Modular Monolith + REST API + PostgreSQL + JWT Authentication
+```
+
+---
+
+## 3. High-Level Architecture
+
+```mermaid
+flowchart TD
+    Client[API Client / Future Frontend]
+    Swagger[Swagger / OpenAPI Docs]
+    API[Spring Boot REST API]
+    Security[Spring Security + JWT Filter]
+    Controllers[Controllers Layer]
+    Services[Services Layer]
+    Authz[Authorization Service]
+    Repos[Repository Layer]
+    DB[(PostgreSQL Database)]
+    Mail[Email Service]
+    Storage[Optional File Storage]
+    Audit[Audit Logging]
+
+    Client --> API
+    Swagger --> API
+    API --> Security
+    Security --> Controllers
+    Controllers --> Services
+    Services --> Authz
+    Services --> Repos
+    Repos --> DB
+    Services --> Mail
+    Services --> Storage
+    Services --> Audit
+    Audit --> DB
+```
+
+---
+
+## 4. Main System Components
+
+## 4.1 API Client
+
+The API client can be:
+
+- Swagger UI
+- Postman
+- future web dashboard
+- future student portal
+- future mobile app
+
+The backend should not depend on a specific frontend.
+
+---
+
+## 4.2 Backend API
+
+The backend exposes REST endpoints under:
+
+```text
+/api/v1
+```
+
+Responsibilities:
+
+- receive HTTP requests
+- validate request body and parameters
+- authenticate requests
+- authorize access
+- call service layer
+- return consistent API responses
+- expose OpenAPI documentation
+
+Recommended technology:
+
+- Java 17+
+- Spring Boot
+- Spring Web
+- Spring Security
+- Spring Data JPA
+- PostgreSQL
+- Flyway
+
+---
+
+## 4.3 Database
+
+Recommended database:
+
+```text
+PostgreSQL
+```
+
+The database stores:
+
+- users
+- organizations
+- organization memberships
+- quizzes
+- questions
+- options
+- attempts
+- attempt answers
+- certificates
+- refresh tokens
+- email verification tokens
+- password reset tokens
+- audit logs
+
+The database must enforce important constraints such as:
+
+- unique user email
+- unique organization membership per user and organization
+- unique certificate number
+- unique certificate verification code
+- only one active certificate per user and quiz
+
+---
+
+## 4.4 Authentication Layer
+
+The authentication layer handles:
+
+- registration
+- login
+- password hashing
+- JWT access tokens
+- refresh tokens
+- logout
+- email verification
+- password reset
+
+Recommended approach:
+
+- access token: short-lived JWT
+- refresh token: long-lived random token stored as hash
+- password: stored using BCrypt
+- reset and verification tokens: stored as hashes
+
+---
+
+## 4.5 Authorization Layer
+
+Skillmark uses **organization-scoped authorization**.
+
+The system must not depend on a global user role such as:
+
+```text
+users.role = OWNER
+```
+
+Instead, business permissions are based on:
 
 ```text
 organization_memberships
+```
 
-This allows:
+Example checks:
 
-User Ahmad:
-- OWNER in Organization A
-- STUDENT in Organization B
-- STUDENT in Organization C
-Request Flow
-Client
-  -> Controller
-  -> Service
-  -> AuthorizationService
-  -> Repository
-  -> Database
+```text
+ensureOrganizationOwner(organizationId)
+ensureOrganizationMember(organizationId)
+ensureActiveParticipantMember(organizationId, userId)
+ensureQuizOwner(quizId)
+ensureQuizAccessible(quizId)
+ensureAttemptOwner(attemptId)
+ensureCertificateAccessible(certificateId)
+```
 
-Controllers handle HTTP concerns.
+These checks should be centralized in an `AuthorizationService`.
 
-Services enforce business rules.
+---
 
-AuthorizationService centralizes organization-scoped permission checks.
+## 5. Layered Architecture
 
-Repositories handle persistence.
+```mermaid
+flowchart TD
+    Controller[Controller Layer]
+    DTO[DTO / Validation Layer]
+    Service[Service Layer]
+    AuthService[Authorization Service]
+    Repository[Repository Layer]
+    Entity[Entity Layer]
+    Database[(Database)]
 
-Entities represent database state.
+    Controller --> DTO
+    Controller --> Service
+    Service --> AuthService
+    Service --> Repository
+    Repository --> Entity
+    Entity --> Database
+```
 
-DTOs define external API contracts.
+---
 
-Module Structure
+# 5.1 Controller Layer
 
-Each feature keeps its own package:
+Controllers should be thin.
 
-auth
-user
-organization
-membership
-course
-enrollment
-resource
-quiz
-certificate
-file
+Responsibilities:
 
-Shared packages:
+- define REST endpoints
+- receive requests
+- validate DTOs
+- extract authenticated user if needed
+- call service methods
+- return standardized responses
 
-config
-common
-security
+Controllers should not contain business rules.
 
-Typical feature layout:
+Example controller responsibilities:
 
-course/
-  controller/
-  dto/
-  entity/
-  repository/
-  service/
-Removed Legacy Modules
+```text
+POST /api/v1/quizzes
+GET /api/v1/quizzes/{quizId}
+POST /api/v1/quizzes/{quizId}/attempts
+POST /api/v1/quiz-attempts/{attemptId}/submit
+```
 
-The previous design used a separate student domain model and global User.role.
+---
 
-The new design removes or avoids relying on:
+# 5.2 DTO and Validation Layer
 
-users.role
-students
-organization_students
-course_students
+DTOs should be used for request and response objects.
 
-These are replaced with:
+Request DTOs should validate:
 
-organization_memberships
-course_enrollments
+- required fields
+- email format
+- password length
+- positive numeric values
+- valid enum values
+- quiz settings
+- question and option structure
 
-A student is now a User with a STUDENT membership in a specific organization.
+Example:
 
-Layer Responsibilities
-Layer	Responsibility
-Controller	Accept requests, trigger validation, return standardized responses
-Service	Apply business rules and call authorization checks
-AuthorizationService	Enforce organization-level permissions
-Repository	Execute persistence operations and query methods
-Entity	Represent database state and relationships
-DTO	Define API request and response shapes
+```java
+public record CreateQuizRequest(
+    @NotBlank String title,
+    String description,
+    @NotNull UUID organizationId,
+    @Min(0) @Max(100) Integer passingScore,
+    @Min(1) Integer durationMinutes,
+    @Min(1) Integer maxAttempts,
+    Boolean certificateEnabled,
+    CertificateIssueMode certificateIssueMode
+) {}
+```
+
+---
+
+# 5.3 Service Layer
+
+The service layer contains business rules.
+
+Responsibilities:
+
+- enforce authorization
+- apply business validation
+- manage transactions
+- calculate quiz scores
+- issue certificates
+- revoke certificates
+- create audit logs
+- coordinate repositories
+
+Example services:
+
+- `AuthService`
+- `UserService`
+- `OrganizationService`
+- `MembershipService`
+- `QuizService`
+- `QuizQuestionService`
+- `QuizAttemptService`
+- `CertificateService`
+- `AuditLogService`
+
+---
+
+# 5.4 Repository Layer
+
+Repositories handle database access.
+
+Responsibilities:
+
+- query entities
+- save entities
+- check existence
+- fetch paginated lists
+- enforce query-level filtering where helpful
+
+Recommended technology:
+
+```text
+Spring Data JPA
+```
+
+Example repositories:
+
+- `UserRepository`
+- `OrganizationRepository`
+- `OrganizationMembershipRepository`
+- `QuizRepository`
+- `QuizQuestionRepository`
+- `QuizOptionRepository`
+- `QuizAttemptRepository`
+- `CertificateRepository`
+
+---
+
+# 5.5 Entity Layer
+
+Entities map to database tables.
+
+Entities should represent persisted data, not request/response formats.
+
+Examples:
+
+- `User`
+- `Organization`
+- `OrganizationMembership`
+- `Quiz`
+- `QuizQuestion`
+- `QuizOption`
+- `QuizAttempt`
+- `QuizAttemptAnswer`
+- `Certificate`
+- `RefreshToken`
+- `AuditLog`
+
+---
+
+## 6. Recommended Backend Modules
+
+```text
+src/main/java/com/Skillmark
+│
+├── auth
+│   ├── controller
+│   ├── dto
+│   ├── entity
+│   ├── repository
+│   └── service
+│
+├── user
+│   ├── controller
+│   ├── dto
+│   ├── entity
+│   ├── repository
+│   └── service
+│
+├── organization
+│   ├── controller
+│   ├── dto
+│   ├── entity
+│   ├── repository
+│   └── service
+│
+├── membership
+│   ├── controller
+│   ├── dto
+│   ├── entity
+│   ├── repository
+│   └── service
+│
+├── quiz
+│   ├── controller
+│   ├── dto
+│   ├── entity
+│   ├── repository
+│   └── service
+│
+├── attempt
+│   ├── controller
+│   ├── dto
+│   ├── entity
+│   ├── repository
+│   └── service
+│
+├── certificate
+│   ├── controller
+│   ├── dto
+│   ├── entity
+│   ├── repository
+│   └── service
+│
+├── audit
+│   ├── entity
+│   ├── repository
+│   └── service
+│
+├── common
+│   ├── dto
+│   ├── exception
+│   ├── response
+│   └── util
+│
+├── security
+│   ├── jwt
+│   ├── filter
+│   ├── config
+│   └── service
+│
+└── config
+```
+
+---
+
+## 7. Core Domain Flow
+
+## 7.1 Organization Creation Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant API
+    participant OrganizationService
+    participant MembershipRepository
+    participant DB
+
+    User->>API: POST /organizations
+    API->>OrganizationService: createOrganization(request, currentUser)
+    OrganizationService->>DB: Create organization
+    OrganizationService->>MembershipRepository: Create OWNER membership
+    MembershipRepository->>DB: Save membership
+    OrganizationService-->>API: Organization response
+    API-->>User: 201 Created
+```
 
 Rules:
 
-controllers do not contain business logic
-controllers do not access repositories directly
-services do not expose entities to the API
-services call AuthorizationService for permission checks
-repositories stay persistence-oriented
-DTOs are the API boundary
-Authorization Architecture
-
-Authorization is organization-scoped.
-
-Global user roles should not be used for business permissions.
-
-AuthorizationService
-
-Create a central service named:
-
-AuthorizationService
-
-Suggested methods:
-
-ensureOrganizationOwner(UUID organizationId)
-
-ensureOrganizationMember(UUID organizationId)
-
-ensureOrganizationStudent(UUID organizationId, UUID userId)
-
-isOrganizationOwner(UUID organizationId, UUID userId)
-
-isOrganizationMember(UUID organizationId, UUID userId)
-
-ensureCourseOwner(UUID courseId)
-
-ensureCourseAccessible(UUID courseId)
-
-ensureUserEnrolledInCourse(UUID courseId, UUID userId)
-
-ensureCertificateAccessible(UUID certificateId)
-Core Rules
-Any authenticated user can create an organization.
-The creator of an organization becomes its owner.
-The owner is stored in organizations.owner_id.
-The owner also gets an organization_memberships row with role OWNER.
-A user can own multiple organizations.
-A user can be a student/member in multiple organizations.
-The same user can be owner in one organization and student in another.
-Organization owners manage only their organizations.
-Students access only enrolled course content.
-No cross-organization data leakage is allowed.
-DTO Strategy
-
-All external API input and output uses DTOs.
-
-Request DTO rules:
-
-keep validation annotations on request DTOs
-do not expose internal database structure unnecessarily
-use userId instead of studentId
-do not include role in public registration request
-
-Response DTO rules:
-
-map entities to responses using static factories such as fromEntity(...)
-do not expose password hashes
-do not expose sensitive token hashes
-do not expose quiz correct answers to students before submission
-do not expose private internal certificate data through public verification endpoint
-Repository Strategy
-
-Repositories extend JpaRepository and remain feature-specific.
-
-Guidelines:
-
-keep one repository interface per aggregate when query methods are needed
-use repository-level pagination where possible
-avoid loading large lists into memory for pagination
-do not introduce empty repository abstractions just for structure
-do not move repository access into controllers
-keep custom methods focused on query intent, not business decisions
-Pagination Strategy
-
-List endpoints should return:
-
-ApiResponse<PageResponse<T>>
-
-Implementation guidelines:
-
-controllers use PageResponse.from(Page<T>)
-repositories should support Pageable
-avoid manual in-memory pagination for large datasets
-use database-level pagination for organizations, members, courses, resources, quizzes, attempts, and certificates
-Security Architecture
-
-Authentication is stateless and JWT-based.
-
-Current structure:
-
-auth contains authentication use cases and auth DTOs
-security contains JWT parsing, filter integration, user details loading, and access handlers
-config wires the security filter chain and related beans
-
-Authentication endpoints:
-
-POST /api/v1/auth/register
-POST /api/v1/auth/login
-POST /api/v1/auth/refresh
-POST /api/v1/auth/logout
-POST /api/v1/auth/logout-all
-POST /api/v1/auth/verify-email
-POST /api/v1/auth/resend-verification
-POST /api/v1/auth/forgot-password
-POST /api/v1/auth/reset-password
-
-Security rules:
-
-public registration must not accept role
-password hashing uses BCrypt
-JWT generation and parsing stay centralized
-refresh tokens are stored as hashes
-password reset tokens are stored as hashes
-email verification tokens are stored as hashes
-exception handlers return the standard API error format
-Token Strategy
-
-Use two token types:
-
-Access Token
-short-lived
-sent in Authorization: Bearer <token>
-used to access protected APIs
-Refresh Token
-longer-lived
-stored as a hash in the database
-rotated when used
-can be revoked during logout
-supports logout from all devices
-Rate Limiting
-
-Rate limiting should protect sensitive public endpoints:
-
-POST /api/v1/auth/register
-POST /api/v1/auth/login
-POST /api/v1/auth/forgot-password
-POST /api/v1/auth/resend-verification
-
-Implementation options:
-
-Bucket4j
-Redis-backed limiter
-custom Spring filter for initial MVP
-Configuration Strategy
-
-Configuration stays small and explicit.
-
-Current responsibilities:
-
-SecurityConfig wires the security filter chain, authentication provider, and password encoder
-OpenApiConfig defines OpenAPI metadata
-datasource configuration should rely on Spring Boot defaults where possible
-production secrets must be provided through environment variables
-
-Recommended profiles:
-
-local
-test
-prod
-Validation And Errors
-
-Validation uses Jakarta Validation on DTOs.
-
-Common annotations:
-
-@NotBlank
-@NotNull
-@Email
-@Size
-@Valid
-
-Global exception handling uses @RestControllerAdvice.
-
-Error responses should stay consistent with the API design.
-
-Multi-Tenant Rules
-
-Tenant isolation is enforced in services and centralized authorization checks.
-
-Key rules:
-
-users see only organizations they own or belong to
-organization owners manage only their own organizations
-students access only organizations where they are active members
-students access only courses where they are enrolled
-students access only resources and quizzes belonging to enrolled courses
-certificates are visible only to certificate owner or organization owner
-public certificate verification returns safe public data only
-Database Architecture
-
-Persistence uses PostgreSQL with UUID primary keys and Flyway migrations.
-
-Core tables:
-
-users
-organizations
-organization_memberships
-courses
-course_enrollments
-resources
-quizzes
-quiz_questions
-quiz_options
-quiz_attempts
-quiz_attempt_answers
-certificates
-refresh_tokens
-email_verification_tokens
-password_reset_tokens
-
-Design expectations:
-
-normalized relationships
-explicit ownership and membership checks
-created/updated timestamps on major entities
-status fields for soft deletion
-indexes for organization and user access patterns
-File Storage Architecture
-
-Resources support only:
-
-LINK
-FILE
-
-File resource handling should use an abstraction:
-
-FileStorageService
-
-Initial implementation:
-
-LocalFileStorageService
-
-Future implementations may include:
-
-S3
-Cloudinary
-Supabase Storage
-Azure Blob Storage
+- any authenticated user can create an organization
+- creator becomes owner
+- owner membership must be created immediately
+
+---
+
+## 7.2 Quiz Publishing Flow
+
+```mermaid
+sequenceDiagram
+    participant Owner
+    participant API
+    participant QuizService
+    participant AuthorizationService
+    participant DB
+
+    Owner->>API: POST /quizzes/{quizId}/publish
+    API->>QuizService: publishQuiz(quizId, currentUser)
+    QuizService->>AuthorizationService: ensureQuizOwner(quizId)
+    AuthorizationService->>DB: Check ownership
+    QuizService->>DB: Validate questions and options
+    QuizService->>DB: Set isPublished = true
+    QuizService-->>API: Published quiz response
+    API-->>Owner: 200 OK
+```
 
 Rules:
 
-services should depend on FileStorageService
-resource records store file metadata
-storage implementation details should not leak into controllers
-Quiz Architecture
+- only organization owner can publish
+- quiz must contain valid questions
+- every single-choice question must have exactly one correct option
 
-A quiz is composed of:
+---
 
-Quiz
-QuizQuestion
-QuizOption
-QuizAttempt
-QuizAttemptAnswer
+## 7.3 Quiz Attempt Submission Flow
 
-Initial question type:
+```mermaid
+sequenceDiagram
+    participant Participant
+    participant API
+    participant AttemptService
+    participant AuthorizationService
+    participant CertificateService
+    participant DB
 
-SINGLE_CHOICE
-
-Rules:
-
-organization owner manages quizzes
-students can only attempt published quizzes for enrolled courses
-correct answers must not be exposed before submission
-backend calculates score and pass/fail
-attempts are stored for history/review
-Certificate Architecture
-
-Certificates are production-friendly and verifiable.
-
-A certificate belongs to:
-
-organization
-course
-user
-
-Certificate records include:
-
-certificate number
-verification code
-title
-student name snapshot
-course title snapshot
-organization name snapshot
-issued date
-status
-optional PDF URL
-
-Public verification endpoint:
-
-GET /api/v1/public/certificates/verify/{verificationCode}
+    Participant->>API: POST /quiz-attempts/{attemptId}/submit
+    API->>AttemptService: submitAttempt(attemptId, answers, currentUser)
+    AttemptService->>AuthorizationService: ensureAttemptOwner(attemptId)
+    AuthorizationService->>DB: Check attempt owner
+    AttemptService->>DB: Validate answers
+    AttemptService->>DB: Calculate score
+    AttemptService->>DB: Save attempt answers and result
+    AttemptService->>CertificateService: issue automatically if passed and AUTO
+    CertificateService->>DB: Create certificate if eligible
+    AttemptService-->>API: Attempt result
+    API-->>Participant: 200 OK
+```
 
 Rules:
 
-public endpoint exposes only safe certificate data
-certificates can be revoked
-duplicate active certificates for the same user and course are not allowed
-Development Principles
+- participant can submit only their own attempt
+- already submitted attempts cannot be submitted again
+- answers must belong to the same quiz
+- score is calculated by the backend
+- certificate may be issued automatically if enabled
 
-Prefer:
+---
 
-small configs
-explicit service logic
-organization-scoped authorization
-feature-local repositories
-DTO factories for simple mappings
-database-level pagination
-modular monolith structure
-simple maintainable code
+## 7.4 Certificate Verification Flow
 
-Avoid:
+```mermaid
+sequenceDiagram
+    participant Visitor
+    participant API
+    participant CertificateService
+    participant DB
 
-global User.role for business permissions
-separate Student entity as the main permission model
-extra abstraction layers for trivial field mapping
-empty interfaces with no behavior or query intent
-API shape changes without documentation updates
-moving business logic into controllers
-over-engineering with microservices
+    Visitor->>API: GET /public/certificates/verify/{verificationCode}
+    API->>CertificateService: verifyCertificate(code)
+    CertificateService->>DB: Find certificate by verification code
+    CertificateService-->>API: Public certificate data
+    API-->>Visitor: 200 OK
+```
+
+Rules:
+
+- verification endpoint is public
+- response must not expose sensitive user data
+- revoked certificates should still be visible as revoked
+
+---
+
+## 8. Security Architecture
+
+## 8.1 Authentication Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant AuthController
+    participant AuthService
+    participant UserRepository
+    participant TokenService
+    participant DB
+
+    User->>AuthController: POST /auth/login
+    AuthController->>AuthService: login(email, password)
+    AuthService->>UserRepository: Find user by email
+    UserRepository->>DB: Query user
+    AuthService->>AuthService: Verify password
+    AuthService->>TokenService: Generate access token
+    AuthService->>TokenService: Generate refresh token
+    TokenService->>DB: Store refresh token hash
+    AuthService-->>AuthController: Token response
+    AuthController-->>User: accessToken + refreshToken
+```
+
+---
+
+## 8.2 JWT Request Flow
+
+```mermaid
+flowchart TD
+    Request[Incoming Request]
+    Filter[JWT Authentication Filter]
+    TokenValid{Token Valid?}
+    SecurityContext[Set Security Context]
+    Controller[Controller]
+    Reject[401 Unauthorized]
+
+    Request --> Filter
+    Filter --> TokenValid
+    TokenValid -- Yes --> SecurityContext
+    SecurityContext --> Controller
+    TokenValid -- No --> Reject
+```
+
+---
+
+## 8.3 Authorization Rules
+
+Authorization must be checked for every protected organization resource.
+
+Examples:
+
+| Action | Required Permission |
+|---|---|
+| Update organization | OWNER of organization |
+| Add member | OWNER of organization |
+| Create quiz | OWNER of organization |
+| Publish quiz | OWNER of quiz organization |
+| View published quiz | ACTIVE member of organization |
+| Start attempt | ACTIVE PARTICIPANT of organization |
+| Submit attempt | Attempt owner |
+| View all quiz attempts | OWNER of quiz organization |
+| Issue certificate | OWNER of quiz organization |
+| Revoke certificate | OWNER of certificate organization |
+| Public certificate verification | Public access |
+
+---
+
+## 9. Transaction Boundaries
+
+Use transactions for operations that update multiple tables.
+
+Recommended transactional operations:
+
+- register user
+- create organization and owner membership
+- add organization member
+- create quiz with questions/options if done in one request
+- publish quiz
+- start quiz attempt
+- submit quiz attempt and answers
+- auto issue certificate after passing
+- manual certificate issuing
+- revoke certificate
+- password reset
+- logout / revoke refresh token
+
+Example:
+
+```java
+@Transactional
+public SubmitAttemptResponse submitAttempt(UUID attemptId, SubmitAttemptRequest request) {
+    // validate ownership
+    // validate answers
+    // calculate score
+    // save answers
+    // update attempt
+    // issue certificate if needed
+}
+```
+
+---
+
+## 10. Error Handling Architecture
+
+The backend should use a global exception handler.
+
+Recommended exceptions:
+
+- `ResourceNotFoundException`
+- `UnauthorizedException`
+- `ForbiddenException`
+- `ValidationException`
+- `BusinessRuleException`
+- `DuplicateResourceException`
+- `InvalidTokenException`
+
+All error responses should follow a consistent format:
+
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "email",
+      "message": "Email is required"
+    }
+  ],
+  "timestamp": "2026-05-24T15:00:00Z",
+  "path": "/api/v1/auth/register"
+}
+```
+
+---
+
+## 11. API Response Architecture
+
+Success response:
+
+```json
+{
+  "success": true,
+  "message": "Operation successful",
+  "data": {}
+}
+```
+
+Paginated response:
+
+```json
+{
+  "success": true,
+  "message": "Data retrieved successfully",
+  "data": {
+    "items": [],
+    "page": 0,
+    "size": 10,
+    "totalElements": 100,
+    "totalPages": 10
+  }
+}
+```
+
+---
+
+## 12. Audit Logging Architecture
+
+Audit logs should be created for important actions.
+
+Examples:
+
+- organization created
+- organization updated
+- member added
+- member removed
+- quiz created
+- quiz published
+- attempt submitted
+- certificate issued
+- certificate revoked
+- login failed
+- password reset completed
+
+Audit metadata should not include:
+
+- plaintext passwords
+- raw tokens
+- secrets
+- sensitive personal data beyond what is needed
+
+---
+
+## 13. Deployment Architecture
+
+Recommended MVP deployment:
+
+```mermaid
+flowchart TD
+    User[User / API Client]
+    Server[Backend Server / Container]
+    DB[(Managed PostgreSQL)]
+    Mail[Email Provider]
+
+    User --> Server
+    Server --> DB
+    Server --> Mail
+```
+
+Recommended deployment options:
+
+- Docker container
+- cloud VM
+- Render
+- Railway
+- DigitalOcean App Platform
+- AWS Elastic Beanstalk
+- any managed container service
+
+Recommended database providers:
+
+- Neon
+- Supabase
+- AWS RDS
+- DigitalOcean Managed PostgreSQL
+
+---
+
+## 14. Environment Configuration
+
+Use environment variables for configuration.
+
+Example variables:
+
+```env
+APP_ENV=development
+SERVER_PORT=8080
+DATABASE_URL=jdbc:postgresql://localhost:5432/Skillmark
+DATABASE_USERNAME=postgres
+DATABASE_PASSWORD=password
+JWT_SECRET=change-this-secret
+JWT_ACCESS_TOKEN_EXPIRATION_MINUTES=15
+JWT_REFRESH_TOKEN_EXPIRATION_DAYS=30
+CORS_ALLOWED_ORIGINS=http://localhost:5173
+MAIL_HOST=smtp.example.com
+MAIL_PORT=587
+MAIL_USERNAME=example
+MAIL_PASSWORD=example
+```
+
+Secrets must not be committed to GitHub.
+
+---
+
+## 15. Scalability Strategy
+
+For the MVP, a modular monolith is enough.
+
+Future scalability can be achieved by:
+
+- adding database indexes
+- using pagination on all list endpoints
+- caching public certificate verification if needed
+- moving file storage to external provider
+- adding background jobs for emails and PDF generation
+- splitting modules only if the system grows significantly
+
+Avoid microservices in the first version unless there is a real need.
+
+---
+
+## 16. Future Architecture Extensions
+
+Future versions may add:
+
+- frontend dashboard
+- student portal
+- invitation system
+- bulk member import
+- certificate PDF generation
+- QR code generation
+- analytics module
+- notification module
+- advanced question bank
+- external file storage
+- background job queue
+- role expansion such as INSTRUCTOR and MANAGER
+
+---
+
+## 17. Final Architecture Decision
+
+Skillmark should be built as a **secure modular monolith** using Spring Boot and PostgreSQL.
+
+The most important architectural decision is that the system uses **organization-scoped authorization**, not global user roles.
+
+This keeps the system flexible for university use cases where the same user may be an owner in one organization and a participant in another.

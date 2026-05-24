@@ -6,7 +6,7 @@ plugins {
 
 group = 'com.library'
 version = '0.0.1-SNAPSHOT'
-description = 'Cohive'
+description = 'Skillmark'
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17

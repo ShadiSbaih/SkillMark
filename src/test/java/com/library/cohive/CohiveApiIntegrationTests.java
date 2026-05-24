@@ -1,4 +1,4 @@
-package com.library.cohive;
+package com.library.Skillmark;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -27,7 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @ActiveProfiles("test")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
-class CohiveApiIntegrationTests {
+class SkillmarkApiIntegrationTests {
 
     private MockMvc mockMvc;
 
@@ -62,7 +62,7 @@ class CohiveApiIntegrationTests {
 
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.info.title", is("Cohive Backend API")))
+                .andExpect(jsonPath("$.info.title", is("Skillmark Backend API")))
                 .andExpect(jsonPath("$.info.description", containsString("JWT bearer authentication")))
                 .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.type", is("http")))
                 .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.description", containsString("JWT token")))

@@ -1,6 +1,6 @@
-# How To Run Cohive
+# How To Run Skillmark
 
-This guide explains how to run the Cohive backend API, run tests, and use Swagger/OpenAPI.
+This guide explains how to run the Skillmark backend API, run tests, and use Swagger/OpenAPI.
 
 It is written for the next developer who opens this project and wants the fastest path to a working local setup.
 
@@ -19,7 +19,7 @@ If you only want the exact commands, use these.
 #### Run the project with PostgreSQL
 
 ```powershell
-$env:DATABASE_URL="jdbc:postgresql://localhost:5432/cohive"
+$env:DATABASE_URL="jdbc:postgresql://localhost:5432/Skillmark"
 $env:DATABASE_USERNAME="postgres"
 $env:DATABASE_PASSWORD="postgres"
 $env:JWT_SECRET="change-me-in-production-012345678901234567890123"
@@ -36,7 +36,7 @@ $env:JWT_EXPIRATION="86400000"
 #### Run one integration test class
 
 ```powershell
-.\gradlew.bat test --tests "com.library.cohive.CohiveApiIntegrationTests"
+.\gradlew.bat test --tests "com.library.Skillmark.SkillmarkApiIntegrationTests"
 ```
 
 #### Build the project
@@ -126,11 +126,11 @@ Use this when you want to run closer to production behavior.
 
 ### Step 1: Create a PostgreSQL database
 
-Create a database named `cohive`, or use your own name and override the environment variable.
+Create a database named `Skillmark`, or use your own name and override the environment variable.
 
 Example defaults used by the application:
 
-- Database URL: `jdbc:postgresql://localhost:5432/cohive`
+- Database URL: `jdbc:postgresql://localhost:5432/Skillmark`
 - Username: `postgres`
 - Password: `postgres`
 
@@ -147,7 +147,7 @@ The application reads these values:
 ### Windows PowerShell example
 
 ```powershell
-$env:DATABASE_URL="jdbc:postgresql://localhost:5432/cohive"
+$env:DATABASE_URL="jdbc:postgresql://localhost:5432/Skillmark"
 $env:DATABASE_USERNAME="postgres"
 $env:DATABASE_PASSWORD="postgres"
 $env:JWT_SECRET="change-me-in-production-012345678901234567890123"
@@ -287,7 +287,7 @@ http://localhost:8080/v3/api-docs
 ### Run one test class
 
 ```powershell
-.\gradlew.bat test --tests "com.library.cohive.CohiveApiIntegrationTests"
+.\gradlew.bat test --tests "com.library.Skillmark.SkillmarkApiIntegrationTests"
 ```
 
 ### Run the app on another port
@@ -361,9 +361,9 @@ For database-sensitive work:
 - Main config: `src/main/resources/application.properties`
 - Local config: `src/main/resources/application-local.properties`
 - Test config: `src/test/resources/application-test.properties`
-- Security config: `src/main/java/com/library/cohive/config/SecurityConfig.java`
-- OpenAPI config: `src/main/java/com/library/cohive/config/OpenApiConfig.java`
-- Integration tests: `src/test/java/com/library/cohive/CohiveApiIntegrationTests.java`
+- Security config: `src/main/java/com/library/Skillmark/config/SecurityConfig.java`
+- OpenAPI config: `src/main/java/com/library/Skillmark/config/OpenApiConfig.java`
+- Integration tests: `src/test/java/com/library/Skillmark/SkillmarkApiIntegrationTests.java`
 
 ## Final Notes
 

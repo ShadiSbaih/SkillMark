@@ -1,970 +1,1177 @@
-# Cohive API Design
+# Skillmark API Design
 
-## Overview
+## 1. Overview
 
-Cohive exposes a RESTful API built with Spring Boot.
+This document defines the REST API design for **Skillmark**, an API-first quiz and certification backend.
 
-The API is designed to be:
+Skillmark allows organizations to:
 
-*   modular
-*   scalable
-*   secure
-*   API-only for the current phase
-*   versioned
-*   multi-organization aware
-*   suitable for future frontend or mobile clients
+- register and authenticate users
+- create organizations
+- manage members
+- create quizzes
+- publish quizzes
+- allow participants to submit attempts
+- issue verifiable certificates
+- verify certificates publicly
 
-Base URL:
+The current API is designed for a backend MVP.
 
-\`\`\`text  
-/api/v1  
-API Standards  
-Request Format
+---
 
-Requests use JSON unless the endpoint explicitly handles file uploads.
+## 2. API Design Principles
 
-Example:
+The API should be:
 
-{  
-"title": "Java Fundamentals"  
-}
+- RESTful
+- predictable
+- versioned
+- secure
+- consistent
+- easy to test in Swagger or Postman
+- based on organization-scoped permissions
 
-For file upload endpoints, requests may use multipart/form-data.
+All business permissions must be checked using organization membership, not a global user role.
 
-Response Format
+---
 
-All successful responses follow:
+## 3. Base URL
 
-{  
-"success": true,  
-"message": "Operation successful",  
-"data": {}  
-}  
-Error Response Format
+All endpoints should use the following versioned base path:
 
-All error responses follow:
-
-{  
-"success": false,  
-"message": "Validation failed",  
-"errors": \[\]  
-}
-
-Future enhanced error responses may include:
-
-{  
-"success": false,  
-"message": "Validation failed",  
-"errorCode": "VALIDATION\_ERROR",  
-"path": "/api/v1/courses",  
-"timestamp": "2026-01-01T10:00:00Z",  
-"errors": \[  
-{  
-"field": "title",  
-"message": "must not be blank"  
-}  
-\]  
-}  
-HTTP Status Codes  
-Code Meaning  
-200 Success  
-201 Created  
-204 Deleted successfully with no response body  
-400 Validation Error  
-401 Unauthorized  
-403 Forbidden  
-404 Not Found  
-409 Conflict  
-429 Too Many Requests  
-500 Internal Server Error  
-Authentication Model
-
-Cohive uses JWT-based authentication.
-
-Important rule:
-
-A User is an identity/account only.
-
-A user does not have one global business role such as OWNER or STUDENT.
-
-Instead:
-
-a user can own one or more organizations  
-the same user can be a student/member in other organizations  
-organization-level roles are stored in organization\_memberships  
-supported organization membership roles are:  
-OWNER  
-STUDENT
+```text
+/api/v1
+```
 
 Example:
 
-User Ahmad:
-
-*   OWNER in Organization A
-*   STUDENT in Organization B
-*   STUDENT in Organization C  
-    Authentication API  
-    Register  
-    POST /api/v1/auth/register
-
-Registers a new user account.
-
-The request must not include a role.
-
-Request  
-{  
-"name": "John Doe",  
-"email": "john@example.com",  
-"password": "password123"  
-}  
-Response  
-{  
-"success": true,  
-"message": "User registered successfully",  
-"data": {  
-"accessToken": "jwt\_access\_token",  
-"refreshToken": "refresh\_token",  
-"expiresAt": "2026-01-01T10:15:00Z"  
-}  
-}  
-Rules  
-Email must be unique.  
-Password must satisfy the password policy.  
-The user is created as a normal account.  
-No organization role is assigned during registration.  
-The user becomes an OWNER only when creating an organization or through a future ownership transfer/invitation flow.  
-Login  
-POST /api/v1/auth/login
-
-Authenticates a user and returns tokens.
-
-Request  
-{  
-"email": "john@example.com",  
-"password": "password123"  
-}  
-Response  
-{  
-"success": true,  
-"message": "Login successful",  
-"data": {  
-"accessToken": "jwt\_access\_token",  
-"refreshToken": "refresh\_token",  
-"expiresAt": "2026-01-01T10:15:00Z"  
-}  
-}  
-Refresh Token  
-POST /api/v1/auth/refresh
-
-Issues a new access token using a valid refresh token.
-
-Request  
-{  
-"refreshToken": "refresh\_token"  
-}  
-Response  
-{  
-"success": true,  
-"message": "Token refreshed successfully",  
-"data": {  
-"accessToken": "new\_jwt\_access\_token",  
-"refreshToken": "new\_refresh\_token",  
-"expiresAt": "2026-01-01T10:30:00Z"  
-}  
-}  
-Rules  
-Refresh tokens are stored securely as hashes.  
-Refresh token rotation should be used.  
-A revoked or expired refresh token must be rejected.  
-Logout  
-POST /api/v1/auth/logout
-
-Revokes the current refresh token.
-
-Request  
-{  
-"refreshToken": "refresh\_token"  
-}  
-Response  
-{  
-"success": true,  
-"message": "Logout successful",  
-"data": null  
-}  
-Logout From All Devices  
-POST /api/v1/auth/logout-all
-
-Revokes all active refresh tokens for the authenticated user.
-
-Response  
-{  
-"success": true,  
-"message": "Logged out from all devices successfully",  
-"data": null  
-}  
-Verify Email  
-POST /api/v1/auth/verify-email
-
-Verifies a user's email address.
-
-Request  
-{  
-"token": "email\_verification\_token"  
-}  
-Response  
-{  
-"success": true,  
-"message": "Email verified successfully",  
-"data": null  
-}  
-Resend Email Verification  
-POST /api/v1/auth/resend-verification
-
-Sends a new email verification token.
-
-Request  
-{  
-"email": "john@example.com"  
-}  
-Response  
-{  
-"success": true,  
-"message": "Verification email sent if the account exists",  
-"data": null  
-}  
-Forgot Password  
-POST /api/v1/auth/forgot-password
-
-Starts a password reset flow.
-
-Request  
-{  
-"email": "john@example.com"  
-}  
-Response  
-{  
-"success": true,  
-"message": "Password reset instructions sent if the account exists",  
-"data": null  
-}  
-Security Rule
-
-The response should not reveal whether the email exists.
-
-Reset Password  
-POST /api/v1/auth/reset-password
-
-Resets the password using a valid reset token.
-
-Request  
-{  
-"token": "password\_reset\_token",  
-"newPassword": "newStrongPassword123"  
-}  
-Response  
-{  
-"success": true,  
-"message": "Password reset successfully",  
-"data": null  
-}  
-User API  
-Get Current User  
-GET /api/v1/users/me
-
-Returns the authenticated user's account information.
-
-Response  
-{  
-"success": true,  
-"message": "Operation successful",  
-"data": {  
-"id": "uuid",  
-"name": "John Doe",  
-"email": "john@example.com",  
-"emailVerified": true,  
-"status": "ACTIVE"  
-}  
-}  
-Get My Organization Memberships  
-GET /api/v1/users/me/memberships
-
-Returns organizations where the current user is an owner or student/member.
-
-Response  
-{  
-"success": true,  
-"message": "Operation successful",  
-"data": \[  
-{  
-"organizationId": "uuid",  
-"organizationName": "Tech Academy",  
-"role": "OWNER",  
-"status": "ACTIVE"  
-},  
-{  
-"organizationId": "uuid",  
-"organizationName": "Code School",  
-"role": "STUDENT",  
-"status": "ACTIVE"  
-}  
-\]  
-}  
-Organization API  
-Create Organization  
-POST /api/v1/organizations
-
-Creates a new organization.
-
-Any authenticated user can create an organization.
-
-When an organization is created:
-
-organizations.owner\_id is set to the authenticated user  
-an organization\_memberships row is created with role OWNER  
-Request  
-{  
-"name": "Tech Academy"  
-}  
-Response  
-{  
-"success": true,  
-"message": "Organization created successfully",  
-"data": {  
-"id": "uuid",  
-"name": "Tech Academy",  
-"ownerId": "uuid",  
-"status": "ACTIVE",  
-"createdAt": "2026-01-01T10:00:00Z"  
-}  
-}  
-Get Organizations  
-GET /api/v1/organizations
-
-Returns organizations visible to the authenticated user.
-
-For owners:
-
-returns organizations they own
-
-For students:
-
-returns organizations where they have an active membership  
-Query Params  
-?page=0&size=10&sort=createdAt,desc  
-Get Organization By ID  
-GET /api/v1/organizations/{id}
-
-Returns organization details if the authenticated user is authorized.
-
-Authorized users:
-
-organization owner  
-active organization member  
-Delete Organization  
-DELETE /api/v1/organizations/{id}
-
-Soft deletes or disables an organization.
-
-Only the organization owner can delete the organization.
-
-Response  
-{  
-"success": true,  
-"message": "Organization deleted successfully",  
-"data": null  
-}  
-Organization Member API  
-Add Member To Organization  
-POST /api/v1/organizations/{organizationId}/members
-
-Adds an existing user to an organization.
-
-Only the organization owner can add members.
-
-Request  
-{  
-"userId": "uuid",  
-"role": "STUDENT"  
-}  
-Rules  
-The target user must exist.  
-The organization must exist.  
-The authenticated user must own the organization.  
-Duplicate active membership is not allowed.  
-STUDENT is the primary supported role for this endpoint.  
-Adding another owner should be handled later through an ownership transfer or multi-owner design.  
-Response  
-{  
-"success": true,  
-"message": "Member added to organization successfully",  
-"data": {  
-"organizationId": "uuid",  
-"userId": "uuid",  
-"role": "STUDENT",  
-"status": "ACTIVE"  
-}  
-}  
-Get Organization Members  
-GET /api/v1/organizations/{organizationId}/members
-
-Lists organization members.
-
-Only the organization owner can list all members.
-
-Response  
-{  
-"success": true,  
-"message": "Operation successful",  
-"data": {  
-"items": \[  
-{  
-"userId": "uuid",  
-"name": "Jane Doe",  
-"email": "jane@example.com",  
-"role": "STUDENT",  
-"status": "ACTIVE",  
-"createdAt": "2026-01-01T10:00:00Z"  
-}  
-\],  
-"page": 0,  
-"size": 10,  
-"totalElements": 1,  
-"totalPages": 1  
-}  
-}  
-Remove Member From Organization  
-DELETE /api/v1/organizations/{organizationId}/members/{userId}
-
-Removes or disables a user's membership in the organization.
-
-Only the organization owner can remove members.
-
-Rules  
-Do not allow removing the only owner unless ownership transfer is implemented.  
-Prefer status REMOVED over hard delete.  
-Course API  
-Create Course  
-POST /api/v1/courses
-
-Creates a course under an organization.
-
-Only the organization owner can create courses.
-
-Request  
-{  
-"title": "Spring Boot Basics",  
-"description": "Backend fundamentals",  
-"organizationId": "uuid"  
-}  
-Get Courses  
-GET /api/v1/courses
-
-Returns courses visible to the authenticated user.
-
-Optional Query Params  
-organizationId=uuid  
-page=0  
-size=10  
-sort=createdAt,desc  
-Rules  
-Organization owners can see courses in their organizations.  
-Students can see courses where they are enrolled.  
-No cross-organization leakage is allowed.  
-Get Course By ID  
-GET /api/v1/courses/{id}
-
-Returns course details if accessible.
-
-Authorized users:
-
-owner of the course organization  
-enrolled student  
-Update Course  
-PUT /api/v1/courses/{id}
-
-Only the organization owner can update the course.
-
-Request  
-{  
-"title": "Advanced Spring Boot",  
-"description": "Production-ready backend concepts"  
-}  
-Delete Course  
-DELETE /api/v1/courses/{id}
-
-Only the organization owner can delete or archive the course.
-
-Prefer soft delete.
-
-Enrollment API  
-Enroll User In Course  
-POST /api/v1/enrollments
-
-Enrolls a user in a course.
-
-Only the course organization owner can enroll users.
-
-Request  
-{  
-"userId": "uuid",  
-"courseId": "uuid"  
-}  
-Rules  
-The authenticated user must own the course organization.  
-The target user must be an active STUDENT member of the course organization.  
-Duplicate enrollment is not allowed.  
-Enrollment is stored in course\_enrollments.  
-Get Course Enrollments  
-GET /api/v1/enrollments/course/{courseId}
-
-Returns enrollments for a course.
-
-Only the course organization owner can access this endpoint.
-
-Get User Enrollments  
-GET /api/v1/enrollments/user/{userId}
-
-Returns enrollments for a user.
-
-Rules:
-
-A user can view their own enrollments.  
-Organization owner can view enrollments for members in owned organizations.  
-Resource API
-
-Resources belong to courses.
-
-Supported resource types:
-
-LINK  
-FILE
-
-Only the course organization owner can create, update, or delete resources.
-
-Enrolled students can view course resources.
-
-Create Link Resource  
-POST /api/v1/resources  
-Request  
-{  
-"title": "Spring Docs",  
-"description": "Official Spring documentation",  
-"type": "LINK",  
-"url": "https://spring.io",  
-"courseId": "uuid"  
-}  
-Create File Resource Metadata  
-POST /api/v1/resources  
-Request  
-{  
-"title": "Week 1 PDF",  
-"description": "Introduction material",  
-"type": "FILE",  
-"fileUrl": "/uploads/week-1.pdf",  
-"originalFileName": "week-1.pdf",  
-"contentType": "application/pdf",  
-"sizeBytes": 204800,  
-"courseId": "uuid"  
-}  
-Upload File Resource  
-POST /api/v1/resources/upload
-
-Uploads a file and creates a FILE resource.
-
-Request Type  
-multipart/form-data  
-Fields  
-Field Type  
-courseId UUID  
-title string  
-description string  
-file file  
-Rules  
-Only organization owner can upload.  
-File metadata is stored in resources.  
-File storage should use a storage abstraction.  
-Local storage is acceptable for development.  
-S3, Cloudinary, Supabase Storage, or similar can be added later.  
-Get Course Resources  
-GET /api/v1/resources/course/{courseId}
-
-Authorized users:
-
-organization owner  
-enrolled students  
-Update Resource  
-PUT /api/v1/resources/{id}
-
-Only organization owner can update.
-
-Delete Resource  
-DELETE /api/v1/resources/{id}
-
-Only organization owner can delete or archive.
-
-Prefer soft delete.
-
-Quiz API
-
-Quizzes belong to courses.
-
-A usable quiz contains:
-
-quiz metadata  
-questions  
-options  
-attempts  
-submitted answers  
-calculated score  
-pass/fail result  
-Create Quiz  
-POST /api/v1/quizzes
-
-Only the course organization owner can create quizzes.
-
-Request  
-{  
-"title": "Java Quiz",  
-"description": "Basic Java concepts",  
-"courseId": "uuid",  
-"passingScore": 60,  
-"isPublished": false  
-}  
-Get Course Quizzes  
-GET /api/v1/quizzes/course/{courseId}
-
-Authorized users:
-
-course organization owner  
-enrolled students
-
-Students should only see published quizzes.
-
-Update Quiz  
-PUT /api/v1/quizzes/{quizId}
-
-Only organization owner can update quiz metadata.
-
-Delete Quiz  
-DELETE /api/v1/quizzes/{quizId}
-
-Only organization owner can delete or archive a quiz.
-
-Add Question To Quiz  
-POST /api/v1/quizzes/{quizId}/questions
-
-Only organization owner can add questions.
-
-Request  
-{  
-"text": "Which keyword is used to inherit a class in Java?",  
-"type": "SINGLE\_CHOICE",  
-"points": 1,  
-"position": 1,  
-"options": \[  
-{  
-"text": "extends",  
-"isCorrect": true,  
-"position": 1  
-},  
-{  
-"text": "implements",  
-"isCorrect": false,  
-"position": 2  
-}  
-\]  
-}  
-Rules  
-For SINGLE\_CHOICE, exactly one option should be correct.  
-Question must have at least two options.  
-Get Quiz Questions  
-GET /api/v1/quizzes/{quizId}/questions
-
-Authorized users:
-
-organization owner  
-enrolled students if quiz is published
-
-For students, correct answer flags should not be exposed before submission.
-
-Start Quiz Attempt  
-POST /api/v1/quizzes/{quizId}/attempts
-
-Allows an enrolled student to start a quiz attempt.
-
-Response  
-{  
-"success": true,  
-"message": "Quiz attempt started successfully",  
-"data": {  
-"attemptId": "uuid",  
-"quizId": "uuid",  
-"status": "IN\_PROGRESS",  
-"startedAt": "2026-01-01T10:00:00Z"  
-}  
-}  
-Submit Quiz Attempt  
-POST /api/v1/quiz-attempts/{attemptId}/submit
-
-Submits answers and calculates score.
-
-Request  
-{  
-"answers": \[  
-{  
-"questionId": "uuid",  
-"selectedOptionId": "uuid"  
-}  
-\]  
-}  
-Response  
-{  
-"success": true,  
-"message": "Quiz submitted successfully",  
-"data": {  
-"attemptId": "uuid",  
-"score": 85,  
-"passed": true,  
-"status": "SUBMITTED",  
-"submittedAt": "2026-01-01T10:10:00Z"  
-}  
-}  
-Get My Quiz Attempts  
-GET /api/v1/quizzes/{quizId}/attempts/me
-
-Returns attempts for the authenticated user.
-
-Get Quiz Attempts  
-GET /api/v1/quizzes/{quizId}/attempts
-
-Only organization owner can view attempts for a quiz.
-
-Certificate API
-
-Certificates are issued to users, not separate student records.
-
-A certificate belongs to:
-
-organization  
-course  
-user
-
-Certificates include:
-
-certificate number  
-verification code  
-snapshots of student, course, and organization names  
-active/revoked status  
-optional PDF URL  
-Issue Certificate  
-POST /api/v1/certificates
-
-Only the course organization owner can issue certificates.
-
-Request  
-{  
-"userId": "uuid",  
-"courseId": "uuid",  
-"title": "Certificate of Completion"  
-}  
-Rules  
-User must be an active STUDENT member of the course organization.  
-User must be enrolled in the course.  
-If quiz completion is required, user must pass required quiz.  
-Duplicate active certificate for the same user and course is not allowed.  
-Certificate stores name snapshots at issuance time.  
-Get User Certificates  
-GET /api/v1/certificates/user/{userId}
-
-Rules:
-
-A user can view their own certificates.  
-Organization owner can view certificates for users in owned organizations.  
-Get Certificate By ID  
-GET /api/v1/certificates/{id}
-
-Authorized users:
-
-certificate owner  
-organization owner  
-Revoke Certificate  
-POST /api/v1/certificates/{id}/revoke
-
-Only organization owner can revoke.
-
-Request  
-{  
-"reason": "Issued by mistake"  
-}  
-Public Certificate Verification  
-GET /api/v1/public/certificates/verify/{verificationCode}
+```text
+POST /api/v1/auth/register
+```
+
+---
+
+## 4. Authentication
+
+Protected endpoints require an access token in the Authorization header:
+
+```http
+Authorization: Bearer <accessToken>
+```
+
+Public endpoints do not require authentication.
+
+Public endpoints include:
+
+- register
+- login
+- forgot password
+- reset password
+- verify email
+- resend verification email
+- public certificate verification
+
+---
+
+## 5. Standard Response Format
+
+## 5.1 Success Response
+
+```json
+{
+  "success": true,
+  "message": "Operation successful",
+  "data": {}
+}
+```
+
+## 5.2 Error Response
+
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "email",
+      "message": "Email is required"
+    }
+  ],
+  "timestamp": "2026-05-24T15:00:00Z",
+  "path": "/api/v1/auth/register"
+}
+```
+
+## 5.3 Paginated Response
+
+```json
+{
+  "success": true,
+  "message": "Data retrieved successfully",
+  "data": {
+    "items": [],
+    "page": 0,
+    "size": 10,
+    "totalElements": 100,
+    "totalPages": 10
+  }
+}
+```
+
+---
+
+## 6. HTTP Status Codes
+
+| Status Code | Meaning |
+|---:|---|
+| 200 | Success |
+| 201 | Created |
+| 204 | Success with no content |
+| 400 | Bad request / validation error |
+| 401 | Unauthenticated |
+| 403 | Forbidden |
+| 404 | Resource not found |
+| 409 | Conflict / duplicate resource |
+| 422 | Business rule violation |
+| 429 | Too many requests |
+| 500 | Internal server error |
+
+---
+
+# 7. Authentication APIs
+
+## 7.1 Register
+
+```http
+POST /api/v1/auth/register
+```
 
 Public endpoint.
 
-Does not require authentication.
+Creates a new user account.
 
-Response  
-{  
-"success": true,  
-"message": "Certificate verified successfully",  
-"data": {  
-"certificateNumber": "CERT-2026-000001",  
-"title": "Certificate of Completion",  
-"studentName": "Jane Doe",  
-"courseTitle": "Spring Boot Basics",  
-"organizationName": "Tech Academy",  
-"issuedAt": "2026-01-01T10:00:00Z",  
-"status": "ACTIVE"  
-}  
-}  
-Rules  
-Return only safe public data.  
-Do not expose internal user ID unless explicitly needed.  
-Pagination Standard
+Registration must not accept a business role such as OWNER or PARTICIPANT.
 
-List endpoints should support:
+### Request Body
 
-?page=0&size=10&sort=createdAt,desc
+```json
+{
+  "name": "Ahmad Ashqar",
+  "email": "ahmad@example.com",
+  "password": "StrongPassword123"
+}
+```
 
-Example:
+### Success Response
 
-GET /api/v1/courses?page=0&size=10
+```json
+{
+  "success": true,
+  "message": "Account registered successfully. Please verify your email.",
+  "data": {
+    "id": "user-id",
+    "name": "Ahmad Ashqar",
+    "email": "ahmad@example.com",
+    "emailVerified": false,
+    "status": "ACTIVE"
+  }
+}
+```
 
-Paginated response format:
+### Validation Rules
 
-{  
-"success": true,  
-"message": "Operation successful",  
-"data": {  
-"items": \[\],  
-"page": 0,  
-"size": 10,  
-"totalElements": 0,  
-"totalPages": 0  
-}  
-}  
-Filtering Strategy
+- name is required
+- email is required and must be unique
+- password is required and must meet minimum security rules
+- request must not include role
 
-Support filtering through query params.
+---
 
-Examples:
+## 7.2 Login
 
-GET /api/v1/courses?organizationId=uuid  
-GET /api/v1/resources/course/{courseId}?type=LINK  
-GET /api/v1/quizzes/course/{courseId}?published=true  
-Validation Rules
+```http
+POST /api/v1/auth/login
+```
 
-Use DTO validation.
+Public endpoint.
 
-Examples:
+### Request Body
 
-@NotBlank  
-@NotNull  
-@Email  
-@Size  
-@Valid
+```json
+{
+  "email": "ahmad@example.com",
+  "password": "StrongPassword123"
+}
+```
 
-Validation errors should return:
+### Success Response
 
-400 Bad Request  
-Security Design
+```json
+{
+  "success": true,
+  "message": "Logged in successfully",
+  "data": {
+    "accessToken": "jwt-access-token",
+    "refreshToken": "refresh-token",
+    "tokenType": "Bearer",
+    "expiresIn": 900,
+    "user": {
+      "id": "user-id",
+      "name": "Ahmad Ashqar",
+      "email": "ahmad@example.com",
+      "emailVerified": true
+    }
+  }
+}
+```
 
-Authentication:
+---
 
-JWT Bearer Token
+## 7.3 Refresh Token
 
-Header format:
+```http
+POST /api/v1/auth/refresh
+```
 
-Authorization: Bearer   
-Protected Routes
+Public endpoint, but requires a valid refresh token.
 
-All routes except the following require authentication:
+### Request Body
 
-POST /api/v1/auth/register  
-POST /api/v1/auth/login  
-POST /api/v1/auth/refresh  
-POST /api/v1/auth/forgot-password  
-POST /api/v1/auth/reset-password  
-POST /api/v1/auth/verify-email  
-POST /api/v1/auth/resend-verification  
-GET /api/v1/public/certificates/verify/{verificationCode}  
-GET /swagger-ui.html  
-GET /swagger-ui/\*\*  
-GET /v3/api-docs/\*\*  
-GET /actuator/health
+```json
+{
+  "refreshToken": "refresh-token"
+}
+```
 
-Swagger should be restricted or disabled in production if needed.
+### Success Response
 
-Rate Limiting
+```json
+{
+  "success": true,
+  "message": "Token refreshed successfully",
+  "data": {
+    "accessToken": "new-jwt-access-token",
+    "refreshToken": "new-refresh-token",
+    "tokenType": "Bearer",
+    "expiresIn": 900
+  }
+}
+```
 
-Rate limiting should apply to sensitive public endpoints:
+---
 
-POST /api/v1/auth/register  
-POST /api/v1/auth/login  
-POST /api/v1/auth/forgot-password  
+## 7.4 Logout
+
+```http
+POST /api/v1/auth/logout
+```
+
+Protected endpoint.
+
+### Request Body
+
+```json
+{
+  "refreshToken": "refresh-token"
+}
+```
+
+### Success Response
+
+```json
+{
+  "success": true,
+  "message": "Logged out successfully",
+  "data": null
+}
+```
+
+---
+
+## 7.5 Logout From All Sessions
+
+```http
+POST /api/v1/auth/logout-all
+```
+
+Protected endpoint.
+
+Revokes all active refresh tokens for the current user.
+
+---
+
+## 7.6 Forgot Password
+
+```http
+POST /api/v1/auth/forgot-password
+```
+
+Public endpoint.
+
+The response must not reveal whether the email exists.
+
+### Request Body
+
+```json
+{
+  "email": "ahmad@example.com"
+}
+```
+
+### Success Response
+
+```json
+{
+  "success": true,
+  "message": "If the email exists, a password reset link has been sent.",
+  "data": null
+}
+```
+
+---
+
+## 7.7 Reset Password
+
+```http
+POST /api/v1/auth/reset-password
+```
+
+Public endpoint.
+
+### Request Body
+
+```json
+{
+  "token": "reset-token",
+  "newPassword": "NewStrongPassword123"
+}
+```
+
+---
+
+## 7.8 Verify Email
+
+```http
+POST /api/v1/auth/verify-email
+```
+
+Public endpoint.
+
+### Request Body
+
+```json
+{
+  "token": "email-verification-token"
+}
+```
+
+---
+
+## 7.9 Resend Verification Email
+
+```http
 POST /api/v1/auth/resend-verification
+```
 
-Excessive requests should return:
+Public or protected depending on implementation.
 
-429 Too Many Requests  
-API Versioning
+### Request Body
 
-Current version:
+```json
+{
+  "email": "ahmad@example.com"
+}
+```
 
-/api/v1
+---
 
-Future versions:
+# 8. User APIs
 
-/api/v2  
-/api/v3  
-Naming Conventions
+## 8.1 Get Current User
 
-Use:
+```http
+GET /api/v1/users/me
+```
 
-plural resource names  
-lowercase paths  
-clear REST-style endpoints
+Protected endpoint.
 
-Good:
+### Success Response
 
-/courses  
-/organizations/{id}/members  
-/quizzes/{quizId}/questions
+```json
+{
+  "success": true,
+  "message": "User profile retrieved successfully",
+  "data": {
+    "id": "user-id",
+    "name": "Ahmad Ashqar",
+    "email": "ahmad@example.com",
+    "emailVerified": true,
+    "status": "ACTIVE",
+    "createdAt": "2026-05-24T15:00:00Z"
+  }
+}
+```
 
-Avoid:
+The response must not include password hash or token hashes.
 
-/getCourses  
-/createCourse  
-Future API Extensions
+---
 
-Potential future APIs:
+# 9. Organization APIs
 
-notifications  
-attendance  
-assignments  
-analytics  
-role management  
-invitation system  
-ownership transfer  
-file storage integrations  
-mentorship sessions  
-progress tracking  
-OpenAPI Documentation
+## 9.1 Create Organization
 
-Swagger/OpenAPI should be enabled for development.
+```http
+POST /api/v1/organizations
+```
 
-Recommended endpoint:
+Protected endpoint.
 
-/swagger-ui.html  
-API Design Goals
+Any authenticated user can create an organization.
 
-The API should remain:
+The creator automatically becomes OWNER of the organization.
 
-predictable  
-consistent  
-scalable  
-API-only for the current phase  
-maintainable  
-secure  
-modular  
-organization-aware
+### Request Body
+
+```json
+{
+  "name": "Computer Science Club",
+  "description": "University student club for programming and technology activities."
+}
+```
+
+### Success Response
+
+```json
+{
+  "success": true,
+  "message": "Organization created successfully",
+  "data": {
+    "id": "organization-id",
+    "name": "Computer Science Club",
+    "description": "University student club for programming and technology activities.",
+    "ownerId": "user-id",
+    "status": "ACTIVE",
+    "createdAt": "2026-05-24T15:00:00Z"
+  }
+}
+```
+
+---
+
+## 9.2 Get Accessible Organizations
+
+```http
+GET /api/v1/organizations?page=0&size=10
+```
+
+Protected endpoint.
+
+Returns organizations where the current user is an owner or active member.
+
+---
+
+## 9.3 Get Organization Details
+
+```http
+GET /api/v1/organizations/{organizationId}
+```
+
+Protected endpoint.
+
+Allowed for:
+
+- organization owner
+- active organization member
+
+---
+
+## 9.4 Update Organization
+
+```http
+PUT /api/v1/organizations/{organizationId}
+```
+
+Protected endpoint.
+
+Allowed only for organization owner.
+
+### Request Body
+
+```json
+{
+  "name": "Updated Computer Science Club",
+  "description": "Updated description"
+}
+```
+
+---
+
+## 9.5 Delete or Disable Organization
+
+```http
+DELETE /api/v1/organizations/{organizationId}
+```
+
+Protected endpoint.
+
+Allowed only for organization owner.
+
+Recommended behavior: soft delete or status-based disabling.
+
+---
+
+# 10. Organization Membership APIs
+
+## 10.1 Add Organization Member
+
+```http
+POST /api/v1/organizations/{organizationId}/members
+```
+
+Protected endpoint.
+
+Allowed only for organization owner.
+
+The target user must already exist.
+
+### Request Body
+
+```json
+{
+  "userId": "target-user-id",
+  "role": "PARTICIPANT"
+}
+```
+
+For the MVP, allowed role to add manually:
+
+```text
+PARTICIPANT
+```
+
+OWNER is created automatically when the organization is created.
+
+---
+
+## 10.2 List Organization Members
+
+```http
+GET /api/v1/organizations/{organizationId}/members?page=0&size=10
+```
+
+Protected endpoint.
+
+Allowed only for organization owner.
+
+---
+
+## 10.3 Remove Organization Member
+
+```http
+DELETE /api/v1/organizations/{organizationId}/members/{userId}
+```
+
+Protected endpoint.
+
+Allowed only for organization owner.
+
+Recommended behavior:
+
+- set membership status to REMOVED or INACTIVE
+- preserve historical attempts and certificates
+
+---
+
+# 11. Quiz APIs
+
+## 11.1 Create Quiz
+
+```http
+POST /api/v1/quizzes
+```
+
+Protected endpoint.
+
+Allowed only for organization owner.
+
+### Request Body
+
+```json
+{
+  "organizationId": "organization-id",
+  "title": "Git & GitHub Workshop Quiz",
+  "description": "Short quiz for students after the workshop.",
+  "passingScore": 70,
+  "durationMinutes": 30,
+  "maxAttempts": 2,
+  "certificateEnabled": true,
+  "certificateIssueMode": "AUTO"
+}
+```
+
+### Success Response
+
+```json
+{
+  "success": true,
+  "message": "Quiz created successfully",
+  "data": {
+    "id": "quiz-id",
+    "organizationId": "organization-id",
+    "title": "Git & GitHub Workshop Quiz",
+    "passingScore": 70,
+    "durationMinutes": 30,
+    "maxAttempts": 2,
+    "certificateEnabled": true,
+    "certificateIssueMode": "AUTO",
+    "isPublished": false,
+    "status": "DRAFT"
+  }
+}
+```
+
+---
+
+## 11.2 Get Quizzes
+
+```http
+GET /api/v1/quizzes?page=0&size=10
+```
+
+Protected endpoint.
+
+Suggested behavior:
+
+- owner sees quizzes in owned organizations
+- participant sees published quizzes in organizations where they are active member
+
+---
+
+## 11.3 Get Organization Quizzes
+
+```http
+GET /api/v1/quizzes/organization/{organizationId}?page=0&size=10
+```
+
+Protected endpoint.
+
+Allowed for:
+
+- organization owner: can see all quizzes
+- participant: can see published quizzes only
+
+---
+
+## 11.4 Get Quiz Details
+
+```http
+GET /api/v1/quizzes/{quizId}
+```
+
+Protected endpoint.
+
+Allowed for:
+
+- owner of quiz organization
+- active participant if quiz is published
+
+---
+
+## 11.5 Update Quiz
+
+```http
+PUT /api/v1/quizzes/{quizId}
+```
+
+Protected endpoint.
+
+Allowed only for owner of quiz organization.
+
+Published quiz modification should be restricted if attempts already exist.
+
+---
+
+## 11.6 Delete or Archive Quiz
+
+```http
+DELETE /api/v1/quizzes/{quizId}
+```
+
+Protected endpoint.
+
+Allowed only for owner of quiz organization.
+
+Recommended behavior: archive or soft delete.
+
+---
+
+## 11.7 Add Question to Quiz
+
+```http
+POST /api/v1/quizzes/{quizId}/questions
+```
+
+Protected endpoint.
+
+Allowed only for owner of quiz organization.
+
+### Request Body
+
+```json
+{
+  "text": "What command is used to create a new Git branch?",
+  "type": "SINGLE_CHOICE",
+  "points": 1,
+  "position": 1,
+  "options": [
+    {
+      "text": "git branch branch-name",
+      "isCorrect": true,
+      "position": 1
+    },
+    {
+      "text": "git create branch-name",
+      "isCorrect": false,
+      "position": 2
+    },
+    {
+      "text": "git new branch-name",
+      "isCorrect": false,
+      "position": 3
+    }
+  ]
+}
+```
+
+Validation:
+
+- question text is required
+- type must be SINGLE_CHOICE in MVP
+- points must be positive
+- at least two options are recommended
+- exactly one option must be correct
+
+---
+
+## 11.8 Publish Quiz
+
+```http
+POST /api/v1/quizzes/{quizId}/publish
+```
+
+Protected endpoint.
+
+Allowed only for owner of quiz organization.
+
+The quiz can be published only if:
+
+- it has at least one question
+- every question has valid options
+- every SINGLE_CHOICE question has exactly one correct option
+- quiz settings are valid
+
+---
+
+# 12. Quiz Attempt APIs
+
+## 12.1 Start Quiz Attempt
+
+```http
+POST /api/v1/quizzes/{quizId}/attempts
+```
+
+Protected endpoint.
+
+Allowed only for active participants of the quiz organization.
+
+Rules:
+
+- quiz must be published
+- quiz must be active
+- user must be active participant
+- max attempts must not be exceeded
+
+### Success Response
+
+```json
+{
+  "success": true,
+  "message": "Quiz attempt started successfully",
+  "data": {
+    "attemptId": "attempt-id",
+    "quizId": "quiz-id",
+    "status": "IN_PROGRESS",
+    "startedAt": "2026-05-24T15:00:00Z"
+  }
+}
+```
+
+---
+
+## 12.2 Submit Quiz Attempt
+
+```http
+POST /api/v1/quiz-attempts/{attemptId}/submit
+```
+
+Protected endpoint.
+
+Allowed only for the owner of the attempt.
+
+### Request Body
+
+```json
+{
+  "answers": [
+    {
+      "questionId": "question-id-1",
+      "selectedOptionId": "option-id-1"
+    },
+    {
+      "questionId": "question-id-2",
+      "selectedOptionId": "option-id-5"
+    }
+  ]
+}
+```
+
+### Success Response
+
+```json
+{
+  "success": true,
+  "message": "Quiz attempt submitted successfully",
+  "data": {
+    "attemptId": "attempt-id",
+    "score": 80,
+    "passed": true,
+    "status": "SUBMITTED",
+    "submittedAt": "2026-05-24T15:20:00Z",
+    "certificateIssued": true,
+    "certificateId": "certificate-id"
+  }
+}
+```
+
+Rules:
+
+- user can submit only their own attempt
+- attempt must be IN_PROGRESS
+- selected options must belong to the correct questions
+- questions must belong to the attempt quiz
+- backend calculates score
+- duplicate submission is rejected
+
+---
+
+## 12.3 Get My Attempts
+
+```http
+GET /api/v1/quiz-attempts/me?page=0&size=10
+```
+
+Protected endpoint.
+
+Returns attempts for the current user.
+
+---
+
+## 12.4 Get Attempt Details
+
+```http
+GET /api/v1/quiz-attempts/{attemptId}
+```
+
+Protected endpoint.
+
+Allowed for:
+
+- attempt owner
+- organization owner of the quiz
+
+---
+
+## 12.5 Get Quiz Attempts
+
+```http
+GET /api/v1/quizzes/{quizId}/attempts?page=0&size=10
+```
+
+Protected endpoint.
+
+Allowed only for owner of quiz organization.
+
+---
+
+# 13. Certificate APIs
+
+## 13.1 Issue Certificate Manually
+
+```http
+POST /api/v1/certificates
+```
+
+Protected endpoint.
+
+Allowed only for owner of quiz organization.
+
+Used when quiz certificateIssueMode is MANUAL.
+
+### Request Body
+
+```json
+{
+  "quizId": "quiz-id",
+  "userId": "participant-user-id",
+  "attemptId": "attempt-id",
+  "title": "Git & GitHub Workshop Certificate"
+}
+```
+
+Rules:
+
+- user must exist
+- user must be active participant in the organization
+- attempt must be submitted
+- attempt must be passing
+- duplicate active certificate must not exist
+- owner must own the quiz organization
+
+---
+
+## 13.2 Get My Certificates
+
+```http
+GET /api/v1/certificates/me?page=0&size=10
+```
+
+Protected endpoint.
+
+Returns certificates issued to the current user.
+
+---
+
+## 13.3 Get Organization Certificates
+
+```http
+GET /api/v1/certificates/organization/{organizationId}?page=0&size=10
+```
+
+Protected endpoint.
+
+Allowed only for organization owner.
+
+---
+
+## 13.4 Get Certificate Details
+
+```http
+GET /api/v1/certificates/{certificateId}
+```
+
+Protected endpoint.
+
+Allowed for:
+
+- certificate owner
+- owner of certificate organization
+
+---
+
+## 13.5 Revoke Certificate
+
+```http
+POST /api/v1/certificates/{certificateId}/revoke
+```
+
+Protected endpoint.
+
+Allowed only for owner of certificate organization.
+
+### Request Body
+
+```json
+{
+  "reason": "Issued by mistake"
+}
+```
+
+Revoked certificates must remain historically visible and publicly verifiable as revoked.
+
+---
+
+## 13.6 Public Certificate Verification
+
+```http
+GET /api/v1/public/certificates/verify/{verificationCode}
+```
+
+Public endpoint.
+
+### Success Response
+
+```json
+{
+  "success": true,
+  "message": "Certificate verified successfully",
+  "data": {
+    "certificateNumber": "Skillmark-2026-000001",
+    "status": "ACTIVE",
+    "participantName": "Ahmad Ashqar",
+    "quizTitle": "Git & GitHub Workshop Quiz",
+    "organizationName": "Computer Science Club",
+    "issuedAt": "2026-05-24T15:30:00Z",
+    "revokedAt": null
+  }
+}
+```
+
+The public response must not expose sensitive data such as:
+
+- user email
+- user ID if not needed
+- internal attempt details
+- token data
+
+---
+
+# 14. Optional Resource APIs
+
+Resources are optional in the MVP.
+
+## 14.1 Create Quiz Resource
+
+```http
+POST /api/v1/quizzes/{quizId}/resources
+```
+
+Protected endpoint.
+
+Allowed only for owner of quiz organization.
+
+### Request Body for LINK
+
+```json
+{
+  "type": "LINK",
+  "title": "Workshop Slides",
+  "url": "https://example.com/slides"
+}
+```
+
+---
+
+## 14.2 Get Quiz Resources
+
+```http
+GET /api/v1/quizzes/{quizId}/resources
+```
+
+Protected endpoint.
+
+Allowed for:
+
+- owner of quiz organization
+- active participant if quiz is published
+
+---
+
+## 14.3 Delete Quiz Resource
+
+```http
+DELETE /api/v1/quiz-resources/{resourceId}
+```
+
+Protected endpoint.
+
+Allowed only for owner of quiz organization.
+
+---
+
+# 15. Authorization Summary
+
+| Endpoint Group | Visitor | Auth User | Owner | Participant |
+|---|---:|---:|---:|---:|
+| Auth public endpoints | Yes | Yes | Yes | Yes |
+| Get own profile | No | Yes | Yes | Yes |
+| Create organization | No | Yes | Yes | Yes |
+| Update organization | No | No | Owned only | No |
+| Add members | No | No | Owned only | No |
+| Create quiz | No | No | Owned only | No |
+| Publish quiz | No | No | Owned only | No |
+| View published quizzes | No | If member | Yes | Yes |
+| Start attempt | No | If participant | If participant | Yes |
+| Submit attempt | No | Own only | Own only | Own only |
+| View all attempts | No | No | Owned only | No |
+| Issue certificate | No | No | Owned only | No |
+| Revoke certificate | No | No | Owned only | No |
+| Public verify certificate | Yes | Yes | Yes | Yes |
+
+---
+
+# 16. Recommended MVP Endpoint List
+
+For the first implementation, prioritize these endpoints:
+
+```text
+POST /api/v1/auth/register
+POST /api/v1/auth/login
+POST /api/v1/auth/refresh
+POST /api/v1/auth/logout
+GET  /api/v1/users/me
+
+POST /api/v1/organizations
+GET  /api/v1/organizations
+GET  /api/v1/organizations/{organizationId}
+PUT  /api/v1/organizations/{organizationId}
+DELETE /api/v1/organizations/{organizationId}
+
+POST /api/v1/organizations/{organizationId}/members
+GET  /api/v1/organizations/{organizationId}/members
+DELETE /api/v1/organizations/{organizationId}/members/{userId}
+
+POST /api/v1/quizzes
+GET  /api/v1/quizzes/organization/{organizationId}
+GET  /api/v1/quizzes/{quizId}
+PUT  /api/v1/quizzes/{quizId}
+DELETE /api/v1/quizzes/{quizId}
+POST /api/v1/quizzes/{quizId}/questions
+POST /api/v1/quizzes/{quizId}/publish
+
+POST /api/v1/quizzes/{quizId}/attempts
+POST /api/v1/quiz-attempts/{attemptId}/submit
+GET  /api/v1/quiz-attempts/me
+GET  /api/v1/quizzes/{quizId}/attempts
+
+POST /api/v1/certificates
+GET  /api/v1/certificates/me
+GET  /api/v1/certificates/organization/{organizationId}
+POST /api/v1/certificates/{certificateId}/revoke
+GET  /api/v1/public/certificates/verify/{verificationCode}
+```
+
+---
+
+# 17. Notes for Swagger Documentation
+
+Each endpoint should include:
+
+- endpoint summary
+- endpoint description
+- required authentication
+- required role/permission
+- request body schema
+- response schema
+- error examples
+
+Swagger should make it clear that OWNER and PARTICIPANT are organization-level roles, not global user roles.
+
+---
+
+# 18. Final API Design Statement
+
+Skillmark APIs are designed around a secure organization-scoped permission model.
+
+The API allows authenticated users to create organizations, manage organization members, create and publish quizzes, receive quiz submissions, calculate scores, issue certificates, and verify certificates publicly.
+
+The most important API rule is that business actions must always be checked against organization membership and ownership.

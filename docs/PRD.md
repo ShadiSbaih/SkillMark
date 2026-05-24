@@ -1,7 +1,6 @@
+# Skillmark Quiz & Certification Backend
 
-# Cohive Backend Platform
-
-## Product Requirements Document (PRD)
+## Updated Product Requirements Document (PRD)
 
 ---
 
@@ -9,88 +8,124 @@
 
 ## 1.1 Purpose
 
-This document defines the product, functional, technical, and architectural requirements for the Cohive Backend Platform.
+This document defines the updated product, functional, technical, user-role, permission, and architectural requirements for **Skillmark**.
 
-Cohive is an API-only backend platform designed to help universities, training centers, companies, internship programs, and educational organizations manage:
+Skillmark is an **API-first quiz and certification backend platform** that helps organizations create quizzes, evaluate participants, and issue verifiable certificates.
 
-- organizations
-- organization memberships
-- courses
-- course enrollments
-- learning resources
-- quizzes
-- quiz attempts
-- certificates
-- authentication and account flows
+The system is especially suitable for university environments such as:
 
-The current phase focuses only on the backend API.
+* university departments
+* student clubs
+* technical communities
+* training workshops
+* internship programs
+* bootcamps
+* internal university training
+* independent instructors and trainers
 
-Frontend implementation is explicitly out of scope for the current phase.
+The current phase focuses on the **backend API only**.
+
+Frontend implementation is out of scope for the current backend MVP, but the backend should be designed in a way that supports a future web dashboard and student-facing interface.
 
 ---
 
 ## 1.2 Product Scope
 
-Cohive is a multi-organization training and course management backend.
+Skillmark provides APIs for:
 
-The backend provides APIs for:
+* user registration and authentication
+* email verification
+* password reset
+* refresh token session management
+* organization creation and management
+* organization membership management
+* quiz creation and publishing
+* quiz questions and answer options
+* quiz attempts and automatic scoring
+* certificate issuing
+* certificate revocation
+* public certificate verification
+* audit logging
 
-- user account registration and authentication
-- organization creation and management
-- organization membership management
-- course creation and management
-- course enrollment
-- learning resource management
-- quiz and quiz attempt management
-- certificate issuance and verification
-- password reset
-- email verification
-- refresh token session management
+Skillmark is **not a full LMS** in the current phase.
 
-The platform is intended for:
+The following LMS features are out of scope for the MVP:
 
-- universities
-- training centers
-- software companies
-- internship programs
-- educational institutions
-- internal company training programs
-
----
-
-## 1.3 Current Phase Scope
-
-The current phase includes:
-
-- Backend API
-- Database schema
-- Authentication
-- Authorization
-- Business rules
-- API documentation
-- Integration tests
-- Local/development file storage support
-- Public certificate verification endpoint
-
-The current phase does not include:
-
-- frontend application
-- mobile application
-- dashboard UI
-- public certificate verification web page
-- payment system
-- subscriptions
-- notifications UI
-- analytics dashboard
-- microservices split
+* courses
+* lessons
+* assignments
+* attendance
+* payments
+* dashboards
+* learning paths
+* discussion rooms
+* chat system
+* calendar scheduling
+* video lectures
 
 ---
 
-# 2. Product Overview
+## 1.3 Product Positioning
 
-## 2.1 Product Type
+Skillmark is an API-first quiz and certification backend.
 
-API-only backend SaaS platform.
+### One-line pitch
+
+> Skillmark helps organizations create assessments, evaluate participants, and issue verifiable certificates through a secure backend API.
+
+### University-focused pitch
+
+> Skillmark helps universities, student clubs, trainers, and technical communities run online quizzes, evaluate students, and issue verifiable certificates for workshops, trainings, and academic activities.
+
+---
+
+## 1.4 Target Users
+
+The platform targets:
+
+* university students
+* instructors
+* trainers
+* student club leaders
+* university departments
+* internship supervisors
+* technical community organizers
+* training centers
+* companies running internal training
+
+---
+
+## 1.5 Main Use Case for University Students
+
+A student club, instructor, or university training group creates an organization inside Skillmark.
+
+The owner adds students as participants, creates a quiz, publishes it, and allows participants to submit attempts.
+
+After passing the quiz, students can receive certificates automatically or manually depending on the quiz settings.
+
+Anyone can verify a certificate publicly using a verification code.
+
+Example:
+
+* Organization: Computer Science Club
+* Owner: Club leader or instructor
+* Participants: Students
+* Quiz: Git & GitHub Workshop Quiz
+* Certificate: Git & GitHub Workshop Completion Certificate
+* Verification: Public verification code or QR code in the future
+
+---
+
+# 2. System Overview
+
+## 2.1 System Type
+
+Skillmark is an:
+
+* API-only SaaS backend
+* multi-tenant backend system
+* quiz and certification platform
+* organization-scoped assessment system
 
 ---
 
@@ -98,119 +133,402 @@ API-only backend SaaS platform.
 
 The system shall follow:
 
-- modular monolith architecture
-- RESTful API architecture
-- multi-tenant architecture
-- organization-scoped authorization
-- layered backend architecture
-- database-backed persistence
-- JWT-based authentication
+* modular monolith architecture
+* RESTful API architecture
+* multi-tenant architecture
+* organization-scoped authorization
+* layered backend architecture
+* database-backed persistence
+* JWT-based authentication
 
 ---
 
 ## 2.3 Core Product Concept
 
-A User is an identity/account.
+A **User** is an identity/account.
 
-A User must not be treated as globally `OWNER` or globally `STUDENT`.
+A user must not be treated as globally `OWNER` or globally `PARTICIPANT`.
 
-Instead, permissions are defined at the organization level.
-
-A single User can:
-
-- own one or more organizations
-- be a STUDENT/member in one or more organizations
-- be OWNER in one organization and STUDENT in another organization at the same time
-
-Therefore, business permissions must be based on:
+Permissions are defined at the organization level through:
 
 ```text
 organization_memberships
-````
+```
 
-not on:
+not through:
 
 ```text
 users.role
 ```
 
+A single user can:
+
+* own one or more organizations
+* be a participant in one or more organizations
+* be OWNER in one organization
+* be PARTICIPANT in another organization
+* have different permissions depending on the organization context
+
+Example:
+
+A user named Ahmad can be:
+
+* OWNER of “Computer Science Club”
+* PARTICIPANT in “AI Training Program”
+* PARTICIPANT in “Java Bootcamp”
+
+Therefore, all business permissions must be based on organization memberships.
+
 ---
 
-# 3. User Roles and Permission Model
+# 3. User Types and Permissions
 
-## 3.1 User
+## 3.1 User Type Summary
 
-A User is an authenticated account in the system.
+The system supports four main user states/types:
 
-A User can:
+1. Unauthenticated Visitor
+2. Authenticated User
+3. Organization Owner
+4. Organization Participant
 
-* register
-* log in
-* manage their own authentication session
+Important note:
+
+`Organization Owner` and `Organization Participant` are not global roles.
+
+They are organization-level roles stored in `organization_memberships`.
+
+---
+
+# 3.2 Unauthenticated Visitor
+
+## Description
+
+An unauthenticated visitor is a user who is not logged in.
+
+This user can only access public and authentication-related APIs.
+
+## Allowed Actions
+
+An unauthenticated visitor can:
+
+* register a new account
+* login
+* request password reset
+* reset password using a valid token
+* verify email using a valid token
+* verify a public certificate using a verification code
+
+## Not Allowed Actions
+
+An unauthenticated visitor cannot:
+
 * create organizations
-* become owner of created organizations
-* be added as a student/member to other organizations
-* access data based on organization-level permissions
+* view private organizations
+* join quizzes
+* start quiz attempts
+* submit quiz answers
+* view private certificates
+* manage members
+* create quizzes
+* issue certificates
 
-A User does not have a global business role.
+## Visitor Permission Table
+
+| Feature                   | Allowed |
+| ------------------------- | ------: |
+| Register                  |     Yes |
+| Login                     |     Yes |
+| Forgot password           |     Yes |
+| Reset password            |     Yes |
+| Verify email              |     Yes |
+| Verify public certificate |     Yes |
+| Create organization       |      No |
+| View quizzes              |      No |
+| Start quiz attempt        |      No |
+| Submit quiz attempt       |      No |
+| View own certificates     |      No |
 
 ---
 
-## 3.2 Organization Owner
+# 3.3 Authenticated User
 
-An Organization Owner is a User who has OWNER permission for a specific organization.
+## Description
+
+An authenticated user is any user who has successfully logged into the system.
+
+This user does not have a global business role.
+
+The user can perform general account actions and create organizations.
+
+After creating an organization, the user automatically becomes the OWNER of that organization.
+
+## Allowed Actions
+
+An authenticated user can:
+
+* view their own profile
+* update basic account information if supported
+* create a new organization
+* become owner of the organization they create
+* view organizations they own or belong to
+* logout
+* refresh access token using refresh token
+* view their own attempts if they have quiz attempts
+* view their own certificates if certificates were issued to them
+
+## Not Allowed Actions Without Organization Permission
+
+An authenticated user cannot:
+
+* manage an organization they do not own
+* view private data of unrelated organizations
+* access quizzes in organizations where they are not a member
+* manage quizzes without OWNER role in that organization
+* view attempts of other users without being organization owner
+* issue certificates without being organization owner
+
+## Authenticated User Permission Table
+
+| Feature                              | Allowed |
+| ------------------------------------ | ------: |
+| View own profile                     |     Yes |
+| Create organization                  |     Yes |
+| View accessible organizations        |     Yes |
+| Logout                               |     Yes |
+| Refresh token                        |     Yes |
+| Manage unrelated organization        |      No |
+| View unrelated organization quizzes  |      No |
+| Issue certificates without ownership |      No |
+
+---
+
+# 3.4 Organization Owner
+
+## Description
+
+An Organization Owner is a user who has OWNER permission inside a specific organization.
 
 Ownership is represented by:
 
 * `organizations.owner_id`
 * `organization_memberships.role = OWNER`
 
-An Organization Owner can manage only the organizations they own.
+The owner can manage only the organizations they own.
 
-Responsibilities:
+An owner in one organization is not automatically an owner in another organization.
 
-* create organizations
-* manage organization information
+---
+
+## Organization Owner Responsibilities
+
+An organization owner can:
+
+* manage organization details
 * manage organization members
-* create and manage courses
-* enroll organization students in courses
-* create and manage learning resources
-* create and manage quizzes
-* view quiz attempts for organization courses
+* create quizzes
+* manage quizzes
+* add questions and options
+* publish quizzes
+* view quiz attempts
 * issue certificates
 * revoke certificates
+* view certificates issued under their organization
 
 ---
 
-## 3.3 Organization Student
+## 3.4.1 Organization Management Permissions
 
-An Organization Student is a User who has STUDENT membership in a specific organization.
+An organization owner can:
 
-A User may be a student in one organization and an owner in another.
+* view organization details
+* update organization information
+* disable or soft delete the organization
+* list organization members
+* add participants
+* remove or disable participants
 
-Responsibilities:
+An organization owner cannot:
+
+* manage organizations owned by other users
+* access private data from unrelated organizations
+* transfer ownership in the current MVP
+* create multiple owners in the current MVP
+
+---
+
+## 3.4.2 Quiz Management Permissions
+
+An organization owner can:
+
+* create quizzes inside owned organizations
+* update quiz settings
+* add quiz questions
+* add quiz options
+* publish quizzes
+* archive quizzes
+* delete quizzes using safe deletion policy
+* view all quizzes in their organization, whether published or unpublished
+
+Published quiz modification should follow a safe policy to avoid corrupting historical attempts.
+
+Recommended policy:
+
+* allow editing basic fields such as title and description
+* prevent editing submitted questions/options directly after attempts exist
+* use archive/versioning later if advanced quiz editing is needed
+
+---
+
+## 3.4.3 Attempt and Result Permissions
+
+An organization owner can:
+
+* view attempts for quizzes inside owned organizations
+* view participant results
+* review attempts if certificate issue mode is MANUAL
+* use attempt data to decide whether to issue certificates manually
+
+An organization owner cannot:
+
+* submit attempts on behalf of participants in the MVP
+* edit participant submitted answers
+* change score results manually unless a future review feature is added
+
+---
+
+## 3.4.4 Certificate Permissions
+
+An organization owner can:
+
+* issue certificates manually when quiz certificate mode is MANUAL
+* view certificates issued under their organization
+* revoke certificates issued under their organization
+* verify certificates publicly like any other user
+
+An organization owner cannot:
+
+* issue certificates for users who are not active participants
+* issue duplicate active certificates for the same quiz and user
+* issue certificates for failed attempts
+* issue certificates for quizzes outside their organization
+
+---
+
+# 3.5 Organization Participant
+
+## Description
+
+An Organization Participant is a user who has PARTICIPANT membership inside a specific organization.
+
+A participant can access published quizzes and submit attempts inside organizations where they are active members.
+
+A participant in one organization does not automatically have access to another organization.
+
+---
+
+## Participant Responsibilities
+
+A participant can:
 
 * view organizations where they are a member
-* view enrolled courses
-* access resources for enrolled courses
-* view published quizzes for enrolled courses
-* submit quiz attempts
+* view published quizzes inside those organizations
+* start quiz attempts
+* submit quiz answers
+* view their own attempt results
 * view their own certificates
+* verify certificates publicly
 
 ---
 
-## 3.4 Unauthenticated Visitor
+## 3.5.1 Organization Access Permissions
 
-An unauthenticated visitor can only access public APIs.
+A participant can:
 
-Allowed actions:
+* view basic details of organizations where they are active members
+* view their membership-related access
 
-* register
-* login
-* request password reset
-* reset password with valid token
-* verify email with valid token
-* verify public certificate by verification code
+A participant cannot:
+
+* update organization details
+* delete organizations
+* add members
+* remove members
+* view full member lists unless allowed later
+
+---
+
+## 3.5.2 Quiz Permissions
+
+A participant can:
+
+* view published quizzes in organizations where they are active members
+* start a quiz attempt if the quiz is available
+* submit answers for their own attempt
+* view their own quiz results
+
+A participant cannot:
+
+* view unpublished quizzes
+* create quizzes
+* update quizzes
+* delete quizzes
+* add questions or options
+* publish quizzes
+* submit another user's attempt
+* exceed max attempt limits
+
+---
+
+## 3.5.3 Certificate Permissions
+
+A participant can:
+
+* receive a certificate automatically if they pass a quiz with certificate mode AUTO
+* receive a certificate manually if the owner issues it under MANUAL mode
+* view their own certificates
+* use public verification for certificates
+
+A participant cannot:
+
+* issue certificates
+* revoke certificates
+* view certificates of unrelated users unless through public verification
+
+---
+
+# 3.6 Permission Matrix
+
+| Feature                         | Visitor |    Authenticated User |              Organization Owner | Organization Participant |
+| ------------------------------- | ------: | --------------------: | ------------------------------: | -----------------------: |
+| Register                        |     Yes |                   Yes |                             Yes |                      Yes |
+| Login                           |     Yes |                   Yes |                             Yes |                      Yes |
+| Verify email                    |     Yes |                   Yes |                             Yes |                      Yes |
+| Forgot/reset password           |     Yes |                   Yes |                             Yes |                      Yes |
+| View own profile                |      No |                   Yes |                             Yes |                      Yes |
+| Create organization             |      No |                   Yes |                             Yes |                      Yes |
+| View accessible organizations   |      No |                   Yes |                             Yes |                      Yes |
+| View unrelated organizations    |      No |                    No |                              No |                       No |
+| Update organization             |      No |                    No |                 Yes, owned only |                       No |
+| Delete/disable organization     |      No |                    No |                 Yes, owned only |                       No |
+| Add organization members        |      No |                    No |                 Yes, owned only |                       No |
+| Remove organization members     |      No |                    No |                 Yes, owned only |                       No |
+| Create quiz                     |      No |                    No |                 Yes, owned only |                       No |
+| Update quiz                     |      No |                    No |                 Yes, owned only |                       No |
+| Add questions/options           |      No |                    No |                 Yes, owned only |                       No |
+| Publish quiz                    |      No |                    No |                 Yes, owned only |                       No |
+| Archive/delete quiz             |      No |                    No |                 Yes, owned only |                       No |
+| View published quizzes          |      No |             If member |                             Yes |           Yes, if member |
+| View unpublished quizzes        |      No |                    No |                 Yes, owned only |                       No |
+| Start quiz attempt              |      No | If active participant |             If also participant |                      Yes |
+| Submit quiz attempt             |      No |      Own attempt only | Own attempt only if participant |         Own attempt only |
+| View own attempts               |      No |                   Yes |                             Yes |                      Yes |
+| View all quiz attempts          |      No |                    No |                 Yes, owned only |                       No |
+| Issue certificate               |      No |                    No |                 Yes, owned only |                       No |
+| Revoke certificate              |      No |                    No |                 Yes, owned only |                       No |
+| View own certificates           |      No |                   Yes |                             Yes |                      Yes |
+| View organization certificates  |      No |                    No |                 Yes, owned only |                       No |
+| Public certificate verification |     Yes |                   Yes |                             Yes |                      Yes |
 
 ---
 
@@ -224,9 +542,9 @@ Allowed actions:
 
 The system shall provide secure authentication and account management.
 
-## Functional Requirements
+---
 
-### FR-1: User Registration
+## FR-1: User Registration
 
 The system shall allow users to register accounts using:
 
@@ -234,21 +552,28 @@ The system shall allow users to register accounts using:
 * email
 * password
 
-Registration must not accept a business role such as OWNER or STUDENT.
+Registration must not accept a business role such as OWNER or PARTICIPANT.
 
-A newly registered user is only an account identity.
-
----
-
-### FR-2: User Login
-
-The system shall allow users to log in using email and password.
-
-The system shall return authentication tokens after successful login.
+The user should be created as a normal account identity.
 
 ---
 
-### FR-3: Access Token
+## FR-2: User Login
+
+The system shall allow users to log in using:
+
+* email
+* password
+
+After successful login, the system shall return:
+
+* access token
+* refresh token
+* basic user profile
+
+---
+
+## FR-3: Access Token
 
 The system shall issue an access token for authenticated API access.
 
@@ -260,17 +585,21 @@ Authorization: Bearer <token>
 
 ---
 
-### FR-4: Refresh Token
+## FR-4: Refresh Token
 
 The system shall support refresh tokens for renewing access tokens.
 
 Refresh tokens must be stored securely in the database as hashes.
 
-The system shall support refresh token expiration and revocation.
+The system shall support:
+
+* refresh token expiration
+* refresh token revocation
+* refresh token rotation where possible
 
 ---
 
-### FR-5: Logout
+## FR-5: Logout
 
 The system shall allow users to log out by revoking their active refresh token.
 
@@ -278,7 +607,7 @@ The system may also support logout from all sessions.
 
 ---
 
-### FR-6: Email Verification
+## FR-6: Email Verification
 
 The system shall support email verification.
 
@@ -288,9 +617,9 @@ The user record shall include an email verification state.
 
 ---
 
-### FR-7: Forgot Password
+## FR-7: Forgot Password
 
-The system shall support password reset request flow.
+The system shall support a password reset request flow.
 
 The response must not reveal whether the email exists.
 
@@ -298,7 +627,7 @@ Password reset tokens must be stored as hashes.
 
 ---
 
-### FR-8: Reset Password
+## FR-8: Reset Password
 
 The system shall allow password reset using a valid, unused, non-expired reset token.
 
@@ -306,19 +635,17 @@ After successful password reset, existing refresh tokens may be revoked.
 
 ---
 
-### FR-9: Password Security
-
-The system shall store passwords only as secure hashes.
-
-Plaintext passwords must never be stored or returned.
-
----
-
-### FR-10: Current User Profile
+## FR-9: Current User Profile
 
 The system shall allow authenticated users to retrieve their own account profile.
 
-The response must not include password hash or sensitive token data.
+The response must not include:
+
+* password hash
+* refresh token hash
+* reset token hash
+* verification token hash
+* internal secrets
 
 ---
 
@@ -326,11 +653,11 @@ The response must not include password hash or sensitive token data.
 
 ## Description
 
-The system shall allow users to create and manage organizations.
+The system shall allow authenticated users to create and manage organizations.
 
-## Functional Requirements
+---
 
-### FR-11: Create Organization
+## FR-10: Create Organization
 
 The system shall allow any authenticated user to create an organization.
 
@@ -342,7 +669,7 @@ When a user creates an organization:
 
 ---
 
-### FR-12: View Accessible Organizations
+## FR-11: View Accessible Organizations
 
 The system shall allow users to view organizations they own or belong to.
 
@@ -350,7 +677,7 @@ A user must not see unrelated organizations.
 
 ---
 
-### FR-13: View Organization Details
+## FR-12: View Organization Details
 
 The system shall allow an organization owner or active organization member to view organization details.
 
@@ -358,17 +685,21 @@ Unauthorized users must be rejected.
 
 ---
 
-### FR-14: Update Organization
+## FR-13: Update Organization
 
 The system shall allow only the organization owner to update organization details.
 
 ---
 
-### FR-15: Disable or Delete Organization
+## FR-14: Disable or Delete Organization
 
 The system shall allow only the organization owner to disable or delete an organization.
 
-The preferred behavior is soft delete or status-based disabling to preserve historical records.
+Preferred behavior:
+
+* soft delete
+* status-based disabling
+* preserve historical attempts and certificates
 
 ---
 
@@ -378,11 +709,11 @@ The preferred behavior is soft delete or status-based disabling to preserve hist
 
 The system shall manage organization-level roles through organization memberships.
 
-## Functional Requirements
+---
 
-### FR-16: Add Organization Member
+## FR-15: Add Organization Member
 
-The system shall allow an organization owner to add a User as a STUDENT member of an organization.
+The system shall allow an organization owner to add a user as a PARTICIPANT member of an organization.
 
 The target user must already exist.
 
@@ -390,267 +721,102 @@ Duplicate active memberships must be prevented.
 
 ---
 
-### FR-17: List Organization Members
+## FR-16: List Organization Members
 
 The system shall allow an organization owner to list members of an owned organization.
 
 ---
 
-### FR-18: Remove Organization Member
+## FR-17: Remove Organization Member
 
 The system shall allow an organization owner to remove or disable a member from an organization.
 
 Removed members must lose access to protected organization data.
 
+Historical attempts and certificates should remain preserved.
+
 ---
 
-### FR-19: Membership Role
+## FR-18: Membership Roles
 
 The system shall support the following membership roles in the current phase:
 
 * OWNER
-* STUDENT
+* PARTICIPANT
 
-The system must support the possibility of future organization roles, such as:
+Future roles may include:
 
 * INSTRUCTOR
 * MANAGER
-* ASSISTANT
+* REVIEWER
 
-but these are out of scope for the current phase.
-
----
-
-### FR-20: User with Multiple Organization Roles
-
-The system shall support a User being:
-
-* OWNER in one organization
-* STUDENT in another organization
-* STUDENT in multiple organizations
-* OWNER of multiple organizations
+These future roles are out of scope for the current MVP.
 
 ---
 
-# 4.4 Course Management
+# 4.4 Quiz Management
 
 ## Description
 
-The system shall provide course creation and management capabilities.
+The system shall support quiz creation and management inside organizations.
 
-## Functional Requirements
+A quiz belongs directly to an organization.
 
-### FR-21: Create Course
-
-The system shall allow organization owners to create courses under organizations they own.
+Courses are not part of the current MVP.
 
 ---
 
-### FR-22: Course Ownership
+## FR-19: Create Quiz
 
-Each course shall belong to exactly one organization.
-
----
-
-### FR-23: View Courses
-
-The system shall allow:
-
-* organization owners to view courses in organizations they own
-* enrolled students to view courses they are enrolled in
+The system shall allow organization owners to create quizzes under organizations they own.
 
 ---
 
-### FR-24: View Course Details
-
-The system shall allow course details to be viewed only by:
-
-* the owner of the course organization
-* users enrolled in the course
-
----
-
-### FR-25: Update Course
-
-The system shall allow only the owner of the course organization to update course information.
-
----
-
-### FR-26: Archive or Delete Course
-
-The system shall allow only the owner of the course organization to archive or delete a course.
-
-Course deletion should preserve historical records where certificates or enrollments exist.
-
----
-
-# 4.5 Course Enrollment Management
-
-## Description
-
-The system shall manage enrollment of organization students into courses.
-
-## Functional Requirements
-
-### FR-27: Enroll User in Course
-
-The system shall allow an organization owner to enroll a User into a course.
-
-The target User must be an ACTIVE STUDENT member of the course organization.
-
-Enrollment uses:
-
-```text
-user_id
-```
-
-not:
-
-```text
-student_id
-```
-
----
-
-### FR-28: Prevent Duplicate Enrollment
-
-The system shall prevent duplicate active enrollment for the same user and course.
-
----
-
-### FR-29: View Course Enrollments
-
-The system shall allow organization owners to view enrollments for courses in their own organizations.
-
----
-
-### FR-30: View Own Enrollments
-
-The system shall allow a user to view their own course enrollments.
-
----
-
-### FR-31: Enrollment Status
-
-The system shall support enrollment statuses such as:
-
-* ACTIVE
-* COMPLETED
-* CANCELLED
-* REMOVED
-
----
-
-# 4.6 Resource Management
-
-## Description
-
-The system shall manage learning resources for courses.
-
-The current phase supports only two resource types:
-
-* LINK
-* FILE
-
----
-
-## Functional Requirements
-
-### FR-32: Create LINK Resource
-
-The system shall allow organization owners to create LINK resources for courses they own.
-
-A LINK resource must include a valid URL.
-
----
-
-### FR-33: Create FILE Resource
-
-The system shall allow organization owners to create FILE resources for courses they own.
-
-A FILE resource shall include file metadata such as:
-
-* fileUrl
-* originalFileName
-* contentType
-* sizeBytes
-
----
-
-### FR-34: File Storage Abstraction
-
-The system shall provide a backend file storage abstraction.
-
-The initial implementation may use local storage for development.
-
-The design should allow future replacement with:
-
-* S3
-* Cloudinary
-* Supabase Storage
-* other object storage providers
-
----
-
-### FR-35: View Course Resources
-
-The system shall allow resources to be viewed by:
-
-* the owner of the course organization
-* users enrolled in the course
-
----
-
-### FR-36: Update Resource
-
-The system shall allow only the organization owner to update resources.
-
----
-
-### FR-37: Delete or Archive Resource
-
-The system shall allow only the organization owner to delete or archive resources.
-
----
-
-# 4.7 Quiz Management
-
-## Description
-
-The system shall support quizzes inside courses.
-
-The quiz module shall support:
-
-* quizzes
-* questions
-* options
-* attempts
-* submitted answers
-* automatic scoring
-
----
-
-## Functional Requirements
-
-### FR-38: Create Quiz
-
-The system shall allow organization owners to create quizzes for courses they own.
-
----
-
-### FR-39: Quiz Fields
+## FR-20: Quiz Fields
 
 A quiz shall include:
 
 * title
 * description
+* organizationId
 * passingScore
+* durationMinutes
+* maxAttempts
+* certificateEnabled
+* certificateIssueMode
 * isPublished
 * status
+* createdAt
+* updatedAt
+* deletedAt
 
 ---
 
-### FR-40: Add Quiz Questions
+## FR-21: Certificate Issue Mode
+
+A quiz may support certificate issuing.
+
+Supported certificate issue modes:
+
+* AUTO
+* MANUAL
+* NONE
+
+### AUTO
+
+The system issues a certificate automatically when the participant passes the quiz.
+
+### MANUAL
+
+The owner reviews the submitted attempt and issues the certificate manually.
+
+### NONE
+
+The quiz does not issue certificates.
+
+---
+
+## FR-22: Add Quiz Questions
 
 The system shall allow organization owners to add questions to quizzes.
 
@@ -660,7 +826,7 @@ The current phase supports:
 
 ---
 
-### FR-41: Add Quiz Options
+## FR-23: Add Quiz Options
 
 The system shall allow organization owners to add answer options to quiz questions.
 
@@ -668,125 +834,193 @@ A SINGLE_CHOICE question must have exactly one correct answer.
 
 ---
 
-### FR-42: Publish Quiz
+## FR-24: Publish Quiz
 
 The system shall allow organization owners to publish a quiz.
 
-A quiz should not be publishable unless it contains valid questions and options.
+A quiz should not be publishable unless:
+
+* it has at least one question
+* every question has valid options
+* every SINGLE_CHOICE question has exactly one correct option
+* quiz settings are valid
 
 ---
 
-### FR-43: View Course Quizzes
+## FR-25: View Organization Quizzes
 
 The system shall allow:
 
-* organization owners to view all quizzes for owned courses
-* enrolled users to view only published quizzes for enrolled courses
+* organization owners to view all quizzes in owned organizations
+* active organization participants to view published quizzes in organizations where they are members
 
 ---
 
-### FR-44: Start Quiz Attempt
+## FR-26: Update Quiz
 
-The system shall allow enrolled users to start attempts for published quizzes.
+The system shall allow only the organization owner to update quiz settings.
+
+Published quiz modification should follow a safe policy to avoid corrupting historical attempts.
 
 ---
 
-### FR-45: Submit Quiz Attempt
+## FR-27: Archive or Delete Quiz
+
+The system shall allow only the organization owner to archive or delete a quiz.
+
+Historical attempts and certificates should remain consistent.
+
+Soft delete or archive is preferred over hard delete.
+
+---
+
+# 4.5 Quiz Attempt Management
+
+## Description
+
+The system shall allow participants to take published quizzes.
+
+---
+
+## FR-28: Start Quiz Attempt
+
+The system shall allow active organization participants to start attempts for published quizzes.
+
+The system must enforce:
+
+* organization membership
+* participant status
+* quiz publication status
+* max attempts limit
+* quiz status
+
+---
+
+## FR-29: Submit Quiz Attempt
 
 The system shall allow users to submit answers for their own quiz attempts.
 
 The system shall calculate:
 
-* score
+* points awarded
+* total score
+* score percentage
 * pass/fail result
 * submittedAt timestamp
 
 ---
 
-### FR-46: View Quiz Attempts
+## FR-30: Prevent Invalid Submissions
 
-The system shall allow:
+The system shall reject:
 
-* users to view their own quiz attempts
-* organization owners to view attempts for quizzes in their owned organizations
+* submissions for another user's attempt
+* submissions for already submitted attempts
+* answers using options from another quiz
+* answers using questions from another quiz
+* attempts for archived or unavailable quizzes
+* attempts exceeding maxAttempts
 
 ---
 
-# 4.8 Certificate Management
+## FR-31: View Own Attempts
+
+The system shall allow users to view their own quiz attempts.
+
+---
+
+## FR-32: Owner View Attempts
+
+The system shall allow organization owners to view attempts for quizzes in their owned organizations.
+
+---
+
+# 4.6 Certificate Management
 
 ## Description
 
 The system shall support certificate issuance, revocation, and public verification.
 
-Certificates are issued to Users, not to separate Student records.
+Certificates are issued to users after passing quizzes.
 
 ---
 
-## Functional Requirements
+## FR-33: Issue Certificate
 
-### FR-47: Issue Certificate
+The system shall allow certificates to be issued to users for quiz completion.
 
-The system shall allow organization owners to issue certificates to users enrolled in courses under owned organizations.
+Certificates may be issued:
+
+* automatically after a passing attempt if certificateIssueMode = AUTO
+* manually by organization owner if certificateIssueMode = MANUAL
 
 ---
 
-### FR-48: Certificate Eligibility
+## FR-34: Certificate Eligibility
 
 A certificate can only be issued if:
 
 * target user exists
-* target user is an ACTIVE STUDENT member of the course organization
-* target user is enrolled in the course
-* duplicate active certificate does not already exist
-* required quiz completion rules are satisfied if configured
+* target user is an ACTIVE PARTICIPANT member of the quiz organization
+* target user has a submitted passing attempt
+* duplicate active certificate does not already exist for the same quiz and user
 
 ---
 
-### FR-49: Certificate Number
+## FR-35: Certificate Number
 
 The system shall generate a unique certificate number for every certificate.
 
 ---
 
-### FR-50: Verification Code
+## FR-36: Verification Code
 
 The system shall generate a unique verification code for every certificate.
 
 ---
 
-### FR-51: Certificate Snapshots
+## FR-37: Certificate Snapshots
 
 The system shall store snapshot values at issuance time:
 
-* studentNameSnapshot
-* courseTitleSnapshot
+* participantNameSnapshot
+* quizTitleSnapshot
 * organizationNameSnapshot
 
-This preserves certificate history even if user, course, or organization names change later.
+This preserves certificate history even if user, quiz, or organization names change later.
 
 ---
 
-### FR-52: View Own Certificates
+## FR-38: View Own Certificates
 
 The system shall allow users to view their own certificates.
 
 ---
 
-### FR-53: View Organization Certificates
+## FR-39: View Organization Certificates
 
 The system shall allow organization owners to view certificates issued under their own organizations.
 
 ---
 
-### FR-54: Public Certificate Verification
+## FR-40: Public Certificate Verification
 
 The system shall provide a public endpoint to verify a certificate by verification code.
 
 The public verification response must not expose sensitive user data.
 
+Recommended public response fields:
+
+* certificate status
+* participant name snapshot
+* quiz title snapshot
+* organization name snapshot
+* issued date
+* revoked state if revoked
+
 ---
 
-### FR-55: Revoke Certificate
+## FR-41: Revoke Certificate
 
 The system shall allow organization owners to revoke certificates issued under their own organizations.
 
@@ -794,87 +1028,220 @@ A revoked certificate must remain historically visible and verifiable as revoked
 
 ---
 
-# 5. Non-Functional Requirements
+# 4.7 Optional Resource Management
+
+## Description
+
+Resources are optional in the current phase.
+
+If implemented, resources should be lightweight preparation materials attached to a quiz.
+
+Supported resource types:
+
+* LINK
+* FILE
 
 ---
 
-# 5.1 Performance Requirements
+## FR-42: Create Quiz Resource
+
+The system may allow organization owners to attach LINK or FILE resources to quizzes.
+
+---
+
+## FR-43: View Quiz Resources
+
+The system may allow active organization participants to view resources attached to published quizzes.
+
+---
+
+## FR-44: File Storage Abstraction
+
+If FILE resources are implemented, the system shall provide a backend file storage abstraction.
+
+Initial implementation may use local storage.
+
+Future implementations may include:
+
+* S3
+* Cloudinary
+* Supabase Storage
+
+---
+
+# 4.8 Audit Logging
+
+## Description
+
+The system shall record important security and business actions.
+
+---
+
+## FR-45: Audit Sensitive Actions
+
+The system shall record audit logs for sensitive actions, including:
+
+* organization creation
+* organization update
+* organization deletion or disabling
+* member added
+* member removed
+* quiz created
+* quiz updated
+* quiz published
+* quiz archived
+* attempt submitted
+* certificate issued
+* certificate revoked
+* login failures
+* password reset completion
+
+---
+
+## FR-46: Audit Metadata
+
+Audit logs may include:
+
+* actorUserId
+* organizationId
+* action
+* entityType
+* entityId
+* ipAddress
+* userAgent
+* metadata
+* createdAt
+
+Audit metadata must not include:
+
+* plaintext passwords
+* raw tokens
+* secrets
+* sensitive authentication data
+
+---
+
+# 5. University MVP Recommendation
+
+## 5.1 Recommended MVP Features
+
+For the first university version, the system should focus on the following flow:
+
+1. User registration and login
+2. Organization creation
+3. Owner automatically becomes organization owner
+4. Owner adds participants
+5. Owner creates quiz
+6. Owner adds single-choice questions and options
+7. Owner publishes quiz
+8. Participant views published quiz
+9. Participant starts attempt
+10. Participant submits answers
+11. System calculates score
+12. System marks pass/fail
+13. System issues certificate automatically if enabled
+14. Public user verifies certificate using verification code
+
+---
+
+## 5.2 Recommended Features to Delay
+
+The following features should be delayed until after the MVP:
+
+* invitation links
+* bulk member import
+* advanced question types
+* question bank
+* certificate PDF generation
+* QR code generation
+* analytics dashboard
+* leaderboard
+* badges
+* payments
+* multi-owner organizations
+* instructor roles
+* advanced reporting
+* frontend dashboard
+
+---
+
+## 5.3 University Example Flow
+
+Example scenario:
+
+A student club runs a workshop called “Introduction to Git & GitHub”.
+
+The club leader creates an organization named “Computer Science Club”.
+
+The leader adds students as participants.
+
+The leader creates a quiz with 10 single-choice questions.
+
+The quiz passing score is 70%.
+
+The certificate issue mode is AUTO.
+
+Students complete the quiz.
+
+Students who pass receive a verifiable certificate.
+
+Anyone can verify the certificate using the public verification endpoint.
+
+---
+
+# 6. Non-Functional Requirements
+
+## 6.1 Performance Requirements
 
 ### NFR-1
 
 The system shall support concurrent API users efficiently.
 
----
-
 ### NFR-2
 
 API response time should not exceed 2 seconds under normal load for common endpoints.
-
----
 
 ### NFR-3
 
 List endpoints shall use database-level pagination where possible.
 
----
-
 ### NFR-4
 
-The system shall avoid loading large datasets into memory for pagination.
+The system shall use indexes for commonly queried fields.
 
 ---
+
+## 6.2 Security Requirements
 
 ### NFR-5
 
-The system shall use appropriate database indexes for commonly queried fields.
-
----
-
-# 5.2 Security Requirements
+Passwords shall be stored using strong hashing.
 
 ### NFR-6
 
-Passwords shall be stored using strong hashing.
-
----
+Access tokens and refresh tokens shall be protected.
 
 ### NFR-7
 
-Access tokens and refresh tokens shall be protected.
-
----
+Refresh tokens shall be stored as hashes.
 
 ### NFR-8
 
-Refresh tokens shall be stored as hashes.
-
----
+Password reset and email verification tokens shall be stored as hashes.
 
 ### NFR-9
 
-Password reset and email verification tokens shall be stored as hashes.
-
----
+The system shall enforce authorization checks for all protected resources.
 
 ### NFR-10
 
-The system shall enforce authorization checks for all protected resources.
-
----
+The system shall prevent unauthorized access between organizations.
 
 ### NFR-11
 
-The system shall prevent unauthorized access between organizations.
-
----
-
-### NFR-12
-
 The system shall not rely on global user roles for organization-level permissions.
 
----
-
-### NFR-13
+### NFR-12
 
 The system shall protect authentication endpoints using rate limiting.
 
@@ -885,9 +1252,7 @@ Rate-limited endpoints should include:
 * forgot password
 * resend verification email
 
----
-
-### NFR-14
+### NFR-13
 
 The system shall not expose sensitive data in API responses.
 
@@ -901,66 +1266,51 @@ Sensitive data includes:
 
 ---
 
-# 5.3 Availability Requirements
+## 6.3 Availability Requirements
 
-### NFR-15
+### NFR-14
 
 The system should be deployable to a cloud environment.
 
----
-
-### NFR-16
+### NFR-15
 
 The system should support backup and recovery mechanisms.
 
----
-
-### NFR-17
+### NFR-16
 
 The system should expose health check endpoints for deployment monitoring.
 
 ---
 
-# 5.4 Scalability Requirements
+## 6.4 Scalability Requirements
 
-### NFR-18
+### NFR-17
 
 The architecture shall support future feature expansion.
 
----
-
-### NFR-19
+### NFR-18
 
 The system shall support increasing numbers of:
 
 * users
 * organizations
 * memberships
-* courses
-* resources
 * quizzes
-* quiz attempts
+* questions
+* attempts
 * certificates
 
----
-
-### NFR-20
+### NFR-19
 
 The backend should remain a modular monolith unless there is a strong need for microservices later.
 
 ---
 
-# 5.5 Maintainability Requirements
+## 6.5 Maintainability Requirements
 
-### NFR-21
+### NFR-20
 
 The system shall follow modular backend architecture.
-
----
-
-### NFR-22
-
-The codebase shall be organized by feature modules.
 
 Recommended modules:
 
@@ -968,84 +1318,69 @@ Recommended modules:
 * user
 * organization
 * membership
-* course
-* enrollment
-* resource
 * quiz
+* attempt
 * certificate
+* audit
 * common
 * security
 * config
 
----
-
-### NFR-23
+### NFR-21
 
 Business rules shall be implemented in services, not controllers.
 
----
-
-### NFR-24
+### NFR-22
 
 Repeated authorization logic shall be centralized in an AuthorizationService.
 
----
-
-### NFR-25
+### NFR-23
 
 API responses shall use consistent response wrappers.
 
 ---
 
-# 5.6 Usability Requirements
+## 6.6 API Usability Requirements
 
 Because the current phase is API-only, usability requirements apply to API consumers.
 
-### NFR-26
+### NFR-24
 
 The API shall be predictable and consistent.
 
----
-
-### NFR-27
+### NFR-25
 
 The API shall provide clear validation errors.
 
----
-
-### NFR-28
+### NFR-26
 
 The API shall provide Swagger/OpenAPI documentation.
 
----
-
-### NFR-29
+### NFR-27
 
 The API shall use consistent naming conventions and versioning.
 
 ---
 
-# 6. System Architecture
+# 7. System Architecture
 
----
-
-# 6.1 High-Level Architecture
+## 7.1 High-Level Architecture
 
 The current phase consists of:
 
 * Backend API
 * Database Layer
 * Authentication and Authorization Layer
-* File Storage Layer
+* Optional File Storage Layer
 * API Documentation Layer
 
 Frontend is out of scope.
 
 ---
 
-# 6.2 Backend API Layer
+## 7.2 Backend API Layer
 
-## Responsibilities
+Responsibilities:
 
 * expose REST APIs
 * validate request DTOs
@@ -1053,7 +1388,7 @@ Frontend is out of scope.
 * enforce request-level authentication
 * call service layer
 
-## Suggested Technologies
+Suggested technologies:
 
 * Java 17
 * Spring Boot
@@ -1062,9 +1397,9 @@ Frontend is out of scope.
 
 ---
 
-# 6.3 Service Layer
+## 7.3 Service Layer
 
-## Responsibilities
+Responsibilities:
 
 * enforce business rules
 * enforce organization-scoped authorization
@@ -1075,25 +1410,25 @@ Frontend is out of scope.
 
 ---
 
-# 6.4 Repository Layer
+## 7.4 Repository Layer
 
-## Responsibilities
+Responsibilities:
 
 * database access
 * query methods
 * database-level pagination
 * persistence operations
 
-## Suggested Technologies
+Suggested technologies:
 
 * Spring Data JPA
 * Hibernate
 
 ---
 
-# 6.5 Database Layer
+## 7.5 Database Layer
 
-## Responsibilities
+Responsibilities:
 
 * data persistence
 * relational integrity
@@ -1101,16 +1436,16 @@ Frontend is out of scope.
 * constraints
 * migration history
 
-## Suggested Technologies
+Suggested technologies:
 
 * PostgreSQL
 * Flyway
 
 ---
 
-# 6.6 Authentication Layer
+## 7.6 Authentication Layer
 
-## Responsibilities
+Responsibilities:
 
 * user authentication
 * JWT generation and validation
@@ -1118,7 +1453,7 @@ Frontend is out of scope.
 * password reset tokens
 * email verification tokens
 
-## Suggested Technologies
+Suggested technologies:
 
 * Spring Security
 * JWT
@@ -1126,16 +1461,15 @@ Frontend is out of scope.
 
 ---
 
-# 6.7 Authorization Layer
+## 7.7 Authorization Layer
 
-## Responsibilities
+Responsibilities:
 
 * organization ownership checks
 * organization membership checks
-* course access checks
-* enrollment checks
+* quiz access checks
+* attempt ownership checks
 * certificate access checks
-* quiz attempt access checks
 
 The system should include an AuthorizationService.
 
@@ -1144,53 +1478,24 @@ Example checks:
 ```text
 ensureOrganizationOwner(organizationId)
 ensureOrganizationMember(organizationId)
-ensureActiveStudentMember(organizationId, userId)
-ensureCourseOwner(courseId)
-ensureCourseAccessible(courseId)
-ensureUserEnrolledInCourse(courseId, userId)
-ensureCertificateAccessible(certificateId)
+ensureActiveParticipantMember(organizationId, userId)
+ensureQuizOwner(quizId)
 ensureQuizAccessible(quizId)
 ensureAttemptOwner(attemptId)
+ensureCertificateAccessible(certificateId)
 ```
 
 ---
 
-# 6.8 File Storage Layer
+# 8. Database Design
 
-## Responsibilities
-
-* store uploaded files
-* return file URLs
-* store file metadata
-* hide storage provider details behind an interface
-
-Initial implementation:
-
-* local file storage for development
-
-Future implementations may include:
-
-* AWS S3
-* Cloudinary
-* Supabase Storage
-* other object storage providers
-
----
-
-# 7. Database Design
-
----
-
-# 7.1 Primary Entities
+## 8.1 Primary Entities
 
 The system contains the following primary entities:
 
 * User
 * Organization
 * OrganizationMembership
-* Course
-* CourseEnrollment
-* Resource
 * Quiz
 * QuizQuestion
 * QuizOption
@@ -1200,6 +1505,11 @@ The system contains the following primary entities:
 * RefreshToken
 * EmailVerificationToken
 * PasswordResetToken
+* AuditLog
+
+Optional:
+
+* QuizResource
 
 The system should not use these old entities as primary design elements:
 
@@ -1209,9 +1519,9 @@ The system should not use these old entities as primary design elements:
 
 ---
 
-# 7.2 Entity Summary
+## 8.2 Entity Summary
 
-## User
+### User
 
 Represents an account identity.
 
@@ -1228,9 +1538,9 @@ Important fields:
 
 ---
 
-## Organization
+### Organization
 
-Represents an educational or training organization.
+Represents an organization that owns quizzes and certificates.
 
 Important fields:
 
@@ -1244,7 +1554,7 @@ Important fields:
 
 ---
 
-## OrganizationMembership
+### OrganizationMembership
 
 Represents a user's role inside an organization.
 
@@ -1260,13 +1570,19 @@ Important fields:
 Supported roles:
 
 * OWNER
-* STUDENT
+* PARTICIPANT
+
+Supported statuses:
+
+* ACTIVE
+* INACTIVE
+* REMOVED
 
 ---
 
-## Course
+### Quiz
 
-Represents a course under an organization.
+Represents an assessment inside an organization.
 
 Important fields:
 
@@ -1274,66 +1590,11 @@ Important fields:
 * organizationId
 * title
 * description
-* status
-* createdAt
-* updatedAt
-* deletedAt
-
----
-
-## CourseEnrollment
-
-Represents enrollment of a user in a course.
-
-Important fields:
-
-* courseId
-* userId
-* status
-* enrolledAt
-* completedAt
-
----
-
-## Resource
-
-Represents learning material under a course.
-
-Important fields:
-
-* id
-* courseId
-* title
-* description
-* type
-* url
-* fileUrl
-* originalFileName
-* contentType
-* sizeBytes
-* status
-* createdAt
-* updatedAt
-* deletedAt
-
-Supported types:
-
-* LINK
-* FILE
-
----
-
-## Quiz
-
-Represents a course quiz.
-
-Important fields:
-
-* id
-* courseId
-* title
-* description
 * passingScore
+* durationMinutes
+* maxAttempts
+* certificateEnabled
+* certificateIssueMode
 * isPublished
 * status
 * createdAt
@@ -1342,7 +1603,7 @@ Important fields:
 
 ---
 
-## QuizQuestion
+### QuizQuestion
 
 Represents a question inside a quiz.
 
@@ -1363,7 +1624,7 @@ Supported current type:
 
 ---
 
-## QuizOption
+### QuizOption
 
 Represents an answer option.
 
@@ -1379,7 +1640,7 @@ Important fields:
 
 ---
 
-## QuizAttempt
+### QuizAttempt
 
 Represents a user's attempt at a quiz.
 
@@ -1396,7 +1657,7 @@ Important fields:
 
 ---
 
-## QuizAttemptAnswer
+### QuizAttemptAnswer
 
 Represents an answer submitted by a user in a quiz attempt.
 
@@ -1412,9 +1673,9 @@ Important fields:
 
 ---
 
-## Certificate
+### Certificate
 
-Represents a course certificate issued to a user.
+Represents a quiz certificate issued to a user.
 
 Important fields:
 
@@ -1422,11 +1683,12 @@ Important fields:
 * certificateNumber
 * verificationCode
 * organizationId
-* courseId
+* quizId
 * userId
+* attemptId
 * title
-* studentNameSnapshot
-* courseTitleSnapshot
+* participantNameSnapshot
+* quizTitleSnapshot
 * organizationNameSnapshot
 * status
 * issuedAt
@@ -1438,85 +1700,9 @@ Important fields:
 
 ---
 
-## RefreshToken
+# 9. API Design
 
-Represents a refresh token session.
-
-Important fields:
-
-* id
-* userId
-* tokenHash
-* expiresAt
-* revokedAt
-* replacedByTokenId
-* createdAt
-
----
-
-## EmailVerificationToken
-
-Represents email verification flow.
-
-Important fields:
-
-* id
-* userId
-* tokenHash
-* expiresAt
-* usedAt
-* createdAt
-
----
-
-## PasswordResetToken
-
-Represents password reset flow.
-
-Important fields:
-
-* id
-* userId
-* tokenHash
-* expiresAt
-* usedAt
-* createdAt
-
----
-
-# 7.3 Relationships
-
-* A User may own many Organizations.
-* A User may belong to many Organizations through OrganizationMembership.
-* An Organization has one owner.
-* An Organization has many OrganizationMembership records.
-* An Organization has many Courses.
-* A Course belongs to one Organization.
-* A Course has many Resources.
-* A Course has many Quizzes.
-* A Course has many CourseEnrollments.
-* A User may be enrolled in many Courses through CourseEnrollment.
-* A Quiz belongs to one Course.
-* A Quiz has many QuizQuestions.
-* A QuizQuestion has many QuizOptions.
-* A Quiz has many QuizAttempts.
-* A QuizAttempt belongs to one User.
-* A QuizAttempt has many QuizAttemptAnswers.
-* A Certificate belongs to one Organization.
-* A Certificate belongs to one Course.
-* A Certificate belongs to one User.
-* A User may have many Certificates.
-* A User may have many RefreshTokens.
-* A User may have many EmailVerificationTokens.
-* A User may have many PasswordResetTokens.
-
----
-
-# 8. API Design
-
----
-
-# 8.1 API Base Path
+## 9.1 API Base Path
 
 All versioned API endpoints shall use:
 
@@ -1526,7 +1712,7 @@ All versioned API endpoints shall use:
 
 ---
 
-# 8.2 Authentication APIs
+## 9.2 Authentication APIs
 
 * POST `/api/v1/auth/register`
 * POST `/api/v1/auth/login`
@@ -1540,13 +1726,13 @@ All versioned API endpoints shall use:
 
 ---
 
-# 8.3 User APIs
+## 9.3 User APIs
 
 * GET `/api/v1/users/me`
 
 ---
 
-# 8.4 Organization APIs
+## 9.4 Organization APIs
 
 * POST `/api/v1/organizations`
 * GET `/api/v1/organizations`
@@ -1556,7 +1742,7 @@ All versioned API endpoints shall use:
 
 ---
 
-# 8.5 Organization Membership APIs
+## 9.5 Organization Membership APIs
 
 * POST `/api/v1/organizations/{organizationId}/members`
 * GET `/api/v1/organizations/{organizationId}/members`
@@ -1564,53 +1750,30 @@ All versioned API endpoints shall use:
 
 ---
 
-# 8.6 Course APIs
-
-* POST `/api/v1/courses`
-* GET `/api/v1/courses`
-* GET `/api/v1/courses/{courseId}`
-* PUT `/api/v1/courses/{courseId}`
-* DELETE `/api/v1/courses/{courseId}`
-
----
-
-# 8.7 Enrollment APIs
-
-* POST `/api/v1/enrollments`
-* GET `/api/v1/enrollments/me`
-* GET `/api/v1/enrollments/course/{courseId}`
-* GET `/api/v1/enrollments/user/{userId}`
-
----
-
-# 8.8 Resource APIs
-
-* POST `/api/v1/resources`
-* GET `/api/v1/resources/course/{courseId}`
-* GET `/api/v1/resources/{resourceId}`
-* PUT `/api/v1/resources/{resourceId}`
-* DELETE `/api/v1/resources/{resourceId}`
-* POST `/api/v1/files`
-
----
-
-# 8.9 Quiz APIs
+## 9.6 Quiz APIs
 
 * POST `/api/v1/quizzes`
-* GET `/api/v1/quizzes/course/{courseId}`
+* GET `/api/v1/quizzes`
+* GET `/api/v1/quizzes/organization/{organizationId}`
 * GET `/api/v1/quizzes/{quizId}`
 * PUT `/api/v1/quizzes/{quizId}`
 * DELETE `/api/v1/quizzes/{quizId}`
 * POST `/api/v1/quizzes/{quizId}/questions`
 * POST `/api/v1/quizzes/{quizId}/publish`
+
+---
+
+## 9.7 Quiz Attempt APIs
+
 * POST `/api/v1/quizzes/{quizId}/attempts`
 * POST `/api/v1/quiz-attempts/{attemptId}/submit`
+* GET `/api/v1/quiz-attempts/me`
 * GET `/api/v1/quiz-attempts/{attemptId}`
 * GET `/api/v1/quizzes/{quizId}/attempts`
 
 ---
 
-# 8.10 Certificate APIs
+## 9.8 Certificate APIs
 
 * POST `/api/v1/certificates`
 * GET `/api/v1/certificates/me`
@@ -1621,254 +1784,20 @@ All versioned API endpoints shall use:
 
 ---
 
-# 9. Object-Oriented Design
+## 9.9 Optional Resource APIs
+
+If quiz resources are implemented:
+
+* POST `/api/v1/quizzes/{quizId}/resources`
+* GET `/api/v1/quizzes/{quizId}/resources`
+* DELETE `/api/v1/quiz-resources/{resourceId}`
+* POST `/api/v1/files`
 
 ---
 
-# 9.1 Core Classes and Responsibilities
+# 10. API Response Design
 
-## User
-
-Responsibilities:
-
-* identity
-* authentication
-* account profile
-* password hash ownership
-
----
-
-## Organization
-
-Responsibilities:
-
-* training organization representation
-* ownership relationship
-* organization lifecycle status
-
----
-
-## OrganizationMembership
-
-Responsibilities:
-
-* organization-scoped role
-* membership status
-* owner/student distinction inside organization
-
----
-
-## Course
-
-Responsibilities:
-
-* course representation
-* organization association
-* course lifecycle status
-
----
-
-## CourseEnrollment
-
-Responsibilities:
-
-* user-course enrollment
-* enrollment status
-* completion tracking
-
----
-
-## Resource
-
-Responsibilities:
-
-* learning material representation
-* LINK or FILE type handling
-* file metadata ownership
-
----
-
-## Quiz
-
-Responsibilities:
-
-* quiz representation
-* publish state
-* passing score
-* course association
-
----
-
-## QuizQuestion
-
-Responsibilities:
-
-* question representation
-* question type
-* question points
-
----
-
-## QuizOption
-
-Responsibilities:
-
-* answer option representation
-* correct answer marker
-
----
-
-## QuizAttempt
-
-Responsibilities:
-
-* user quiz attempt
-* score tracking
-* pass/fail result
-* submission lifecycle
-
----
-
-## QuizAttemptAnswer
-
-Responsibilities:
-
-* submitted selected answer
-* correctness
-* awarded points
-
----
-
-## Certificate
-
-Responsibilities:
-
-* certificate issuance
-* verification code
-* historical snapshots
-* revocation state
-
----
-
-## AuthorizationService
-
-Responsibilities:
-
-* organization ownership checks
-* organization membership checks
-* course access checks
-* enrollment checks
-* certificate access checks
-* quiz attempt access checks
-
----
-
-## FileStorageService
-
-Responsibilities:
-
-* file storage abstraction
-* upload handling
-* storage provider independence
-
----
-
-# 9.2 Design Principles
-
-The system shall follow:
-
-* SOLID principles
-* separation of concerns
-* modular architecture
-* reusable components
-* clean code practices
-* DTO-based API boundaries
-* service-based business rules
-* repository-based persistence
-* centralized authorization checks
-
----
-
-# 10. Security Design
-
----
-
-# 10.1 Authentication Security
-
-The system shall use:
-
-* JWT-based authentication
-* secure password hashing
-* token expiration
-* refresh token rotation where possible
-* refresh token revocation
-* password reset tokens
-* email verification tokens
-
----
-
-# 10.2 Authorization Security
-
-The system shall use organization-scoped authorization.
-
-The system shall not rely on global `users.role` for business permissions.
-
-Authorization must check:
-
-* organization ownership
-* organization membership
-* course ownership
-* course enrollment
-* quiz attempt ownership
-* certificate ownership or organization ownership
-
----
-
-# 10.3 Data Protection
-
-The system shall protect sensitive data.
-
-Sensitive fields must not be returned in API responses:
-
-* passwordHash
-* refreshTokenHash
-* resetTokenHash
-* emailVerificationTokenHash
-* internal secrets
-
----
-
-# 10.4 Multi-Tenant Isolation
-
-The system shall prevent unauthorized access between organizations.
-
-Users can access organization data only when they are:
-
-* owner of the organization
-* active member of the organization
-* enrolled in a course that belongs to the organization, where applicable
-
----
-
-# 10.5 Rate Limiting
-
-The system shall protect sensitive public endpoints from abuse.
-
-Rate limiting should apply to:
-
-* login
-* register
-* forgot password
-* resend verification
-* reset password where appropriate
-
----
-
-# 11. API Response Design
-
----
-
-# 11.1 Success Response
+## 10.1 Success Response
 
 All successful responses shall use a consistent wrapper.
 
@@ -1884,7 +1813,7 @@ Example:
 
 ---
 
-# 11.2 Error Response
+## 10.2 Error Response
 
 All error responses shall use a consistent wrapper.
 
@@ -1907,7 +1836,7 @@ The system may extend errors with:
 
 ---
 
-# 11.3 Pagination
+## 10.3 Pagination
 
 List endpoints shall support pagination.
 
@@ -1927,11 +1856,67 @@ Paginated responses should include:
 
 ---
 
-# 12. Deployment Requirements
+# 11. Security Design
+
+## 11.1 Authentication Security
+
+The system shall use:
+
+* JWT-based authentication
+* secure password hashing
+* token expiration
+* refresh token management
+* refresh token revocation
+* password reset tokens
+* email verification tokens
 
 ---
 
-# 12.1 Backend Deployment
+## 11.2 Authorization Security
+
+The system shall use organization-scoped authorization.
+
+The system shall not rely on global `users.role` for business permissions.
+
+Authorization must check:
+
+* organization ownership
+* organization membership
+* quiz ownership
+* quiz accessibility
+* attempt ownership
+* certificate ownership or organization ownership
+
+---
+
+## 11.3 Data Protection
+
+Sensitive fields must not be returned in API responses:
+
+* passwordHash
+* refreshTokenHash
+* resetTokenHash
+* emailVerificationTokenHash
+* internal secrets
+
+---
+
+## 11.4 Multi-Tenant Isolation
+
+The system shall prevent unauthorized access between organizations.
+
+Users can access organization data only when they are:
+
+* owner of the organization
+* active member of the organization
+* owner of a quiz organization
+* participant in a quiz organization, where applicable
+
+---
+
+# 12. Deployment Requirements
+
+## 12.1 Backend Deployment
 
 The backend should support deployment using:
 
@@ -1942,7 +1927,7 @@ The backend should support deployment using:
 
 ---
 
-# 12.2 Database Deployment
+## 12.2 Database Deployment
 
 The system should support PostgreSQL managed services.
 
@@ -1955,7 +1940,7 @@ Possible providers:
 
 ---
 
-# 12.3 Configuration
+## 12.3 Configuration
 
 The system shall use environment-based configuration.
 
@@ -1964,14 +1949,14 @@ Configuration should include:
 * database URL
 * JWT secret
 * token expiration settings
-* storage configuration
 * CORS settings
 * rate limiting settings
 * mail settings if email sending is enabled
+* storage configuration if files are enabled
 
 ---
 
-# 12.4 Health Checks
+## 12.4 Health Checks
 
 The backend shall expose health check endpoints suitable for deployment monitoring.
 
@@ -1979,24 +1964,21 @@ The backend shall expose health check endpoints suitable for deployment monitori
 
 # 13. Testing Requirements
 
----
-
-# 13.1 Unit Tests
+## 13.1 Unit Tests
 
 Unit tests should cover:
 
 * authentication logic
 * authorization logic
-* course business rules
-* enrollment rules
-* resource validation
+* membership rules
+* quiz validation
 * quiz scoring
-* certificate issuance rules
+* certificate issuing rules
 * token validation
 
 ---
 
-# 13.2 Integration Tests
+## 13.2 Integration Tests
 
 Integration tests should cover:
 
@@ -2007,24 +1989,23 @@ Integration tests should cover:
 * organization creation
 * owner membership creation
 * membership management
-* course creation
-* course enrollment
-* resource creation
 * quiz creation
+* question and option creation
+* quiz publishing
 * quiz attempt submission
-* certificate issuance
+* certificate issuing
 * public certificate verification
 * cross-organization access rejection
 
 ---
 
-# 13.3 Security Tests
+## 13.3 Security Tests
 
 Security tests should verify:
 
 * protected endpoints reject unauthenticated requests
 * unrelated users cannot access organization data
-* students cannot manage owner-only resources
+* participants cannot manage owner-only resources
 * owners cannot manage other owners' organizations
 * refresh token revocation works
 * password reset tokens cannot be reused
@@ -2040,18 +2021,17 @@ The following are out of scope for the current phase:
 * frontend application
 * web dashboard
 * mobile app
-* React / Next.js / Tailwind implementation
-* public certificate verification web page
-* payment system
+* LMS course system
+* lessons
+* assignments
+* attendance
+* payments
 * billing and subscriptions
 * AI recommendations
-* attendance tracking
-* mentorship sessions
 * chat system
 * notification system
 * analytics dashboard
 * leaderboard and badges
-* assignment submission workflow
 * advanced question bank engine
 * video calls
 * calendar scheduling
@@ -2059,7 +2039,7 @@ The following are out of scope for the current phase:
 * microservices split
 * multi-owner organization management
 * ownership transfer
-* marketplace/public course discovery
+* marketplace/public quiz discovery
 * advanced file processing
 * video streaming
 * social login
@@ -2078,28 +2058,25 @@ The architecture should support future extensions including:
 * ownership transfer
 * invitation-based membership
 * bulk member import
-* assignment system
-* attendance tracking
-* progress analytics
-* notifications
-* team projects
-* advanced reporting
+* advanced question types
+* question bank
+* timed quizzes
+* quiz randomization
 * certificate PDF generation
 * QR code verification
 * external storage providers
 * public certificate verification page
+* analytics and reporting
 * payment and subscription modules
+* frontend dashboard
+* student portal
 
 ---
 
-# 16. Product Positioning
+# 16. Final Product Statement
 
-## Official Product Category
+Skillmark is an API-only quiz and certification backend that enables organizations, universities, student clubs, trainers, and technical communities to create assessments, manage participants, evaluate quiz attempts, and issue verifiable certificates with secure organization-scoped permissions.
 
-API-only Training and Course Management Backend Platform
+The system is designed around a clean multi-tenant model where users do not have global business roles. Instead, permissions are based on each user's membership inside each organization.
 
----
-
-# 17. One-Line Product Pitch
-
-Cohive is a modular backend API for managing organizations, memberships, courses, resources, quizzes, enrollments, and verifiable certificates with organization-scoped permissions.
+This makes Skillmark flexible for university use cases where the same user may be an owner in one organization and a participant in another.

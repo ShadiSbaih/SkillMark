@@ -1,332 +1,877 @@
-Table users {
-  id uuid [pk]
-  name varchar [not null]
-  email varchar [not null, unique]
-  password_hash varchar [not null]
+# Skillmark Database Design
 
-  email_verified boolean [not null, default: false]
-  status varchar [not null, default: 'ACTIVE'] // ACTIVE, DISABLED, DELETED
+## 1. Overview
 
-  created_at timestamptz [not null]
-  updated_at timestamptz [not null]
-}
+This document defines the database design for **Skillmark**, an API-first quiz and certification backend.
 
-Table organizations {
-  id uuid [pk]
-  name varchar [not null]
+Skillmark uses a **multi-tenant organization-based model**. Users do not have global business roles such as `OWNER` or `PARTICIPANT`. Instead, permissions are controlled through the `organization_memberships` table.
 
-  owner_id uuid [not null]
+A single user can be:
 
-  status varchar [not null, default: 'ACTIVE'] // ACTIVE, DISABLED, DELETED
+- owner of one organization
+- participant in another organization
+- participant in multiple organizations
+- owner of multiple organizations
 
-  created_at timestamptz [not null]
-  updated_at timestamptz [not null]
-  deleted_at timestamptz
-}
+The database is designed for a backend MVP focused on:
 
-Table organization_memberships {
-  organization_id uuid [not null]
-  user_id uuid [not null]
+- authentication
+- organizations
+- memberships
+- quizzes
+- quiz attempts
+- certificates
+- certificate verification
+- audit logging
 
-  role varchar [not null] // OWNER, STUDENT
-  status varchar [not null, default: 'ACTIVE'] // ACTIVE, DISABLED, REMOVED
+Recommended database: **PostgreSQL**.
 
-  created_at timestamptz [not null]
-  updated_at timestamptz [not null]
+---
 
-  indexes {
-    (organization_id, user_id) [pk]
-    user_id
-    organization_id
-    role
-  }
-}
+## 2. Main Design Principles
 
-Table courses {
-  id uuid [pk]
+### 2.1 No Global Business Role on User
 
-  organization_id uuid [not null]
+The `users` table must not contain a global role such as:
 
-  title varchar [not null]
-  description varchar
+```text
+OWNER
+PARTICIPANT
+STUDENT
+ADMIN
+```
 
-  status varchar [not null, default: 'ACTIVE'] // DRAFT, ACTIVE, ARCHIVED, DELETED
+Business permissions are organization-scoped and stored in:
 
-  created_at timestamptz [not null]
-  updated_at timestamptz [not null]
-  deleted_at timestamptz
+```text
+organization_memberships
+```
 
-  indexes {
-    organization_id
-  }
-}
+---
 
-Table course_enrollments {
-  course_id uuid [not null]
-  user_id uuid [not null]
+### 2.2 Multi-Tenant Isolation
 
-  status varchar [not null, default: 'ACTIVE'] // ACTIVE, COMPLETED, CANCELLED, REMOVED
+All organization-related data must be connected to an organization either directly or indirectly.
 
-  enrolled_at timestamptz [not null]
-  completed_at timestamptz
+Examples:
 
-  indexes {
-    (course_id, user_id) [pk]
-    course_id
-    user_id
-  }
-}
+- A quiz belongs to an organization.
+- A certificate belongs to an organization.
+- A participant accesses quizzes only through active organization membership.
 
-Table resources {
-  id uuid [pk]
+---
 
-  course_id uuid [not null]
+### 2.3 Preserve Historical Records
 
-  title varchar [not null]
-  description varchar
+Important historical data should not be lost when names or statuses change.
 
-  type varchar [not null] // LINK, FILE
+Certificates store snapshot fields such as:
 
-  // For LINK resources
-  url varchar
+- participant name at issue time
+- quiz title at issue time
+- organization name at issue time
 
-  // For FILE resources
-  file_url varchar
-  original_file_name varchar
-  content_type varchar
-  size_bytes bigint
+Soft deletion or status-based disabling is preferred for organizations and quizzes.
 
-  status varchar [not null, default: 'ACTIVE'] // ACTIVE, ARCHIVED, DELETED
+---
 
-  created_at timestamptz [not null]
-  updated_at timestamptz [not null]
-  deleted_at timestamptz
+## 3. Entity Relationship Diagram
 
-  indexes {
-    course_id
-    type
-  }
-}
+```mermaid
+erDiagram
+    USERS ||--o{ ORGANIZATIONS : owns
+    USERS ||--o{ ORGANIZATION_MEMBERSHIPS : has
+    ORGANIZATIONS ||--o{ ORGANIZATION_MEMBERSHIPS : contains
 
-Table quizzes {
-  id uuid [pk]
+    ORGANIZATIONS ||--o{ QUIZZES : owns
+    QUIZZES ||--o{ QUIZ_QUESTIONS : contains
+    QUIZ_QUESTIONS ||--o{ QUIZ_OPTIONS : has
 
-  course_id uuid [not null]
+    USERS ||--o{ QUIZ_ATTEMPTS : submits
+    QUIZZES ||--o{ QUIZ_ATTEMPTS : receives
+    QUIZ_ATTEMPTS ||--o{ QUIZ_ATTEMPT_ANSWERS : contains
+    QUIZ_QUESTIONS ||--o{ QUIZ_ATTEMPT_ANSWERS : answered
+    QUIZ_OPTIONS ||--o{ QUIZ_ATTEMPT_ANSWERS : selected
 
-  title varchar [not null]
-  description varchar
+    USERS ||--o{ CERTIFICATES : receives
+    ORGANIZATIONS ||--o{ CERTIFICATES : issues
+    QUIZZES ||--o{ CERTIFICATES : generates
+    QUIZ_ATTEMPTS ||--o| CERTIFICATES : based_on
 
-  passing_score decimal [not null, default: 60.00]
-  is_published boolean [not null, default: false]
+    USERS ||--o{ REFRESH_TOKENS : owns
+    USERS ||--o{ EMAIL_VERIFICATION_TOKENS : owns
+    USERS ||--o{ PASSWORD_RESET_TOKENS : owns
 
-  status varchar [not null, default: 'ACTIVE'] // ACTIVE, ARCHIVED, DELETED
+    USERS ||--o{ AUDIT_LOGS : performs
+    ORGANIZATIONS ||--o{ AUDIT_LOGS : context
+```
 
-  created_at timestamptz [not null]
-  updated_at timestamptz [not null]
-  deleted_at timestamptz
+---
 
-  indexes {
-    course_id
-    is_published
-  }
-}
+## 4. Enums
 
-Table quiz_questions {
-  id uuid [pk]
+## 4.1 UserStatus
 
-  quiz_id uuid [not null]
+```text
+ACTIVE
+DISABLED
+DELETED
+```
 
-  text text [not null]
-  type varchar [not null, default: 'SINGLE_CHOICE'] // SINGLE_CHOICE
-  points decimal [not null, default: 1.00]
-  position int [not null, default: 0]
+---
 
-  created_at timestamptz [not null]
-  updated_at timestamptz [not null]
+## 4.2 OrganizationStatus
 
-  indexes {
-    quiz_id
-  }
-}
+```text
+ACTIVE
+DISABLED
+DELETED
+```
 
-Table quiz_options {
-  id uuid [pk]
+---
 
-  question_id uuid [not null]
+## 4.3 MembershipRole
 
-  text text [not null]
-  is_correct boolean [not null, default: false]
-  position int [not null, default: 0]
+```text
+OWNER
+PARTICIPANT
+```
 
-  created_at timestamptz [not null]
-  updated_at timestamptz [not null]
+Future roles:
 
-  indexes {
-    question_id
-  }
-}
+```text
+INSTRUCTOR
+MANAGER
+REVIEWER
+```
 
-Table quiz_attempts {
-  id uuid [pk]
+---
 
-  quiz_id uuid [not null]
-  user_id uuid [not null]
+## 4.4 MembershipStatus
 
-  score decimal
-  passed boolean
+```text
+ACTIVE
+INACTIVE
+REMOVED
+```
 
-  status varchar [not null, default: 'IN_PROGRESS'] // IN_PROGRESS, SUBMITTED, CANCELLED
+---
 
-  started_at timestamptz [not null]
-  submitted_at timestamptz
+## 4.5 QuizStatus
 
-  indexes {
-    quiz_id
-    user_id
-    status
-  }
-}
+```text
+DRAFT
+PUBLISHED
+ARCHIVED
+DELETED
+```
 
-Table quiz_attempt_answers {
-  id uuid [pk]
+---
 
-  attempt_id uuid [not null]
-  question_id uuid [not null]
-  selected_option_id uuid [not null]
+## 4.6 QuestionType
 
-  is_correct boolean
-  points_awarded decimal
+```text
+SINGLE_CHOICE
+```
 
-  created_at timestamptz [not null]
+Future question types:
 
-  indexes {
-    attempt_id
-    question_id
-    (attempt_id, question_id) [unique]
-  }
-}
+```text
+MULTIPLE_CHOICE
+TRUE_FALSE
+TEXT
+```
 
-Table certificates {
-  id uuid [pk]
+---
 
-  certificate_number varchar [not null, unique]
-  verification_code varchar [not null, unique]
+## 4.7 AttemptStatus
 
-  organization_id uuid [not null]
-  course_id uuid [not null]
-  user_id uuid [not null]
+```text
+IN_PROGRESS
+SUBMITTED
+EXPIRED
+CANCELLED
+```
 
-  title varchar [not null]
+---
 
-  student_name_snapshot varchar [not null]
-  course_title_snapshot varchar [not null]
-  organization_name_snapshot varchar [not null]
+## 4.8 CertificateIssueMode
 
-  status varchar [not null, default: 'ACTIVE'] // ACTIVE, REVOKED
+```text
+AUTO
+MANUAL
+NONE
+```
 
-  issued_at timestamptz [not null]
-  revoked_at timestamptz
-  revoke_reason varchar
+---
 
-  pdf_url varchar
+## 4.9 CertificateStatus
 
-  created_at timestamptz [not null]
-  updated_at timestamptz [not null]
+```text
+ACTIVE
+REVOKED
+```
 
-  indexes {
-    organization_id
-    course_id
-    user_id
-    verification_code
-    (course_id, user_id)
-  }
-}
+---
 
-Table refresh_tokens {
-  id uuid [pk]
+## 5. Tables
 
-  user_id uuid [not null]
+---
 
-  token_hash varchar [not null, unique]
-  expires_at timestamptz [not null]
-  revoked_at timestamptz
-  replaced_by_token_id uuid
+# 5.1 users
 
-  created_at timestamptz [not null]
+## Purpose
 
-  indexes {
-    user_id
-    expires_at
-  }
-}
+Stores account identities.
 
-Table email_verification_tokens {
-  id uuid [pk]
+A user is not globally an owner or participant. Organization-specific permissions are stored in `organization_memberships`.
 
-  user_id uuid [not null]
+## Columns
 
-  token_hash varchar [not null, unique]
-  expires_at timestamptz [not null]
-  used_at timestamptz
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| id | UUID | PK | User ID |
+| name | VARCHAR(150) | NOT NULL | User full name |
+| email | VARCHAR(255) | NOT NULL, UNIQUE | User email |
+| password_hash | VARCHAR(255) | NOT NULL | Hashed password |
+| email_verified | BOOLEAN | NOT NULL DEFAULT false | Email verification state |
+| status | VARCHAR(30) | NOT NULL DEFAULT 'ACTIVE' | User status |
+| created_at | TIMESTAMP | NOT NULL | Creation time |
+| updated_at | TIMESTAMP | NOT NULL | Last update time |
 
-  created_at timestamptz [not null]
+## Notes
 
-  indexes {
-    user_id
-    expires_at
-  }
-}
+Do not expose `password_hash` in API responses.
 
-Table password_reset_tokens {
-  id uuid [pk]
+---
 
-  user_id uuid [not null]
+# 5.2 organizations
 
-  token_hash varchar [not null, unique]
-  expires_at timestamptz [not null]
-  used_at timestamptz
+## Purpose
 
-  created_at timestamptz [not null]
+Stores organizations that own quizzes and certificates.
 
-  indexes {
-    user_id
-    expires_at
-  }
-}
+Examples:
 
-// Relationships
+- Computer Science Club
+- AI Training Program
+- University Department
+- Internship Program
 
-Ref: organizations.owner_id > users.id
+## Columns
 
-Ref: organization_memberships.organization_id > organizations.id
-Ref: organization_memberships.user_id > users.id
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| id | UUID | PK | Organization ID |
+| name | VARCHAR(200) | NOT NULL | Organization name |
+| description | TEXT | NULL | Optional description |
+| owner_id | UUID | FK users(id), NOT NULL | Main owner user |
+| status | VARCHAR(30) | NOT NULL DEFAULT 'ACTIVE' | Organization status |
+| created_at | TIMESTAMP | NOT NULL | Creation time |
+| updated_at | TIMESTAMP | NOT NULL | Last update time |
+| deleted_at | TIMESTAMP | NULL | Soft delete timestamp |
 
-Ref: courses.organization_id > organizations.id
+## Important Rule
 
-Ref: course_enrollments.course_id > courses.id
-Ref: course_enrollments.user_id > users.id
+When an organization is created:
 
-Ref: resources.course_id > courses.id
+1. A row is inserted into `organizations`.
+2. A row is inserted into `organization_memberships` with role `OWNER`.
 
-Ref: quizzes.course_id > courses.id
+---
 
-Ref: quiz_questions.quiz_id > quizzes.id
-Ref: quiz_options.question_id > quiz_questions.id
+# 5.3 organization_memberships
 
-Ref: quiz_attempts.quiz_id > quizzes.id
-Ref: quiz_attempts.user_id > users.id
+## Purpose
 
-Ref: quiz_attempt_answers.attempt_id > quiz_attempts.id
-Ref: quiz_attempt_answers.question_id > quiz_questions.id
-Ref: quiz_attempt_answers.selected_option_id > quiz_options.id
+Stores the role of a user inside an organization.
 
-Ref: certificates.organization_id > organizations.id
-Ref: certificates.course_id > courses.id
-Ref: certificates.user_id > users.id
+This is the main authorization table for business permissions.
 
-Ref: refresh_tokens.user_id > users.id
-Ref: refresh_tokens.replaced_by_token_id > refresh_tokens.id
+## Columns
 
-Ref: email_verification_tokens.user_id > users.id
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| id | UUID | PK | Membership ID |
+| organization_id | UUID | FK organizations(id), NOT NULL | Organization ID |
+| user_id | UUID | FK users(id), NOT NULL | User ID |
+| role | VARCHAR(30) | NOT NULL | OWNER or PARTICIPANT |
+| status | VARCHAR(30) | NOT NULL DEFAULT 'ACTIVE' | Membership status |
+| created_at | TIMESTAMP | NOT NULL | Creation time |
+| updated_at | TIMESTAMP | NOT NULL | Last update time |
 
-Ref: password_reset_tokens.user_id > users.id
+## Constraints
+
+```text
+UNIQUE (organization_id, user_id)
+```
+
+This prevents duplicate membership records for the same user in the same organization.
+
+## Notes
+
+A user can be OWNER in one organization and PARTICIPANT in another.
+
+---
+
+# 5.4 quizzes
+
+## Purpose
+
+Stores quizzes created inside organizations.
+
+A quiz belongs directly to an organization.
+
+## Columns
+
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| id | UUID | PK | Quiz ID |
+| organization_id | UUID | FK organizations(id), NOT NULL | Owner organization |
+| title | VARCHAR(255) | NOT NULL | Quiz title |
+| description | TEXT | NULL | Quiz description |
+| passing_score | DECIMAL(5,2) | NOT NULL | Required percentage to pass |
+| duration_minutes | INT | NULL | Quiz duration in minutes |
+| max_attempts | INT | NOT NULL DEFAULT 1 | Maximum allowed attempts |
+| certificate_enabled | BOOLEAN | NOT NULL DEFAULT false | Whether quiz can issue certificates |
+| certificate_issue_mode | VARCHAR(30) | NOT NULL DEFAULT 'NONE' | AUTO, MANUAL, or NONE |
+| is_published | BOOLEAN | NOT NULL DEFAULT false | Publication state |
+| status | VARCHAR(30) | NOT NULL DEFAULT 'DRAFT' | Quiz status |
+| created_at | TIMESTAMP | NOT NULL | Creation time |
+| updated_at | TIMESTAMP | NOT NULL | Last update time |
+| deleted_at | TIMESTAMP | NULL | Soft delete timestamp |
+
+## Validation Rules
+
+- `passing_score` must be between 0 and 100.
+- `max_attempts` must be greater than 0.
+- `certificate_issue_mode` must be `NONE` if `certificate_enabled = false`.
+
+---
+
+# 5.5 quiz_questions
+
+## Purpose
+
+Stores questions inside quizzes.
+
+Current MVP supports only `SINGLE_CHOICE` questions.
+
+## Columns
+
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| id | UUID | PK | Question ID |
+| quiz_id | UUID | FK quizzes(id), NOT NULL | Parent quiz |
+| text | TEXT | NOT NULL | Question text |
+| type | VARCHAR(30) | NOT NULL DEFAULT 'SINGLE_CHOICE' | Question type |
+| points | DECIMAL(8,2) | NOT NULL DEFAULT 1 | Question points |
+| position | INT | NOT NULL | Question order |
+| created_at | TIMESTAMP | NOT NULL | Creation time |
+| updated_at | TIMESTAMP | NOT NULL | Last update time |
+
+## Constraints
+
+```text
+UNIQUE (quiz_id, position)
+```
+
+---
+
+# 5.6 quiz_options
+
+## Purpose
+
+Stores answer options for quiz questions.
+
+For `SINGLE_CHOICE`, each question must have exactly one correct option.
+
+## Columns
+
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| id | UUID | PK | Option ID |
+| question_id | UUID | FK quiz_questions(id), NOT NULL | Parent question |
+| text | TEXT | NOT NULL | Option text |
+| is_correct | BOOLEAN | NOT NULL DEFAULT false | Correct answer flag |
+| position | INT | NOT NULL | Option order |
+| created_at | TIMESTAMP | NOT NULL | Creation time |
+| updated_at | TIMESTAMP | NOT NULL | Last update time |
+
+## Constraints
+
+```text
+UNIQUE (question_id, position)
+```
+
+## Business Rule
+
+For every `SINGLE_CHOICE` question, exactly one option must have:
+
+```text
+is_correct = true
+```
+
+This rule is usually enforced in service logic.
+
+---
+
+# 5.7 quiz_attempts
+
+## Purpose
+
+Stores user attempts for quizzes.
+
+## Columns
+
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| id | UUID | PK | Attempt ID |
+| quiz_id | UUID | FK quizzes(id), NOT NULL | Quiz ID |
+| user_id | UUID | FK users(id), NOT NULL | Participant user |
+| score | DECIMAL(8,2) | NULL | Total awarded points or percentage |
+| score_percentage | DECIMAL(5,2) | NULL | Percentage score |
+| passed | BOOLEAN | NULL | Pass/fail result |
+| status | VARCHAR(30) | NOT NULL DEFAULT 'IN_PROGRESS' | Attempt status |
+| started_at | TIMESTAMP | NOT NULL | Attempt start time |
+| submitted_at | TIMESTAMP | NULL | Submission time |
+| created_at | TIMESTAMP | NOT NULL | Creation time |
+| updated_at | TIMESTAMP | NOT NULL | Last update time |
+
+## Business Rules
+
+- A user can only start an attempt if they are an active participant in the quiz organization.
+- The quiz must be published.
+- The quiz must not be archived or deleted.
+- The user must not exceed `max_attempts`.
+- A submitted attempt cannot be submitted again.
+
+---
+
+# 5.8 quiz_attempt_answers
+
+## Purpose
+
+Stores submitted answers for quiz attempts.
+
+## Columns
+
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| id | UUID | PK | Attempt answer ID |
+| attempt_id | UUID | FK quiz_attempts(id), NOT NULL | Attempt ID |
+| question_id | UUID | FK quiz_questions(id), NOT NULL | Question ID |
+| selected_option_id | UUID | FK quiz_options(id), NOT NULL | Selected option |
+| is_correct | BOOLEAN | NOT NULL | Whether answer is correct |
+| points_awarded | DECIMAL(8,2) | NOT NULL DEFAULT 0 | Awarded points |
+| created_at | TIMESTAMP | NOT NULL | Creation time |
+
+## Constraints
+
+```text
+UNIQUE (attempt_id, question_id)
+```
+
+## Business Rules
+
+- `question_id` must belong to the same quiz as the attempt.
+- `selected_option_id` must belong to the same question.
+- A user cannot submit answers to another user's attempt.
+
+---
+
+# 5.9 certificates
+
+## Purpose
+
+Stores certificates issued to users after passing quizzes.
+
+Certificates can be publicly verified using `verification_code`.
+
+## Columns
+
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| id | UUID | PK | Certificate ID |
+| certificate_number | VARCHAR(100) | NOT NULL, UNIQUE | Human-readable certificate number |
+| verification_code | VARCHAR(150) | NOT NULL, UNIQUE | Public verification code |
+| organization_id | UUID | FK organizations(id), NOT NULL | Issuing organization |
+| quiz_id | UUID | FK quizzes(id), NOT NULL | Related quiz |
+| user_id | UUID | FK users(id), NOT NULL | Certificate owner |
+| attempt_id | UUID | FK quiz_attempts(id), NOT NULL | Passing attempt |
+| title | VARCHAR(255) | NOT NULL | Certificate title |
+| participant_name_snapshot | VARCHAR(150) | NOT NULL | User name at issue time |
+| quiz_title_snapshot | VARCHAR(255) | NOT NULL | Quiz title at issue time |
+| organization_name_snapshot | VARCHAR(200) | NOT NULL | Organization name at issue time |
+| status | VARCHAR(30) | NOT NULL DEFAULT 'ACTIVE' | Certificate status |
+| issued_at | TIMESTAMP | NOT NULL | Issue time |
+| revoked_at | TIMESTAMP | NULL | Revocation time |
+| revoke_reason | TEXT | NULL | Reason for revocation |
+| pdf_url | TEXT | NULL | Future PDF file URL |
+| created_at | TIMESTAMP | NOT NULL | Creation time |
+| updated_at | TIMESTAMP | NOT NULL | Last update time |
+
+## Suggested Constraint
+
+To prevent duplicate active certificates, use service-level validation or a partial unique index:
+
+```sql
+CREATE UNIQUE INDEX uq_active_certificate_per_user_quiz
+ON certificates (quiz_id, user_id)
+WHERE status = 'ACTIVE';
+```
+
+## Certificate Eligibility Rules
+
+A certificate can be issued only if:
+
+- user exists
+- user is an ACTIVE PARTICIPANT in the quiz organization
+- attempt belongs to the same user
+- attempt belongs to the same quiz
+- attempt is submitted
+- attempt is passed
+- no active certificate already exists for the same quiz and user
+
+---
+
+# 5.10 refresh_tokens
+
+## Purpose
+
+Stores hashed refresh tokens for user sessions.
+
+## Columns
+
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| id | UUID | PK | Refresh token ID |
+| user_id | UUID | FK users(id), NOT NULL | User owner |
+| token_hash | VARCHAR(255) | NOT NULL, UNIQUE | Hashed refresh token |
+| expires_at | TIMESTAMP | NOT NULL | Expiration time |
+| revoked_at | TIMESTAMP | NULL | Revocation time |
+| created_at | TIMESTAMP | NOT NULL | Creation time |
+
+## Notes
+
+Never store raw refresh tokens.
+
+---
+
+# 5.11 email_verification_tokens
+
+## Purpose
+
+Stores hashed email verification tokens.
+
+## Columns
+
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| id | UUID | PK | Token ID |
+| user_id | UUID | FK users(id), NOT NULL | User owner |
+| token_hash | VARCHAR(255) | NOT NULL, UNIQUE | Hashed verification token |
+| expires_at | TIMESTAMP | NOT NULL | Expiration time |
+| used_at | TIMESTAMP | NULL | Token use time |
+| created_at | TIMESTAMP | NOT NULL | Creation time |
+
+---
+
+# 5.12 password_reset_tokens
+
+## Purpose
+
+Stores hashed password reset tokens.
+
+## Columns
+
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| id | UUID | PK | Token ID |
+| user_id | UUID | FK users(id), NOT NULL | User owner |
+| token_hash | VARCHAR(255) | NOT NULL, UNIQUE | Hashed reset token |
+| expires_at | TIMESTAMP | NOT NULL | Expiration time |
+| used_at | TIMESTAMP | NULL | Token use time |
+| created_at | TIMESTAMP | NOT NULL | Creation time |
+
+## Notes
+
+A password reset token must be:
+
+- valid
+- unused
+- not expired
+
+After password reset, active refresh tokens may be revoked.
+
+---
+
+# 5.13 audit_logs
+
+## Purpose
+
+Stores important security and business actions.
+
+## Columns
+
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| id | UUID | PK | Audit log ID |
+| actor_user_id | UUID | FK users(id), NULL | User who performed the action |
+| organization_id | UUID | FK organizations(id), NULL | Organization context |
+| action | VARCHAR(100) | NOT NULL | Action name |
+| entity_type | VARCHAR(100) | NULL | Entity type |
+| entity_id | UUID | NULL | Entity ID |
+| ip_address | VARCHAR(100) | NULL | Request IP address |
+| user_agent | TEXT | NULL | User agent |
+| metadata | JSONB | NULL | Extra safe metadata |
+| created_at | TIMESTAMP | NOT NULL | Creation time |
+
+## Examples of Actions
+
+```text
+ORGANIZATION_CREATED
+ORGANIZATION_UPDATED
+MEMBER_ADDED
+MEMBER_REMOVED
+QUIZ_CREATED
+QUIZ_UPDATED
+QUIZ_PUBLISHED
+ATTEMPT_SUBMITTED
+CERTIFICATE_ISSUED
+CERTIFICATE_REVOKED
+LOGIN_FAILED
+PASSWORD_RESET_COMPLETED
+```
+
+## Important Security Rule
+
+Audit metadata must not contain:
+
+- plaintext passwords
+- raw tokens
+- secrets
+- sensitive authentication data
+
+---
+
+# 5.14 quiz_resources Optional
+
+## Purpose
+
+Stores optional preparation resources attached to quizzes.
+
+This table is optional for the MVP.
+
+## Columns
+
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| id | UUID | PK | Resource ID |
+| quiz_id | UUID | FK quizzes(id), NOT NULL | Parent quiz |
+| type | VARCHAR(30) | NOT NULL | LINK or FILE |
+| title | VARCHAR(255) | NOT NULL | Resource title |
+| url | TEXT | NULL | Link or file URL |
+| created_at | TIMESTAMP | NOT NULL | Creation time |
+| updated_at | TIMESTAMP | NOT NULL | Last update time |
+
+---
+
+## 6. Recommended Indexes
+
+```sql
+CREATE INDEX idx_users_email ON users(email);
+
+CREATE INDEX idx_organizations_owner_id ON organizations(owner_id);
+CREATE INDEX idx_organizations_status ON organizations(status);
+
+CREATE INDEX idx_memberships_user_id ON organization_memberships(user_id);
+CREATE INDEX idx_memberships_organization_id ON organization_memberships(organization_id);
+CREATE INDEX idx_memberships_org_user ON organization_memberships(organization_id, user_id);
+CREATE INDEX idx_memberships_role_status ON organization_memberships(role, status);
+
+CREATE INDEX idx_quizzes_organization_id ON quizzes(organization_id);
+CREATE INDEX idx_quizzes_status ON quizzes(status);
+CREATE INDEX idx_quizzes_is_published ON quizzes(is_published);
+
+CREATE INDEX idx_quiz_questions_quiz_id ON quiz_questions(quiz_id);
+CREATE INDEX idx_quiz_options_question_id ON quiz_options(question_id);
+
+CREATE INDEX idx_attempts_quiz_id ON quiz_attempts(quiz_id);
+CREATE INDEX idx_attempts_user_id ON quiz_attempts(user_id);
+CREATE INDEX idx_attempts_quiz_user ON quiz_attempts(quiz_id, user_id);
+CREATE INDEX idx_attempts_status ON quiz_attempts(status);
+
+CREATE INDEX idx_attempt_answers_attempt_id ON quiz_attempt_answers(attempt_id);
+CREATE INDEX idx_attempt_answers_question_id ON quiz_attempt_answers(question_id);
+
+CREATE INDEX idx_certificates_user_id ON certificates(user_id);
+CREATE INDEX idx_certificates_quiz_id ON certificates(quiz_id);
+CREATE INDEX idx_certificates_organization_id ON certificates(organization_id);
+CREATE INDEX idx_certificates_status ON certificates(status);
+CREATE INDEX idx_certificates_verification_code ON certificates(verification_code);
+
+CREATE INDEX idx_refresh_tokens_user_id ON refresh_tokens(user_id);
+CREATE INDEX idx_email_verification_tokens_user_id ON email_verification_tokens(user_id);
+CREATE INDEX idx_password_reset_tokens_user_id ON password_reset_tokens(user_id);
+
+CREATE INDEX idx_audit_logs_actor_user_id ON audit_logs(actor_user_id);
+CREATE INDEX idx_audit_logs_organization_id ON audit_logs(organization_id);
+CREATE INDEX idx_audit_logs_action ON audit_logs(action);
+CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at);
+```
+
+---
+
+## 7. Important Database Constraints
+
+## 7.1 Unique User Email
+
+```sql
+ALTER TABLE users
+ADD CONSTRAINT uq_users_email UNIQUE (email);
+```
+
+---
+
+## 7.2 Unique Organization Membership
+
+```sql
+ALTER TABLE organization_memberships
+ADD CONSTRAINT uq_membership_org_user UNIQUE (organization_id, user_id);
+```
+
+---
+
+## 7.3 Unique Question Position Per Quiz
+
+```sql
+ALTER TABLE quiz_questions
+ADD CONSTRAINT uq_question_position_per_quiz UNIQUE (quiz_id, position);
+```
+
+---
+
+## 7.4 Unique Option Position Per Question
+
+```sql
+ALTER TABLE quiz_options
+ADD CONSTRAINT uq_option_position_per_question UNIQUE (question_id, position);
+```
+
+---
+
+## 7.5 Unique Answer Per Question Per Attempt
+
+```sql
+ALTER TABLE quiz_attempt_answers
+ADD CONSTRAINT uq_answer_per_question_per_attempt UNIQUE (attempt_id, question_id);
+```
+
+---
+
+## 7.6 Unique Certificate Number
+
+```sql
+ALTER TABLE certificates
+ADD CONSTRAINT uq_certificate_number UNIQUE (certificate_number);
+```
+
+---
+
+## 7.7 Unique Verification Code
+
+```sql
+ALTER TABLE certificates
+ADD CONSTRAINT uq_certificate_verification_code UNIQUE (verification_code);
+```
+
+---
+
+## 8. Authorization Queries
+
+## 8.1 Check Organization Owner
+
+```sql
+SELECT 1
+FROM organization_memberships
+WHERE organization_id = :organizationId
+  AND user_id = :userId
+  AND role = 'OWNER'
+  AND status = 'ACTIVE';
+```
+
+---
+
+## 8.2 Check Active Organization Member
+
+```sql
+SELECT 1
+FROM organization_memberships
+WHERE organization_id = :organizationId
+  AND user_id = :userId
+  AND status = 'ACTIVE';
+```
+
+---
+
+## 8.3 Check Active Participant
+
+```sql
+SELECT 1
+FROM organization_memberships
+WHERE organization_id = :organizationId
+  AND user_id = :userId
+  AND role = 'PARTICIPANT'
+  AND status = 'ACTIVE';
+```
+
+---
+
+## 8.4 Check Quiz Access for Participant
+
+```sql
+SELECT q.*
+FROM quizzes q
+JOIN organization_memberships om
+  ON om.organization_id = q.organization_id
+WHERE q.id = :quizId
+  AND q.is_published = true
+  AND q.status = 'PUBLISHED'
+  AND om.user_id = :userId
+  AND om.status = 'ACTIVE';
+```
+
+---
+
+## 9. MVP Table Priority
+
+For the first backend MVP, implement these tables first:
+
+1. users
+2. organizations
+3. organization_memberships
+4. quizzes
+5. quiz_questions
+6. quiz_options
+7. quiz_attempts
+8. quiz_attempt_answers
+9. certificates
+10. refresh_tokens
+
+Then add:
+
+11. email_verification_tokens
+12. password_reset_tokens
+13. audit_logs
+14. quiz_resources
+
+---
+
+## 10. Final Notes
+
+The most important part of this database design is the `organization_memberships` table.
+
+It keeps Skillmark flexible because the same user can have different roles in different organizations.
+
+This design is suitable for university use cases because students, instructors, trainers, and student club leaders can all use the same account while having different permissions depending on the organization context.
