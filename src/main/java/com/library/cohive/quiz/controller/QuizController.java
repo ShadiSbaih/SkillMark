@@ -2,7 +2,9 @@ package com.library.cohive.quiz.controller;
 
 import com.library.cohive.common.response.ApiResponse;
 import com.library.cohive.quiz.dto.CreateQuizRequest;
+import com.library.cohive.quiz.dto.QuizAttemptResponse;
 import com.library.cohive.quiz.dto.QuizResponse;
+import com.library.cohive.quiz.dto.SubmitQuizAttemptRequest;
 import com.library.cohive.quiz.service.QuizService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -40,5 +42,14 @@ public class QuizController {
     @Operation(summary = "List course quizzes", description = "Returns quizzes visible for the selected course.")
     public ApiResponse<List<QuizResponse>> getCourseQuizzes(@PathVariable UUID courseId) {
         return ApiResponse.success(quizService.getCourseQuizzes(courseId));
+    }
+
+    @PostMapping("/{quizId}/attempts")
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Submit quiz attempt", description = "Submits answers for a published quiz and returns the score.")
+    public ApiResponse<QuizAttemptResponse> submitAttempt(
+            @PathVariable UUID quizId,
+            @Valid @RequestBody SubmitQuizAttemptRequest request) {
+        return ApiResponse.success("Quiz attempt submitted successfully", quizService.submitAttempt(quizId, request));
     }
 }

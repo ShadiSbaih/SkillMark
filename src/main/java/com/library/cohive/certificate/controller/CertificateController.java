@@ -41,4 +41,10 @@ public class CertificateController {
     public ApiResponse<List<CertificateResponse>> getStudentCertificates(@PathVariable UUID studentId) {
         return ApiResponse.success(certificateService.getStudentCertificates(studentId));
     }
+
+    @GetMapping("/verify/{certificateCode}")
+    @Operation(summary = "Verify certificate", description = "Publicly verifies a certificate by its code.")
+    public ApiResponse<CertificateResponse> verifyCertificate(@PathVariable String certificateCode) {
+        return ApiResponse.success(certificateService.verifyCertificate(certificateCode));
+    }
 }

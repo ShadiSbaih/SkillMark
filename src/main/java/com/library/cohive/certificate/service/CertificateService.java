@@ -17,9 +17,13 @@ import com.library.cohive.student.repository.StudentRepository;
 import com.library.cohive.user.entity.Role;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 @Service
@@ -31,6 +35,7 @@ public class CertificateService {
     private final EnrollmentRepository enrollmentRepository;
     private final OrganizationStudentRepository organizationStudentRepository;
 
+    @Transactional
     public CertificateResponse issueCertificate(IssueCertificateRequest request) {
         ensureOwnerRole();
 
@@ -63,13 +68,19 @@ public class CertificateService {
 
         Certificate certificate = Certificate.builder()
                 .title(title)
+                .certificateCode(generateCertificateCode())
+                .verificationUrl("")
+                .issuedAt(Instant.now())
                 .course(course)
                 .student(student)
                 .build();
 
+        certificate.setVerificationUrl("/api/v1/certificates/verify/" + certificate.getCertificateCode());
+
         return CertificateResponse.fromEntity(certificateRepository.save(certificate));
     }
 
+    @Transactional(readOnly = true)
     public List<CertificateResponse> getStudentCertificates(UUID studentId) {
         Role role = SecurityUtil.getCurrentUserRole();
         if (role == Role.STUDENT) {
@@ -95,9 +106,29 @@ public class CertificateService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public CertificateResponse verifyCertificate(String certificateCode) {
+        Certificate certificate = certificateRepository.findByCertificateCode(certificateCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Certificate not found"));
+        return CertificateResponse.fromEntity(certificate);
+    }
+
     private void ensureOwnerRole() {
         if (SecurityUtil.getCurrentUserRole() != Role.OWNER) {
             throw new ForbiddenException("Only organization owners can issue certificates");
         }
+    }
+
+    private String generateCertificateCode() {
+        String year = String.valueOf(Instant.now().atZone(ZoneOffset.UTC).getYear());
+        String code;
+        do {
+            code = "COHIVE-" + year + "-" + UUID.randomUUID()
+                    .toString()
+                    .replace("-", "")
+                    .substring(0, 8)
+                    .toUpperCase(Locale.ROOT);
+        } while (certificateRepository.existsByCertificateCode(code));
+        return code;
     }
 }

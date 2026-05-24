@@ -16,6 +16,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.Instant;
+
 @Getter
 @Setter
 @Builder
@@ -33,6 +35,15 @@ public class Certificate extends AuditableEntity {
 
     @Column(nullable = false)
     private String title;
+
+    @Column(name = "certificate_code", nullable = false, unique = true, length = 50)
+    private String certificateCode;
+
+    @Column(name = "verification_url", nullable = false)
+    private String verificationUrl;
+
+    @Column(name = "issued_at", nullable = false)
+    private Instant issuedAt;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "course_id", nullable = false)

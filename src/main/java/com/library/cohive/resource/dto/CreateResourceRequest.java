@@ -27,7 +27,7 @@ public class CreateResourceRequest {
     private String title;
 
     @NotNull
-    @Schema(description = "Resource type. Current supported value is LINK.", example = "LINK")
+    @Schema(description = "Resource type.", example = "LINK")
     private ResourceType type;
 
     @NotBlank

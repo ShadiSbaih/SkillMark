@@ -16,6 +16,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
@@ -77,7 +78,9 @@ class CohiveApiIntegrationTests {
                 .andExpect(jsonPath("$.components.schemas.RegisterRequest.description", containsString("creating a new user")))
                 .andExpect(jsonPath("$.components.schemas.RegisterRequest.properties.role.description", containsString("Defaults to STUDENT")))
                 .andExpect(jsonPath("$.components.schemas.CreateResourceRequest.properties.url.description", containsString("http:// or https://")))
-                .andExpect(jsonPath("$.components.schemas.CreateResourceRequest.properties.type.enum[0]", is("LINK")));
+                .andExpect(jsonPath("$.components.schemas.CreateResourceRequest.properties.type.enum[0]", is("LINK")))
+                .andExpect(jsonPath("$.components.schemas.CreateResourceRequest.properties.type.enum[1]", is("DOCUMENT")))
+                .andExpect(jsonPath("$.paths['/api/v1/certificates/verify/{certificateCode}'].get").exists());
     }
 
     @Test
@@ -109,22 +112,62 @@ class CohiveApiIntegrationTests {
                 .andExpect(jsonPath("$.data.type", is("LINK")))
                 .andExpect(jsonPath("$.data.url", is("https://docs.spring.io/spring-boot/reference/")));
 
-        postJson("/api/v1/quizzes", ownerToken, """
+        postJson("/api/v1/resources", ownerToken, """
                 {
-                  "title": "Java Quiz",
+                  "title": "Course Checklist",
+                  "type": "DOCUMENT",
+                  "url": "https://docs.spring.io/spring-boot/reference/using/index.html",
                   "courseId": "%s"
                 }
                 """.formatted(courseId))
-                .andExpect(status().isCreated());
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.type", is("DOCUMENT")));
 
-        postJson("/api/v1/certificates", ownerToken, """
+        MvcResult quizResult = postJson("/api/v1/quizzes", ownerToken, """
+                {
+                  "title": "Java Quiz",
+                  "courseId": "%s",
+                  "passingScore": 70,
+                  "published": true,
+                  "questions": [
+                    {
+                      "questionText": "Which Spring component exposes HTTP endpoints?",
+                      "points": 10,
+                      "displayOrder": 1,
+                      "options": [
+                        {"optionText": "Controller", "correct": true, "displayOrder": 1},
+                        {"optionText": "Repository", "correct": false, "displayOrder": 2}
+                      ]
+                    }
+                  ]
+                }
+                """.formatted(courseId))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.questions", hasSize(1)))
+                .andReturn();
+        String quizId = read(quizResult, "/data/id");
+        String questionId = read(quizResult, "/data/questions/0/id");
+        String correctOptionId = read(quizResult, "/data/questions/0/options/0/id");
+
+        MvcResult certificateResult = postJson("/api/v1/certificates", ownerToken, """
                 {
                   "studentId": "%s",
                   "courseId": "%s",
                   "title": "Certificate of Completion"
                 }
                 """.formatted(studentId, courseId))
-                .andExpect(status().isCreated());
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.certificateCode", containsString("COHIVE-")))
+                .andExpect(jsonPath("$.data.verificationUrl", containsString("/api/v1/certificates/verify/")))
+                .andExpect(jsonPath("$.data.studentName", is("Jane Student")))
+                .andExpect(jsonPath("$.data.courseTitle", is("Spring Boot Basics")))
+                .andExpect(jsonPath("$.data.organizationName", is("Tech Academy")))
+                .andReturn();
+        String certificateCode = read(certificateResult, "/data/certificateCode");
+
+        getJson("/api/v1/certificates/verify/" + certificateCode, null)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.certificateCode", is(certificateCode)));
 
         postJson("/api/v1/enrollments", ownerToken, """
                 {
@@ -147,14 +190,31 @@ class CohiveApiIntegrationTests {
 
         getJson("/api/v1/resources/course/" + courseId, studentToken)
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data", hasSize(1)))
-                .andExpect(jsonPath("$.data[0].title", is("Spring Docs")))
-                .andExpect(jsonPath("$.data[0].type", is("LINK")));
+                .andExpect(jsonPath("$.data", hasSize(2)))
+                .andExpect(jsonPath("$.data[*].title", hasItem("Spring Docs")))
+                .andExpect(jsonPath("$.data[*].type", hasItem("DOCUMENT")));
 
         getJson("/api/v1/quizzes/course/" + courseId, studentToken)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data", hasSize(1)))
-                .andExpect(jsonPath("$.data[0].title", is("Java Quiz")));
+                .andExpect(jsonPath("$.data[0].title", is("Java Quiz")))
+                .andExpect(jsonPath("$.data[0].questions", hasSize(1)));
+
+        postJson("/api/v1/quizzes/" + quizId + "/attempts", studentToken, """
+                {
+                  "answers": [
+                    {
+                      "questionId": "%s",
+                      "selectedOptionId": "%s"
+                    }
+                  ]
+                }
+                """.formatted(questionId, correctOptionId))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.score", is(10)))
+                .andExpect(jsonPath("$.data.maxScore", is(10)))
+                .andExpect(jsonPath("$.data.passed", is(true)))
+                .andExpect(jsonPath("$.data.answers[0].correct", is(true)));
 
         getJson("/api/v1/certificates/student/" + studentId, studentToken)
                 .andExpect(status().isOk())
@@ -187,6 +247,116 @@ class CohiveApiIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data", hasSize(1)))
                 .andExpect(jsonPath("$.data[0].courseId", is(ownerOneCourseId)));
+    }
+
+    @Test
+    void ownerCanCreateCourseModulesAndEnrolledStudentCanReadLessons() throws Exception {
+        String ownerToken = register("Owner One", "owner1@example.com", "password123", "OWNER");
+        String organizationId = createOrganization(ownerToken, "Tech Academy");
+        String studentId = createStudent(ownerToken, organizationId, "Jane Student", "jane@example.com");
+        String courseId = createCourse(ownerToken, organizationId, "Spring Boot Basics");
+        enroll(ownerToken, studentId, courseId);
+
+        MvcResult moduleResult = postJson("/api/v1/courses/" + courseId + "/modules", ownerToken, """
+                {
+                  "title": "Backend Foundations",
+                  "displayOrder": 1
+                }
+                """)
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.title", is("Backend Foundations")))
+                .andReturn();
+        String moduleId = read(moduleResult, "/data/id");
+
+        postJson("/api/v1/modules/" + moduleId + "/lessons", ownerToken, """
+                {
+                  "title": "Project Setup",
+                  "content": "Prepare the Spring Boot project.",
+                  "resourceUrl": "https://spring.io/guides",
+                  "displayOrder": 1
+                }
+                """)
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.title", is("Project Setup")));
+
+        String studentToken = login("jane@example.com", "password123");
+        getJson("/api/v1/courses/" + courseId + "/modules", studentToken)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data", hasSize(1)))
+                .andExpect(jsonPath("$.data[0].lessons", hasSize(1)))
+                .andExpect(jsonPath("$.data[0].lessons[0].resourceUrl", is("https://spring.io/guides")));
+    }
+
+    @Test
+    void unpublishedQuizzesAndCrossOrganizationCourseModulesAreBlocked() throws Exception {
+        String ownerOneToken = register("Owner One", "owner1@example.com", "password123", "OWNER");
+        String ownerOneOrganizationId = createOrganization(ownerOneToken, "Owner One Academy");
+        String studentId = createStudent(ownerOneToken, ownerOneOrganizationId, "Jane Student", "jane@example.com");
+        String ownerOneCourseId = createCourse(ownerOneToken, ownerOneOrganizationId, "Owner One Course");
+        enroll(ownerOneToken, studentId, ownerOneCourseId);
+
+        MvcResult quizResult = postJson("/api/v1/quizzes", ownerOneToken, """
+                {
+                  "title": "Draft Quiz",
+                  "courseId": "%s",
+                  "passingScore": 70,
+                  "published": false,
+                  "questions": [
+                    {
+                      "questionText": "Draft question?",
+                      "points": 10,
+                      "displayOrder": 1,
+                      "options": [
+                        {"optionText": "Yes", "correct": true, "displayOrder": 1},
+                        {"optionText": "No", "correct": false, "displayOrder": 2}
+                      ]
+                    }
+                  ]
+                }
+                """.formatted(ownerOneCourseId))
+                .andExpect(status().isCreated())
+                .andReturn();
+        String quizId = read(quizResult, "/data/id");
+        String questionId = read(quizResult, "/data/questions/0/id");
+        String optionId = read(quizResult, "/data/questions/0/options/0/id");
+
+        String studentToken = login("jane@example.com", "password123");
+        getJson("/api/v1/quizzes/course/" + ownerOneCourseId, studentToken)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data", hasSize(0)));
+        postJson("/api/v1/quizzes/" + quizId + "/attempts", studentToken, """
+                {
+                  "answers": [
+                    {
+                      "questionId": "%s",
+                      "selectedOptionId": "%s"
+                    }
+                  ]
+                }
+                """.formatted(questionId, optionId))
+                .andExpect(status().isForbidden());
+
+        String ownerTwoToken = register("Owner Two", "owner2@example.com", "password123", "OWNER");
+        String ownerTwoOrganizationId = createOrganization(ownerTwoToken, "Owner Two Academy");
+        String ownerTwoCourseId = createCourse(ownerTwoToken, ownerTwoOrganizationId, "Owner Two Course");
+
+        postJson("/api/v1/courses/" + ownerTwoCourseId + "/modules", ownerOneToken, """
+                {
+                  "title": "Bad Module",
+                  "displayOrder": 1
+                }
+                """)
+                .andExpect(status().isNotFound());
+
+        getJson("/api/v1/courses/" + ownerTwoCourseId + "/modules", studentToken)
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void publicCertificateVerificationReturnsNotFoundForInvalidCode() throws Exception {
+        getJson("/api/v1/certificates/verify/COHIVE-2026-NOTREAL", null)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success", is(false)));
     }
 
     @Test
