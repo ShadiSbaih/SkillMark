@@ -1,78 +1,125 @@
+
+
 # AGENTS.md
 
 # Cohive Backend Engineering Gateway
 
-This file is the central gateway for the Cohive backend architecture and development workflow.
-
-Every AI agent, contributor, generator, or automation tool MUST treat this document as the primary orchestration layer for:
-- architecture understanding
-- backend generation
-- business logic consistency
-- API standards
-- database integrity
-- development conventions
-- testing expectations
-
-This file controls how the backend should evolve.
+This file is the entry point for all AI agents, contributors, generators, and automation tools working on the Cohive backend.
 
 ---
 
-# PROJECT OVERVIEW
+# Project Overview
 
-Cohive is a modular SaaS Training & Course Management Platform built using:
+Cohive is an API-only modular SaaS backend for training and course management.
+
+Built with:
 
 - Spring Boot
-- PostgreSQL (Neon)
+- PostgreSQL
 - JWT Authentication
-- Modular Feature-Based Architecture
+- Modular feature-based architecture
 
-The platform manages:
+The backend manages:
+
+- users
 - organizations
-- students
+- organization memberships
 - courses
-- enrollments
+- course enrollments
 - resources
 - quizzes
+- quiz attempts
 - certificates
 
-The backend architecture prioritizes:
-- modularity
-- maintainability
-- scalability
-- clean architecture
-- enterprise-grade engineering standards
+Frontend is out of scope for the current phase.
 
+---
 
-# PRIMARY SOURCE OF TRUTH
+# Core Architecture Rule
 
-Before generating, modifying, refactoring, or validating ANY backend code, ALWAYS read the following files in order:
+A User is an identity/account, not a global role holder.
 
-1. docs/PRD.md
-2. docs/DB_Design.md
-3. docs/API_Design.md
-4. docs/Architecture.md
-5. docs/Backend_Business_Scenarios.md
+Do not use `users.role` for business permissions.
 
-These documents define:
-- business logic
-- database structure
-- API contracts
-- backend architecture
-- testing expectations
+Permissions are organization-scoped through:
 
-If any conflict exists between documents, use this priority order:
+```text
+organization_memberships
+````
 
-1. DB_Design.md
-2. API_Design.md
-3. Architecture.md
-4. Backend_Business_Scenarios.md
-5. PRD.md
+A single user can be:
+
+* OWNER of one or more organizations
+* STUDENT in one or more organizations
+* OWNER in one organization and STUDENT in another
+
+---
+
+# Primary Source of Truth
+
+Before generating or modifying backend code, read these files in order:
+
+1. `docs/DB_Design.md`
+2. `docs/API_Design.md`
+3. `docs/Architecture.md`
+4. `docs/Backend_Business_Scenarios.md`
+5. `docs/PRD.md`
+
+If documents conflict, follow the same priority order above.
+
+---
+
+# Development Rules
+
+Always:
+
+* keep the project as a modular Spring Boot monolith
+* follow the documented database schema
+* follow the documented API contracts
+* enforce organization-scoped authorization
+* use DTOs for API input/output
+* keep business logic in services
+* keep controllers thin
+* preserve consistent API responses
+* write or update tests for changed behavior
 
 Never:
-- invent entities
-- invent relationships
-- invent API contracts
-- invent undocumented business logic
-- violate documented architecture patterns
 
-All generated code MUST remain consistent with these documents.
+* invent undocumented entities
+* invent undocumented API contracts
+* rely on global user roles for organization permissions
+* reintroduce `students`, `organization_students`, or `course_students`
+* build frontend code
+* split into microservices unless explicitly required
+
+---
+
+# Required Authorization Pattern
+
+Repeated authorization logic should be centralized in `AuthorizationService`.
+
+Examples:
+
+* `ensureOrganizationOwner(organizationId)`
+* `ensureOrganizationMember(organizationId)`
+* `ensureActiveStudentMember(organizationId, userId)`
+* `ensureCourseOwner(courseId)`
+* `ensureUserEnrolledInCourse(courseId, userId)`
+
+---
+
+# Scope Reminder
+
+Current phase:
+
+* backend API only
+* organization-scoped permissions
+* LINK and FILE resources only
+* quiz questions/options/attempts/scoring
+* verifiable certificates
+* refresh tokens
+* email verification
+* password reset
+* audit logging
+
+

@@ -1,6 +1,7 @@
-# Training & Course Management Platform
 
-## Software Requirements Specification (SRS)
+# Cohive Backend Platform
+
+## Product Requirements Document (PRD)
 
 ---
 
@@ -8,147 +9,431 @@
 
 ## 1.1 Purpose
 
-This document defines the functional, technical, and architectural requirements for the Training & Course Management Platform.
+This document defines the product, functional, technical, and architectural requirements for the Cohive Backend Platform.
 
-The platform is designed to help universities, training centers, and companies manage educational programs, courses, students, learning resources, quizzes, and certificates through a centralized web-based system.
+Cohive is an API-only backend platform designed to help universities, training centers, companies, internship programs, and educational organizations manage:
 
-The system enables organizations to:
+- organizations
+- organization memberships
+- courses
+- course enrollments
+- learning resources
+- quizzes
+- quiz attempts
+- certificates
+- authentication and account flows
 
-- Manage training programs and courses
-- Enroll students
-- Distribute learning resources
-- Organize quizzes
-- Issue certificates
-- Maintain structured educational workflows
+The current phase focuses only on the backend API.
+
+Frontend implementation is explicitly out of scope for the current phase.
 
 ---
 
 ## 1.2 Product Scope
 
-The platform is a multi-organization SaaS system that provides tools for managing educational and training operations.
+Cohive is a multi-organization training and course management backend.
 
-The system supports:
+The backend provides APIs for:
 
-- Organization management
-- Course management
-- Student enrollment
-- Resource distribution
-- Quiz organization
-- Certificate generation and management
+- user account registration and authentication
+- organization creation and management
+- organization membership management
+- course creation and management
+- course enrollment
+- learning resource management
+- quiz and quiz attempt management
+- certificate issuance and verification
+- password reset
+- email verification
+- refresh token session management
+- audit logging for sensitive actions
 
 The platform is intended for:
 
-- Universities
-- Training centers
-- Software companies
-- Internship programs
-- Educational organizations
+- universities
+- training centers
+- software companies
+- internship programs
+- educational institutions
+- internal company training programs
 
 ---
 
-# 2. System Overview
+## 1.3 Current Phase Scope
 
-## 2.1 System Type
+The current phase includes:
 
-Web-based SaaS Application
+- Backend API
+- Database schema
+- Authentication
+- Authorization
+- Business rules
+- API documentation
+- Integration tests
+- Local/development file storage support
+- Public certificate verification endpoint
+
+The current phase does not include:
+
+- frontend application
+- mobile application
+- dashboard UI
+- public certificate verification web page
+- payment system
+- subscriptions
+- notifications UI
+- analytics dashboard
+- microservices split
+
+---
+
+# 2. Product Overview
+
+## 2.1 Product Type
+
+API-only backend SaaS platform.
 
 ---
 
 ## 2.2 Architecture Style
 
-- Multi-tenant architecture
-- Client-server architecture
+The system shall follow:
+
+- modular monolith architecture
 - RESTful API architecture
-- Modular backend architecture
+- multi-tenant architecture
+- organization-scoped authorization
+- layered backend architecture
+- database-backed persistence
+- JWT-based authentication
 
 ---
 
-## 2.3 User Roles
+## 2.3 Core Product Concept
 
-### 1) Organization Owner
+A User is an identity/account.
 
-Responsible for:
+A User must not be treated as globally `OWNER` or globally `STUDENT`.
 
-- Managing organizations
-- Creating courses
-- Managing students
-- Managing educational content
-- Issuing certificates
+Instead, permissions are defined at the organization level.
+
+A single User can:
+
+- own one or more organizations
+- be a STUDENT/member in one or more organizations
+- be OWNER in one organization and STUDENT in another organization at the same time
+
+Therefore, business permissions must be based on:
+
+```text
+organization_memberships
+````
+
+not on:
+
+```text
+users.role
+```
 
 ---
 
-### 2) Student
+# 3. User Roles and Permission Model
 
-Responsible for:
+## 3.1 User
 
-- Accessing enrolled courses
-- Viewing resources
-- Taking quizzes
-- Receiving certificates
+A User is an authenticated account in the system.
+
+A User can:
+
+* register
+* log in
+* manage their own authentication session
+* create organizations
+* become owner of created organizations
+* be added as a student/member to other organizations
+* access data based on organization-level permissions
+
+A User does not have a global business role.
 
 ---
 
-# 3. Functional Requirements
+## 3.2 Organization Owner
+
+An Organization Owner is a User who has OWNER permission for a specific organization.
+
+Ownership is represented by:
+
+* `organizations.owner_id`
+* `organization_memberships.role = OWNER`
+
+An Organization Owner can manage only the organizations they own.
+
+Responsibilities:
+
+* create organizations
+* manage organization information
+* manage organization members
+* create and manage courses
+* enroll organization students in courses
+* create and manage learning resources
+* create and manage quizzes
+* view quiz attempts for organization courses
+* issue certificates
+* revoke certificates
 
 ---
 
-# 3.1 Authentication & User Management
+## 3.3 Organization Student
+
+An Organization Student is a User who has STUDENT membership in a specific organization.
+
+A User may be a student in one organization and an owner in another.
+
+Responsibilities:
+
+* view organizations where they are a member
+* view enrolled courses
+* access resources for enrolled courses
+* view published quizzes for enrolled courses
+* submit quiz attempts
+* view their own certificates
+
+---
+
+## 3.4 Unauthenticated Visitor
+
+An unauthenticated visitor can only access public APIs.
+
+Allowed actions:
+
+* register
+* login
+* request password reset
+* reset password with valid token
+* verify email with valid token
+* verify public certificate by verification code
+
+---
+
+# 4. Functional Requirements
+
+---
+
+# 4.1 Authentication and User Account Management
 
 ## Description
 
-The system shall provide secure authentication and user account management.
+The system shall provide secure authentication and account management.
 
 ## Functional Requirements
 
-### FR-1
+### FR-1: User Registration
 
-The system shall allow users to register accounts.
+The system shall allow users to register accounts using:
 
-### FR-2
+* name
+* email
+* password
 
-The system shall allow users to log in using email credentials.
+Registration must not accept a business role such as OWNER or STUDENT.
 
-### FR-3
-
-The system shall manage user sessions securely.
-
-### FR-4
-
-The system shall support role-based access control.
-
-### FR-5
-
-The system shall allow organization owners to manage student accounts.
+A newly registered user is only an account identity.
 
 ---
 
-# 3.2 Organization Management
+### FR-2: User Login
+
+The system shall allow users to log in using email and password.
+
+The system shall return authentication tokens after successful login.
+
+---
+
+### FR-3: Access Token
+
+The system shall issue an access token for authenticated API access.
+
+The access token shall be used with:
+
+```text
+Authorization: Bearer <token>
+```
+
+---
+
+### FR-4: Refresh Token
+
+The system shall support refresh tokens for renewing access tokens.
+
+Refresh tokens must be stored securely in the database as hashes.
+
+The system shall support refresh token expiration and revocation.
+
+---
+
+### FR-5: Logout
+
+The system shall allow users to log out by revoking their active refresh token.
+
+The system may also support logout from all sessions.
+
+---
+
+### FR-6: Email Verification
+
+The system shall support email verification.
+
+Email verification tokens must be stored as hashes.
+
+The user record shall include an email verification state.
+
+---
+
+### FR-7: Forgot Password
+
+The system shall support password reset request flow.
+
+The response must not reveal whether the email exists.
+
+Password reset tokens must be stored as hashes.
+
+---
+
+### FR-8: Reset Password
+
+The system shall allow password reset using a valid, unused, non-expired reset token.
+
+After successful password reset, existing refresh tokens may be revoked.
+
+---
+
+### FR-9: Password Security
+
+The system shall store passwords only as secure hashes.
+
+Plaintext passwords must never be stored or returned.
+
+---
+
+### FR-10: Current User Profile
+
+The system shall allow authenticated users to retrieve their own account profile.
+
+The response must not include password hash or sensitive token data.
+
+---
+
+# 4.2 Organization Management
 
 ## Description
 
-The system shall support multiple organizations within the platform.
+The system shall allow users to create and manage organizations.
 
 ## Functional Requirements
 
-### FR-6
+### FR-11: Create Organization
 
-The system shall allow creation of organizations.
+The system shall allow any authenticated user to create an organization.
 
-### FR-7
+When a user creates an organization:
 
-The system shall associate an owner with each organization.
-
-### FR-8
-
-The system shall allow organizations to enroll students.
-
-### FR-9
-
-The system shall maintain organization membership records.
+* an organization record is created
+* `owner_id` is set to the current user
+* an organization membership row is created with role OWNER
 
 ---
 
-# 3.3 Course Management
+### FR-12: View Accessible Organizations
+
+The system shall allow users to view organizations they own or belong to.
+
+A user must not see unrelated organizations.
+
+---
+
+### FR-13: View Organization Details
+
+The system shall allow an organization owner or active organization member to view organization details.
+
+Unauthorized users must be rejected.
+
+---
+
+### FR-14: Update Organization
+
+The system shall allow only the organization owner to update organization details.
+
+---
+
+### FR-15: Disable or Delete Organization
+
+The system shall allow only the organization owner to disable or delete an organization.
+
+The preferred behavior is soft delete or status-based disabling to preserve historical records.
+
+---
+
+# 4.3 Organization Membership Management
+
+## Description
+
+The system shall manage organization-level roles through organization memberships.
+
+## Functional Requirements
+
+### FR-16: Add Organization Member
+
+The system shall allow an organization owner to add a User as a STUDENT member of an organization.
+
+The target user must already exist.
+
+Duplicate active memberships must be prevented.
+
+---
+
+### FR-17: List Organization Members
+
+The system shall allow an organization owner to list members of an owned organization.
+
+---
+
+### FR-18: Remove Organization Member
+
+The system shall allow an organization owner to remove or disable a member from an organization.
+
+Removed members must lose access to protected organization data.
+
+---
+
+### FR-19: Membership Role
+
+The system shall support the following membership roles in the current phase:
+
+* OWNER
+* STUDENT
+
+The system must support the possibility of future organization roles, such as:
+
+* INSTRUCTOR
+* MANAGER
+* ASSISTANT
+
+but these are out of scope for the current phase.
+
+---
+
+### FR-20: User with Multiple Organization Roles
+
+The system shall support a User being:
+
+* OWNER in one organization
+* STUDENT in another organization
+* STUDENT in multiple organizations
+* OWNER of multiple organizations
+
+---
+
+# 4.4 Course Management
 
 ## Description
 
@@ -156,457 +441,1271 @@ The system shall provide course creation and management capabilities.
 
 ## Functional Requirements
 
-### FR-10
+### FR-21: Create Course
 
-The system shall allow organization owners to create courses.
-
-### FR-11
-
-The system shall associate courses with organizations.
-
-### FR-12
-
-The system shall allow students to enroll in courses.
-
-### FR-13
-
-The system shall display enrolled students for each course.
-
-### FR-14
-
-The system shall support course information management.
+The system shall allow organization owners to create courses under organizations they own.
 
 ---
 
-# 3.4 Resource Management
+### FR-22: Course Ownership
+
+Each course shall belong to exactly one organization.
+
+---
+
+### FR-23: View Courses
+
+The system shall allow:
+
+* organization owners to view courses in organizations they own
+* enrolled students to view courses they are enrolled in
+
+---
+
+### FR-24: View Course Details
+
+The system shall allow course details to be viewed only by:
+
+* the owner of the course organization
+* users enrolled in the course
+
+---
+
+### FR-25: Update Course
+
+The system shall allow only the owner of the course organization to update course information.
+
+---
+
+### FR-26: Archive or Delete Course
+
+The system shall allow only the owner of the course organization to archive or delete a course.
+
+Course deletion should preserve historical records where certificates or enrollments exist.
+
+---
+
+# 4.5 Course Enrollment Management
 
 ## Description
 
-The system shall manage educational resources for courses.
+The system shall manage enrollment of organization students into courses.
 
 ## Functional Requirements
 
-### FR-15
+### FR-27: Enroll User in Course
 
-The system shall allow adding learning resources to courses.
+The system shall allow an organization owner to enroll a User into a course.
 
-### FR-16
+The target User must be an ACTIVE STUDENT member of the course organization.
 
-The system shall support external resource URLs.
+Enrollment uses:
 
-### FR-17
+```text
+user_id
+```
 
-The system shall display course resources to enrolled students.
+not:
+
+```text
+student_id
+```
 
 ---
 
-# 3.5 Quiz Management
+### FR-28: Prevent Duplicate Enrollment
+
+The system shall prevent duplicate active enrollment for the same user and course.
+
+---
+
+### FR-29: View Course Enrollments
+
+The system shall allow organization owners to view enrollments for courses in their own organizations.
+
+---
+
+### FR-30: View Own Enrollments
+
+The system shall allow a user to view their own course enrollments.
+
+---
+
+### FR-31: Enrollment Status
+
+The system shall support enrollment statuses such as:
+
+* ACTIVE
+* COMPLETED
+* CANCELLED
+* REMOVED
+
+---
+
+# 4.6 Resource Management
 
 ## Description
 
-The system shall support quiz organization inside courses.
+The system shall manage learning resources for courses.
 
-## Functional Requirements
+The current phase supports only two resource types:
 
-### FR-18
-
-The system shall allow creation of quizzes.
-
-### FR-19
-
-The system shall associate quizzes with courses.
-
-### FR-20
-
-The system shall display quizzes within the related course.
+* LINK
+* FILE
 
 ---
 
-# 3.6 Certificate Management
+## Functional Requirements
+
+### FR-32: Create LINK Resource
+
+The system shall allow organization owners to create LINK resources for courses they own.
+
+A LINK resource must include a valid URL.
+
+---
+
+### FR-33: Create FILE Resource
+
+The system shall allow organization owners to create FILE resources for courses they own.
+
+A FILE resource shall include file metadata such as:
+
+* fileUrl
+* originalFileName
+* contentType
+* sizeBytes
+
+---
+
+### FR-34: File Storage Abstraction
+
+The system shall provide a backend file storage abstraction.
+
+The initial implementation may use local storage for development.
+
+The design should allow future replacement with:
+
+* S3
+* Cloudinary
+* Supabase Storage
+* other object storage providers
+
+---
+
+### FR-35: View Course Resources
+
+The system shall allow resources to be viewed by:
+
+* the owner of the course organization
+* users enrolled in the course
+
+---
+
+### FR-36: Update Resource
+
+The system shall allow only the organization owner to update resources.
+
+---
+
+### FR-37: Delete or Archive Resource
+
+The system shall allow only the organization owner to delete or archive resources.
+
+---
+
+# 4.7 Quiz Management
 
 ## Description
 
-The system shall support certificate issuance for students.
+The system shall support quizzes inside courses.
+
+The quiz module shall support:
+
+* quizzes
+* questions
+* options
+* attempts
+* submitted answers
+* automatic scoring
+
+---
 
 ## Functional Requirements
 
-### FR-21
+### FR-38: Create Quiz
 
-The system shall allow organizations to issue certificates.
-
-### FR-22
-
-The system shall associate certificates with students and courses.
-
-### FR-23
-
-The system shall display certificates for students.
+The system shall allow organization owners to create quizzes for courses they own.
 
 ---
 
-# 4. Non-Functional Requirements
+### FR-39: Quiz Fields
+
+A quiz shall include:
+
+* title
+* description
+* passingScore
+* isPublished
+* status
 
 ---
 
-# 4.1 Performance Requirements
+### FR-40: Add Quiz Questions
+
+The system shall allow organization owners to add questions to quizzes.
+
+The current phase supports:
+
+* SINGLE_CHOICE questions
+
+---
+
+### FR-41: Add Quiz Options
+
+The system shall allow organization owners to add answer options to quiz questions.
+
+A SINGLE_CHOICE question must have exactly one correct answer.
+
+---
+
+### FR-42: Publish Quiz
+
+The system shall allow organization owners to publish a quiz.
+
+A quiz should not be publishable unless it contains valid questions and options.
+
+---
+
+### FR-43: View Course Quizzes
+
+The system shall allow:
+
+* organization owners to view all quizzes for owned courses
+* enrolled users to view only published quizzes for enrolled courses
+
+---
+
+### FR-44: Start Quiz Attempt
+
+The system shall allow enrolled users to start attempts for published quizzes.
+
+---
+
+### FR-45: Submit Quiz Attempt
+
+The system shall allow users to submit answers for their own quiz attempts.
+
+The system shall calculate:
+
+* score
+* pass/fail result
+* submittedAt timestamp
+
+---
+
+### FR-46: View Quiz Attempts
+
+The system shall allow:
+
+* users to view their own quiz attempts
+* organization owners to view attempts for quizzes in their owned organizations
+
+---
+
+# 4.8 Certificate Management
+
+## Description
+
+The system shall support certificate issuance, revocation, and public verification.
+
+Certificates are issued to Users, not to separate Student records.
+
+---
+
+## Functional Requirements
+
+### FR-47: Issue Certificate
+
+The system shall allow organization owners to issue certificates to users enrolled in courses under owned organizations.
+
+---
+
+### FR-48: Certificate Eligibility
+
+A certificate can only be issued if:
+
+* target user exists
+* target user is an ACTIVE STUDENT member of the course organization
+* target user is enrolled in the course
+* duplicate active certificate does not already exist
+* required quiz completion rules are satisfied if configured
+
+---
+
+### FR-49: Certificate Number
+
+The system shall generate a unique certificate number for every certificate.
+
+---
+
+### FR-50: Verification Code
+
+The system shall generate a unique verification code for every certificate.
+
+---
+
+### FR-51: Certificate Snapshots
+
+The system shall store snapshot values at issuance time:
+
+* studentNameSnapshot
+* courseTitleSnapshot
+* organizationNameSnapshot
+
+This preserves certificate history even if user, course, or organization names change later.
+
+---
+
+### FR-52: View Own Certificates
+
+The system shall allow users to view their own certificates.
+
+---
+
+### FR-53: View Organization Certificates
+
+The system shall allow organization owners to view certificates issued under their own organizations.
+
+---
+
+### FR-54: Public Certificate Verification
+
+The system shall provide a public endpoint to verify a certificate by verification code.
+
+The public verification response must not expose sensitive user data.
+
+---
+
+### FR-55: Revoke Certificate
+
+The system shall allow organization owners to revoke certificates issued under their own organizations.
+
+A revoked certificate must remain historically visible and verifiable as revoked.
+
+---
+
+# 4.9 Audit Logging
+
+## Description
+
+The system shall record important security and business actions.
+
+## Functional Requirements
+
+### FR-56: Audit Sensitive Actions
+
+The system shall record audit logs for sensitive actions, including:
+
+* organization creation
+* organization update
+* organization deletion or disabling
+* member added
+* member removed
+* course created
+* course updated
+* course archived or deleted
+* resource created
+* resource deleted
+* quiz published
+* certificate issued
+* certificate revoked
+* login failures
+* password reset completion
+
+---
+
+### FR-57: Audit Metadata
+
+Audit logs may include:
+
+* actorUserId
+* organizationId
+* action
+* entityType
+* entityId
+* ipAddress
+* userAgent
+* metadata
+* createdAt
+
+Audit metadata must not include plaintext passwords, raw tokens, or secrets.
+
+---
+
+# 5. Non-Functional Requirements
+
+---
+
+# 5.1 Performance Requirements
 
 ### NFR-1
 
-The system shall support concurrent users efficiently.
-
-### NFR-2
-
-API response time should not exceed 2 seconds under normal load.
-
-### NFR-3
-
-The system shall support scalable database operations.
+The system shall support concurrent API users efficiently.
 
 ---
 
-# 4.2 Security Requirements
+### NFR-2
+
+API response time should not exceed 2 seconds under normal load for common endpoints.
+
+---
+
+### NFR-3
+
+List endpoints shall use database-level pagination where possible.
+
+---
 
 ### NFR-4
 
-Passwords shall be encrypted securely.
+The system shall avoid loading large datasets into memory for pagination.
+
+---
 
 ### NFR-5
 
-Authentication tokens shall be protected.
+The system shall use appropriate database indexes for commonly queried fields.
+
+---
+
+# 5.2 Security Requirements
 
 ### NFR-6
 
-The system shall implement authorization checks for all protected resources.
+Passwords shall be stored using strong hashing.
+
+---
 
 ### NFR-7
+
+Access tokens and refresh tokens shall be protected.
+
+---
+
+### NFR-8
+
+Refresh tokens shall be stored as hashes.
+
+---
+
+### NFR-9
+
+Password reset and email verification tokens shall be stored as hashes.
+
+---
+
+### NFR-10
+
+The system shall enforce authorization checks for all protected resources.
+
+---
+
+### NFR-11
 
 The system shall prevent unauthorized access between organizations.
 
 ---
 
-# 4.3 Availability Requirements
-
-### NFR-8
-
-The platform should maintain high availability.
-
-### NFR-9
-
-The system shall support backup and recovery mechanisms.
-
----
-
-# 4.4 Scalability Requirements
-
-### NFR-10
-
-The architecture shall support future feature expansion.
-
-### NFR-11
-
-The system shall support increasing numbers of organizations and students.
-
----
-
-# 4.5 Maintainability Requirements
-
 ### NFR-12
 
-The system shall follow modular software architecture.
+The system shall not rely on global user roles for organization-level permissions.
+
+---
 
 ### NFR-13
 
-The codebase shall support maintainability and extensibility.
+The system shall protect authentication endpoints using rate limiting.
+
+Rate-limited endpoints should include:
+
+* login
+* register
+* forgot password
+* resend verification email
 
 ---
-
-# 4.6 Usability Requirements
 
 ### NFR-14
 
-The platform shall provide a user-friendly interface.
+The system shall not expose sensitive data in API responses.
+
+Sensitive data includes:
+
+* password hash
+* refresh token hash
+* reset token hash
+* verification token hash
+* internal secrets
+
+---
+
+# 5.3 Availability Requirements
 
 ### NFR-15
 
-The platform shall support responsive design for desktop and mobile devices.
+The system should be deployable to a cloud environment.
 
 ---
 
-# 5. System Architecture
+### NFR-16
+
+The system should support backup and recovery mechanisms.
 
 ---
 
-# 5.1 High-Level Architecture
+### NFR-17
 
-The system architecture consists of:
-
-- Frontend Application
-- Backend API
-- Database Layer
-- Authentication Layer
+The system should expose health check endpoints for deployment monitoring.
 
 ---
 
-# 5.2 Frontend Layer
+# 5.4 Scalability Requirements
+
+### NFR-18
+
+The architecture shall support future feature expansion.
+
+---
+
+### NFR-19
+
+The system shall support increasing numbers of:
+
+* users
+* organizations
+* memberships
+* courses
+* resources
+* quizzes
+* quiz attempts
+* certificates
+
+---
+
+### NFR-20
+
+The backend should remain a modular monolith unless there is a strong need for microservices later.
+
+---
+
+# 5.5 Maintainability Requirements
+
+### NFR-21
+
+The system shall follow modular backend architecture.
+
+---
+
+### NFR-22
+
+The codebase shall be organized by feature modules.
+
+Recommended modules:
+
+* auth
+* user
+* organization
+* membership
+* course
+* enrollment
+* resource
+* quiz
+* certificate
+* audit
+* common
+* security
+* config
+
+---
+
+### NFR-23
+
+Business rules shall be implemented in services, not controllers.
+
+---
+
+### NFR-24
+
+Repeated authorization logic shall be centralized in an AuthorizationService.
+
+---
+
+### NFR-25
+
+API responses shall use consistent response wrappers.
+
+---
+
+# 5.6 Usability Requirements
+
+Because the current phase is API-only, usability requirements apply to API consumers.
+
+### NFR-26
+
+The API shall be predictable and consistent.
+
+---
+
+### NFR-27
+
+The API shall provide clear validation errors.
+
+---
+
+### NFR-28
+
+The API shall provide Swagger/OpenAPI documentation.
+
+---
+
+### NFR-29
+
+The API shall use consistent naming conventions and versioning.
+
+---
+
+# 6. System Architecture
+
+---
+
+# 6.1 High-Level Architecture
+
+The current phase consists of:
+
+* Backend API
+* Database Layer
+* Authentication and Authorization Layer
+* File Storage Layer
+* API Documentation Layer
+
+Frontend is out of scope.
+
+---
+
+# 6.2 Backend API Layer
 
 ## Responsibilities
 
-- User interface rendering
-- API communication
-- Form validation
-- Dashboard management
+* expose REST APIs
+* validate request DTOs
+* return standardized responses
+* enforce request-level authentication
+* call service layer
 
 ## Suggested Technologies
 
-- React
-- Next.js
-- Tailwind CSS
+* Java 17
+* Spring Boot
+* Spring Web
+* Jakarta Validation
 
 ---
 
-# 5.3 Backend Layer
+# 6.3 Service Layer
 
 ## Responsibilities
 
-- Business logic
-- Authentication
-- Authorization
-- API management
-- Database communication
-
-## Suggested Technologies
-
-- Java 17
-- Spring Boot
-- Spring Security
-- Spring Data JPA
+* enforce business rules
+* enforce organization-scoped authorization
+* manage transactions
+* coordinate repositories
+* prevent cross-tenant access
+* keep controllers thin
 
 ---
 
-# 5.4 Database Layer
+# 6.4 Repository Layer
 
 ## Responsibilities
 
-- Data persistence
-- Relationship management
-- Query execution
+* database access
+* query methods
+* database-level pagination
+* persistence operations
 
 ## Suggested Technologies
 
-- PostgreSQL
-- MySQL
+* Spring Data JPA
+* Hibernate
 
 ---
 
-# 5.5 Authentication Layer
+# 6.5 Database Layer
 
 ## Responsibilities
 
-- User authentication
-- Session management
-- Access control
+* data persistence
+* relational integrity
+* indexing
+* constraints
+* migration history
 
 ## Suggested Technologies
 
-- JWT Authentication
-- OAuth-ready architecture
+* PostgreSQL
+* Flyway
 
 ---
 
-# 6. Database Design
+# 6.6 Authentication Layer
+
+## Responsibilities
+
+* user authentication
+* JWT generation and validation
+* refresh token management
+* password reset tokens
+* email verification tokens
+
+## Suggested Technologies
+
+* Spring Security
+* JWT
+* BCrypt
 
 ---
 
-# 6.1 Entities
+# 6.7 Authorization Layer
+
+## Responsibilities
+
+* organization ownership checks
+* organization membership checks
+* course access checks
+* enrollment checks
+* certificate access checks
+* quiz attempt access checks
+
+The system should include an AuthorizationService.
+
+Example checks:
+
+```text
+ensureOrganizationOwner(organizationId)
+ensureOrganizationMember(organizationId)
+ensureActiveStudentMember(organizationId, userId)
+ensureCourseOwner(courseId)
+ensureCourseAccessible(courseId)
+ensureUserEnrolledInCourse(courseId, userId)
+ensureCertificateAccessible(certificateId)
+ensureQuizAccessible(quizId)
+ensureAttemptOwner(attemptId)
+```
+
+---
+
+# 6.8 File Storage Layer
+
+## Responsibilities
+
+* store uploaded files
+* return file URLs
+* store file metadata
+* hide storage provider details behind an interface
+
+Initial implementation:
+
+* local file storage for development
+
+Future implementations may include:
+
+* AWS S3
+* Cloudinary
+* Supabase Storage
+* other object storage providers
+
+---
+
+# 7. Database Design
+
+---
+
+# 7.1 Primary Entities
 
 The system contains the following primary entities:
 
-- User
-- Student
-- Organization
-- OrganizationStudent
-- Course
-- CourseStudent
-- Quiz
-- Resource
-- Certificate
+* User
+* Organization
+* OrganizationMembership
+* Course
+* CourseEnrollment
+* Resource
+* Quiz
+* QuizQuestion
+* QuizOption
+* QuizAttempt
+* QuizAttemptAnswer
+* Certificate
+* RefreshToken
+* EmailVerificationToken
+* PasswordResetToken
+* AuditLog
+
+The system should not use these old entities as primary design elements:
+
+* Student
+* OrganizationStudent
+* CourseStudent
 
 ---
 
-# 6.2 Database Schema
+# 7.2 Entity Summary
 
-## Users
+## User
 
-| Field | Type |
-| --- | --- |
-| id | int |
-| name | varchar |
-| email | varchar |
+Represents an account identity.
 
----
+Important fields:
 
-## Students
-
-| Field | Type |
-| --- | --- |
-| id | int |
-| user_id | int |
+* id
+* name
+* email
+* passwordHash
+* emailVerified
+* status
+* createdAt
+* updatedAt
 
 ---
 
-## Organizations
+## Organization
 
-| Field | Type |
-| --- | --- |
-| id | int |
-| name | varchar |
-| owner_id | int |
+Represents an educational or training organization.
 
----
+Important fields:
 
-## Organization Students
-
-| Field | Type |
-| --- | --- |
-| organization_id | int |
-| student_id | int |
+* id
+* name
+* ownerId
+* status
+* createdAt
+* updatedAt
+* deletedAt
 
 ---
 
-## Courses
+## OrganizationMembership
 
-| Field | Type |
-| --- | --- |
-| id | int |
-| title | varchar |
-| organization_id | int |
+Represents a user's role inside an organization.
 
----
+Important fields:
 
-## Course Students
+* organizationId
+* userId
+* role
+* status
+* createdAt
+* updatedAt
 
-| Field | Type |
-| --- | --- |
-| course_id | int |
-| student_id | int |
+Supported roles:
 
----
-
-## Quizzes
-
-| Field | Type |
-| --- | --- |
-| id | int |
-| title | varchar |
-| course_id | int |
+* OWNER
+* STUDENT
 
 ---
 
-## Resources
+## Course
 
-| Field | Type |
-| --- | --- |
-| id | int |
-| title | varchar |
-| url | varchar |
-| course_id | int |
+Represents a course under an organization.
 
----
+Important fields:
 
-## Certificates
-
-| Field | Type |
-| --- | --- |
-| id | int |
-| title | varchar |
-| course_id | int |
-| student_id | int |
+* id
+* organizationId
+* title
+* description
+* status
+* createdAt
+* updatedAt
+* deletedAt
 
 ---
 
-# 6.3 Relationships
+## CourseEnrollment
 
-- A user may own multiple organizations.
-- A student belongs to a user account.
-- An organization contains multiple students.
-- An organization contains multiple courses.
-- A course contains multiple students.
-- A course contains multiple quizzes.
-- A course contains multiple resources.
-- A student may receive multiple certificates.
+Represents enrollment of a user in a course.
 
----
+Important fields:
 
-# 7. API Design
+* courseId
+* userId
+* status
+* enrolledAt
+* completedAt
 
 ---
 
-# 7.1 Authentication APIs
+## Resource
 
-- POST /auth/register
-- POST /auth/login
-- POST /auth/logout
+Represents learning material under a course.
 
----
+Important fields:
 
-# 7.2 Organization APIs
+* id
+* courseId
+* title
+* description
+* type
+* url
+* fileUrl
+* originalFileName
+* contentType
+* sizeBytes
+* status
+* createdAt
+* updatedAt
+* deletedAt
 
-- GET /organizations
-- POST /organizations
-- GET /organizations/:id
+Supported types:
 
----
-
-# 7.3 Course APIs
-
-- GET /courses
-- POST /courses
-- GET /courses/:id
-
----
-
-# 7.4 Resource APIs
-
-- POST /resources
-- GET /courses/:id/resources
+* LINK
+* FILE
 
 ---
 
-# 7.5 Quiz APIs
+## Quiz
 
-- POST /quizzes
-- GET /courses/:id/quizzes
+Represents a course quiz.
+
+Important fields:
+
+* id
+* courseId
+* title
+* description
+* passingScore
+* isPublished
+* status
+* createdAt
+* updatedAt
+* deletedAt
 
 ---
 
-# 7.6 Certificate APIs
+## QuizQuestion
 
-- POST /certificates
-- GET /students/:id/certificates
+Represents a question inside a quiz.
+
+Important fields:
+
+* id
+* quizId
+* text
+* type
+* points
+* position
+* createdAt
+* updatedAt
+
+Supported current type:
+
+* SINGLE_CHOICE
 
 ---
 
-# 8. Object-Oriented Design (OOD)
+## QuizOption
+
+Represents an answer option.
+
+Important fields:
+
+* id
+* questionId
+* text
+* isCorrect
+* position
+* createdAt
+* updatedAt
 
 ---
 
-# 8.1 Core Classes
+## QuizAttempt
+
+Represents a user's attempt at a quiz.
+
+Important fields:
+
+* id
+* quizId
+* userId
+* score
+* passed
+* status
+* startedAt
+* submittedAt
+
+---
+
+## QuizAttemptAnswer
+
+Represents an answer submitted by a user in a quiz attempt.
+
+Important fields:
+
+* id
+* attemptId
+* questionId
+* selectedOptionId
+* isCorrect
+* pointsAwarded
+* createdAt
+
+---
+
+## Certificate
+
+Represents a course certificate issued to a user.
+
+Important fields:
+
+* id
+* certificateNumber
+* verificationCode
+* organizationId
+* courseId
+* userId
+* title
+* studentNameSnapshot
+* courseTitleSnapshot
+* organizationNameSnapshot
+* status
+* issuedAt
+* revokedAt
+* revokeReason
+* pdfUrl
+* createdAt
+* updatedAt
+
+---
+
+## RefreshToken
+
+Represents a refresh token session.
+
+Important fields:
+
+* id
+* userId
+* tokenHash
+* expiresAt
+* revokedAt
+* replacedByTokenId
+* createdAt
+
+---
+
+## EmailVerificationToken
+
+Represents email verification flow.
+
+Important fields:
+
+* id
+* userId
+* tokenHash
+* expiresAt
+* usedAt
+* createdAt
+
+---
+
+## PasswordResetToken
+
+Represents password reset flow.
+
+Important fields:
+
+* id
+* userId
+* tokenHash
+* expiresAt
+* usedAt
+* createdAt
+
+---
+
+## AuditLog
+
+Represents sensitive action history.
+
+Important fields:
+
+* id
+* actorUserId
+* organizationId
+* action
+* entityType
+* entityId
+* ipAddress
+* userAgent
+* metadata
+* createdAt
+
+---
+
+# 7.3 Relationships
+
+* A User may own many Organizations.
+* A User may belong to many Organizations through OrganizationMembership.
+* An Organization has one owner.
+* An Organization has many OrganizationMembership records.
+* An Organization has many Courses.
+* A Course belongs to one Organization.
+* A Course has many Resources.
+* A Course has many Quizzes.
+* A Course has many CourseEnrollments.
+* A User may be enrolled in many Courses through CourseEnrollment.
+* A Quiz belongs to one Course.
+* A Quiz has many QuizQuestions.
+* A QuizQuestion has many QuizOptions.
+* A Quiz has many QuizAttempts.
+* A QuizAttempt belongs to one User.
+* A QuizAttempt has many QuizAttemptAnswers.
+* A Certificate belongs to one Organization.
+* A Certificate belongs to one Course.
+* A Certificate belongs to one User.
+* A User may have many Certificates.
+* A User may have many RefreshTokens.
+* A User may have many EmailVerificationTokens.
+* A User may have many PasswordResetTokens.
+* AuditLogs may reference Users and Organizations.
+
+---
+
+# 8. API Design
+
+---
+
+# 8.1 API Base Path
+
+All versioned API endpoints shall use:
+
+```text
+/api/v1
+```
+
+---
+
+# 8.2 Authentication APIs
+
+* POST `/api/v1/auth/register`
+* POST `/api/v1/auth/login`
+* POST `/api/v1/auth/refresh`
+* POST `/api/v1/auth/logout`
+* POST `/api/v1/auth/logout-all`
+* POST `/api/v1/auth/forgot-password`
+* POST `/api/v1/auth/reset-password`
+* POST `/api/v1/auth/verify-email`
+* POST `/api/v1/auth/resend-verification`
+
+---
+
+# 8.3 User APIs
+
+* GET `/api/v1/users/me`
+
+---
+
+# 8.4 Organization APIs
+
+* POST `/api/v1/organizations`
+* GET `/api/v1/organizations`
+* GET `/api/v1/organizations/{organizationId}`
+* PUT `/api/v1/organizations/{organizationId}`
+* DELETE `/api/v1/organizations/{organizationId}`
+
+---
+
+# 8.5 Organization Membership APIs
+
+* POST `/api/v1/organizations/{organizationId}/members`
+* GET `/api/v1/organizations/{organizationId}/members`
+* DELETE `/api/v1/organizations/{organizationId}/members/{userId}`
+
+---
+
+# 8.6 Course APIs
+
+* POST `/api/v1/courses`
+* GET `/api/v1/courses`
+* GET `/api/v1/courses/{courseId}`
+* PUT `/api/v1/courses/{courseId}`
+* DELETE `/api/v1/courses/{courseId}`
+
+---
+
+# 8.7 Enrollment APIs
+
+* POST `/api/v1/enrollments`
+* GET `/api/v1/enrollments/me`
+* GET `/api/v1/enrollments/course/{courseId}`
+* GET `/api/v1/enrollments/user/{userId}`
+
+---
+
+# 8.8 Resource APIs
+
+* POST `/api/v1/resources`
+* GET `/api/v1/resources/course/{courseId}`
+* GET `/api/v1/resources/{resourceId}`
+* PUT `/api/v1/resources/{resourceId}`
+* DELETE `/api/v1/resources/{resourceId}`
+* POST `/api/v1/files`
+
+---
+
+# 8.9 Quiz APIs
+
+* POST `/api/v1/quizzes`
+* GET `/api/v1/quizzes/course/{courseId}`
+* GET `/api/v1/quizzes/{quizId}`
+* PUT `/api/v1/quizzes/{quizId}`
+* DELETE `/api/v1/quizzes/{quizId}`
+* POST `/api/v1/quizzes/{quizId}/questions`
+* POST `/api/v1/quizzes/{quizId}/publish`
+* POST `/api/v1/quizzes/{quizId}/attempts`
+* POST `/api/v1/quiz-attempts/{attemptId}/submit`
+* GET `/api/v1/quiz-attempts/{attemptId}`
+* GET `/api/v1/quizzes/{quizId}/attempts`
+
+---
+
+# 8.10 Certificate APIs
+
+* POST `/api/v1/certificates`
+* GET `/api/v1/certificates/me`
+* GET `/api/v1/certificates/organization/{organizationId}`
+* GET `/api/v1/certificates/{certificateId}`
+* POST `/api/v1/certificates/{certificateId}/revoke`
+* GET `/api/v1/public/certificates/verify/{verificationCode}`
+
+---
+
+# 9. Object-Oriented Design
+
+---
+
+# 9.1 Core Classes and Responsibilities
 
 ## User
 
 Responsibilities:
 
-- Authentication
-- Account management
-
----
-
-## Student
-
-Responsibilities:
-
-- Course enrollment
-- Certificate ownership
+* identity
+* authentication
+* account profile
+* password hash ownership
 
 ---
 
@@ -614,8 +1713,19 @@ Responsibilities:
 
 Responsibilities:
 
-- Course management
-- Student management
+* training organization representation
+* ownership relationship
+* organization lifecycle status
+
+---
+
+## OrganizationMembership
+
+Responsibilities:
+
+* organization-scoped role
+* membership status
+* owner/student distinction inside organization
 
 ---
 
@@ -623,8 +1733,19 @@ Responsibilities:
 
 Responsibilities:
 
-- Resource management
-- Quiz management
+* course representation
+* organization association
+* course lifecycle status
+
+---
+
+## CourseEnrollment
+
+Responsibilities:
+
+* user-course enrollment
+* enrollment status
+* completion tracking
 
 ---
 
@@ -632,7 +1753,9 @@ Responsibilities:
 
 Responsibilities:
 
-- Learning material representation
+* learning material representation
+* LINK or FILE type handling
+* file metadata ownership
 
 ---
 
@@ -640,7 +1763,50 @@ Responsibilities:
 
 Responsibilities:
 
-- Quiz representation
+* quiz representation
+* publish state
+* passing score
+* course association
+
+---
+
+## QuizQuestion
+
+Responsibilities:
+
+* question representation
+* question type
+* question points
+
+---
+
+## QuizOption
+
+Responsibilities:
+
+* answer option representation
+* correct answer marker
+
+---
+
+## QuizAttempt
+
+Responsibilities:
+
+* user quiz attempt
+* score tracking
+* pass/fail result
+* submission lifecycle
+
+---
+
+## QuizAttemptAnswer
+
+Responsibilities:
+
+* submitted selected answer
+* correctness
+* awarded points
 
 ---
 
@@ -648,141 +1814,373 @@ Responsibilities:
 
 Responsibilities:
 
-- Certificate ownership and validation
+* certificate issuance
+* verification code
+* historical snapshots
+* revocation state
 
 ---
 
-# 8.2 Design Principles
+## AuthorizationService
+
+Responsibilities:
+
+* organization ownership checks
+* organization membership checks
+* course access checks
+* enrollment checks
+* certificate access checks
+* quiz attempt access checks
+
+---
+
+## FileStorageService
+
+Responsibilities:
+
+* file storage abstraction
+* upload handling
+* storage provider independence
+
+---
+
+## AuditLog
+
+Responsibilities:
+
+* sensitive action history
+* traceability
+* compliance support
+
+---
+
+# 9.2 Design Principles
 
 The system shall follow:
 
-- SOLID principles
-- Separation of concerns
-- Modular architecture
-- Reusable components
-- Clean code practices
+* SOLID principles
+* separation of concerns
+* modular architecture
+* reusable components
+* clean code practices
+* DTO-based API boundaries
+* service-based business rules
+* repository-based persistence
+* centralized authorization checks
 
 ---
 
-# 9. Security Design
+# 10. Security Design
 
 ---
 
-# 9.1 Authentication Security
+# 10.1 Authentication Security
 
-- JWT-based authentication
-- Secure password hashing
-- Token expiration management
+The system shall use:
 
----
-
-# 9.2 Authorization Security
-
-- Role-based access control
-- Organization-level isolation
-- Protected API routes
+* JWT-based authentication
+* secure password hashing
+* token expiration
+* refresh token rotation where possible
+* refresh token revocation
+* password reset tokens
+* email verification tokens
 
 ---
 
-# 9.3 Data Protection
+# 10.2 Authorization Security
 
-- Encrypted sensitive data
-- Input validation
-- SQL injection prevention
+The system shall use organization-scoped authorization.
 
----
+The system shall not rely on global `users.role` for business permissions.
 
-# 10. User Interface Requirements
+Authorization must check:
 
----
-
-# 10.1 Dashboard Requirements
-
-The platform shall provide:
-
-- Organization dashboard
-- Course dashboard
-- Student dashboard
+* organization ownership
+* organization membership
+* course ownership
+* course enrollment
+* quiz attempt ownership
+* certificate ownership or organization ownership
 
 ---
 
-# 10.2 Responsive Design
+# 10.3 Data Protection
 
-The UI shall support:
+The system shall protect sensitive data.
 
-- Desktop devices
-- Tablets
-- Mobile devices
+Sensitive fields must not be returned in API responses:
 
----
-
-# 10.3 Accessibility
-
-The platform should support:
-
-- Readable typography
-- Accessible color contrast
-- Keyboard navigation support
+* passwordHash
+* refreshTokenHash
+* resetTokenHash
+* emailVerificationTokenHash
+* internal secrets
 
 ---
 
-# 11. Deployment Requirements
+# 10.4 Multi-Tenant Isolation
+
+The system shall prevent unauthorized access between organizations.
+
+Users can access organization data only when they are:
+
+* owner of the organization
+* active member of the organization
+* enrolled in a course that belongs to the organization, where applicable
 
 ---
 
-# 11.1 Hosting
+# 10.5 Rate Limiting
 
-The system should support cloud deployment.
+The system shall protect sensitive public endpoints from abuse.
 
-Suggested platforms:
+Rate limiting should apply to:
 
-- Vercel
-- AWS
-- DigitalOcean
-
----
-
-# 11.2 Backend Deployment
-
-Suggested environments:
-
-- Docker containers
-- Node.js runtime servers
+* login
+* register
+* forgot password
+* resend verification
+* reset password where appropriate
 
 ---
 
-# 11.3 Database Hosting
-
-Suggested services:
-
-- PostgreSQL managed services
-- MySQL managed services
+# 11. API Response Design
 
 ---
 
-# 12. Future Scalability
+# 11.1 Success Response
+
+All successful responses shall use a consistent wrapper.
+
+Example:
+
+```json
+{
+  "success": true,
+  "message": "Operation successful",
+  "data": {}
+}
+```
+
+---
+
+# 11.2 Error Response
+
+All error responses shall use a consistent wrapper.
+
+Example:
+
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": []
+}
+```
+
+The system may extend errors with:
+
+* errorCode
+* timestamp
+* path
+* field validation details
+
+---
+
+# 11.3 Pagination
+
+List endpoints shall support pagination.
+
+Example:
+
+```text
+?page=0&size=10&sort=createdAt,desc
+```
+
+Paginated responses should include:
+
+* items
+* page
+* size
+* totalElements
+* totalPages
+
+---
+
+# 12. Deployment Requirements
+
+---
+
+# 12.1 Backend Deployment
+
+The backend should support deployment using:
+
+* Docker
+* cloud VM
+* managed container platform
+* CI/CD pipeline
+
+---
+
+# 12.2 Database Deployment
+
+The system should support PostgreSQL managed services.
+
+Possible providers:
+
+* Neon
+* Supabase
+* AWS RDS
+* DigitalOcean Managed PostgreSQL
+
+---
+
+# 12.3 Configuration
+
+The system shall use environment-based configuration.
+
+Configuration should include:
+
+* database URL
+* JWT secret
+* token expiration settings
+* storage configuration
+* CORS settings
+* rate limiting settings
+* mail settings if email sending is enabled
+
+---
+
+# 12.4 Health Checks
+
+The backend shall expose health check endpoints suitable for deployment monitoring.
+
+---
+
+# 13. Testing Requirements
+
+---
+
+# 13.1 Unit Tests
+
+Unit tests should cover:
+
+* authentication logic
+* authorization logic
+* course business rules
+* enrollment rules
+* resource validation
+* quiz scoring
+* certificate issuance rules
+* token validation
+
+---
+
+# 13.2 Integration Tests
+
+Integration tests should cover:
+
+* registration without role
+* login
+* refresh token flow
+* logout
+* organization creation
+* owner membership creation
+* membership management
+* course creation
+* course enrollment
+* resource creation
+* quiz creation
+* quiz attempt submission
+* certificate issuance
+* public certificate verification
+* cross-organization access rejection
+
+---
+
+# 13.3 Security Tests
+
+Security tests should verify:
+
+* protected endpoints reject unauthenticated requests
+* unrelated users cannot access organization data
+* students cannot manage owner-only resources
+* owners cannot manage other owners' organizations
+* refresh token revocation works
+* password reset tokens cannot be reused
+* email verification tokens cannot be reused
+* sensitive data is not exposed
+
+---
+
+# 14. Current Out-of-Scope Items
+
+The following are out of scope for the current phase:
+
+* frontend application
+* web dashboard
+* mobile app
+* React / Next.js / Tailwind implementation
+* public certificate verification web page
+* payment system
+* billing and subscriptions
+* AI recommendations
+* attendance tracking
+* mentorship sessions
+* chat system
+* notification system
+* analytics dashboard
+* leaderboard and badges
+* assignment submission workflow
+* advanced question bank engine
+* video calls
+* calendar scheduling
+* advanced reporting
+* microservices split
+* multi-owner organization management
+* ownership transfer
+* marketplace/public course discovery
+* advanced file processing
+* video streaming
+* social login
+* OAuth login
+* multi-factor authentication
+
+---
+
+# 15. Future Scalability
 
 The architecture should support future extensions including:
 
-- Assignment systems
-- Attendance tracking
-- Mentorship modules
-- Progress analytics
-- Notifications
-- Team projects
-- Communication systems
-- Advanced reporting
+* instructor role
+* organization manager role
+* multiple owners
+* ownership transfer
+* invitation-based membership
+* bulk member import
+* assignment system
+* attendance tracking
+* progress analytics
+* notifications
+* team projects
+* advanced reporting
+* certificate PDF generation
+* QR code verification
+* external storage providers
+* public certificate verification page
+* payment and subscription modules
 
 ---
 
-# 13. Product Positioning
+# 16. Product Positioning
 
 ## Official Product Category
 
-Training & Course Management Platform
+API-only Training and Course Management Backend Platform
 
 ---
 
-# 14. One-Line Product Pitch
+# 17. One-Line Product Pitch
 
-A centralized platform for managing organizations, courses, students, educational resources, quizzes, and certificates within universities and training institutions.
+Cohive is a modular backend API for managing organizations, memberships, courses, resources, quizzes, enrollments, and verifiable certificates with organization-scoped permissions.
