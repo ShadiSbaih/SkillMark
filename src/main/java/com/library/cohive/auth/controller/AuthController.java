@@ -6,6 +6,7 @@ import com.library.cohive.auth.dto.RegisterRequest;
 import com.library.cohive.auth.service.AuthService;
 import com.library.cohive.common.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,7 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
+    @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "Logout", description = "Returns a successful response for clients that clear JWT tokens on logout.")
     public ApiResponse<Void> logout() {
         return ApiResponse.success("Logout successful", null);

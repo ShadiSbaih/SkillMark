@@ -1,5 +1,7 @@
 package com.library.cohive.config;
 
+import com.library.cohive.security.filter.ApiCacheControlFilter;
+import com.library.cohive.security.filter.ApiRateLimitingFilter;
 import com.library.cohive.security.filter.JwtAuthenticationFilter;
 import com.library.cohive.security.handler.RestAccessDeniedHandler;
 import com.library.cohive.security.handler.RestAuthenticationEntryPoint;
@@ -24,6 +26,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
+	private final ApiRateLimitingFilter apiRateLimitingFilter;
+	private final ApiCacheControlFilter apiCacheControlFilter;
 	private final JwtAuthenticationFilter jwtAuthenticationFilter;
 	private final CustomUserDetailsService userDetailsService;
 	private final RestAuthenticationEntryPoint authenticationEntryPoint;
@@ -44,7 +48,9 @@ public class SecurityConfig {
 						.authenticationEntryPoint(authenticationEntryPoint)
 						.accessDeniedHandler(accessDeniedHandler)
 				)
-				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+				.addFilterAfter(apiRateLimitingFilter, JwtAuthenticationFilter.class)
+				.addFilterAfter(apiCacheControlFilter, ApiRateLimitingFilter.class);
 
 		return http.build();
 	}

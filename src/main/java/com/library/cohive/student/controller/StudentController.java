@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -41,7 +42,8 @@ public class StudentController {
 
     @GetMapping
     @Operation(summary = "List students", description = "Returns a paginated list of students visible to the authenticated user.")
-    public ApiResponse<PageResponse<StudentResponse>> getStudents(@PageableDefault(size = 10) Pageable pageable) {
+    public ApiResponse<PageResponse<StudentResponse>> getStudents(
+            @ParameterObject @PageableDefault(size = 10) Pageable pageable) {
         Page<StudentResponse> page = studentService.getStudents(pageable);
         return ApiResponse.success(PageResponse.from(page));
     }

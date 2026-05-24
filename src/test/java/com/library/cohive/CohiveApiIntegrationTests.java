@@ -15,6 +15,8 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
@@ -62,10 +64,16 @@ class CohiveApiIntegrationTests {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.info.title", is("Cohive Backend API")))
+                .andExpect(jsonPath("$.info.description", containsString("Versioning strategy: path-based versioning under `/api/v1`.")))
                 .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.type", is("http")))
+                .andExpect(jsonPath("$.components.responses.TooManyRequests.description", containsString("rate limit")))
                 .andExpect(jsonPath("$.paths['/api/v1/courses'].get.summary", is("List courses")))
+                .andExpect(jsonPath("$.paths['/api/v1/courses'].get.responses['429'].$ref", is("#/components/responses/TooManyRequests")))
                 .andExpect(jsonPath("$.paths['/api/v1/students'].post.summary", is("Create a student")))
-                .andExpect(jsonPath("$.paths['/api/v1/users/me'].get.summary", is("Get current user")));
+                .andExpect(jsonPath("$.paths['/api/v1/users/me'].get.summary", is("Get current user")))
+                .andExpect(jsonPath("$.paths['/api/v1/resources'].post.description", containsString("Supported types are LINK, ARTICLE, VIDEO, DOCUMENT, and REPOSITORY")))
+                .andExpect(jsonPath("$.components.schemas.ResourceResponse.properties.typeCategory.type", is("string")))
+                .andExpect(jsonPath("$.components.schemas.CreateResourceRequest.properties.type.enum", hasItem("DOCUMENT")));
     }
 
     @Test
@@ -88,12 +96,18 @@ class CohiveApiIntegrationTests {
         postJson("/api/v1/resources", ownerToken, """
                 {
                   "title": "Spring Docs",
-                  "type": "LINK",
-                  "url": "https://spring.io",
+                  "type": "DOCUMENT",
+                  "url": "https://docs.spring.io/spring-boot/reference/",
                   "courseId": "%s"
                 }
                 """.formatted(courseId))
-                .andExpect(status().isCreated());
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.type", is("DOCUMENT")))
+                .andExpect(jsonPath("$.data.typeDisplayName", is("Document")))
+                .andExpect(jsonPath("$.data.typeCategory", is("LEARNING_CONTENT")))
+                .andExpect(jsonPath("$.data.previewable", is(true)))
+                .andExpect(jsonPath("$.data.downloadable", is(true)))
+                .andExpect(jsonPath("$.data.allowedUrlSchemes", hasItem("https")));
 
         postJson("/api/v1/quizzes", ownerToken, """
                 {
@@ -134,7 +148,9 @@ class CohiveApiIntegrationTests {
         getJson("/api/v1/resources/course/" + courseId, studentToken)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data", hasSize(1)))
-                .andExpect(jsonPath("$.data[0].title", is("Spring Docs")));
+                .andExpect(jsonPath("$.data[0].title", is("Spring Docs")))
+                .andExpect(jsonPath("$.data[0].type", is("DOCUMENT")))
+                .andExpect(jsonPath("$.data[0].typeCategory", is("LEARNING_CONTENT")));
 
         getJson("/api/v1/quizzes/course/" + courseId, studentToken)
                 .andExpect(status().isOk())
@@ -172,6 +188,46 @@ class CohiveApiIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data", hasSize(1)))
                 .andExpect(jsonPath("$.data[0].courseId", is(ownerOneCourseId)));
+    }
+
+    @Test
+    void resourceCreationRejectsUrlsThatDoNotMatchTypeRules() throws Exception {
+        String ownerToken = register("Owner One", "owner1@example.com", "password123", "OWNER");
+        String organizationId = createOrganization(ownerToken, "Tech Academy");
+        String courseId = createCourse(ownerToken, organizationId, "Spring Boot Basics");
+
+        postJson("/api/v1/resources", ownerToken, """
+                {
+                  "title": "Invalid Resource",
+                  "type": "VIDEO",
+                  "url": "mailto:trainer@example.com",
+                  "courseId": "%s"
+                }
+                """.formatted(courseId))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.errors[0]", containsString("URL must be absolute and use one of: http, https")));
+    }
+
+    @Test
+    void apiResponsesExposeCacheHeadersForReadsAndWrites() throws Exception {
+        String ownerToken = register("Owner One", "owner1@example.com", "password123", "OWNER");
+
+        postJson("/api/v1/organizations", ownerToken, """
+                {
+                  "name": "Tech Academy"
+                }
+                """)
+                .andExpect(status().isCreated())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string(HttpHeaders.CACHE_CONTROL, "no-store"));
+
+        getJson("/api/v1/users/me", ownerToken)
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string(HttpHeaders.CACHE_CONTROL, containsString("private")))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string(HttpHeaders.VARY, containsString(HttpHeaders.AUTHORIZATION)));
     }
 
     private String register(String name, String email, String password, String role) throws Exception {

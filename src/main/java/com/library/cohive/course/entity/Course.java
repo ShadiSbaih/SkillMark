@@ -2,17 +2,23 @@ package com.library.cohive.course.entity;
 
 import com.library.cohive.common.entity.AuditableEntity;
 import com.library.cohive.organization.entity.Organization;
+import com.library.cohive.resource.entity.Resource;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -32,4 +38,9 @@ public class Course extends AuditableEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "organization_id", nullable = false)
     private Organization organization;
+
+    @Builder.Default
+    @OneToMany(mappedBy = "course")
+    @OrderBy("createdAt DESC")
+    private Set<Resource> resources = new LinkedHashSet<>();
 }

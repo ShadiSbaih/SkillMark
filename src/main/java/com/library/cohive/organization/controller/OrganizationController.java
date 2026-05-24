@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
+import org.springdoc.core.annotations.ParameterObject;
 
 @RestController
 @RequestMapping("/api/v1/organizations")
@@ -44,7 +45,8 @@ public class OrganizationController {
 
     @GetMapping
     @Operation(summary = "List organizations", description = "Returns the organizations visible to the authenticated user.")
-    public ApiResponse<PageResponse<OrganizationResponse>> getOrganizations(@PageableDefault(size = 10) Pageable pageable) {
+    public ApiResponse<PageResponse<OrganizationResponse>> getOrganizations(
+            @ParameterObject @PageableDefault(size = 10) Pageable pageable) {
         Page<OrganizationResponse> page = organizationService.getOrganizations(pageable);
         return ApiResponse.success(PageResponse.from(page));
     }
@@ -75,7 +77,7 @@ public class OrganizationController {
     @Operation(summary = "List organization students", description = "Returns a paginated list of students belonging to the selected organization.")
     public ApiResponse<PageResponse<StudentResponse>> getOrganizationStudents(
             @PathVariable("id") UUID organizationId,
-            @PageableDefault(size = 10) Pageable pageable) {
+            @ParameterObject @PageableDefault(size = 10) Pageable pageable) {
         Page<StudentResponse> page = organizationService.getOrganizationStudents(organizationId, pageable);
         return ApiResponse.success(PageResponse.from(page));
     }

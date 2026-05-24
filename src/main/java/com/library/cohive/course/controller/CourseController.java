@@ -7,6 +7,7 @@ import com.library.cohive.course.dto.CreateCourseRequest;
 import com.library.cohive.course.dto.UpdateCourseRequest;
 import com.library.cohive.course.service.CourseService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -15,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -46,7 +48,8 @@ public class CourseController {
     @GetMapping
     @Operation(summary = "List courses", description = "Returns a paginated list of courses visible to the authenticated user, optionally filtered by organization.")
     public ApiResponse<PageResponse<CourseResponse>> getCourses(
-            @PageableDefault(size = 10) Pageable pageable,
+            @ParameterObject @PageableDefault(size = 10) Pageable pageable,
+            @Parameter(description = "Optional organization UUID used to filter the visible course collection.")
             @RequestParam(value = "organizationId", required = false) UUID organizationId) {
         Page<CourseResponse> page = courseService.getCourses(pageable, organizationId);
         return ApiResponse.success(PageResponse.from(page));

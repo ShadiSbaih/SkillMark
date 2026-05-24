@@ -31,7 +31,7 @@ public class ResourceController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Create a resource", description = "Adds a learning resource to a course owned by the authenticated organization owner.")
+    @Operation(summary = "Create a resource", description = "Adds a URL-backed learning resource to a course owned by the authenticated organization owner. Supported types are LINK, ARTICLE, VIDEO, DOCUMENT, and REPOSITORY.")
     public ApiResponse<ResourceResponse> createResource(@Valid @RequestBody CreateResourceRequest request) {
         return ApiResponse.success("Resource created successfully", resourceService.createResource(request));
     }
