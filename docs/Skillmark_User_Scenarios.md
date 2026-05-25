@@ -1,34 +1,34 @@
 # Skillmark User Scenarios
 
-## Full User Scenario Coverage
+## Full User Scenario Coverage — Version 2.0
 
-This document describes the main user scenarios for the expanded **Skillmark** platform.
+This document describes the complete user scenarios for the expanded **Skillmark** platform.
 
 Skillmark is a university-focused training, assessment, and certification backend platform.
 
 It supports:
 
-- Clerk authentication
-- organizations
-- organization memberships
-- programs/workshops
+- Clerk authentication and webhook sync
+- organizations and organization memberships
+- programs and workshops
 - program enrollments
 - invitation links
 - program resources
-- quizzes
-- quiz attempts
-- certificates
+- quizzes, questions, and options
+- quiz attempts with timing enforcement
+- automatic scoring
+- certificates with AUTO and MANUAL issuance
 - public certificate verification
 - statistics
 - audit logs
 - Cloudflare R2 file storage
-- Cloudinary image/media management
+- Cloudinary image and media management
 
 ---
 
 # 1. User Types
 
-Skillmark has four main user types/states:
+Skillmark has four main user types:
 
 1. Unauthenticated Visitor
 2. Authenticated User
@@ -99,35 +99,40 @@ Verify whether a certificate is valid using a verification code.
 
 1. Visitor opens public certificate verification page.
 2. Visitor enters verification code.
-3. Frontend calls public verification endpoint.
+3. Frontend calls:
+   ```
+   GET /api/v1/public/certificates/verify/{verificationCode}
+   ```
 4. Backend searches certificate by verification code.
-5. Backend returns public certificate data.
+5. Backend returns safe public certificate data.
 
 ### Business Rules
 
-- No login is required.
-- The response must not expose sensitive user data.
-- The response can include:
-  - certificate status
-  - participant name snapshot
-  - quiz title snapshot
-  - program title snapshot
-  - organization name snapshot
-  - issued date
-  - revoked state if revoked
+- No authentication is required.
+- The response must not expose sensitive user data such as internal user IDs or emails.
+- The response must include:
+  - certificateStatus
+  - participantNameSnapshot
+  - quizTitleSnapshot
+  - programTitleSnapshot
+  - organizationNameSnapshot
+  - issuedAt
+  - isRevoked
+  - revokedAt (if revoked)
+  - revokeReason (if revoked)
 
 ### Alternative / Error Flows
 
-- If verification code does not exist, return not found response.
-- If certificate is revoked, return certificate data with status `REVOKED`.
+- Verification code does not exist: return HTTP 404.
+- Certificate is REVOKED: return certificate data with `isRevoked = true` and revocation details.
 
 ### Expected Result
 
-Visitor can verify if the certificate is valid, revoked, or not found.
+Visitor can confirm whether the certificate is valid, revoked, or not found.
 
 ---
 
-## SC-002: Visitor Tries to Access Private Program
+## SC-002: Visitor Tries to Access Private Endpoint
 
 ### Actor
 
@@ -135,25 +140,28 @@ Unauthenticated Visitor
 
 ### Goal
 
-Access a private program page or resource.
+Access a private program, resource, or quiz endpoint without authentication.
 
 ### Preconditions
 
 - Visitor is not logged in.
+- Target endpoint requires authentication.
 
 ### Main Flow
 
-1. Visitor opens private program/resource URL.
-2. Backend checks authentication.
-3. Backend rejects the request.
+1. Visitor sends request to a private endpoint.
+2. Spring Security filter checks for Authorization header.
+3. Authorization header is missing or token is absent.
+4. Backend rejects the request.
 
 ### Business Rules
 
-- Private endpoints require a valid Clerk session/token.
+- All private endpoints require a valid Clerk JWT token in the Authorization header.
+- The public certificate verification endpoint does not require authentication.
 
 ### Expected Result
 
-System returns unauthorized response.
+System returns HTTP 401 Unauthorized.
 
 ---
 
@@ -165,35 +173,42 @@ Unauthenticated Visitor
 
 ### Goal
 
-Join a program through invitation link.
+Join a program through an invitation link without being logged in.
 
 ### Preconditions
 
-- Invitation link exists.
+- A valid invitation link exists.
+- Visitor is not authenticated.
 
 ### Main Flow
 
-1. Visitor opens invitation link.
-2. Frontend detects user is not logged in.
-3. Frontend redirects user to Clerk sign in/sign up.
-4. After authentication, user can continue the join flow.
+1. Visitor opens the invitation link in a browser.
+2. Frontend detects the user is not logged in.
+3. Frontend redirects user to Clerk sign-in or sign-up page.
+4. After successful Clerk authentication, user is returned to the invitation flow.
+5. Frontend calls:
+   ```
+   POST /api/v1/invitations/{code}/join
+   ```
+6. Backend validates invitation and creates enrollment.
 
 ### Business Rules
 
-- Joining a program requires authentication.
-- Invitation validation happens after user is authenticated.
+- Joining a program requires a valid Clerk session.
+- Invitation validation happens only after the user is authenticated.
+- The invitation code must still be valid at the time of the join request.
 
 ### Expected Result
 
-Visitor is asked to login/register before joining the program.
+Visitor is redirected to authenticate before being allowed to join the program.
 
 ---
 
-# 4. Authenticated User Scenarios
+# 4. Authentication and User Sync Scenarios
 
 ---
 
-## SC-004: User First Login and Backend Profile Sync
+## SC-004: User First Login and Backend Profile Auto-Creation
 
 ### Actor
 
@@ -201,43 +216,169 @@ Authenticated User
 
 ### Goal
 
-Create or update local backend user profile after Clerk authentication.
+Automatically create a local backend user profile on first authenticated API request.
 
 ### Preconditions
 
-- User has a valid Clerk session/token.
-- User may or may not exist in local `users` table.
+- User has successfully authenticated via Clerk.
+- User does not yet exist in the local `users` table.
 
 ### Main Flow
 
-1. User logs in using Clerk.
-2. Frontend calls backend `/api/v1/users/sync`.
-3. Backend verifies Clerk token.
-4. Backend extracts Clerk user ID.
-5. Backend checks if local user exists by `clerk_user_id`.
-6. If not found, backend creates local user record.
-7. If found, backend updates name/email/avatar if changed.
-8. Backend returns current user profile.
+1. User logs in through Clerk.
+2. Frontend includes Clerk JWT token in the Authorization header.
+3. Backend Spring Security filter intercepts the request.
+4. Backend verifies the JWT token using Clerk JWKS endpoint.
+5. Backend extracts `clerkUserId` from the token `sub` claim.
+6. Backend queries local `users` table by `clerk_user_id`.
+7. Local user not found.
+8. Backend creates local user record from token claims:
+   - `clerk_user_id` from `sub`
+   - `name` from token claims
+   - `email` from token claims
+   - `avatar_url` from token claims if available
+   - `status = ACTIVE`
+9. Backend stores resolved user in Spring SecurityContext.
+10. Request proceeds to the controller.
 
 ### Business Rules
 
-- `clerk_user_id` must be unique.
-- Backend must not store passwords.
-- Clerk is source of truth for authentication identity.
-- Backend user table is used for domain relationships.
+- `clerk_user_id` must be unique in the local users table.
+- Backend must never store passwords.
+- Clerk is the source of truth for authentication identity.
+- The local users table is used only for domain relationships.
+- Auto-creation must be idempotent.
 
 ### Alternative / Error Flows
 
-- Invalid Clerk token: return unauthorized.
-- Missing email from Clerk: return validation/business error if email is required.
+- Invalid or expired Clerk token: return HTTP 401.
+- Clerk token missing required claims: log error and return HTTP 401.
 
 ### Expected Result
 
-User has a synchronized local backend profile.
+Local user profile is created automatically on first authenticated request.
 
 ---
 
-## SC-005: Authenticated User Views Own Profile
+## SC-005: Clerk Webhook Creates User on Registration
+
+### Actor
+
+Clerk (System)
+
+### Goal
+
+Proactively create a local user record when a user registers via Clerk.
+
+### Preconditions
+
+- Clerk webhook is configured with `CLERK_WEBHOOK_SECRET`.
+- Clerk sends `user.created` event.
+
+### Main Flow
+
+1. User registers through Clerk.
+2. Clerk sends `user.created` webhook event to:
+   ```
+   POST /api/v1/webhooks/clerk
+   ```
+3. Backend verifies webhook signature using `CLERK_WEBHOOK_SECRET`.
+4. Backend parses the event payload.
+5. Backend checks if user already exists by `clerk_user_id`.
+6. If not found: backend creates local user record.
+7. If found: backend skips creation (idempotent).
+
+### Business Rules
+
+- Webhook signature must be verified before processing.
+- Requests with invalid or missing signatures must return HTTP 401.
+- Webhook processing must be idempotent.
+- Duplicate events must not create duplicate users.
+
+### Expected Result
+
+Local user record exists before the user makes their first API request.
+
+---
+
+## SC-006: Clerk Webhook Updates User Profile
+
+### Actor
+
+Clerk (System)
+
+### Goal
+
+Sync user profile changes when a user updates their Clerk account.
+
+### Preconditions
+
+- Clerk webhook is configured.
+- Clerk sends `user.updated` event.
+- Local user exists.
+
+### Main Flow
+
+1. User updates their name, email, or avatar in Clerk.
+2. Clerk sends `user.updated` webhook event.
+3. Backend verifies webhook signature.
+4. Backend finds local user by `clerk_user_id`.
+5. Backend updates:
+   - `name`
+   - `email`
+   - `avatar_url`
+   - `updated_at`
+
+### Business Rules
+
+- Certificate snapshots are NOT updated when a user renames themselves.
+- Snapshots were captured at issuance time and remain as-is.
+
+### Expected Result
+
+Local user profile reflects the latest Clerk account data.
+
+---
+
+## SC-007: Clerk Webhook Deactivates Deleted User
+
+### Actor
+
+Clerk (System)
+
+### Goal
+
+Deactivate local user when their Clerk account is deleted.
+
+### Preconditions
+
+- Clerk webhook is configured.
+- Clerk sends `user.deleted` event.
+- Local user exists.
+
+### Main Flow
+
+1. User is deleted from Clerk.
+2. Clerk sends `user.deleted` webhook event.
+3. Backend verifies webhook signature.
+4. Backend finds local user by `clerk_user_id`.
+5. Backend sets user `status = DELETED`.
+6. Backend does not hard delete the user record.
+7. Historical data (attempts, certificates, enrollments) is preserved.
+
+### Business Rules
+
+- Soft delete only.
+- Historical records must be preserved.
+- Deleted user can no longer authenticate.
+
+### Expected Result
+
+Local user is deactivated without losing historical data.
+
+---
+
+## SC-008: Authenticated User Views Own Profile
 
 ### Actor
 
@@ -245,32 +386,39 @@ Authenticated User
 
 ### Goal
 
-View own backend profile.
+View own local backend profile.
 
 ### Preconditions
 
 - User has a valid Clerk token.
-- Local user profile exists or can be synced.
+- Local user profile exists.
 
 ### Main Flow
 
-1. User requests `/api/v1/users/me`.
+1. User sends request:
+   ```
+   GET /api/v1/users/me
+   ```
 2. Backend verifies Clerk token.
-3. Backend resolves local user.
-4. Backend returns user response.
+3. Backend resolves local user from SecurityContext.
+4. Backend returns user profile response.
 
 ### Business Rules
 
 - Response must not expose sensitive internal data.
-- User can only view own profile.
+- User can only view their own profile.
 
 ### Expected Result
 
-User receives own profile data.
+User receives their own profile data.
 
 ---
 
-## SC-006: Authenticated User Creates Organization
+# 5. Organization Scenarios
+
+---
+
+## SC-009: Authenticated User Creates Organization
 
 ### Actor
 
@@ -278,7 +426,7 @@ Authenticated User
 
 ### Goal
 
-Create a new organization.
+Create a new organization and become its owner.
 
 ### Preconditions
 
@@ -287,34 +435,39 @@ Create a new organization.
 
 ### Main Flow
 
-1. User sends organization creation request.
+1. User sends request:
+   ```
+   POST /api/v1/organizations
+   ```
+   with organization data (name, description, etc.).
 2. Backend validates organization data.
-3. Backend creates organization record.
-4. Backend sets `owner_id` to current user.
-5. Backend creates organization membership:
-   - role = OWNER
-   - status = ACTIVE
-6. Backend writes audit log.
-7. Backend returns organization response.
+3. Within a single transaction:
+   - Backend creates organization record with `owner_id = currentUserId`.
+   - Backend creates organization membership:
+     - `role = OWNER`
+     - `status = ACTIVE`
+     - `joined_at = now`
+4. Backend writes audit log entry: `ORGANIZATION_CREATED`.
+5. Backend returns organization response with HTTP 201.
 
 ### Business Rules
 
 - Any authenticated user can create an organization.
-- Organization creation and owner membership creation must be in one transaction.
-- Creator becomes organization owner automatically.
+- Organization creation and owner membership must happen in one transaction.
+- Creator automatically becomes the organization owner.
 
 ### Alternative / Error Flows
 
-- Invalid organization name: return validation error.
-- User not synced locally: sync user first or return error depending on implementation.
+- Missing or invalid organization name: return HTTP 400 with field-level error.
+- Transaction failure: roll back both records and return HTTP 500.
 
 ### Expected Result
 
-Organization is created and current user becomes owner.
+Organization is created and current user is set as owner.
 
 ---
 
-## SC-007: Authenticated User Views Accessible Organizations
+## SC-010: Owner Views Accessible Organizations
 
 ### Actor
 
@@ -322,24 +475,28 @@ Authenticated User
 
 ### Goal
 
-View organizations they own or belong to.
+View all organizations they own or belong to.
 
 ### Preconditions
 
 - User is authenticated.
-- User has one or more organization memberships.
+- User has one or more active organization memberships.
 
 ### Main Flow
 
-1. User requests organization list.
-2. Backend gets current user.
-3. Backend queries active organization memberships.
-4. Backend returns accessible organizations.
+1. User sends request:
+   ```
+   GET /api/v1/organizations
+   ```
+2. Backend resolves current user.
+3. Backend queries active organization memberships for current user.
+4. Backend returns accessible organizations with pagination.
 
 ### Business Rules
 
-- User must not see unrelated organizations.
-- Use pagination if list can grow.
+- User must not see organizations they have no membership in.
+- Soft deleted organizations must be excluded.
+- Response must be paginated.
 
 ### Expected Result
 
@@ -347,11 +504,41 @@ User receives only organizations they can access.
 
 ---
 
-# 5. Organization Owner Scenarios
+## SC-011: Owner Views Organization Details
+
+### Actor
+
+Organization Owner or Organization Member
+
+### Goal
+
+View details of a specific organization.
+
+### Preconditions
+
+- Organization exists.
+- User is an active member or owner.
+
+### Main Flow
+
+1. User sends request:
+   ```
+   GET /api/v1/organizations/{organizationId}
+   ```
+2. Backend verifies current user is an active member.
+3. Backend returns organization details.
+
+### Business Rules
+
+- Unrelated users receive HTTP 404, not HTTP 403, to prevent leaking organization existence.
+
+### Expected Result
+
+User receives organization details.
 
 ---
 
-## SC-008: Owner Updates Organization
+## SC-012: Owner Updates Organization
 
 ### Actor
 
@@ -368,30 +555,33 @@ Update owned organization details.
 
 ### Main Flow
 
-1. Owner sends update request.
-2. Backend checks `ensureOrganizationOwner(organizationId)`.
-3. Backend validates request.
-4. Backend updates organization.
-5. Backend writes audit log.
+1. Owner sends request:
+   ```
+   PUT /api/v1/organizations/{organizationId}
+   ```
+2. Backend calls `ensureOrganizationOwner(organizationId)`.
+3. Backend validates update request.
+4. Backend updates organization fields.
+5. Backend writes audit log entry: `ORGANIZATION_UPDATED`.
 6. Backend returns updated organization.
 
 ### Business Rules
 
-- Only owner can update organization.
-- Owner cannot update unrelated organizations.
+- Only the organization owner can update.
+- Updating the organization name does not affect existing certificate snapshots.
 
 ### Alternative / Error Flows
 
-- Participant tries to update: return forbidden.
-- Unrelated user tries to update: return forbidden or not found depending on policy.
+- Participant tries to update: return HTTP 403.
+- Unrelated user tries to update: return HTTP 404.
 
 ### Expected Result
 
-Organization details are updated.
+Organization details are updated successfully.
 
 ---
 
-## SC-009: Owner Soft Deletes Organization
+## SC-013: Owner Soft Deletes Organization
 
 ### Actor
 
@@ -399,7 +589,7 @@ Organization Owner
 
 ### Goal
 
-Disable or delete organization while preserving history.
+Disable or delete organization while preserving historical data.
 
 ### Preconditions
 
@@ -407,25 +597,29 @@ Disable or delete organization while preserving history.
 
 ### Main Flow
 
-1. Owner sends delete request.
-2. Backend checks ownership.
-3. Backend sets organization status to `DELETED` or `DISABLED`.
-4. Backend sets `deleted_at`.
-5. Backend writes audit log.
+1. Owner sends request:
+   ```
+   DELETE /api/v1/organizations/{organizationId}
+   ```
+2. Backend calls `ensureOrganizationOwner(organizationId)`.
+3. Backend sets `status = DELETED` and `deleted_at = now`.
+4. Backend writes audit log entry: `ORGANIZATION_DELETED`.
+5. Backend returns HTTP 204.
 
 ### Business Rules
 
-- Prefer soft delete.
-- Do not delete historical programs, attempts, certificates.
-- Deleted organization should not be available for new activity.
+- Soft delete only, no hard delete.
+- Child records (programs, enrollments, certificates, attempts) are preserved.
+- Soft deleted organizations are excluded from all list responses.
+- Soft deleted organizations cannot be restored in the MVP.
 
 ### Expected Result
 
-Organization is disabled/deleted safely.
+Organization is soft deleted and historical data is preserved.
 
 ---
 
-## SC-010: Owner Adds Organization Member
+## SC-014: Owner Adds Organization Member
 
 ### Actor
 
@@ -433,44 +627,52 @@ Organization Owner
 
 ### Goal
 
-Add user as participant/member in organization.
+Add a user as a PARTICIPANT member of the organization.
 
 ### Preconditions
 
 - Owner is authenticated.
-- Target user exists in local users table.
+- Target user exists in the local users table.
+- Target user is not already an active member.
 
 ### Main Flow
 
-1. Owner sends target user ID or email.
-2. Backend checks organization ownership.
-3. Backend checks target user exists.
-4. Backend checks no duplicate active membership.
+1. Owner sends request:
+   ```
+   POST /api/v1/organizations/{organizationId}/members
+   ```
+   with `userId` in the body.
+2. Backend calls `ensureOrganizationOwner(organizationId)`.
+3. Backend checks target user exists in local users table.
+4. Backend checks no active membership exists for that user in that organization.
 5. Backend creates membership:
-   - role = PARTICIPANT
-   - status = ACTIVE
-6. Backend writes audit log.
-7. Backend returns membership response.
+   - `role = PARTICIPANT`
+   - `status = ACTIVE`
+   - `invited_by = currentUserId`
+   - `joined_at = now`
+6. Backend writes audit log entry: `MEMBER_ADDED`.
+7. Backend returns membership response with HTTP 201.
 
 ### Business Rules
 
 - Only owner can add members.
-- Duplicate active membership is not allowed.
-- Current MVP supports OWNER and PARTICIPANT only.
+- Duplicate active membership must return HTTP 409.
+- MVP supports OWNER and PARTICIPANT roles only.
+- Target user must exist in the local backend users table.
 
 ### Alternative / Error Flows
 
-- Target user not found: return not found.
-- Duplicate active membership: return conflict.
-- Non-owner tries to add member: return forbidden.
+- Target user not found locally: return HTTP 404.
+- Duplicate active membership: return HTTP 409.
+- Non-owner tries to add member: return HTTP 403.
 
 ### Expected Result
 
-Target user becomes organization participant.
+Target user becomes an organization participant.
 
 ---
 
-## SC-011: Owner Removes Organization Member
+## SC-015: Owner Lists Organization Members
 
 ### Actor
 
@@ -478,42 +680,85 @@ Organization Owner
 
 ### Goal
 
-Remove participant from organization.
+View all members of an owned organization.
+
+### Preconditions
+
+- User owns the organization.
+
+### Main Flow
+
+1. Owner sends request:
+   ```
+   GET /api/v1/organizations/{organizationId}/members
+   ```
+2. Backend calls `ensureOrganizationOwner(organizationId)`.
+3. Backend returns paginated membership list.
+
+### Business Rules
+
+- Only owner can list all members.
+- Removed members should be excluded from the default response.
+
+### Expected Result
+
+Owner sees a paginated list of organization members.
+
+---
+
+## SC-016: Owner Removes Organization Member
+
+### Actor
+
+Organization Owner
+
+### Goal
+
+Remove a participant from the organization.
 
 ### Preconditions
 
 - Owner is authenticated.
-- Target user is an organization member.
+- Target user is an active organization member.
 
 ### Main Flow
 
-1. Owner sends remove request.
-2. Backend checks ownership.
-3. Backend marks membership as `REMOVED` or `INACTIVE`.
-4. Backend writes audit log.
+1. Owner sends request:
+   ```
+   DELETE /api/v1/organizations/{organizationId}/members/{userId}
+   ```
+2. Backend calls `ensureOrganizationOwner(organizationId)`.
+3. Backend finds active membership for target user.
+4. Backend sets membership:
+   - `status = REMOVED`
+   - `removed_by = currentUserId`
+   - `removed_at = now`
+5. Backend writes audit log entry: `MEMBER_REMOVED`.
+6. Backend returns HTTP 204.
 
 ### Business Rules
 
-- Do not hard delete historical data.
-- Removed members lose access to organization data.
-- Owner should not accidentally remove the only owner unless ownership transfer exists.
+- Removed members immediately lose access to protected organization data.
+- Historical attempts and certificates are preserved.
+- Soft removal only, no hard delete.
+- The owner cannot remove themselves using this endpoint in the MVP.
 
 ### Alternative / Error Flows
 
-- Trying to remove non-member: return not found.
-- Trying to remove owner without supported policy: return business rule error.
+- Target user is not a member: return HTTP 404.
+- Non-owner tries to remove: return HTTP 403.
 
 ### Expected Result
 
-Member loses organization access.
+Member loses organization access and historical data is preserved.
 
 ---
 
-# 6. Program / Workshop Scenarios
+# 6. Program Scenarios
 
 ---
 
-## SC-012: Owner Creates Program / Workshop
+## SC-017: Owner Creates Program
 
 ### Actor
 
@@ -525,32 +770,35 @@ Create a training program or workshop inside an organization.
 
 ### Preconditions
 
-- User is owner of the organization.
+- User owns the organization.
 
 ### Main Flow
 
-1. Owner sends program data.
-2. Backend checks organization ownership.
+1. Owner sends request:
+   ```
+   POST /api/v1/organizations/{organizationId}/programs
+   ```
+2. Backend calls `ensureOrganizationOwner(organizationId)`.
 3. Backend validates program data.
 4. Backend creates program with:
-   - status = DRAFT
-   - is_published = false
-5. Backend writes audit log.
-6. Backend returns program response.
+   - `status = DRAFT`
+   - `is_published = false`
+5. Backend writes audit log entry: `PROGRAM_CREATED`.
+6. Backend returns program response with HTTP 201.
 
 ### Business Rules
 
 - Only organization owner can create programs.
-- Program belongs to one organization.
+- Program belongs to exactly one organization.
 - Draft programs are visible to owners only.
 
 ### Expected Result
 
-Program is created as draft.
+Program is created as a draft.
 
 ---
 
-## SC-013: Owner Updates Program
+## SC-018: Owner Updates Program
 
 ### Actor
 
@@ -563,28 +811,32 @@ Update program details.
 ### Preconditions
 
 - Program exists.
-- User owns the program organization.
+- User owns the program's organization.
 
 ### Main Flow
 
-1. Owner sends update request.
-2. Backend checks program ownership through organization.
-3. Backend validates request.
-4. Backend updates program.
-5. Backend writes audit log.
+1. Owner sends request:
+   ```
+   PUT /api/v1/programs/{programId}
+   ```
+2. Backend calls `ensureProgramOwner(programId)`.
+3. Backend validates the update request.
+4. Backend updates program fields.
+5. Backend writes audit log entry: `PROGRAM_UPDATED`.
+6. Backend returns updated program.
 
 ### Business Rules
 
-- Only owner can update program.
-- Archived/deleted programs may have restricted updates.
+- Only owner can update.
+- Archived or soft deleted programs may have restricted updates.
 
 ### Expected Result
 
-Program is updated.
+Program details are updated.
 
 ---
 
-## SC-014: Owner Publishes Program
+## SC-019: Owner Publishes Program
 
 ### Actor
 
@@ -592,35 +844,41 @@ Organization Owner
 
 ### Goal
 
-Make program available to enrolled participants.
+Make a program visible and active for enrolled participants.
 
 ### Preconditions
 
 - Program exists.
-- User owns organization.
+- Program status is DRAFT.
+- User owns the program's organization.
 
 ### Main Flow
 
-1. Owner requests publish.
-2. Backend checks ownership.
-3. Backend validates program required fields.
+1. Owner sends request:
+   ```
+   PATCH /api/v1/programs/{programId}/status
+   Body: { "status": "PUBLISHED" }
+   ```
+2. Backend calls `ensureProgramOwner(programId)`.
+3. Backend validates required program fields are complete.
 4. Backend sets:
-   - status = PUBLISHED
-   - is_published = true
-5. Backend writes audit log.
+   - `status = PUBLISHED`
+   - `is_published = true`
+5. Backend writes audit log entry: `PROGRAM_PUBLISHED`.
+6. Backend returns updated program.
 
 ### Business Rules
 
 - Only owner can publish.
-- Participants can view published program only if enrolled.
+- Published programs are accessible to enrolled participants.
 
 ### Expected Result
 
-Program becomes published.
+Program becomes published and accessible.
 
 ---
 
-## SC-015: Owner Archives Program
+## SC-020: Owner Archives Program
 
 ### Actor
 
@@ -633,27 +891,33 @@ Archive a completed or inactive program.
 ### Preconditions
 
 - Program exists.
-- User owns organization.
+- User owns the program's organization.
 
 ### Main Flow
 
-1. Owner requests archive.
-2. Backend checks ownership.
-3. Backend sets status = ARCHIVED.
-4. Backend writes audit log.
+1. Owner sends request:
+   ```
+   PATCH /api/v1/programs/{programId}/status
+   Body: { "status": "ARCHIVED" }
+   ```
+2. Backend calls `ensureProgramOwner(programId)`.
+3. Backend sets `status = ARCHIVED`.
+4. Backend writes audit log entry: `PROGRAM_ARCHIVED`.
+5. Backend returns updated program.
 
 ### Business Rules
 
-- Archived program should not accept new enrollments.
-- Historical data remains available to owner.
+- Archived programs do not accept new enrollments.
+- No new quiz attempts are allowed in archived programs.
+- Historical data (enrollments, resources, attempts, certificates) is preserved.
 
 ### Expected Result
 
-Program is archived safely.
+Program is archived and preserved safely.
 
 ---
 
-## SC-016: Participant Views Enrolled Programs
+## SC-021: Participant Views Enrolled Programs
 
 ### Actor
 
@@ -661,7 +925,7 @@ Program Participant
 
 ### Goal
 
-View programs they joined.
+View programs they are enrolled in.
 
 ### Preconditions
 
@@ -670,26 +934,30 @@ View programs they joined.
 
 ### Main Flow
 
-1. User requests own enrollments.
-2. Backend gets current user.
-3. Backend returns active enrolled programs.
+1. User sends request:
+   ```
+   GET /api/v1/enrollments/me
+   ```
+2. Backend resolves current user.
+3. Backend queries active program enrollments for current user.
+4. Backend returns enrolled programs with pagination.
 
 ### Business Rules
 
-- User sees only own enrollments.
-- Removed enrollments should not appear as active.
+- User sees only their own enrollments.
+- Removed enrollments are excluded from the default response.
 
 ### Expected Result
 
-User sees list of enrolled programs.
+User sees a list of their enrolled programs.
 
 ---
 
-# 7. Invitation Link Scenarios
+# 7. Enrollment Scenarios
 
 ---
 
-## SC-017: Owner Creates Invitation Link
+## SC-022: Owner Manually Enrolls a User
 
 ### Actor
 
@@ -697,39 +965,172 @@ Organization Owner
 
 ### Goal
 
-Create a join link for a program.
+Enroll a user directly into a program without an invitation link.
 
 ### Preconditions
 
-- Program exists.
-- User owns program organization.
+- Owner is authenticated.
+- Target user exists in local users table.
+- Program exists under owned organization.
+- No active enrollment exists for that user.
 
 ### Main Flow
 
-1. Owner sends invitation settings:
-   - max uses
-   - expiration date
-2. Backend checks program ownership.
-3. Backend generates unique code.
-4. Backend creates invitation link:
-   - status = ACTIVE
-   - used_count = 0
-5. Backend writes audit log.
-6. Backend returns invitation link/code.
+1. Owner sends request:
+   ```
+   POST /api/v1/programs/{programId}/enrollments
+   Body: { "userId": "..." }
+   ```
+2. Backend calls `ensureProgramOwner(programId)`.
+3. Backend checks target user exists locally.
+4. Backend checks no active enrollment exists.
+5. Backend creates enrollment:
+   - `status = ACTIVE`
+   - `enrolled_at = now`
+6. Backend adds user as PARTICIPANT organization member if not already a member.
+7. Backend writes audit log entry: `USER_ENROLLED`.
+8. Backend returns enrollment response with HTTP 201.
+
+### Business Rules
+
+- Only owner can manually enroll users.
+- Duplicate active enrollment returns HTTP 409.
+- Enrollment and membership creation must be transactional.
+
+### Alternative / Error Flows
+
+- Target user not found: return HTTP 404.
+- Duplicate enrollment: return HTTP 409.
+- Program is archived: return HTTP 422.
+
+### Expected Result
+
+Target user is enrolled in the program.
+
+---
+
+## SC-023: Owner Views Program Enrollments
+
+### Actor
+
+Organization Owner
+
+### Goal
+
+View all enrollments for a specific program.
+
+### Preconditions
+
+- Program exists under owned organization.
+
+### Main Flow
+
+1. Owner sends request:
+   ```
+   GET /api/v1/programs/{programId}/enrollments
+   ```
+2. Backend calls `ensureProgramOwner(programId)`.
+3. Backend returns paginated enrollment list.
+
+### Expected Result
+
+Owner sees a list of enrolled participants.
+
+---
+
+## SC-024: Owner Removes a Program Enrollment
+
+### Actor
+
+Organization Owner
+
+### Goal
+
+Remove a participant's enrollment from a program.
+
+### Preconditions
+
+- Enrollment exists.
+- User owns the program's organization.
+
+### Main Flow
+
+1. Owner sends request:
+   ```
+   DELETE /api/v1/programs/{programId}/enrollments/{userId}
+   ```
+2. Backend calls `ensureProgramOwner(programId)`.
+3. Backend finds active enrollment for target user.
+4. Backend sets:
+   - `status = REMOVED`
+   - `removed_at = now`
+5. Backend writes audit log entry: `ENROLLMENT_REMOVED`.
+6. Backend returns HTTP 204.
+
+### Business Rules
+
+- Removed participant loses access to program resources and quizzes.
+- Historical attempts and certificates are preserved.
+
+### Expected Result
+
+Participant loses program access and historical data is preserved.
+
+---
+
+# 8. Invitation Link Scenarios
+
+---
+
+## SC-025: Owner Creates Invitation Link
+
+### Actor
+
+Organization Owner
+
+### Goal
+
+Create a shareable invitation link for a program.
+
+### Preconditions
+
+- Program exists under owned organization.
+
+### Main Flow
+
+1. Owner sends request:
+   ```
+   POST /api/v1/programs/{programId}/invitations
+   ```
+   with optional fields:
+   - `description`
+   - `maxUses`
+   - `expiresAt`
+2. Backend calls `ensureProgramOwner(programId)`.
+3. Backend generates a unique 12-character uppercase alphanumeric code using SecureRandom.
+4. Backend verifies code uniqueness in the database.
+5. Backend creates invitation link:
+   - `status = ACTIVE`
+   - `used_count = 0`
+   - `created_by = currentUserId`
+   - `created_at = now`
+6. Backend writes audit log entry: `INVITATION_CREATED`.
+7. Backend returns invitation with code and HTTP 201.
 
 ### Business Rules
 
 - Only owner can create invitation links.
-- Code must be unique.
-- Invitation belongs to one program and organization.
+- Code must be unique across all invitation links.
+- `maxUses = null` means unlimited uses.
+- `expiresAt = null` means no expiry.
 
 ### Expected Result
 
-Owner can share invitation link with students.
+Owner can share the invitation code with participants.
 
 ---
 
-## SC-018: User Joins Program by Invitation
+## SC-026: User Joins Program by Invitation Code
 
 ### Actor
 
@@ -737,56 +1138,61 @@ Authenticated User
 
 ### Goal
 
-Join a program using invitation code.
+Join a program using a valid invitation code.
 
 ### Preconditions
 
 - User is authenticated.
-- Invitation exists.
+- Invitation link exists with status ACTIVE.
+- Invitation is not expired.
+- Usage limit is not exceeded.
 
 ### Main Flow
 
-1. User opens invitation link.
-2. Frontend sends code to backend.
-3. Backend verifies Clerk token.
-4. Backend resolves local user.
-5. Backend finds invitation by code.
-6. Backend validates invitation:
-   - status = ACTIVE
-   - not expired
-   - usage limit not exceeded
-7. Backend checks program is joinable.
-8. Backend ensures user has organization membership if required by product policy.
-9. Backend checks no duplicate active enrollment.
-10. Backend creates program enrollment.
-11. Backend increments invitation `used_count`.
-12. Backend writes audit log.
-13. Backend returns program/enrollment response.
+1. User sends request:
+   ```
+   POST /api/v1/invitations/{code}/join
+   ```
+2. Backend verifies Clerk token and resolves current user.
+3. Backend finds invitation by code (case-insensitive lookup).
+4. Backend validates invitation:
+   - `status = ACTIVE`
+   - `expires_at` is null or in the future
+   - `max_uses` is null or `used_count < max_uses`
+5. Backend checks program is not ARCHIVED or DELETED.
+6. Backend checks no active enrollment exists for current user in program.
+7. Within a single transaction:
+   - Backend increments `used_count`.
+   - Backend creates program enrollment with `status = ACTIVE`.
+   - Backend adds user as PARTICIPANT organization member if not already a member.
+8. Backend writes audit log entry: `USER_JOINED_BY_INVITATION`.
+9. Backend returns enrollment response with HTTP 201.
 
 ### Business Rules
 
-- User must be logged in.
-- Expired invitation must be rejected.
-- Disabled invitation must be rejected.
-- Max uses must be enforced.
-- Duplicate active enrollment is not allowed.
-- Join flow must be transactional.
+- User must be authenticated.
+- Expired invitations must be rejected with HTTP 422.
+- Disabled invitations must be rejected with HTTP 422.
+- Max uses must be enforced before creating enrollment.
+- Duplicate active enrollment must be rejected with HTTP 409.
+- The entire join operation must be transactional.
 
 ### Alternative / Error Flows
 
-- Invitation not found: return not found.
-- Invitation disabled: return business rule error.
-- Invitation expired: return business rule error.
-- Max uses reached: return business rule error.
-- Already enrolled: return conflict.
+- Invitation not found: return HTTP 404.
+- Invitation is DISABLED: return HTTP 422 with message.
+- Invitation is expired: return HTTP 422 with message.
+- Max uses reached: return HTTP 422 with message.
+- Already enrolled: return HTTP 409 with message.
+- Program is archived: return HTTP 422 with message.
 
 ### Expected Result
 
-User becomes enrolled in the program.
+User becomes actively enrolled in the program.
 
 ---
 
-## SC-019: Owner Disables Invitation Link
+## SC-027: Owner Disables Invitation Link
 
 ### Actor
 
@@ -794,36 +1200,39 @@ Organization Owner
 
 ### Goal
 
-Stop an invitation link from being used.
+Prevent an invitation link from being used further.
 
 ### Preconditions
 
 - Invitation exists.
-- User owns organization.
+- User owns the invitation's organization.
 
 ### Main Flow
 
-1. Owner requests disable invitation.
-2. Backend checks invitation ownership.
-3. Backend sets status = DISABLED.
-4. Backend writes audit log.
+1. Owner sends request:
+   ```
+   PATCH /api/v1/invitations/{invitationId}/status
+   Body: { "status": "DISABLED" }
+   ```
+2. Backend calls `ensureInvitationOwner(invitationId)`.
+3. Backend sets:
+   - `status = DISABLED`
+   - `disabled_at = now`
+4. Backend writes audit log entry: `INVITATION_DISABLED`.
+5. Backend returns updated invitation.
 
 ### Business Rules
 
-- Disabled invitation cannot be used.
-- Existing enrollments remain active.
+- Disabled invitations cannot be used.
+- Existing enrollments created before disabling remain active.
 
 ### Expected Result
 
-Invitation link becomes unusable.
+Invitation link becomes unusable for new joins.
 
 ---
 
-# 8. Resource Scenarios
-
----
-
-## SC-020: Owner Adds External Link Resource
+## SC-028: Owner Lists Invitation Links
 
 ### Actor
 
@@ -831,38 +1240,78 @@ Organization Owner
 
 ### Goal
 
-Add a learning resource as external link.
+View all invitation links for a program.
 
 ### Preconditions
 
-- Program exists.
-- User owns program organization.
+- Program exists under owned organization.
 
 ### Main Flow
 
-1. Owner sends resource:
-   - title
-   - description
-   - type = LINK
-   - url
-2. Backend checks ownership.
-3. Backend validates URL.
-4. Backend creates resource.
-5. Backend writes audit log.
+1. Owner sends request:
+   ```
+   GET /api/v1/programs/{programId}/invitations
+   ```
+2. Backend calls `ensureProgramOwner(programId)`.
+3. Backend returns paginated invitation list.
+
+### Expected Result
+
+Owner sees all invitation links with their usage stats.
+
+---
+
+# 9. Resource Scenarios
+
+---
+
+## SC-029: Owner Adds External Link Resource
+
+### Actor
+
+Organization Owner
+
+### Goal
+
+Add a learning resource as an external URL link.
+
+### Preconditions
+
+- Program exists under owned organization.
+
+### Main Flow
+
+1. Owner sends request:
+   ```
+   POST /api/v1/programs/{programId}/resources
+   ```
+   with body:
+   - `title`
+   - `description`
+   - `type = LINK`
+   - `url`
+2. Backend calls `ensureProgramOwner(programId)`.
+3. Backend validates URL format.
+4. Backend creates resource:
+   - `type = LINK`
+   - `storage_provider = EXTERNAL`
+   - `status = ACTIVE`
+5. Backend writes audit log entry: `RESOURCE_CREATED`.
+6. Backend returns resource with HTTP 201.
 
 ### Business Rules
 
 - Only owner can create resources.
-- LINK resource stores external URL.
-- No R2/Cloudinary upload required.
+- LINK resources store only an external URL.
+- No R2 or Cloudinary upload is required.
 
 ### Expected Result
 
-Resource is available to enrolled participants.
+External link resource is available to enrolled participants.
 
 ---
 
-## SC-021: Owner Adds File Resource Using Cloudflare R2
+## SC-030: Owner Adds File Resource Using Cloudflare R2
 
 ### Actor
 
@@ -870,40 +1319,57 @@ Organization Owner
 
 ### Goal
 
-Add downloadable file resource.
+Add a downloadable file resource stored in Cloudflare R2.
 
 ### Preconditions
 
-- Program exists.
-- User owns program organization.
-- R2 is configured.
+- Program exists under owned organization.
+- R2 storage is configured.
 
 ### Main Flow
 
-1. Owner requests upload URL or uploads file through backend.
-2. Backend checks ownership.
-3. Backend uses R2 storage service.
-4. File is stored in Cloudflare R2.
-5. Backend stores resource metadata:
-   - type = FILE
-   - storage_provider = R2
-   - object_key
-   - url if public/signed
-6. Backend writes audit log.
+**Option A: Backend upload**
+
+1. Owner sends file to backend upload endpoint.
+2. Backend calls `ensureProgramOwner(programId)`.
+3. Backend calls `R2StorageService.uploadFile(...)`.
+4. R2 returns `objectKey` and public URL.
+5. Backend creates resource:
+   - `type = FILE`
+   - `storage_provider = R2`
+   - `object_key`
+   - `url`
+6. Backend writes audit log entry: `RESOURCE_CREATED`.
+
+**Option B: Presigned URL upload**
+
+1. Owner requests presigned upload URL:
+   ```
+   POST /api/v1/files/r2/upload-url
+   ```
+2. Backend calls `ensureProgramOwner(programId)`.
+3. Backend generates presigned R2 URL.
+4. Owner uploads file directly to R2 using presigned URL.
+5. Owner confirms upload by creating resource with returned `objectKey`.
 
 ### Business Rules
 
-- File storage logic must be inside storage service.
-- Controllers should not call R2 SDK directly.
-- Store metadata, not raw file content, in database.
+- Storage logic must be inside `R2StorageService`.
+- Controllers must not call R2 SDK directly.
+- Database stores metadata only, not raw file bytes.
+- If R2 upload fails, no resource record is created.
+
+### Alternative / Error Flows
+
+- R2 upload fails: return HTTP 500 storage error and do not create resource record.
 
 ### Expected Result
 
-File resource is stored and linked to program.
+File resource is stored in R2 and linked to the program.
 
 ---
 
-## SC-022: Owner Adds Image Resource Using Cloudinary
+## SC-031: Owner Adds Image Resource Using Cloudinary
 
 ### Actor
 
@@ -911,39 +1377,49 @@ Organization Owner
 
 ### Goal
 
-Add image/media resource.
+Add an image resource stored in Cloudinary.
 
 ### Preconditions
 
-- Program exists.
-- User owns program organization.
+- Program exists under owned organization.
 - Cloudinary is configured.
 
 ### Main Flow
 
-1. Owner uploads image or requests signed upload.
-2. Backend checks ownership.
-3. Backend uses Cloudinary media service.
-4. Cloudinary stores image.
-5. Backend stores resource metadata:
-   - type = IMAGE
-   - storage_provider = CLOUDINARY
-   - url
-   - object_key/public id
-6. Backend writes audit log.
+1. Owner sends image or requests signed Cloudinary upload:
+   ```
+   POST /api/v1/media/cloudinary/signature
+   ```
+2. Backend calls `ensureProgramOwner(programId)`.
+3. Owner uploads image directly to Cloudinary using the signature.
+4. Owner creates resource with returned Cloudinary URL and public ID:
+   ```
+   POST /api/v1/programs/{programId}/resources
+   ```
+   with body:
+   - `type = IMAGE`
+   - `storage_provider = CLOUDINARY`
+   - `url`
+   - `object_key` (Cloudinary public ID)
+5. Backend writes audit log entry: `RESOURCE_CREATED`.
 
 ### Business Rules
 
-- Cloudinary is preferred for images/media.
-- R2 is preferred for PDFs/files.
+- Cloudinary is preferred for image assets.
+- R2 is preferred for PDFs and binary files.
+- Store Cloudinary URL and public ID in the database.
+
+### Alternative / Error Flows
+
+- Cloudinary upload fails: return media upload error and do not update resource URL.
 
 ### Expected Result
 
-Image resource is added to program.
+Image resource is added to the program with Cloudinary delivery URL.
 
 ---
 
-## SC-023: Participant Views Program Resources
+## SC-032: Participant Views Program Resources
 
 ### Actor
 
@@ -951,31 +1427,28 @@ Program Participant
 
 ### Goal
 
-Access resources for enrolled program.
+Access learning resources for an enrolled program.
 
 ### Preconditions
 
 - User is authenticated.
-- User has active enrollment in program.
+- User has an active enrollment in the program.
 - Resources exist.
 
 ### Main Flow
 
-1. Participant requests program resources.
-2. Backend verifies current user.
-3. Backend checks active program enrollment.
-4. Backend returns active resources.
+1. User sends request:
+   ```
+   GET /api/v1/programs/{programId}/resources
+   ```
+2. Backend calls `ensureProgramEnrollment(programId, currentUserId)` or `ensureProgramOwner(programId)`.
+3. Backend returns active resources ordered by `position`.
 
 ### Business Rules
 
-- Unenrolled users cannot view private resources.
-- Archived/deleted resources should not appear to participants.
-- Owner can view all resources.
-
-### Alternative / Error Flows
-
-- User is not enrolled: return forbidden.
-- Program is archived: product policy decides whether participants can still view.
+- Unenrolled users receive HTTP 404.
+- Archived or deleted resources are not returned to participants.
+- Owners can view all resources regardless of status.
 
 ### Expected Result
 
@@ -983,7 +1456,7 @@ Participant can access program learning materials.
 
 ---
 
-## SC-024: Owner Archives Resource
+## SC-033: Owner Updates Resource
 
 ### Actor
 
@@ -991,24 +1464,59 @@ Organization Owner
 
 ### Goal
 
-Hide resource from participants.
+Update details of an existing resource.
 
 ### Preconditions
 
-- Resource exists.
-- Owner owns program organization.
+- Resource exists under owned program.
 
 ### Main Flow
 
-1. Owner requests archive/delete resource.
-2. Backend checks ownership.
-3. Backend sets status = ARCHIVED or DELETED.
-4. Backend writes audit log.
+1. Owner sends request:
+   ```
+   PUT /api/v1/resources/{resourceId}
+   ```
+2. Backend calls `ensureResourceOwner(resourceId)`.
+3. Backend validates update.
+4. Backend updates resource fields.
+5. Backend writes audit log entry: `RESOURCE_UPDATED`.
+6. Backend returns updated resource.
+
+### Expected Result
+
+Resource details are updated.
+
+---
+
+## SC-034: Owner Archives Resource
+
+### Actor
+
+Organization Owner
+
+### Goal
+
+Hide a resource from participants without deleting it.
+
+### Preconditions
+
+- Resource exists under owned program.
+
+### Main Flow
+
+1. Owner sends request:
+   ```
+   DELETE /api/v1/resources/{resourceId}
+   ```
+2. Backend calls `ensureResourceOwner(resourceId)`.
+3. Backend sets `status = ARCHIVED` or `status = DELETED`.
+4. Backend writes audit log entry: `RESOURCE_DELETED`.
+5. Backend returns HTTP 204.
 
 ### Business Rules
 
-- Prefer soft delete.
-- Do not delete R2/Cloudinary file unless explicitly required.
+- Prefer soft deletion (set status).
+- Do not delete R2 or Cloudinary files unless explicitly required.
 
 ### Expected Result
 
@@ -1016,11 +1524,11 @@ Resource is no longer visible to participants.
 
 ---
 
-# 9. Quiz Management Scenarios
+# 10. Quiz Management Scenarios
 
 ---
 
-## SC-025: Owner Creates Quiz
+## SC-035: Owner Creates Quiz
 
 ### Actor
 
@@ -1032,39 +1540,44 @@ Create a quiz inside a program.
 
 ### Preconditions
 
-- Program exists.
-- User owns organization.
+- Program exists under owned organization.
 
 ### Main Flow
 
-1. Owner sends quiz data:
-   - title
-   - description
-   - passing score
-   - max attempts
-   - duration
-   - certificate settings
-2. Backend checks program ownership.
+1. Owner sends request:
+   ```
+   POST /api/v1/programs/{programId}/quizzes
+   ```
+   with body:
+   - `title`
+   - `description`
+   - `passingScore` (1–100)
+   - `durationMinutes` (minimum 1)
+   - `maxAttempts` (minimum 1)
+   - `certificateEnabled`
+   - `certificateIssueMode` (AUTO, MANUAL, or NONE)
+2. Backend calls `ensureProgramOwner(programId)`.
 3. Backend validates quiz settings.
 4. Backend creates quiz:
-   - status = DRAFT
-   - is_published = false
-5. Backend writes audit log.
+   - `status = DRAFT`
+   - `is_published = false`
+5. Backend writes audit log entry: `QUIZ_CREATED`.
+6. Backend returns quiz with HTTP 201.
 
 ### Business Rules
 
-- Quiz belongs to program.
-- Only owner can create quiz.
-- Passing score must be between 0 and 100.
-- Max attempts must be greater than 0.
+- Only owner can create quizzes.
+- `passingScore` must be between 1 and 100.
+- `maxAttempts` must be at least 1.
+- `durationMinutes` must be at least 1.
 
 ### Expected Result
 
-Quiz is created as draft.
+Quiz is created as a draft.
 
 ---
 
-## SC-026: Owner Adds Question to Quiz
+## SC-036: Owner Adds Question to Quiz
 
 ### Actor
 
@@ -1072,32 +1585,40 @@ Organization Owner
 
 ### Goal
 
-Add question to quiz.
+Add a question to a quiz.
 
 ### Preconditions
 
-- Quiz exists.
-- Quiz belongs to owned program.
+- Quiz exists under owned program.
 
 ### Main Flow
 
-1. Owner sends question data.
-2. Backend checks quiz ownership.
-3. Backend validates question.
+1. Owner sends request:
+   ```
+   POST /api/v1/quizzes/{quizId}/questions
+   ```
+   with body:
+   - `text`
+   - `type` (SINGLE\_CHOICE)
+   - `points` (positive integer)
+   - `position`
+2. Backend calls `ensureQuizOwner(quizId)`.
+3. Backend validates question data.
 4. Backend creates question.
+5. Backend returns question with HTTP 201.
 
 ### Business Rules
 
-- MVP supports SINGLE_CHOICE.
-- Points must be positive.
+- MVP supports SINGLE\_CHOICE only.
+- Points must be a positive integer.
 
 ### Expected Result
 
-Question is added to quiz.
+Question is added to the quiz.
 
 ---
 
-## SC-027: Owner Adds Options to Question
+## SC-037: Owner Adds Options to Question
 
 ### Actor
 
@@ -1105,33 +1626,40 @@ Organization Owner
 
 ### Goal
 
-Add answer options to a question.
+Add answer options to a quiz question.
 
 ### Preconditions
 
-- Question exists.
-- Question belongs to owned quiz.
+- Question exists under owned quiz.
 
 ### Main Flow
 
-1. Owner sends options.
-2. Backend checks question ownership.
+1. Owner sends request:
+   ```
+   POST /api/v1/questions/{questionId}/options
+   ```
+   with body:
+   - `text`
+   - `isCorrect`
+   - `position`
+2. Backend calls `ensureQuizOwner` for the parent quiz.
 3. Backend validates option data.
-4. Backend creates options.
+4. Backend creates option.
+5. Backend returns option with HTTP 201.
 
 ### Business Rules
 
-- Option text is required.
-- A SINGLE_CHOICE question must have exactly one correct option before quiz publishing.
-- The system may validate exactly one correct option immediately or during publishing.
+- A SINGLE\_CHOICE question must have exactly one `isCorrect = true` option at publish time.
+- The system validates the correct-option count during quiz publishing, not necessarily at option creation time.
+- Minimum two options per question are required before publishing.
 
 ### Expected Result
 
-Options are added to question.
+Options are added to the question.
 
 ---
 
-## SC-028: Owner Publishes Quiz
+## SC-038: Owner Updates Question
 
 ### Actor
 
@@ -1139,39 +1667,175 @@ Organization Owner
 
 ### Goal
 
-Make quiz available to enrolled participants.
+Update an existing quiz question.
 
 ### Preconditions
 
-- Quiz exists.
-- Quiz is draft.
-- User owns quiz program organization.
+- Question exists under owned quiz.
 
 ### Main Flow
 
-1. Owner requests quiz publish.
-2. Backend checks ownership.
-3. Backend validates quiz:
-   - has at least one question
-   - every question has options
-   - every SINGLE_CHOICE question has exactly one correct option
-   - settings are valid
-4. Backend sets:
-   - status = PUBLISHED
-   - is_published = true
-5. Backend writes audit log.
+1. Owner sends request:
+   ```
+   PUT /api/v1/questions/{questionId}
+   ```
+2. Backend calls `ensureQuizOwner` for the parent quiz.
+3. Backend validates and updates question.
+4. Backend returns updated question.
+
+### Expected Result
+
+Question is updated.
+
+---
+
+## SC-039: Owner Deletes Question
+
+### Actor
+
+Organization Owner
+
+### Goal
+
+Remove a question from a quiz.
+
+### Preconditions
+
+- Question exists under owned quiz.
+- Quiz is not published (or product policy allows editing published quizzes).
+
+### Main Flow
+
+1. Owner sends request:
+   ```
+   DELETE /api/v1/questions/{questionId}
+   ```
+2. Backend calls `ensureQuizOwner` for the parent quiz.
+3. Backend deletes the question and its associated options.
+4. Backend returns HTTP 204.
 
 ### Business Rules
 
-- Invalid quiz cannot be published.
-- Participants can only see published quizzes.
-- Published quiz modifications should be safe.
+- Deleting a question from a published quiz should be used carefully.
+- Historical attempt answers referencing deleted questions are preserved.
+
+### Expected Result
+
+Question and its options are removed.
+
+---
+
+## SC-040: Owner Updates Option
+
+### Actor
+
+Organization Owner
+
+### Goal
+
+Update an answer option.
+
+### Preconditions
+
+- Option exists under owned quiz question.
+
+### Main Flow
+
+1. Owner sends request:
+   ```
+   PUT /api/v1/options/{optionId}
+   ```
+2. Backend calls `ensureQuizOwner` for the parent quiz.
+3. Backend validates and updates option.
+4. Backend returns updated option.
+
+### Expected Result
+
+Option is updated.
+
+---
+
+## SC-041: Owner Deletes Option
+
+### Actor
+
+Organization Owner
+
+### Goal
+
+Remove an answer option from a question.
+
+### Preconditions
+
+- Option exists under owned quiz question.
+
+### Main Flow
+
+1. Owner sends request:
+   ```
+   DELETE /api/v1/options/{optionId}
+   ```
+2. Backend calls `ensureQuizOwner` for the parent quiz.
+3. Backend deletes the option.
+4. Backend returns HTTP 204.
+
+### Business Rules
+
+- Deleting the only correct option from a question invalidates the question for publishing.
+- System enforces correct-option rules at publish time.
+
+### Expected Result
+
+Option is removed from the question.
+
+---
+
+## SC-042: Owner Publishes Quiz
+
+### Actor
+
+Organization Owner
+
+### Goal
+
+Make a quiz available to enrolled participants.
+
+### Preconditions
+
+- Quiz exists under owned program.
+- Quiz is in DRAFT status.
+
+### Main Flow
+
+1. Owner sends request:
+   ```
+   PATCH /api/v1/quizzes/{quizId}/status
+   Body: { "status": "PUBLISHED" }
+   ```
+2. Backend calls `ensureQuizOwner(quizId)`.
+3. Backend performs publish validation:
+   - Quiz has at least one question.
+   - Every question has at least two options.
+   - Every SINGLE\_CHOICE question has exactly one `isCorrect = true` option.
+   - `passingScore` is between 1 and 100.
+   - `maxAttempts` is at least 1.
+   - `durationMinutes` is at least 1.
+4. If validation passes:
+   - Backend sets `status = PUBLISHED`, `is_published = true`.
+   - Backend writes audit log entry: `QUIZ_PUBLISHED`.
+5. Backend returns updated quiz.
+
+### Business Rules
+
+- Invalid quizzes cannot be published.
+- All validation must pass before status is changed.
 
 ### Alternative / Error Flows
 
-- Quiz has no questions: return business rule error.
-- Question has no correct answer: return business rule error.
-- More than one correct option for SINGLE_CHOICE: return business rule error.
+- No questions: return HTTP 422 with message `Quiz must have at least one question`.
+- SINGLE\_CHOICE question missing correct option: return HTTP 422 with message.
+- SINGLE\_CHOICE question has multiple correct options: return HTTP 422 with message.
+- Question has fewer than two options: return HTTP 422 with message.
 
 ### Expected Result
 
@@ -1179,7 +1843,7 @@ Quiz becomes available to enrolled participants.
 
 ---
 
-## SC-029: Owner Archives Quiz
+## SC-043: Owner Archives Quiz
 
 ### Actor
 
@@ -1187,25 +1851,29 @@ Organization Owner
 
 ### Goal
 
-Stop quiz from accepting new attempts.
+Stop a quiz from accepting new attempts.
 
 ### Preconditions
 
-- Quiz exists.
-- User owns quiz program organization.
+- Quiz exists under owned program.
 
 ### Main Flow
 
-1. Owner requests archive.
-2. Backend checks ownership.
-3. Backend sets status = ARCHIVED.
-4. Backend writes audit log.
+1. Owner sends request:
+   ```
+   PATCH /api/v1/quizzes/{quizId}/status
+   Body: { "status": "ARCHIVED" }
+   ```
+2. Backend calls `ensureQuizOwner(quizId)`.
+3. Backend sets `status = ARCHIVED`.
+4. Backend writes audit log entry: `QUIZ_ARCHIVED`.
+5. Backend returns updated quiz.
 
 ### Business Rules
 
-- Historical attempts remain preserved.
-- Certificates remain valid unless separately revoked.
-- Archived quiz should not allow new attempts.
+- Archived quizzes do not accept new attempts.
+- Historical attempts and certificates remain consistent.
+- Certificates issued before archiving remain valid unless separately revoked.
 
 ### Expected Result
 
@@ -1213,11 +1881,11 @@ Quiz is archived safely.
 
 ---
 
-# 10. Participant Quiz Scenarios
+# 11. Quiz Attempt Scenarios
 
 ---
 
-## SC-030: Participant Views Published Quizzes
+## SC-044: Participant Views Published Quizzes
 
 ### Actor
 
@@ -1225,23 +1893,26 @@ Program Participant
 
 ### Goal
 
-View available quizzes inside enrolled program.
+View available quizzes inside an enrolled program.
 
 ### Preconditions
 
-- User is enrolled in program.
+- User has an active enrollment in the program.
 - Program has published quizzes.
 
 ### Main Flow
 
-1. Participant requests program quizzes.
-2. Backend checks active enrollment.
-3. Backend returns published quizzes only.
+1. User sends request:
+   ```
+   GET /api/v1/programs/{programId}/quizzes
+   ```
+2. Backend calls `ensureProgramEnrollment(programId, currentUserId)` or `ensureProgramOwner`.
+3. Backend returns published quizzes only for participants.
+4. Owners see all quizzes regardless of status.
 
 ### Business Rules
 
-- Participants cannot view draft/unpublished quizzes.
-- Owners can view all quizzes.
+- Participants cannot view DRAFT or ARCHIVED quizzes.
 
 ### Expected Result
 
@@ -1249,7 +1920,7 @@ Participant sees available published quizzes.
 
 ---
 
-## SC-031: Participant Starts Quiz Attempt
+## SC-045: Participant Starts Quiz Attempt
 
 ### Actor
 
@@ -1257,48 +1928,54 @@ Program Participant
 
 ### Goal
 
-Start a quiz attempt.
+Start a new quiz attempt.
 
 ### Preconditions
 
-- User is enrolled in program.
-- Quiz is published.
-- Max attempts not exceeded.
+- User has an active enrollment in the program.
+- Quiz is PUBLISHED.
+- User has not exceeded `maxAttempts`.
+- No IN\_PROGRESS attempt exists for this user and quiz.
 
 ### Main Flow
 
-1. Participant requests start attempt.
+1. User sends request:
+   ```
+   POST /api/v1/quizzes/{quizId}/attempts
+   ```
 2. Backend checks:
-   - quiz exists
-   - quiz is published
-   - quiz status = PUBLISHED
-   - user is actively enrolled in program
-   - max attempts not exceeded
+   - Quiz exists and `status = PUBLISHED`.
+   - User has an active enrollment in the quiz's program.
+   - Count of user's attempts for this quiz is less than `quiz.maxAttempts`.
+   - No existing IN\_PROGRESS attempt for this user and quiz.
 3. Backend creates attempt:
-   - status = IN_PROGRESS
-   - started_at = now
-4. Backend returns attempt response.
+   - `status = IN_PROGRESS`
+   - `started_at = now`
+   - `expires_at = now + quiz.durationMinutes`
+   - `attempt_number = count_of_previous_attempts + 1`
+4. Backend returns attempt response with HTTP 201.
 
 ### Business Rules
 
-- Unenrolled users cannot start attempt.
-- Archived quiz cannot be attempted.
-- Max attempts must be enforced.
-- Owner can start attempt only if also enrolled as participant.
+- Unenrolled users receive HTTP 403.
+- Quiz not published: return HTTP 404 or HTTP 422.
+- Max attempts exceeded: return HTTP 422.
+- Attempt timing is enforced server-side.
 
 ### Alternative / Error Flows
 
-- Max attempts reached: return business rule error.
-- Quiz not published: return forbidden/not found.
-- User not enrolled: return forbidden.
+- Max attempts reached: return HTTP 422 with message.
+- Quiz not published: return HTTP 404.
+- User not enrolled: return HTTP 403.
+- IN\_PROGRESS attempt already exists: return HTTP 409.
 
 ### Expected Result
 
-Attempt is created.
+Attempt is created and timing starts.
 
 ---
 
-## SC-032: Participant Submits Quiz Attempt
+## SC-046: Participant Submits Quiz Attempt
 
 ### Actor
 
@@ -1306,91 +1983,77 @@ Program Participant
 
 ### Goal
 
-Submit quiz answers.
+Submit answers for an in-progress quiz attempt.
 
 ### Preconditions
 
-- Attempt exists.
-- Attempt belongs to current user.
-- Attempt status is IN_PROGRESS.
+- Attempt exists and belongs to current user.
+- Attempt status is IN\_PROGRESS.
+- Current time is before `attempt.expires_at`.
 
 ### Main Flow
 
-1. Participant sends selected answers.
-2. Backend checks attempt owner.
-3. Backend checks attempt status.
-4. Backend validates:
-   - questions belong to quiz
-   - selected options belong to questions
-   - no duplicated question answer
-5. Backend calculates points.
-6. Backend calculates score percentage.
-7. Backend determines pass/fail.
-8. Backend saves attempt answers.
-9. Backend updates attempt:
-   - status = SUBMITTED
-   - submitted_at = now
-   - score
-   - passed
-10. Backend writes audit log.
-11. If passed and certificate mode is AUTO, backend issues certificate.
+1. User sends request:
+   ```
+   POST /api/v1/quiz-attempts/{attemptId}/submit
+   ```
+   with body:
+   ```json
+   {
+     "answers": [
+       { "questionId": "...", "selectedOptionId": "..." },
+       { "questionId": "...", "selectedOptionId": "..." }
+     ]
+   }
+   ```
+2. Backend calls `ensureAttemptOwner(attemptId)`.
+3. Backend checks attempt status is IN\_PROGRESS.
+4. Backend checks `current time <= attempt.expires_at`.
+5. Backend validates:
+   - Each `questionId` belongs to the quiz.
+   - Each `selectedOptionId` belongs to the corresponding question.
+   - No duplicate `questionId` in answers.
+6. Backend calculates score:
+   - For each answer, check if `selectedOptionId.is_correct = true`.
+   - Sum earned points.
+   - Calculate `score_percentage = (earned_points / total_points) * 100`.
+   - Set `is_passed = score_percentage >= quiz.passing_score`.
+7. Backend saves attempt answers.
+8. Backend updates attempt:
+   - `status = SUBMITTED`
+   - `submitted_at = now`
+   - `total_points`
+   - `earned_points`
+   - `score_percentage`
+   - `is_passed`
+9. Backend writes audit log entry: `ATTEMPT_SUBMITTED`.
+10. If `is_passed = true` and `quiz.certificate_issue_mode = AUTO`:
+    - Backend triggers AUTO certificate issuance flow (SC-047).
+11. Backend returns attempt result response.
 
 ### Business Rules
 
-- Backend calculates score.
-- Client score is ignored.
-- User cannot submit another user's attempt.
-- User cannot submit attempt twice.
-- Invalid question/option combinations are rejected.
+- Backend calculates all scores. Client score values are ignored.
+- User cannot submit another user's attempt (HTTP 403).
+- Already submitted attempt returns HTTP 409.
+- Submission after `expires_at` returns HTTP 422.
+- Invalid question or option combinations return HTTP 422.
 
 ### Alternative / Error Flows
 
-- Attempt already submitted: return conflict.
-- Selected option does not belong to question: return validation error.
-- Question does not belong to quiz: return validation error.
-- Attempt belongs to another user: return forbidden.
+- Attempt already submitted: return HTTP 409.
+- Current time exceeds `expires_at`: return HTTP 422 with message.
+- Question does not belong to quiz: return HTTP 422.
+- Option does not belong to question: return HTTP 422.
+- Attempt belongs to another user: return HTTP 403.
 
 ### Expected Result
 
-Attempt is submitted and scored.
+Attempt is submitted and scored. Certificate may be automatically issued.
 
 ---
 
-## SC-033: Participant Views Own Attempts
-
-### Actor
-
-Program Participant
-
-### Goal
-
-View own attempt history.
-
-### Preconditions
-
-- User has attempts.
-
-### Main Flow
-
-1. Participant requests own attempts.
-2. Backend resolves current user.
-3. Backend returns attempts where user_id = current user.
-
-### Business Rules
-
-- User can only view own attempts unless owner viewing organization attempts.
-
-### Expected Result
-
-Participant sees own quiz results.
-
----
-
-# 11. Certificate Scenarios
-
----
-
-## SC-034: System Auto-Issues Certificate
+## SC-047: System AUTO-Issues Certificate After Passing Attempt
 
 ### Actor
 
@@ -1398,48 +2061,81 @@ System
 
 ### Goal
 
-Automatically issue certificate after passing quiz.
+Automatically issue a certificate after a passing attempt when `certificateIssueMode = AUTO`.
 
 ### Preconditions
 
-- Attempt was submitted.
-- Attempt passed.
-- Quiz certificateEnabled = true.
-- Quiz certificateIssueMode = AUTO.
+- Attempt was submitted successfully.
+- `is_passed = true`.
+- `quiz.certificate_enabled = true`.
+- `quiz.certificate_issue_mode = AUTO`.
 
 ### Main Flow
 
-1. Attempt submission completes.
-2. Backend checks certificate eligibility.
-3. Backend verifies:
-   - user is enrolled in program
-   - attempt is submitted
-   - attempt passed
-   - no duplicate active certificate exists
-4. Backend generates certificate number.
-5. Backend generates verification code.
-6. Backend stores snapshots:
-   - participantNameSnapshot
-   - quizTitleSnapshot
-   - programTitleSnapshot
-   - organizationNameSnapshot
-7. Backend creates certificate.
-8. Backend may generate/store PDF/QR metadata.
-9. Backend writes audit log.
+1. Attempt submission flow completes (SC-046).
+2. Backend checks certificate eligibility:
+   - User has an active enrollment in the program.
+   - Attempt is SUBMITTED and `is_passed = true`.
+   - No ACTIVE certificate exists for this user and quiz.
+3. Backend generates:
+   - `certificate_number` in format `CERT-{YEAR}-{8_ALPHANUMERIC}`.
+   - `verification_code` as 16-character uppercase alphanumeric using SecureRandom.
+4. Backend captures snapshots at issuance time:
+   - `participant_name_snapshot = user.name`
+   - `quiz_title_snapshot = quiz.title`
+   - `program_title_snapshot = program.title`
+   - `organization_name_snapshot = organization.name`
+5. Backend creates certificate record with `status = ACTIVE`.
+6. Backend writes audit log entry: `CERTIFICATE_ISSUED`.
+7. Attempt submission response includes certificate reference.
 
 ### Business Rules
 
-- No duplicate active certificate for same user and quiz.
-- Certificate snapshots preserve historical names.
-- Failed attempts cannot receive certificates.
+- If certificate issuance fails: log the error, return attempt result without certificate reference, do NOT roll back the attempt submission.
+- Duplicate ACTIVE certificate for same user and quiz returns HTTP 409.
 
 ### Expected Result
 
-Certificate is issued automatically.
+Certificate is issued automatically and included in the attempt response.
 
 ---
 
-## SC-035: Owner Manually Issues Certificate
+## SC-048: Participant Views Own Attempts
+
+### Actor
+
+Program Participant
+
+### Goal
+
+View own quiz attempt history.
+
+### Preconditions
+
+- User is authenticated.
+- User has submitted at least one attempt.
+
+### Main Flow
+
+1. User sends request:
+   ```
+   GET /api/v1/quiz-attempts/me
+   ```
+2. Backend resolves current user.
+3. Backend returns paginated attempts where `user_id = currentUserId`.
+
+### Business Rules
+
+- User sees only their own attempts.
+- Owners can view all attempts via the quiz-scoped endpoint.
+
+### Expected Result
+
+Participant sees their own quiz attempt history and scores.
+
+---
+
+## SC-049: Owner Views All Quiz Attempts
 
 ### Actor
 
@@ -1447,45 +2143,78 @@ Organization Owner
 
 ### Goal
 
-Issue certificate manually for passing attempt.
+View all attempts for a quiz in an owned program.
 
 ### Preconditions
 
-- Quiz certificateIssueMode = MANUAL.
-- Attempt exists.
-- Attempt is submitted and passed.
-- Owner owns organization.
+- Quiz exists under owned organization.
 
 ### Main Flow
 
-1. Owner selects passing attempt.
-2. Backend checks owner permission.
-3. Backend checks attempt eligibility.
-4. Backend checks no duplicate active certificate.
-5. Backend generates certificate number and verification code.
-6. Backend stores snapshots.
-7. Backend creates certificate.
-8. Backend writes audit log.
-
-### Business Rules
-
-- Only owner can manually issue certificate.
-- Failed attempts are not eligible.
-- Duplicate active certificates are rejected.
-
-### Alternative / Error Flows
-
-- Attempt failed: return business rule error.
-- Certificate already exists: return conflict.
-- Owner does not own organization: return forbidden.
+1. Owner sends request:
+   ```
+   GET /api/v1/quizzes/{quizId}/attempts
+   ```
+2. Backend calls `ensureQuizOwner(quizId)`.
+3. Backend returns paginated attempts for the quiz.
 
 ### Expected Result
 
-Certificate is issued manually.
+Owner sees all attempts with scores for the quiz.
 
 ---
 
-## SC-036: Participant Views Own Certificates
+# 12. Certificate Scenarios
+
+---
+
+## SC-050: Owner Manually Issues Certificate
+
+### Actor
+
+Organization Owner
+
+### Goal
+
+Issue a certificate manually for a passing attempt.
+
+### Preconditions
+
+- `quiz.certificate_issue_mode = MANUAL`.
+- Attempt exists, is SUBMITTED, and `is_passed = true`.
+- User owns the quiz's organization.
+- No active certificate exists for this user and quiz.
+
+### Main Flow
+
+1. Owner sends request:
+   ```
+   POST /api/v1/quiz-attempts/{attemptId}/certificate
+   ```
+2. Backend calls `ensureQuizOwner` for the attempt's quiz.
+3. Backend validates eligibility:
+   - Attempt is SUBMITTED.
+   - `is_passed = true`.
+   - No ACTIVE certificate for this user and quiz.
+4. Backend generates certificate number and verification code.
+5. Backend captures name snapshots.
+6. Backend creates certificate with `status = ACTIVE`.
+7. Backend writes audit log entry: `CERTIFICATE_ISSUED`.
+8. Backend returns certificate with HTTP 201.
+
+### Business Rules
+
+- Failed attempts are not eligible (HTTP 422).
+- Duplicate active certificate returns HTTP 409.
+- Only owner can manually issue certificates.
+
+### Expected Result
+
+Certificate is issued manually by the owner.
+
+---
+
+## SC-051: Participant Views Own Certificates
 
 ### Actor
 
@@ -1497,26 +2226,28 @@ View certificates issued to them.
 
 ### Preconditions
 
-- User has certificates.
+- User has at least one certificate.
 
 ### Main Flow
 
-1. User requests own certificates.
+1. User sends request:
+   ```
+   GET /api/v1/certificates/me
+   ```
 2. Backend resolves current user.
-3. Backend returns certificates where user_id = current user.
+3. Backend returns paginated certificates where `user_id = currentUserId`.
 
 ### Business Rules
 
-- User can only view own certificates.
-- Certificate response can include PDF/QR URLs if available.
+- Response may include `pdf_url` and `qr_code_url` if available.
 
 ### Expected Result
 
-Participant sees own certificates.
+Participant sees their own certificates.
 
 ---
 
-## SC-037: Owner Views Organization Certificates
+## SC-052: Owner Views Organization Certificates
 
 ### Actor
 
@@ -1524,29 +2255,28 @@ Organization Owner
 
 ### Goal
 
-View certificates issued under owned organization.
+View all certificates issued under owned organization.
 
 ### Preconditions
 
-- User owns organization.
+- User owns the organization.
 
 ### Main Flow
 
-1. Owner requests organization certificates.
-2. Backend checks organization ownership.
-3. Backend returns certificates for organization.
-
-### Business Rules
-
-- Owners cannot view certificates of unrelated organizations.
+1. Owner sends request:
+   ```
+   GET /api/v1/certificates/organization/{organizationId}
+   ```
+2. Backend calls `ensureOrganizationOwner(organizationId)`.
+3. Backend returns paginated certificates for the organization.
 
 ### Expected Result
 
-Owner sees organization certificate list.
+Owner sees all certificates issued under their organization.
 
 ---
 
-## SC-038: Owner Revokes Certificate
+## SC-053: Owner Revokes Certificate
 
 ### Actor
 
@@ -1554,71 +2284,77 @@ Organization Owner
 
 ### Goal
 
-Revoke certificate.
+Revoke a certificate while preserving its history.
 
 ### Preconditions
 
-- Certificate exists.
-- User owns certificate organization.
+- Certificate exists under owned organization.
+- Certificate status is ACTIVE.
 
 ### Main Flow
 
-1. Owner sends revoke request with reason.
-2. Backend checks ownership.
+1. Owner sends request:
+   ```
+   POST /api/v1/certificates/{certificateId}/revoke
+   ```
+   with body:
+   - `revokeReason`
+2. Backend calls `ensureCertificateAccessible(certificateId)` and checks ownership.
 3. Backend sets:
-   - status = REVOKED
-   - revoked_at = now
-   - revoke_reason
-4. Backend writes audit log.
+   - `status = REVOKED`
+   - `revoked_at = now`
+   - `revoke_reason`
+4. Backend writes audit log entry: `CERTIFICATE_REVOKED`.
+5. Backend returns updated certificate.
 
 ### Business Rules
 
-- Revoked certificate remains verifiable as revoked.
-- Do not delete certificate.
-- Only owner can revoke certificates in owned organization.
+- Certificate is never deleted.
+- Revoked certificate remains verifiable as REVOKED.
+- Only owner can revoke certificates in their organization.
 
 ### Expected Result
 
-Certificate is revoked but still historically visible.
+Certificate is revoked and publicly verifiable as revoked.
 
 ---
 
-## SC-039: Public Certificate Verification Shows Revoked Certificate
+## SC-054: Visitor Verifies a Revoked Certificate
 
 ### Actor
 
-Visitor
+Unauthenticated Visitor
 
 ### Goal
 
-Verify a revoked certificate.
+Verify a certificate that has been revoked.
 
 ### Preconditions
 
-- Certificate exists and status = REVOKED.
+- Certificate exists with `status = REVOKED`.
 
 ### Main Flow
 
-1. Visitor enters verification code.
-2. Backend finds certificate.
-3. Backend returns safe certificate data with status REVOKED.
+1. Visitor sends request:
+   ```
+   GET /api/v1/public/certificates/verify/{verificationCode}
+   ```
+2. Backend finds certificate by verification code.
+3. Backend returns safe public data with `isRevoked = true`.
 
 ### Business Rules
 
-- Public verification should not hide revoked certificates.
-- It should clearly indicate revoked status.
+- Response clearly indicates revoked status.
+- `revokedAt` and `revokeReason` are included in the response.
+- Sensitive user data is not exposed.
 
 ### Expected Result
 
-Visitor sees that certificate was revoked.
+Visitor sees that the certificate is revoked.
 
 ---
 
-# 12. Certificate PDF and QR Scenarios
-
----
-
-## SC-040: System Stores Certificate PDF in Cloudflare R2
+## SC-055: System Stores Certificate PDF in Cloudflare R2
 
 ### Actor
 
@@ -1626,7 +2362,7 @@ System
 
 ### Goal
 
-Store generated certificate PDF.
+Store a generated certificate PDF and update the certificate record.
 
 ### Preconditions
 
@@ -1637,26 +2373,25 @@ Store generated certificate PDF.
 ### Main Flow
 
 1. System generates certificate PDF.
-2. System uploads PDF to Cloudflare R2.
-3. R2 returns object key or URL.
-4. Backend stores:
-   - pdf_url
-   - pdf_object_key
-5. Backend updates certificate.
+2. System calls `R2StorageService.uploadFile(...)`.
+3. R2 returns `objectKey` and public URL.
+4. Backend updates certificate:
+   - `pdf_url`
+   - `pdf_object_key`
 
 ### Business Rules
 
-- R2 is preferred for certificate PDFs.
+- R2 is the preferred storage for certificate PDFs.
 - Database stores metadata only.
-- PDF generation can be delayed in first MVP.
+- PDF generation may be deferred in the first MVP.
 
 ### Expected Result
 
-Certificate has downloadable PDF metadata.
+Certificate has a downloadable PDF reference.
 
 ---
 
-## SC-041: System Stores QR Code
+## SC-056: System Stores QR Code for Certificate
 
 ### Actor
 
@@ -1664,31 +2399,31 @@ System
 
 ### Goal
 
-Store QR code for certificate verification.
+Generate and store a QR code for certificate public verification.
 
 ### Preconditions
 
-- Certificate exists.
-- Verification code exists.
-- QR generation is enabled.
+- Certificate exists with a valid verification code.
 
 ### Main Flow
 
-1. System generates QR code pointing to verification URL.
+1. System generates QR code image encoding:
+   ```
+   https://{APP_CERTIFICATE_VERIFY_BASE_URL}/verify/{verificationCode}
+   ```
 2. System uploads QR image to R2 or Cloudinary.
-3. Backend stores:
-   - qr_code_url
-   - qr_code_object_key
+3. Backend updates certificate:
+   - `qr_code_url`
+   - `qr_code_object_key`
 
 ### Business Rules
 
-- QR code should point to public verification page.
-- R2 or Cloudinary can store QR image.
+- QR code must point to the public verification URL.
 - Database stores metadata only.
 
 ### Expected Result
 
-Certificate has QR metadata.
+Certificate has a QR code reference for public scanning.
 
 ---
 
@@ -1696,7 +2431,7 @@ Certificate has QR metadata.
 
 ---
 
-## SC-042: Owner Views Organization Statistics
+## SC-057: Owner Views Organization Statistics
 
 ### Actor
 
@@ -1704,39 +2439,41 @@ Organization Owner
 
 ### Goal
 
-View high-level organization stats.
+View a high-level performance overview of the organization.
 
 ### Preconditions
 
-- User owns organization.
+- User owns the organization.
 
 ### Main Flow
 
-1. Owner requests organization stats.
-2. Backend checks ownership.
-3. Backend calculates:
+1. Owner sends request:
+   ```
+   GET /api/v1/organizations/{organizationId}/stats
+   ```
+2. Backend calls `ensureOrganizationOwner(organizationId)`.
+3. Backend calculates and returns:
    - total programs
    - total members
    - total enrolled participants
    - total quizzes
    - total attempts
-   - total certificates
-   - average score
-   - pass rate
-4. Backend returns stats response.
+   - total certificates issued
+   - average score across all quizzes
+   - overall pass rate
 
 ### Business Rules
 
-- Only owner can view organization stats.
-- Stats must be scoped to organization.
+- Only owner can view organization statistics.
+- Statistics are scoped to the organization.
 
 ### Expected Result
 
-Owner sees organization performance overview.
+Owner sees the organization performance overview.
 
 ---
 
-## SC-043: Owner Views Program Statistics
+## SC-058: Owner Views Program Statistics
 
 ### Actor
 
@@ -1748,36 +2485,32 @@ View statistics for a specific program.
 
 ### Preconditions
 
-- Program exists.
-- User owns program organization.
+- Program exists under owned organization.
 
 ### Main Flow
 
-1. Owner requests program stats.
-2. Backend checks program ownership.
-3. Backend calculates:
+1. Owner sends request:
+   ```
+   GET /api/v1/programs/{programId}/stats
+   ```
+2. Backend calls `ensureProgramOwner(programId)`.
+3. Backend calculates and returns:
    - total enrollments
    - active enrollments
    - resources count
    - quizzes count
-   - attempts count
-   - passed attempts
-   - certificates issued
+   - total attempts
+   - passed attempts count
+   - certificates issued count
    - average score
-4. Backend returns stats response.
-
-### Business Rules
-
-- Only owner can view program stats.
-- Stats are program-scoped.
 
 ### Expected Result
 
-Owner sees program performance overview.
+Owner sees program-level statistics.
 
 ---
 
-## SC-044: Owner Views Quiz Statistics
+## SC-059: Owner Views Quiz Statistics
 
 ### Actor
 
@@ -1785,36 +2518,32 @@ Organization Owner
 
 ### Goal
 
-View statistics for a quiz.
+View analytics for a specific quiz.
 
 ### Preconditions
 
-- Quiz exists.
-- User owns quiz program organization.
+- Quiz exists under owned program.
 
 ### Main Flow
 
-1. Owner requests quiz stats.
-2. Backend checks quiz ownership.
-3. Backend calculates:
-   - attempts count
+1. Owner sends request:
+   ```
+   GET /api/v1/quizzes/{quizId}/stats
+   ```
+2. Backend calls `ensureQuizOwner(quizId)`.
+3. Backend calculates and returns:
+   - total attempts
    - submitted attempts
    - average score
    - highest score
    - lowest score
    - pass count
    - fail count
-   - pass rate
-4. Backend returns stats response.
-
-### Business Rules
-
-- Only owner can view quiz stats.
-- Stats are quiz-scoped.
+   - pass rate percentage
 
 ### Expected Result
 
-Owner sees quiz analytics.
+Owner sees quiz-level analytics.
 
 ---
 
@@ -1822,7 +2551,7 @@ Owner sees quiz analytics.
 
 ---
 
-## SC-045: System Records Audit Log for Business Action
+## SC-060: System Records Audit Log for Business Action
 
 ### Actor
 
@@ -1830,55 +2559,104 @@ System
 
 ### Goal
 
-Track important business/security actions.
+Track important business and security actions for traceability.
 
 ### Preconditions
 
-- A sensitive or important action occurs.
+- A sensitive or important business action has just succeeded.
 
 ### Main Flow
 
-1. Business action succeeds.
-2. Backend creates audit log:
-   - actorUserId
-   - organizationId
-   - action
-   - entityType
-   - entityId
-   - ipAddress
-   - userAgent
-   - metadata
-   - createdAt
+1. Business action completes successfully.
+2. Backend creates audit log record:
+   - `actor_user_id = currentUserId`
+   - `organization_id` (if action is organization-scoped)
+   - `action` (e.g., `CERTIFICATE_ISSUED`)
+   - `entity_type` (e.g., `Certificate`)
+   - `entity_id`
+   - `ip_address` from request
+   - `user_agent` from request headers
+   - `metadata` as JSONB for additional context
+   - `created_at = now`
 
 ### Business Rules
 
-Audit logs should be created for:
+Audit logs must be created for the following actions:
 
-- organization created
-- organization updated
-- member added
-- member removed
-- program created
-- program published
-- invitation created
-- user joined program
-- resource created
-- quiz created
-- quiz published
-- attempt submitted
-- certificate issued
-- certificate revoked
+```text
+ORGANIZATION_CREATED
+ORGANIZATION_UPDATED
+ORGANIZATION_DELETED
+MEMBER_ADDED
+MEMBER_REMOVED
+PROGRAM_CREATED
+PROGRAM_UPDATED
+PROGRAM_PUBLISHED
+PROGRAM_ARCHIVED
+INVITATION_CREATED
+INVITATION_DISABLED
+USER_JOINED_BY_INVITATION
+USER_ENROLLED
+ENROLLMENT_REMOVED
+RESOURCE_CREATED
+RESOURCE_UPDATED
+RESOURCE_DELETED
+QUIZ_CREATED
+QUIZ_UPDATED
+QUIZ_PUBLISHED
+QUIZ_ARCHIVED
+ATTEMPT_STARTED
+ATTEMPT_SUBMITTED
+CERTIFICATE_ISSUED
+CERTIFICATE_REVOKED
+```
 
-Audit metadata must not include:
+Audit metadata must never include:
+- Raw Clerk tokens
+- API secrets or keys
+- Passwords or sensitive credentials
 
-- raw Clerk tokens
-- secrets
-- API keys
-- private credentials
+Audit logs are append-only and are never soft deleted or hard deleted.
 
 ### Expected Result
 
-Important actions are traceable.
+All important platform actions are traceable through audit logs.
+
+---
+
+## SC-061: Owner Views Organization Audit Logs
+
+### Actor
+
+Organization Owner
+
+### Goal
+
+Review audit history for an owned organization.
+
+### Preconditions
+
+- User owns the organization.
+
+### Main Flow
+
+1. Owner sends request:
+   ```
+   GET /api/v1/organizations/{organizationId}/audit-logs
+   ```
+2. Backend calls `ensureOrganizationOwner(organizationId)`.
+3. Backend returns paginated audit logs for the organization.
+
+### Business Rules
+
+- Only owner can read audit logs for their organization.
+- Unauthenticated users receive HTTP 401.
+- Non-owner members receive HTTP 403 or HTTP 404.
+- Audit logs are read-only.
+
+### Expected Result
+
+Owner sees a paginated history of actions taken in their organization.
 
 ---
 
@@ -1886,7 +2664,7 @@ Important actions are traceable.
 
 ---
 
-## SC-046: Invalid Clerk Token Is Rejected
+## SC-062: Invalid Clerk Token Is Rejected
 
 ### Actor
 
@@ -1894,31 +2672,64 @@ Unauthenticated or Invalid User
 
 ### Goal
 
-Access protected endpoint with invalid token.
+Access a protected endpoint with a missing, expired, or malformed Clerk token.
 
 ### Preconditions
 
-- Token is missing, expired, malformed, or invalid.
+- Token is missing, expired, malformed, or has an invalid signature.
 
 ### Main Flow
 
-1. User sends request to protected endpoint.
-2. Backend attempts to verify Clerk token.
-3. Verification fails.
-4. Backend rejects request.
+1. User sends request to a protected endpoint.
+2. Spring Security filter attempts to verify the Clerk JWT.
+3. Verification fails (invalid signature, expired, missing header).
+4. Backend rejects the request before reaching any controller.
 
 ### Business Rules
 
-- Protected endpoints require valid Clerk authentication.
-- Public certificate verification does not require authentication.
+- All protected endpoints require a valid Clerk JWT.
+- The public certificate verification endpoint does not require authentication.
+- Clerk webhook endpoint uses signature verification, not user JWT.
 
 ### Expected Result
 
-System returns unauthorized response.
+System returns HTTP 401 Unauthorized.
 
 ---
 
-## SC-047: Participant Tries to Manage Organization
+## SC-063: Clerk Webhook With Invalid Signature Is Rejected
+
+### Actor
+
+Unknown External Caller
+
+### Goal
+
+Send a request to the Clerk webhook endpoint with an invalid or missing signature.
+
+### Preconditions
+
+- `CLERK_WEBHOOK_SECRET` is configured.
+- Caller does not provide a valid Clerk webhook signature.
+
+### Main Flow
+
+1. Caller sends POST request to:
+   ```
+   POST /api/v1/webhooks/clerk
+   ```
+2. Backend reads the `Svix-Signature` header.
+3. Backend verifies signature against `CLERK_WEBHOOK_SECRET`.
+4. Signature is missing or invalid.
+5. Backend rejects request without processing the payload.
+
+### Expected Result
+
+System returns HTTP 401 and does not process the payload.
+
+---
+
+## SC-064: Participant Tries to Perform Owner-Only Action
 
 ### Actor
 
@@ -1926,65 +2737,33 @@ Organization Participant
 
 ### Goal
 
-Update organization or manage members.
-
-### Preconditions
-
-- User is participant, not owner.
-
-### Main Flow
-
-1. Participant sends owner-only request.
-2. Backend checks organization owner permission.
-3. Permission check fails.
-4. Backend rejects request.
-
-### Business Rules
-
-- Participants cannot manage organization.
-- Owner-only actions must use `ensureOrganizationOwner`.
-
-### Expected Result
-
-System returns forbidden response.
-
----
-
-## SC-048: Unenrolled User Tries to View Program Resources
-
-### Actor
-
-Authenticated User
-
-### Goal
-
-View resources for program they are not enrolled in.
+Perform an owner-only action such as creating a program, publishing a quiz, or issuing a certificate.
 
 ### Preconditions
 
 - User is authenticated.
-- User is not enrolled in program.
-- User is not owner.
+- User has PARTICIPANT role in the organization.
 
 ### Main Flow
 
-1. User requests program resources.
-2. Backend checks program enrollment or ownership.
-3. Check fails.
+1. Participant sends owner-only request.
+2. Backend calls `ensureOrganizationOwner(organizationId)`.
+3. Check fails because user is PARTICIPANT, not OWNER.
 4. Backend rejects request.
 
 ### Business Rules
 
-- Program resources are private.
-- Only owners and enrolled participants can view.
+- All owner-only endpoints must use authorization guard methods.
+- Participants receive HTTP 403 for clearly owner-only actions.
+- For resource existence that should be hidden, return HTTP 404.
 
 ### Expected Result
 
-System returns forbidden response.
+System returns HTTP 403 Forbidden or HTTP 404.
 
 ---
 
-## SC-049: User Tries to Submit Another User's Attempt
+## SC-065: Unenrolled User Tries to Access Program Resources
 
 ### Actor
 
@@ -1992,32 +2771,69 @@ Authenticated User
 
 ### Goal
 
-Submit attempt that does not belong to them.
+View resources for a program they are not enrolled in.
+
+### Preconditions
+
+- User is authenticated.
+- User is not enrolled in the program.
+- User is not the program's organization owner.
+
+### Main Flow
+
+1. User sends request:
+   ```
+   GET /api/v1/programs/{programId}/resources
+   ```
+2. Backend checks program enrollment and organization ownership.
+3. Both checks fail.
+4. Backend rejects request.
+
+### Business Rules
+
+- Program resources are private to enrolled participants and organization owners.
+- Unenrolled users receive HTTP 404.
+
+### Expected Result
+
+System returns HTTP 404.
+
+---
+
+## SC-066: User Tries to Submit Another User's Attempt
+
+### Actor
+
+Authenticated User
+
+### Goal
+
+Submit an attempt that belongs to another user.
 
 ### Preconditions
 
 - Attempt exists.
-- Attempt belongs to another user.
+- Attempt belongs to a different user.
 
 ### Main Flow
 
-1. User sends submit request for attemptId.
-2. Backend checks attempt owner.
-3. Check fails.
+1. User sends submit request for the attempt ID.
+2. Backend calls `ensureAttemptOwner(attemptId)`.
+3. Check fails because `attempt.user_id != currentUserId`.
 4. Backend rejects request.
 
 ### Business Rules
 
 - Attempts can only be submitted by their owner.
-- Owners cannot submit on behalf of participants in MVP.
+- Owners cannot submit on behalf of participants in the MVP.
 
 ### Expected Result
 
-System returns forbidden response.
+System returns HTTP 403 Forbidden.
 
 ---
 
-## SC-050: Owner Tries to Access Another Organization's Data
+## SC-067: Owner Tries to Access Another Organization's Data
 
 ### Actor
 
@@ -2025,28 +2841,29 @@ Organization Owner
 
 ### Goal
 
-Access data of organization they do not own.
+Access owner-only data of an organization they do not own.
 
 ### Preconditions
 
 - User owns Organization A.
-- User does not own Organization B.
+- User does not own or belong to Organization B.
 
 ### Main Flow
 
-1. User requests owner-only data for Organization B.
-2. Backend checks ownership.
-3. Check fails.
+1. User sends owner-only request for Organization B.
+2. Backend calls `ensureOrganizationOwner(organizationB.id)`.
+3. Check fails because user is not the owner of Organization B.
 4. Backend rejects request.
 
 ### Business Rules
 
-- Ownership is organization-scoped.
-- Owner in one organization is not owner everywhere.
+- Organization ownership is always scoped.
+- Owning one organization does not grant access to others.
+- Return HTTP 404 to avoid leaking the existence of Organization B.
 
 ### Expected Result
 
-System returns forbidden or not found response.
+System returns HTTP 404.
 
 ---
 
@@ -2054,7 +2871,7 @@ System returns forbidden or not found response.
 
 ---
 
-## SC-051: Owner Uploads Organization Logo to Cloudinary
+## SC-068: Owner Uploads Organization Logo to Cloudinary
 
 ### Actor
 
@@ -2062,33 +2879,41 @@ Organization Owner
 
 ### Goal
 
-Upload or update organization logo.
+Upload or update the organization logo.
 
 ### Preconditions
 
-- User owns organization.
+- User owns the organization.
 - Cloudinary is configured.
 
 ### Main Flow
 
-1. Owner requests signed Cloudinary upload or uploads through backend.
-2. Backend checks organization ownership.
-3. Image is uploaded to Cloudinary.
-4. Backend stores logo URL in organization.
-5. Backend writes audit log.
+1. Owner requests a signed Cloudinary upload signature:
+   ```
+   POST /api/v1/media/cloudinary/signature
+   ```
+2. Backend calls `ensureOrganizationOwner(organizationId)`.
+3. Backend generates Cloudinary upload signature.
+4. Owner uploads image directly to Cloudinary.
+5. Owner updates organization with returned URL:
+   ```
+   PUT /api/v1/organizations/{organizationId}
+   Body: { "logoUrl": "https://res.cloudinary.com/..." }
+   ```
+6. Backend writes audit log entry: `ORGANIZATION_UPDATED`.
 
 ### Business Rules
 
-- Cloudinary is preferred for images.
-- Store URL/public ID, not raw file content.
+- Store Cloudinary URL in the database.
+- Do not store raw image bytes in the database.
 
 ### Expected Result
 
-Organization logo is updated.
+Organization logo is updated with Cloudinary-hosted image.
 
 ---
 
-## SC-052: Owner Uploads Program Cover Image to Cloudinary
+## SC-069: Owner Uploads Program Cover Image to Cloudinary
 
 ### Actor
 
@@ -2096,26 +2921,24 @@ Organization Owner
 
 ### Goal
 
-Upload program cover image.
+Upload a cover image for a program.
 
 ### Preconditions
 
-- Program exists.
-- User owns organization.
+- Program exists under owned organization.
 - Cloudinary is configured.
 
 ### Main Flow
 
-1. Owner uploads cover image.
+1. Owner uploads cover image through Cloudinary signed upload.
 2. Backend checks program ownership.
-3. Image is stored in Cloudinary.
-4. Backend stores `cover_image_url`.
-5. Backend writes audit log.
+3. Backend updates `cover_image_url` on program.
+4. Backend writes audit log entry: `PROGRAM_UPDATED`.
 
 ### Business Rules
 
-- Only owner can update program cover.
-- Cloudinary handles optimization and delivery.
+- Only owner can update the program cover image.
+- Cloudinary handles optimization and CDN delivery.
 
 ### Expected Result
 
@@ -2123,7 +2946,7 @@ Program cover image is updated.
 
 ---
 
-## SC-053: Owner Uploads PDF Resource to R2
+## SC-070: Owner Uploads PDF Resource to R2
 
 ### Actor
 
@@ -2131,104 +2954,52 @@ Organization Owner
 
 ### Goal
 
-Upload PDF resource for workshop.
+Upload a PDF workshop resource to Cloudflare R2.
 
 ### Preconditions
 
-- Program exists.
-- User owns organization.
+- Program exists under owned organization.
 - R2 is configured.
 
 ### Main Flow
 
-1. Owner uploads PDF or requests pre-signed upload URL.
-2. Backend checks ownership.
-3. File is stored in R2.
-4. Backend creates program resource:
-   - type = FILE
-   - storage_provider = R2
-   - object_key
-   - url if available
-5. Backend writes audit log.
+1. Owner requests presigned R2 upload URL:
+   ```
+   POST /api/v1/files/r2/upload-url
+   ```
+2. Backend calls `ensureProgramOwner(programId)`.
+3. Backend generates presigned R2 upload URL.
+4. Owner uploads PDF directly to R2.
+5. Owner creates resource:
+   ```
+   POST /api/v1/programs/{programId}/resources
+   Body: {
+     "type": "FILE",
+     "storageProvider": "R2",
+     "objectKey": "...",
+     "url": "...",
+     "title": "Workshop Slides"
+   }
+   ```
+6. Backend writes audit log entry: `RESOURCE_CREATED`.
 
 ### Business Rules
 
-- R2 is preferred for files/PDFs.
+- R2 is preferred for binary files and PDFs.
 - Database stores file metadata only.
+- If R2 upload fails, no resource record is created.
 
 ### Expected Result
 
-PDF resource is available to enrolled participants.
+PDF resource is stored in R2 and available to enrolled participants.
 
 ---
 
-# 17. Full Happy Path Scenario
+# 17. Edge Case Scenarios
 
 ---
 
-## SC-054: Complete Workshop Flow From Creation to Certificate
-
-### Actor
-
-Organization Owner and Program Participant
-
-### Goal
-
-Run a full workshop and issue certificates.
-
-### Preconditions
-
-- Owner and participants have Clerk accounts.
-- Backend user sync works.
-- Neon DB is connected.
-- Storage providers are configured if resources/certificates use files.
-
-### Main Flow
-
-1. Owner logs in through Clerk.
-2. Backend syncs owner profile.
-3. Owner creates organization.
-4. Backend creates owner membership.
-5. Owner creates program/workshop.
-6. Owner publishes program.
-7. Owner creates invitation link.
-8. Participant logs in through Clerk.
-9. Backend syncs participant profile.
-10. Participant joins program using invitation link.
-11. Owner adds resources.
-12. Owner creates quiz.
-13. Owner adds questions and options.
-14. Owner publishes quiz.
-15. Participant views published quiz.
-16. Participant starts attempt.
-17. Participant submits answers.
-18. Backend calculates score.
-19. Backend marks attempt passed.
-20. Backend auto-issues certificate.
-21. Backend stores certificate snapshots.
-22. Optional: backend generates PDF/QR metadata.
-23. Participant views own certificate.
-24. Visitor verifies certificate publicly.
-
-### Business Rules
-
-- All owner actions require organization ownership.
-- All participant quiz/resource actions require program enrollment.
-- Backend calculates score.
-- Certificate requires passing attempt.
-- Public verification exposes safe data only.
-
-### Expected Result
-
-Workshop is completed and certificate is verifiable.
-
----
-
-# 18. Edge Cases and Special Scenarios
-
----
-
-## SC-055: Invitation Used After Expiration
+## SC-071: Invitation Used After Expiration
 
 ### Actor
 
@@ -2236,15 +3007,15 @@ Authenticated User
 
 ### Goal
 
-Join program with expired invitation.
+Join a program using an expired invitation code.
 
 ### Expected Result
 
-System rejects request with business rule error.
+System returns HTTP 422 with message indicating the invitation has expired.
 
 ---
 
-## SC-056: Invitation Used After Max Uses Reached
+## SC-072: Invitation Used After Max Uses Reached
 
 ### Actor
 
@@ -2252,15 +3023,15 @@ Authenticated User
 
 ### Goal
 
-Join program with invitation that reached max uses.
+Join a program using an invitation that has reached its maximum use count.
 
 ### Expected Result
 
-System rejects request with business rule error.
+System returns HTTP 422 with message indicating the invitation usage limit has been reached.
 
 ---
 
-## SC-057: User Already Enrolled Uses Invitation Again
+## SC-073: User Already Enrolled Uses Invitation Again
 
 ### Actor
 
@@ -2268,15 +3039,15 @@ Program Participant
 
 ### Goal
 
-Join same program again.
+Attempt to join the same program a second time using an invitation link.
 
 ### Expected Result
 
-System rejects duplicate active enrollment or returns existing enrollment depending on policy.
+System returns HTTP 409 Conflict. Existing enrollment is preserved.
 
 ---
 
-## SC-058: Participant Exceeds Max Quiz Attempts
+## SC-074: Participant Exceeds Max Quiz Attempts
 
 ### Actor
 
@@ -2284,15 +3055,15 @@ Program Participant
 
 ### Goal
 
-Start another attempt after reaching max attempts.
+Start another quiz attempt after reaching the `maxAttempts` limit.
 
 ### Expected Result
 
-System rejects request with business rule error.
+System returns HTTP 422 with message indicating the maximum number of attempts has been reached.
 
 ---
 
-## SC-059: Quiz Is Archived Before Attempt
+## SC-075: Quiz Is Archived Before Attempt Is Started
 
 ### Actor
 
@@ -2300,15 +3071,15 @@ Program Participant
 
 ### Goal
 
-Start attempt for archived quiz.
+Start an attempt for a quiz that has been archived.
 
 ### Expected Result
 
-System rejects request.
+System returns HTTP 422. Archived quizzes do not accept new attempts.
 
 ---
 
-## SC-060: Quiz Is Archived After Attempt Started
+## SC-076: Quiz Is Archived After Attempt Is Already Started
 
 ### Actor
 
@@ -2316,26 +3087,37 @@ Program Participant
 
 ### Goal
 
-Submit already-started attempt after quiz archive.
+Submit an attempt that was started before the quiz was archived.
 
-### Product Policy Options
+### MVP Policy
 
-Option A:
+Allow submission for already-started (IN\_PROGRESS) attempts even if the quiz is now ARCHIVED.
 
-- Allow submission if attempt started before archive.
+Do not allow new attempts to be started on ARCHIVED quizzes.
 
-Option B:
+### Expected Result
 
-- Reject submission if quiz no longer active.
-
-Recommended MVP policy:
-
-- Allow submission for already-started attempts.
-- Do not allow new attempts.
+Submission is accepted because the attempt was started before archiving. Score is calculated normally.
 
 ---
 
-## SC-061: Owner Changes Organization Name After Certificate Issued
+## SC-077: Attempt Submitted After Time Expires
+
+### Actor
+
+Program Participant
+
+### Goal
+
+Submit a quiz attempt after `attempt.expires_at` has passed.
+
+### Expected Result
+
+System returns HTTP 422 with message indicating the attempt time limit has expired.
+
+---
+
+## SC-078: Organization Name Changed After Certificates Issued
 
 ### Actor
 
@@ -2343,15 +3125,15 @@ Organization Owner
 
 ### Goal
 
-Update organization name.
+Rename the organization after certificates have been issued.
 
 ### Expected Result
 
-Existing certificates keep old organization name snapshot.
+Existing certificates retain the `organization_name_snapshot` captured at issuance time. The public verification response continues to show the original organization name.
 
 ---
 
-## SC-062: User Changes Name After Certificate Issued
+## SC-079: User Changes Name After Certificate Is Issued
 
 ### Actor
 
@@ -2359,15 +3141,15 @@ Certificate Owner
 
 ### Goal
 
-Change account name.
+Update their Clerk profile name after receiving a certificate.
 
 ### Expected Result
 
-Existing certificates keep old participant name snapshot.
+Existing certificates retain the `participant_name_snapshot` captured at issuance time. Public verification continues to show the original name.
 
 ---
 
-## SC-063: Certificate Verification Code Collision
+## SC-080: Verification Code Collision During Certificate Generation
 
 ### Actor
 
@@ -2375,15 +3157,23 @@ System
 
 ### Goal
 
-Generate unique verification code.
+Generate a unique verification code when a collision occurs.
+
+### Main Flow
+
+1. System generates a 16-character verification code using SecureRandom.
+2. System checks uniqueness in the `certificates` table.
+3. If a collision is detected, system regenerates and checks again.
+4. If unique: proceed with certificate creation.
+5. If repeated collisions occur: log error and return HTTP 500.
 
 ### Expected Result
 
-System retries generation or fails safely if unique constraint is violated.
+Certificate is generated with a unique verification code, or the system fails safely with an error.
 
 ---
 
-## SC-064: R2 Upload Fails
+## SC-081: R2 Upload Fails During Resource Creation
 
 ### Actor
 
@@ -2391,15 +3181,15 @@ Organization Owner
 
 ### Goal
 
-Upload file resource.
+Upload a file resource when R2 is unavailable.
 
 ### Expected Result
 
-System returns storage error and does not create invalid resource record.
+System returns HTTP 500 storage error. No resource record is created in the database. The operation is rolled back.
 
 ---
 
-## SC-065: Cloudinary Upload Fails
+## SC-082: Cloudinary Upload Fails During Image Resource Creation
 
 ### Actor
 
@@ -2407,44 +3197,231 @@ Organization Owner
 
 ### Goal
 
-Upload image.
+Upload an image resource when Cloudinary is unavailable.
 
 ### Expected Result
 
-System returns media upload error and does not update image URL.
+System returns a media upload error. No resource record is created with an invalid or empty URL.
 
 ---
 
-# 19. Recommended Authorization Methods
+## SC-083: AUTO Certificate Issuance Fails After Passing Attempt
 
-The backend should include an `AuthorizationService` with methods such as:
+### Actor
+
+System
+
+### Goal
+
+Handle AUTO certificate issuance failure gracefully.
+
+### Preconditions
+
+- Attempt submission succeeds.
+- `is_passed = true`.
+- `certificateIssueMode = AUTO`.
+- Certificate creation fails due to an internal error.
+
+### Expected Result
+
+- The attempt submission is NOT rolled back.
+- The attempt result is returned to the user.
+- Certificate reference is omitted from the response.
+- Error is logged for investigation.
+- Owner can manually issue the certificate afterward.
+
+---
+
+# 18. Full Happy Path Scenario
+
+---
+
+## SC-084: Complete Workshop Flow From Creation to Certificate Verification
+
+### Actor
+
+Organization Owner and Program Participant
+
+### Goal
+
+Run a complete workshop lifecycle and issue a publicly verifiable certificate.
+
+### Preconditions
+
+- Owner and participant have Clerk accounts.
+- Backend is running with Neon DB, R2, and Cloudinary configured.
+
+### Main Flow
 
 ```text
-ensureOrganizationOwner(organizationId)
-ensureOrganizationMember(organizationId)
-ensureProgramOwner(programId)
-ensureProgramEnrollment(programId, userId)
-ensureInvitationOwner(invitationId)
-ensureResourceOwner(resourceId)
-ensureQuizOwner(quizId)
-ensureQuizAccessible(quizId)
-ensureAttemptOwner(attemptId)
-ensureCertificateAccessible(certificateId)
+1.  Owner logs in through Clerk.
+2.  Clerk webhook fires user.created → local owner profile created.
+3.  Owner creates organization.
+    → Organization created, owner membership created in one transaction.
+    → Audit log: ORGANIZATION_CREATED.
+
+4.  Owner creates program under organization.
+    → Program created with status = DRAFT.
+    → Audit log: PROGRAM_CREATED.
+
+5.  Owner publishes program.
+    → Status = PUBLISHED.
+    → Audit log: PROGRAM_PUBLISHED.
+
+6.  Owner creates invitation link with maxUses = 50, expiresAt = 30 days from now.
+    → 12-char uppercase code generated.
+    → Audit log: INVITATION_CREATED.
+
+7.  Owner uploads program cover image to Cloudinary.
+    → cover_image_url updated on program.
+
+8.  Owner adds external link resource (Git slides URL).
+    → Resource created with type = LINK.
+    → Audit log: RESOURCE_CREATED.
+
+9.  Owner uploads PDF resource to R2 (workshop notes PDF).
+    → Presigned URL generated.
+    → PDF uploaded to R2.
+    → Resource created with type = FILE, storage_provider = R2.
+    → Audit log: RESOURCE_CREATED.
+
+10. Owner creates quiz inside program.
+    → Quiz created with status = DRAFT.
+    → Audit log: QUIZ_CREATED.
+
+11. Owner adds 5 questions.
+12. Owner adds options to each question (4 options per question, 1 correct each).
+
+13. Owner publishes quiz.
+    → Publish validation passes.
+    → Status = PUBLISHED.
+    → Audit log: QUIZ_PUBLISHED.
+
+14. Participant opens invitation link.
+    → Participant is not logged in.
+    → Frontend redirects to Clerk sign-in.
+    → Participant registers via Clerk.
+    → Clerk webhook fires user.created → local participant profile created.
+
+15. Participant joins program using invitation code.
+    → Invitation validated (ACTIVE, not expired, max_uses not reached).
+    → Enrollment created with status = ACTIVE.
+    → used_count incremented to 1.
+    → Participant added as PARTICIPANT organization member.
+    → Audit log: USER_JOINED_BY_INVITATION.
+
+16. Participant views program resources.
+    → Enrollment verified.
+    → Resources returned: Git slides link + PDF file.
+
+17. Participant views published quiz.
+    → Enrollment verified.
+    → Quiz returned.
+
+18. Participant starts quiz attempt.
+    → attempt_number = 1.
+    → started_at = now.
+    → expires_at = now + quiz.duration_minutes.
+    → Status = IN_PROGRESS.
+
+19. Participant submits answers before expires_at.
+    → All answers validated.
+    → Scores calculated.
+    → is_passed = true.
+    → Status = SUBMITTED.
+    → Audit log: ATTEMPT_SUBMITTED.
+
+20. System auto-issues certificate.
+    → Eligibility verified.
+    → certificate_number = CERT-2024-AX93KL2P (generated).
+    → verification_code = A3FX9KL2MN8PQR7Z (generated).
+    → Snapshots captured.
+    → Certificate created with status = ACTIVE.
+    → Audit log: CERTIFICATE_ISSUED.
+
+21. Optional: System generates QR code → stored in R2.
+    Optional: System generates PDF → stored in R2.
+
+22. Participant views own certificates.
+    → Certificate returned with pdf_url, qr_code_url.
+
+23. Visitor scans QR code or enters verification code.
+    → GET /api/v1/public/certificates/verify/A3FX9KL2MN8PQR7Z
+    → Certificate found, status = ACTIVE.
+    → Public safe data returned.
+
+24. Owner views organization statistics.
+    → 1 program, 1 member, 1 enrolled, 1 quiz, 1 attempt, 1 certificate.
 ```
 
+### Expected Result
+
+Full workshop lifecycle is completed. Certificate is publicly verifiable.
+
 ---
 
-# 20. Final Rule
+# 19. Authorization Guard Methods
 
-The most important system rule:
+The backend shall include an `AuthorizationService` with the following guard methods:
+
+| Method | Description |
+| --- | --- |
+| `ensureOrganizationOwner(organizationId)` | Verify current user is OWNER of the organization |
+| `ensureOrganizationMember(organizationId)` | Verify current user is an active member |
+| `ensureProgramOwner(programId)` | Verify current user owns the program's organization |
+| `ensureProgramEnrollment(programId, userId)` | Verify user has an active enrollment in the program |
+| `ensureInvitationOwner(invitationId)` | Verify current user owns the invitation's organization |
+| `ensureResourceOwner(resourceId)` | Verify current user owns the resource's program organization |
+| `ensureQuizOwner(quizId)` | Verify current user owns the quiz's program organization |
+| `ensureQuizAccessible(quizId)` | Verify current user can access quiz (enrolled or owner) |
+| `ensureAttemptOwner(attemptId)` | Verify current user owns the attempt |
+| `ensureCertificateAccessible(certificateId)` | Verify current user can access the certificate |
+
+All guard methods shall:
+
+- Throw a specific exception if the check fails.
+- Be handled by a global exception handler (`@ControllerAdvice`).
+- Return HTTP 403 or HTTP 404 depending on the security policy for that resource.
+
+---
+
+# 20. Final Rules
 
 ```text
-Authentication comes from Clerk.
-Relational data is stored in Neon PostgreSQL.
-Files/PDFs are stored in Cloudflare R2.
-Images/media are stored in Cloudinary.
-Organization permissions come from organization_memberships.
-Program access comes from program_enrollments.
-Scores are calculated by the backend.
-Certificates are verified publicly using safe snapshot data.
+1.  Authentication comes from Clerk.
+    The backend verifies Clerk JWT tokens on every protected request.
+
+2.  User sync happens via Clerk webhooks and auto-creation on first request.
+    Both strategies complement each other.
+
+3.  Organization permissions come from organization_memberships.role.
+    There are no global user roles on the users table.
+
+4.  Program access comes from program_enrollments.
+    A user must have an ACTIVE enrollment to access resources, quizzes, and attempts.
+
+5.  All primary keys are UUIDs.
+    This is safe for public APIs and prevents enumeration attacks.
+
+6.  Scores are calculated entirely by the backend on submission.
+    Clients never send or control score values.
+
+7.  Certificate snapshots capture names at issuance time.
+    Future renames do not affect existing certificate data.
+
+8.  AUTO certificate issuance failures do not roll back the attempt submission.
+    The attempt result is returned regardless of certificate issuance success.
+
+9.  Audit logs are append-only.
+    They are never updated, soft deleted, or hard deleted.
+
+10. Soft deleted records are excluded from all API responses and permission checks.
+    Children of soft deleted parents are preserved for historical integrity.
+
+11. Files are stored in Cloudflare R2.
+    Images and media are stored in Cloudinary.
+    The database stores metadata only: url, storage_provider, object_key.
+
+12. Public certificate verification requires no authentication.
+    It exposes only safe snapshot data and status information.
 ```
