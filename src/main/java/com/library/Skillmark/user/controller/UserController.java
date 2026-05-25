@@ -33,9 +33,9 @@ public class UserController {
     }
 
     @PostMapping("/sync")
-    @Operation(summary = "Sync current Clerk user", description = "Updates the local user profile mapped by Clerk identity.")
-    ApiResponse<UserResponse> sync(@RequestBody SyncUserRequest request, Authentication authentication) {
+    @Operation(summary = "Sync current Clerk user", description = "Returns the local user profile mapped by Clerk identity.")
+    ApiResponse<UserResponse> sync(Authentication authentication) {
         return ApiResponse.success("User profile synced successfully",
-                userService.sync(SecurityUtil.authUser(authentication), request));
+                userService.sync(SecurityUtil.authUser(authentication)));
     }
 }

@@ -14,8 +14,13 @@ import com.library.Skillmark.invitation.dto.InvitationResponse;
 import com.library.Skillmark.invitation.entity.InvitationLink;
 import com.library.Skillmark.invitation.enums.InvitationStatus;
 import com.library.Skillmark.invitation.repository.InvitationLinkRepository;
+import com.library.Skillmark.membership.entity.OrganizationMembership;
+import com.library.Skillmark.membership.enums.MembershipRole;
+import com.library.Skillmark.membership.enums.MembershipStatus;
+import com.library.Skillmark.membership.repository.OrganizationMembershipRepository;
 import com.library.Skillmark.program.enums.ProgramStatus;
 import com.library.Skillmark.security.service.AuthorizationService;
+import com.library.Skillmark.user.entity.User;
 import com.library.Skillmark.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,17 +33,20 @@ import java.util.UUID;
 public class InvitationService {
     private final InvitationLinkRepository invitationRepository;
     private final ProgramEnrollmentRepository enrollmentRepository;
+    private final OrganizationMembershipRepository membershipRepository;
     private final UserRepository userRepository;
     private final AuthorizationService authorizationService;
     private final AuditLogService auditLogService;
 
     public InvitationService(InvitationLinkRepository invitationRepository,
                              ProgramEnrollmentRepository enrollmentRepository,
+                             OrganizationMembershipRepository membershipRepository,
                              UserRepository userRepository,
                              AuthorizationService authorizationService,
                              AuditLogService auditLogService) {
         this.invitationRepository = invitationRepository;
         this.enrollmentRepository = enrollmentRepository;
+        this.membershipRepository = membershipRepository;
         this.userRepository = userRepository;
         this.authorizationService = authorizationService;
         this.auditLogService = auditLogService;
@@ -68,7 +76,7 @@ public class InvitationService {
                 .toList(), page, size);
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = BusinessRuleException.class)
     public InvitationResponse join(String code, UUID userId) {
         InvitationLink invitation = invitationRepository.findByCode(code)
                 .orElseThrow(() -> new NotFoundException("Invitation not found"));
@@ -76,9 +84,11 @@ public class InvitationService {
         if (enrollmentRepository.existsByProgramIdAndUserIdAndStatus(invitation.getProgram().getId(), userId, EnrollmentStatus.ACTIVE)) {
             throw new ConflictException("User is already actively enrolled in this program");
         }
+        User user = userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User not found"));
+        ensureActiveMembership(invitation, user);
         ProgramEnrollment enrollment = new ProgramEnrollment();
         enrollment.setProgram(invitation.getProgram());
-        enrollment.setUser(userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User not found")));
+        enrollment.setUser(user);
         enrollmentRepository.save(enrollment);
         invitation.setUsedCount(invitation.getUsedCount() + 1);
         auditLogService.record(userId, invitation.getOrganization().getId(), AuditAction.USER_ENROLLED, "InvitationLink", invitation.getId());
@@ -109,6 +119,26 @@ public class InvitationService {
         if (!invitation.getProgram().isPublished() || invitation.getProgram().getStatus() != ProgramStatus.PUBLISHED) {
             throw new BusinessRuleException("Program is not joinable");
         }
+    }
+
+    private void ensureActiveMembership(InvitationLink invitation, User user) {
+        var existing = membershipRepository.findByOrganizationIdAndUserId(invitation.getOrganization().getId(), user.getId());
+        if (existing.isPresent()) {
+            OrganizationMembership membership = existing.get();
+            if (membership.getRole() == null) {
+                membership.setRole(MembershipRole.PARTICIPANT);
+            }
+            if (membership.getStatus() != MembershipStatus.ACTIVE) {
+                membership.setStatus(MembershipStatus.ACTIVE);
+            }
+            return;
+        }
+        OrganizationMembership membership = new OrganizationMembership();
+        membership.setOrganization(invitation.getOrganization());
+        membership.setUser(user);
+        membership.setRole(MembershipRole.PARTICIPANT);
+        membership.setStatus(MembershipStatus.ACTIVE);
+        membershipRepository.save(membership);
     }
 
     private String uniqueCode() {

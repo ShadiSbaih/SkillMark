@@ -3,6 +3,7 @@ package com.library.Skillmark.enrollment.service;
 import com.library.Skillmark.audit.enums.AuditAction;
 import com.library.Skillmark.audit.service.AuditLogService;
 import com.library.Skillmark.common.exception.ConflictException;
+import com.library.Skillmark.common.exception.BusinessRuleException;
 import com.library.Skillmark.common.exception.NotFoundException;
 import com.library.Skillmark.common.response.PageResponse;
 import com.library.Skillmark.enrollment.dto.CreateEnrollmentRequest;
@@ -12,8 +13,10 @@ import com.library.Skillmark.enrollment.enums.EnrollmentStatus;
 import com.library.Skillmark.enrollment.repository.ProgramEnrollmentRepository;
 import com.library.Skillmark.membership.entity.OrganizationMembership;
 import com.library.Skillmark.membership.enums.MembershipRole;
+import com.library.Skillmark.membership.enums.MembershipStatus;
 import com.library.Skillmark.membership.repository.OrganizationMembershipRepository;
 import com.library.Skillmark.program.entity.Program;
+import com.library.Skillmark.program.enums.ProgramStatus;
 import com.library.Skillmark.program.repository.ProgramRepository;
 import com.library.Skillmark.security.service.AuthorizationService;
 import com.library.Skillmark.user.repository.UserRepository;
@@ -50,18 +53,26 @@ public class EnrollmentService {
     @Transactional
     public EnrollmentResponse enroll(UUID programId, CreateEnrollmentRequest request, UUID actorId) {
         Program program = authorizationService.ensureProgramOwner(programId, actorId);
+        if (program.getStatus() == ProgramStatus.ARCHIVED || program.getStatus() == ProgramStatus.DELETED) {
+            throw new BusinessRuleException("Archived programs cannot accept new enrollments");
+        }
         var user = userRepository.findById(request.userId()).orElseThrow(() -> new NotFoundException("User not found"));
         if (enrollmentRepository.existsByProgramIdAndUserIdAndStatus(programId, request.userId(), EnrollmentStatus.ACTIVE)) {
             throw new ConflictException("User is already actively enrolled in this program");
         }
-        membershipRepository.findByOrganizationIdAndUserId(program.getOrganization().getId(), user.getId())
-                .orElseGet(() -> {
-                    OrganizationMembership membership = new OrganizationMembership();
-                    membership.setOrganization(program.getOrganization());
-                    membership.setUser(user);
-                    membership.setRole(MembershipRole.PARTICIPANT);
-                    return membershipRepository.save(membership);
-                });
+        var membership = membershipRepository.findByOrganizationIdAndUserId(program.getOrganization().getId(), user.getId())
+                .orElseGet(OrganizationMembership::new);
+        if (membership.getId() == null) {
+            membership.setOrganization(program.getOrganization());
+            membership.setUser(user);
+        }
+        if (membership.getRole() == null) {
+            membership.setRole(MembershipRole.PARTICIPANT);
+        }
+        if (membership.getStatus() != MembershipStatus.ACTIVE) {
+            membership.setStatus(MembershipStatus.ACTIVE);
+        }
+        membershipRepository.save(membership);
         ProgramEnrollment enrollment = new ProgramEnrollment();
         enrollment.setProgram(program);
         enrollment.setUser(user);
