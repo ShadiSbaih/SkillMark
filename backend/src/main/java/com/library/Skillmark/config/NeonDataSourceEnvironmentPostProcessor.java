@@ -1,7 +1,7 @@
 package com.library.Skillmark.config;
 
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.env.EnvironmentPostProcessor;
+import org.springframework.boot.EnvironmentPostProcessor;
 import org.springframework.core.Ordered;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
@@ -46,7 +46,7 @@ public class NeonDataSourceEnvironmentPostProcessor implements EnvironmentPostPr
 
     @Override
     public int getOrder() {
-        return Ordered.HIGHEST_PRECEDENCE;
+        return Ordered.HIGHEST_PRECEDENCE + 20;
     }
 
     private ParsedPostgresUrl parsePostgresUrl(String url) {
