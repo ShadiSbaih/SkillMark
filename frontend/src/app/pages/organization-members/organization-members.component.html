@@ -1,1 +1,42 @@
-organization-members
+<section class="page">
+  <header class="page-heading">
+    <div>
+      <p class="breadcrumb">Organizations / CS Club / Members</p>
+      <h1>Members</h1>
+      <p>Add owners and participants, review membership status, and remove inactive users.</p>
+    </div>
+    <button class="button button-primary" type="button">Add member</button>
+  </header>
+
+  <div class="panel filter-bar">
+    <label>
+      <span>Role</span>
+      <select><option>All roles</option><option>OWNER</option><option>PARTICIPANT</option></select>
+    </label>
+    <label>
+      <span>Status</span>
+      <select><option>All statuses</option><option>ACTIVE</option><option>REMOVED</option></select>
+    </label>
+  </div>
+
+  <article class="panel">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th></th></tr></thead>
+        <tbody>
+          @for (member of members; track member.email) {
+            <tr>
+              <td>{{ member.name }}</td>
+              <td>{{ member.email }}</td>
+              <td>{{ member.role }}</td>
+              <td><span class="status" [class.status-active]="member.status === 'ACTIVE'" [class.status-removed]="member.status === 'REMOVED'">{{ member.status }}</span></td>
+              <td>{{ member.joined }}</td>
+              <td><button class="ghost-button" type="button">Remove</button></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination"><button>Prev</button><strong>1</strong><button>Next</button></div>
+  </article>
+</section>

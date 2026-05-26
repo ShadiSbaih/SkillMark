@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { auditLogs } from '../../shared/models/skillmark-demo-data';
 
 @Component({
   selector: 'app-audit-logs',
@@ -6,4 +7,6 @@ import { Component } from '@angular/core';
   templateUrl: './audit-logs.component.html',
   styleUrl: './audit-logs.component.scss',
 })
-export class AuditLogsComponent {}
+export class AuditLogsComponent {
+  readonly auditLogs = auditLogs;
+}

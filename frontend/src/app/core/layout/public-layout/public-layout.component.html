@@ -1,2 +1,15 @@
-public-layout
-<router-outlet />
+<div class="public-shell">
+  <header class="public-nav">
+    <a class="brand" routerLink="/">
+      <span class="brand-mark">S</span>
+      <span>Skillmark</span>
+    </a>
+    <nav aria-label="Public navigation">
+      <a routerLink="/verify/A3FX9KL2MN8PQR7Z">Verify</a>
+      <a routerLink="/sign-in">Sign in</a>
+      <a class="button button-primary" routerLink="/dashboard">Open dashboard</a>
+    </nav>
+  </header>
+
+  <router-outlet />
+</div>

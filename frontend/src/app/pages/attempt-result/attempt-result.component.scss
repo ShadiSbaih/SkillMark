@@ -1,1 +1,19 @@
+.result-panel {
+	display: grid;
+	gap: 14px;
+}
+
+.progress-track {
+	height: 12px;
+	overflow: hidden;
+	border-radius: var(--radius-pill);
+	background: var(--hairline);
+}
+
+.progress-track span {
+	display: block;
+	height: 100%;
+	border-radius: inherit;
+	background: var(--primary);
+}
 

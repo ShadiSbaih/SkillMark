@@ -1,1 +1,27 @@
-my-certificates
+<section class="page">
+  <header class="page-heading">
+    <div>
+      <p class="breadcrumb">Certificates</p>
+      <h1>Certificates</h1>
+      <p>Browse issued certificates, status, verification codes, and public verification pages.</p>
+    </div>
+  </header>
+
+  <div class="certificate-grid">
+    @for (certificate of certificates; track certificate.id) {
+      <article class="certificate-tile" [class.revoked]="certificate.status === 'REVOKED'">
+        <span class="status" [class.status-active]="certificate.status === 'ACTIVE'" [class.status-revoked]="certificate.status === 'REVOKED'">{{ certificate.status }}</span>
+        <h2>{{ certificate.recipientName }}</h2>
+        <p>{{ certificate.programTitle }} / {{ certificate.quizTitle }}</p>
+        <dl class="detail-grid single">
+          <div><dt>Issued</dt><dd>{{ certificate.issuedAt }}</dd></div>
+          <div><dt>Code</dt><dd>{{ certificate.verificationCode }}</dd></div>
+        </dl>
+        <div class="button-row">
+          <a class="button button-secondary" [routerLink]="['/certificates', certificate.id]">Details</a>
+          <a class="button button-primary" [routerLink]="['/verify', certificate.verificationCode]">Verify</a>
+        </div>
+      </article>
+    }
+  </div>
+</section>

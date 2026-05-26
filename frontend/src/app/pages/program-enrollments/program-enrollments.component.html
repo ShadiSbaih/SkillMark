@@ -1,1 +1,30 @@
-program-enrollments
+<section class="page">
+  <header class="page-heading">
+    <div>
+      <p class="breadcrumb">Programs / Git Foundations / Enrollments</p>
+      <h1>Enrollments</h1>
+      <p>Review participants, quiz outcomes, completion status, and certificate eligibility.</p>
+    </div>
+    <button class="button button-primary" type="button">Invite participants</button>
+  </header>
+
+  <article class="panel">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Participant</th><th>Joined</th><th>Status</th><th>Latest score</th><th>Passed</th><th></th></tr></thead>
+        <tbody>
+          @for (enrollment of enrollments; track enrollment.id) {
+            <tr>
+              <td>{{ enrollment.participant }}</td>
+              <td>{{ enrollment.joined }}</td>
+              <td><span class="status" [class.status-completed]="enrollment.status === 'COMPLETED'" [class.status-progress]="enrollment.status === 'IN_PROGRESS'">{{ enrollment.status }}</span></td>
+              <td class="numeric">{{ enrollment.score }}%</td>
+              <td>{{ enrollment.passed ? 'Yes' : 'No' }}</td>
+              <td><button class="ghost-button" type="button">Remove</button></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>

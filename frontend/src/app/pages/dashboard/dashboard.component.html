@@ -1,1 +1,80 @@
-dashboard
+<section class="page">
+  <header class="page-heading">
+    <div>
+      <p class="breadcrumb">Home / Dashboard</p>
+      <h1>Role-aware dashboard</h1>
+      <p>Track programs, quiz performance, certificates, and participant activity across CS Club.</p>
+    </div>
+    <div class="button-row">
+      <a class="button button-secondary" routerLink="/organizations/org-cs/programs/new">Create program</a>
+      <a class="button button-primary" routerLink="/programs/program-git/quizzes">Create quiz</a>
+    </div>
+  </header>
+
+  <div class="metric-grid">
+    <article class="metric-card"><span>Programs</span><strong>{{ stats.totalPrograms }}</strong></article>
+    <article class="metric-card"><span>Members</span><strong>{{ stats.totalMembers }}</strong></article>
+    <article class="metric-card"><span>Attempts</span><strong>{{ stats.totalAttempts }}</strong></article>
+    <article class="metric-card"><span>Pass rate</span><strong>{{ stats.passRate }}%</strong></article>
+  </div>
+
+  <div class="two-column">
+    <article class="panel">
+      <div class="panel-header">
+        <h2>Active programs</h2>
+        <a routerLink="/organizations/org-cs">View all</a>
+      </div>
+      <div class="stack">
+        @for (program of programs; track program.id) {
+          <a class="list-row" [routerLink]="['/programs', program.id]">
+            <div>
+              <strong>{{ program.title }}</strong>
+              <span>{{ program.description }}</span>
+            </div>
+            <em class="status" [class.status-published]="program.status === 'PUBLISHED'" [class.status-draft]="program.status === 'DRAFT'">{{ program.status }}</em>
+          </a>
+        }
+      </div>
+    </article>
+
+    <article class="panel dark-panel">
+      <div class="panel-header">
+        <h2>Quiz outcomes</h2>
+        <a routerLink="/my-attempts">Attempts</a>
+      </div>
+      <div class="chart-bars" aria-label="Score distribution">
+        <span style="height: 42%"></span>
+        <span style="height: 58%"></span>
+        <span style="height: 76%"></span>
+        <span style="height: 88%"></span>
+        <span style="height: 64%"></span>
+      </div>
+      <p>{{ stats.averageScore }}% average score across recent submitted attempts.</p>
+    </article>
+  </div>
+
+  <article class="panel">
+    <div class="panel-header">
+      <h2>Recent attempts</h2>
+      <a routerLink="/programs/program-git/enrollments">Manage enrollments</a>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Participant</th><th>Quiz</th><th>Score</th><th>Status</th><th>Submitted</th></tr>
+        </thead>
+        <tbody>
+          @for (attempt of attempts; track attempt.id) {
+            <tr>
+              <td>{{ attempt.participant }}</td>
+              <td>{{ attempt.quizTitle }}</td>
+              <td class="numeric">{{ attempt.score }}%</td>
+              <td><span class="status status-submitted">{{ attempt.status }}</span></td>
+              <td>{{ attempt.submittedAt }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>

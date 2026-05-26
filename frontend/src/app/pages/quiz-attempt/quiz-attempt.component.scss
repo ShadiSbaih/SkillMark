@@ -1,1 +1,22 @@
+.timer-card {
+	min-width: 160px;
+	border: 1px solid var(--hairline);
+	border-radius: var(--radius-lg);
+	background: var(--canvas);
+	padding: 16px;
+	text-align: center;
+	box-shadow: var(--shadow-1);
+}
+
+.timer-card span {
+	display: block;
+	color: var(--ink-mute);
+	font-size: 12px;
+}
+
+.timer-card strong {
+	font-size: 30px;
+	font-feature-settings: "tnum";
+	font-weight: 300;
+}
 

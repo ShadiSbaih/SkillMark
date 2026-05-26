@@ -1,1 +1,45 @@
-quiz-attempt
+<section class="page quiz-page">
+  <header class="page-heading">
+    <div>
+      <p class="breadcrumb">Quizzes / {{ quiz.title }} / Attempt</p>
+      <h1>{{ quiz.title }}</h1>
+      <p>{{ quiz.description }}</p>
+    </div>
+    <div class="timer-card">
+      <span>Remaining</span>
+      <strong>28:14</strong>
+    </div>
+  </header>
+
+  <div class="two-column wide-left">
+    <div class="stack">
+      @for (question of quiz.questions; track question.id; let index = $index) {
+        <article class="panel question-card">
+          <div class="panel-header">
+            <h2>{{ index + 1 }}. {{ question.text }}</h2>
+            <span class="numeric">{{ question.points }} pts</span>
+          </div>
+          <div class="option-grid">
+            @for (option of question.options; track option.id) {
+              <label class="option-card">
+                <input type="radio" [name]="question.id" [checked]="option.id === selected" />
+                <span>{{ option.text }}</span>
+              </label>
+            }
+          </div>
+        </article>
+      }
+    </div>
+
+    <aside class="panel">
+      <h2>Attempt summary</h2>
+      <p class="muted">Answers are submitted together. The backend validates attempt ownership and expiry.</p>
+      <dl class="detail-grid single">
+        <div><dt>Passing score</dt><dd>{{ quiz.passingScore }}%</dd></div>
+        <div><dt>Duration</dt><dd>{{ quiz.durationMinutes }} minutes</dd></div>
+        <div><dt>Max attempts</dt><dd>{{ quiz.maxAttempts }}</dd></div>
+      </dl>
+      <a class="button button-primary full-width" routerLink="/attempts/attempt-1/result">Submit quiz</a>
+    </aside>
+  </div>
+</section>

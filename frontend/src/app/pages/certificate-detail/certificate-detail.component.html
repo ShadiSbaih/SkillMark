@@ -1,1 +1,37 @@
-certificate-detail
+<section class="page">
+  <header class="page-heading">
+    <div>
+      <p class="breadcrumb">Certificates / {{ certificate.id }}</p>
+      <h1>Certificate detail</h1>
+      <p>Download, verify, or revoke a certificate record.</p>
+    </div>
+    <div class="button-row">
+      <button class="button button-secondary" type="button">Download PDF</button>
+      <a class="button button-primary" [routerLink]="['/verify', certificate.verificationCode]">Verify publicly</a>
+    </div>
+  </header>
+
+  <article class="certificate-display">
+    <div class="certificate-border">
+      <p class="eyebrow">{{ certificate.organizationName }}</p>
+      <h2>Certificate of Completion</h2>
+      <p>This certifies that</p>
+      <h3>{{ certificate.recipientName }}</h3>
+      <p>completed {{ certificate.programTitle }} and passed {{ certificate.quizTitle }}.</p>
+      <div class="certificate-footer">
+        <span>Issued {{ certificate.issuedAt }}</span>
+        <span>{{ certificate.verificationCode }}</span>
+      </div>
+    </div>
+    <aside>
+      <span class="status status-active">{{ certificate.status }}</span>
+      <dl class="detail-grid single">
+        <div><dt>Recipient</dt><dd>{{ certificate.recipientName }}</dd></div>
+        <div><dt>Program</dt><dd>{{ certificate.programTitle }}</dd></div>
+        <div><dt>Quiz</dt><dd>{{ certificate.quizTitle }}</dd></div>
+        <div><dt>Organization</dt><dd>{{ certificate.organizationName }}</dd></div>
+      </dl>
+      <button class="ghost-button danger" type="button">Revoke certificate</button>
+    </aside>
+  </article>
+</section>

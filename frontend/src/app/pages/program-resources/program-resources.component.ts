@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { resources } from '../../shared/models/skillmark-demo-data';
 
 @Component({
   selector: 'app-program-resources',
@@ -6,4 +7,6 @@ import { Component } from '@angular/core';
   templateUrl: './program-resources.component.html',
   styleUrl: './program-resources.component.scss',
 })
-export class ProgramResourcesComponent {}
+export class ProgramResourcesComponent {
+  readonly resources = resources;
+}

@@ -1,1 +1,29 @@
-program-resources
+<section class="page">
+  <header class="page-heading">
+    <div>
+      <p class="breadcrumb">Programs / Git Foundations / Resources</p>
+      <h1>Resources</h1>
+      <p>Upload files, link videos, arrange the learning path, and control participant visibility.</p>
+    </div>
+    <button class="button button-primary" type="button">Add resource</button>
+  </header>
+
+  <article class="panel">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Title</th><th>Type</th><th>Visibility</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          @for (resource of resources; track resource.id) {
+            <tr>
+              <td><strong>{{ resource.title }}</strong><br /><span class="muted">{{ resource.description }}</span></td>
+              <td>{{ resource.type }}</td>
+              <td>{{ resource.visibleToParticipants ? 'Participants' : 'Owners only' }}</td>
+              <td><span class="status status-active">{{ resource.status }}</span></td>
+              <td><button class="ghost-button" type="button">Toggle</button></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>

@@ -1,1 +1,36 @@
+.public-shell {
+	min-height: 100vh;
+	background: var(--canvas);
+}
+
+.public-nav {
+	position: relative;
+	z-index: 2;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 20px;
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 20px 24px;
+}
+
+.public-nav nav {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 18px;
+}
+
+@media (max-width: 768px) {
+	.public-nav {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+
+	.public-nav nav {
+		width: 100%;
+		justify-content: space-between;
+	}
+}
 

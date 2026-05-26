@@ -1,1 +1,38 @@
-verify-certificate
+<section class="public-centered">
+  <div class="verify-panel">
+    <p class="eyebrow">Public verification</p>
+    <h1>Certificate Verification</h1>
+    <p class="muted">Enter a Skillmark verification code to confirm status, recipient, issuer, and program.</p>
+
+    <form class="inline-form" (ngSubmit)="verify()">
+      <label>
+        <span>Verification code</span>
+        <input name="code" [(ngModel)]="code" placeholder="A3FX9KL2MN8PQR7Z" />
+      </label>
+      <button class="button button-primary" type="submit">Go</button>
+    </form>
+
+    @if (searched && result) {
+      <article class="certificate-card" [class.revoked]="result.status === 'REVOKED'">
+        <div class="certificate-seal">{{ result.status === 'ACTIVE' ? 'VALID' : 'REVOKED' }}</div>
+        <div>
+          <p class="eyebrow">{{ result.organizationName }}</p>
+          <h2>{{ result.recipientName }}</h2>
+          <p>Completed <strong>{{ result.quizTitle }}</strong> in {{ result.programTitle }}.</p>
+          <dl class="detail-grid">
+            <div><dt>Status</dt><dd><span class="status" [class.status-active]="result.status === 'ACTIVE'" [class.status-revoked]="result.status === 'REVOKED'">{{ result.status }}</span></dd></div>
+            <div><dt>Issued</dt><dd>{{ result.issuedAt }}</dd></div>
+            <div><dt>Code</dt><dd>{{ result.verificationCode }}</dd></div>
+          </dl>
+        </div>
+      </article>
+    } @else if (searched) {
+      <div class="empty-state">
+        <h2>No certificate found</h2>
+        <p>Check the code and try again. Public verification does not require sign in.</p>
+      </div>
+    }
+
+    <a class="link" routerLink="/">Back to Skillmark</a>
+  </div>
+</section>

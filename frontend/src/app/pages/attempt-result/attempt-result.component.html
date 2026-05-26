@@ -1,1 +1,29 @@
-attempt-result
+<section class="page">
+  <header class="page-heading">
+    <div>
+      <p class="breadcrumb">Attempts / Result</p>
+      <h1>Attempt result</h1>
+      <p>Your submitted answers were scored and certificate eligibility was checked.</p>
+    </div>
+    <a class="button button-primary" [routerLink]="['/certificates', certificate.id]">View certificate</a>
+  </header>
+
+  <div class="two-column">
+    <article class="panel result-panel">
+      <span class="status status-active">PASSED</span>
+      <h2>{{ attempt.score }}%</h2>
+      <p>{{ attempt.participant }} passed {{ attempt.quizTitle }}.</p>
+      <div class="progress-track"><span [style.width.%]="attempt.score"></span></div>
+    </article>
+    <article class="panel">
+      <h2>Certificate issued</h2>
+      <p class="muted">Automatic certificate issue mode created a public verification record.</p>
+      <dl class="detail-grid single">
+        <div><dt>Recipient</dt><dd>{{ certificate.recipientName }}</dd></div>
+        <div><dt>Verification code</dt><dd>{{ certificate.verificationCode }}</dd></div>
+        <div><dt>Status</dt><dd><span class="status status-active">{{ certificate.status }}</span></dd></div>
+      </dl>
+      <a class="button button-secondary full-width" [routerLink]="['/verify', certificate.verificationCode]">Public verification</a>
+    </article>
+  </div>
+</section>

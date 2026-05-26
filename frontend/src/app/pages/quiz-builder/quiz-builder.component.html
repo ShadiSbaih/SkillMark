@@ -1,1 +1,58 @@
-quiz-builder
+<section class="page">
+  <header class="page-heading">
+    <div>
+      <p class="breadcrumb">Programs / Git Foundations / Quizzes / Builder</p>
+      <h1>Quiz builder</h1>
+      <p>Create questions and options, confirm publish readiness, and control participant visibility.</p>
+    </div>
+    <div class="button-row">
+      <button class="button button-secondary" type="button">Save draft</button>
+      <button class="button button-primary" type="button">Publish quiz</button>
+    </div>
+  </header>
+
+  <div class="two-column wide-left">
+    <article class="panel form-panel">
+      <h2>Quiz settings</h2>
+      <label><span>Title *</span><input [(ngModel)]="title" name="title" required maxlength="120" /></label>
+      <div class="form-grid">
+        <label><span>Passing score</span><input type="number" [value]="quiz.passingScore" /></label>
+        <label><span>Duration</span><input type="number" [value]="quiz.durationMinutes" /></label>
+        <label><span>Max attempts</span><input type="number" [value]="quiz.maxAttempts" /></label>
+      </div>
+      <label><span>Certificate issue mode</span><select><option>{{ quiz.certificateIssueMode }}</option><option>MANUAL</option><option>NONE</option></select></label>
+    </article>
+
+    <article class="panel">
+      <div class="panel-header"><h2>Publish checklist</h2><span class="status status-published">{{ quiz.status }}</span></div>
+      <ul class="check-list">
+        <li>Quiz has a title and description</li>
+        <li>At least one question has options</li>
+        <li>Each question has a correct answer</li>
+        <li>Passing score and duration are set</li>
+      </ul>
+    </article>
+  </div>
+
+  <div class="stack">
+    @for (question of quiz.questions; track question.id) {
+      <article class="panel question-card">
+        <div class="panel-header">
+          <h2>{{ question.text }}</h2>
+          <span class="numeric">{{ question.points }} pts</span>
+        </div>
+        <div class="option-grid">
+          @for (option of question.options; track option.id) {
+            <label class="option-card">
+              <input type="radio" [checked]="option.isCorrect" />
+              <span>{{ option.text }}</span>
+              @if (option.isCorrect) {
+                <em class="status status-active">Correct</em>
+              }
+            </label>
+          }
+        </div>
+      </article>
+    }
+  </div>
+</section>

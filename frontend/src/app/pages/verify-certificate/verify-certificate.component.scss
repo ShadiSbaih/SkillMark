@@ -1,1 +1,63 @@
+.public-centered {
+	min-height: calc(100vh - 76px);
+	display: grid;
+	place-items: center;
+	padding: 40px 24px 72px;
+}
+
+.verify-panel {
+	border: 1px solid var(--hairline);
+	border-radius: var(--radius-lg);
+	background: var(--canvas);
+	box-shadow: var(--shadow-1);
+	width: min(760px, 100%);
+	padding: 32px;
+}
+
+.certificate-card {
+	display: grid;
+	grid-template-columns: 140px minmax(0, 1fr);
+	gap: 24px;
+	border: 1px solid rgba(21, 128, 61, 0.24);
+	border-radius: var(--radius-lg);
+	background: #f7fff9;
+	padding: 24px;
+}
+
+.certificate-card.revoked {
+	border-color: rgba(185, 28, 28, 0.24);
+	background: #fff8f8;
+}
+
+.certificate-seal {
+	display: grid;
+	aspect-ratio: 1;
+	place-items: center;
+	border: 2px solid currentColor;
+	border-radius: 50%;
+	color: var(--success);
+	font-weight: 600;
+}
+
+.certificate-card.revoked .certificate-seal {
+	color: var(--danger);
+}
+
+.empty-state {
+	border: 1px dashed var(--hairline-input);
+	border-radius: var(--radius-lg);
+	background: var(--canvas-soft);
+	padding: 28px;
+	text-align: center;
+}
+
+@media (max-width: 768px) {
+	.certificate-card {
+		grid-template-columns: 1fr;
+	}
+
+	.certificate-seal {
+		width: 120px;
+	}
+}
 

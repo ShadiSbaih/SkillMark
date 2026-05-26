@@ -1,1 +1,52 @@
-program-overview
+<section class="page">
+  <header class="page-heading">
+    <div>
+      <p class="breadcrumb">Programs / {{ program.title }}</p>
+      <h1>{{ program.title }}</h1>
+      <p>{{ program.description }}</p>
+    </div>
+    <div class="button-row">
+      <a class="button button-secondary" routerLink="/programs/program-git/resources">Resources</a>
+      <a class="button button-primary" routerLink="/quizzes/quiz-git-final/attempt">Start quiz</a>
+    </div>
+  </header>
+
+  <div class="metric-grid">
+    <article class="metric-card"><span>Enrollments</span><strong>{{ stats.totalEnrollments }}</strong></article>
+    <article class="metric-card"><span>Resources</span><strong>{{ stats.resourcesCount }}</strong></article>
+    <article class="metric-card"><span>Quizzes</span><strong>{{ stats.quizzesCount }}</strong></article>
+    <article class="metric-card"><span>Certificates</span><strong>{{ stats.certificatesIssued }}</strong></article>
+  </div>
+
+  <div class="two-column">
+    <article class="panel">
+      <div class="panel-header"><h2>Learning resources</h2><a routerLink="/programs/program-git/resources">Manage</a></div>
+      <div class="stack">
+        @for (resource of resources; track resource.id) {
+          <div class="list-row">
+            <div><strong>{{ resource.title }}</strong><span>{{ resource.description }}</span></div>
+            <span class="status" [class.status-active]="resource.visibleToParticipants" [class.status-draft]="!resource.visibleToParticipants">
+              {{ resource.visibleToParticipants ? 'VISIBLE' : 'HIDDEN' }}
+            </span>
+          </div>
+        }
+      </div>
+    </article>
+
+    <article class="panel">
+      <div class="panel-header"><h2>Quizzes</h2><a routerLink="/programs/program-git/quizzes">Builder</a></div>
+      @for (quiz of quizzes; track quiz.id) {
+        <div class="quiz-summary">
+          <span class="status status-published">{{ quiz.status }}</span>
+          <h3>{{ quiz.title }}</h3>
+          <p>{{ quiz.description }}</p>
+          <dl class="detail-grid">
+            <div><dt>Passing score</dt><dd>{{ quiz.passingScore }}%</dd></div>
+            <div><dt>Duration</dt><dd>{{ quiz.durationMinutes }} min</dd></div>
+            <div><dt>Max attempts</dt><dd>{{ quiz.maxAttempts }}</dd></div>
+          </dl>
+        </div>
+      }
+    </article>
+  </div>
+</section>

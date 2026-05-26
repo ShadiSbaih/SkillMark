@@ -1,1 +1,29 @@
-program-invitations
+<section class="page">
+  <header class="page-heading">
+    <div>
+      <p class="breadcrumb">Programs / Git Foundations / Invitations</p>
+      <h1>Invitations</h1>
+      <p>Create and disable join links for participants entering a program.</p>
+    </div>
+    <button class="button button-primary" type="button">Create link</button>
+  </header>
+
+  <article class="panel">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Code</th><th>Uses</th><th>Expires</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          @for (invitation of invitations; track invitation.code) {
+            <tr>
+              <td><strong>{{ invitation.code }}</strong></td>
+              <td class="numeric">{{ invitation.uses }} / {{ invitation.maxUses }}</td>
+              <td>{{ invitation.expires }}</td>
+              <td><span class="status" [class.status-active]="invitation.status === 'ACTIVE'" [class.status-disabled]="invitation.status === 'DISABLED'">{{ invitation.status }}</span></td>
+              <td><button class="ghost-button" type="button">Copy</button></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>

@@ -1,2 +1,45 @@
-dashboard-layout
-<router-outlet />
+<div class="app-shell">
+  <header class="top-nav">
+    <a class="brand" routerLink="/">
+      <span class="brand-mark">S</span>
+      <span>Skillmark</span>
+    </a>
+
+    <label class="org-select">
+      <span>Organization</span>
+      <select aria-label="Current organization">
+        <option>CS Club</option>
+        <option>Data Guild</option>
+      </select>
+    </label>
+
+    <div class="top-actions">
+      <a class="icon-button" routerLink="/verify/A3FX9KL2MN8PQR7Z" aria-label="Verify certificate">?</a>
+      <div class="avatar" aria-label="Signed in user">HD</div>
+    </div>
+  </header>
+
+  <aside class="sidebar">
+    <nav aria-label="Owner navigation">
+      <p class="sidebar-label">Owner</p>
+      @for (link of ownerLinks; track link.route) {
+        <a [routerLink]="link.route" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+          {{ link.label }}
+        </a>
+      }
+    </nav>
+
+    <nav aria-label="Participant navigation">
+      <p class="sidebar-label">Participant</p>
+      @for (link of participantLinks; track link.route) {
+        <a [routerLink]="link.route" routerLinkActive="active">
+          {{ link.label }}
+        </a>
+      }
+    </nav>
+  </aside>
+
+  <main class="workspace">
+    <router-outlet />
+  </main>
+</div>
