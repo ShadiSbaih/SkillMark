@@ -91,7 +91,7 @@ public class QuizController {
     }
 
     @PutMapping("/api/v1/questions/{questionId}")
-    @Operation(summary = "Update quiz question", description = "Updates a question and its options before attempts exist. Requires owner permission.")
+    @Operation(summary = "Update quiz question", description = "Updates a question and its options until the quiz has submitted attempts. Requires owner permission.")
     ApiResponse<QuestionResponse> updateQuestion(@PathVariable UUID questionId,
                                                  @Valid @RequestBody CreateQuestionRequest request,
                                                  Authentication authentication) {
@@ -100,14 +100,14 @@ public class QuizController {
     }
 
     @DeleteMapping("/api/v1/questions/{questionId}")
-    @Operation(summary = "Delete quiz question", description = "Deletes a question before attempts exist. Requires owner permission.")
+    @Operation(summary = "Delete quiz question", description = "Deletes a question until the quiz has submitted attempts. Submitted attempt history is protected from destructive changes.")
     ApiResponse<Void> deleteQuestion(@PathVariable UUID questionId, Authentication authentication) {
         quizService.deleteQuestion(questionId, SecurityUtil.userId(authentication));
         return ApiResponse.success("Question deleted successfully", null);
     }
 
     @PostMapping("/api/v1/questions/{questionId}/options")
-    @Operation(summary = "Add quiz option", description = "Adds an option to a question before attempts exist. Requires owner permission.")
+    @Operation(summary = "Add quiz option", description = "Adds an option until the quiz has submitted attempts. Requires owner permission.")
     ResponseEntity<ApiResponse<OptionResponse>> addOption(@PathVariable UUID questionId,
                                                           @Valid @RequestBody CreateOptionRequest request,
                                                           Authentication authentication) {
@@ -116,7 +116,7 @@ public class QuizController {
     }
 
     @PutMapping("/api/v1/options/{optionId}")
-    @Operation(summary = "Update quiz option", description = "Updates an option before attempts exist. Requires owner permission.")
+    @Operation(summary = "Update quiz option", description = "Updates an option until the quiz has submitted attempts. Requires owner permission.")
     ApiResponse<OptionResponse> updateOption(@PathVariable UUID optionId,
                                              @Valid @RequestBody CreateOptionRequest request,
                                              Authentication authentication) {
@@ -125,7 +125,7 @@ public class QuizController {
     }
 
     @DeleteMapping("/api/v1/options/{optionId}")
-    @Operation(summary = "Delete quiz option", description = "Deletes an option before attempts exist. Requires owner permission.")
+    @Operation(summary = "Delete quiz option", description = "Deletes an option until the quiz has submitted attempts. Submitted attempt history is protected from destructive changes.")
     ApiResponse<Void> deleteOption(@PathVariable UUID optionId, Authentication authentication) {
         quizService.deleteOption(optionId, SecurityUtil.userId(authentication));
         return ApiResponse.success("Option deleted successfully", null);
@@ -139,7 +139,7 @@ public class QuizController {
     }
 
     @PatchMapping("/api/v1/quizzes/{quizId}/status")
-    @Operation(summary = "Update quiz status", description = "Publishes or archives a quiz after applying owner checks and publish validation.")
+    @Operation(summary = "Update quiz status", description = "Updates quiz status. Status is the source of truth; isPublished is derived from status == PUBLISHED.")
     ApiResponse<QuizResponse> updateStatus(@PathVariable UUID quizId,
                                            @Valid @RequestBody UpdateQuizStatusRequest request,
                                            Authentication authentication) {

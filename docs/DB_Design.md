@@ -90,7 +90,7 @@ table programs {
   description text
   cover_image_url text
   status varchar [not null, default: 'DRAFT']
-  is_published boolean [not null, default: false]
+  is_published boolean [not null, default: false, note: 'compatibility mirror of status = PUBLISHED']
   start_date date
   end_date date
   created_at timestamp [not null, default: `now()`]
@@ -178,7 +178,7 @@ table quizzes {
   max_attempts int [not null, default: 1]
   certificate_enabled boolean [not null, default: false]
   certificate_issue_mode varchar [not null, default: 'NONE']
-  is_published boolean [not null, default: false]
+  is_published boolean [not null, default: false, note: 'compatibility mirror of status = PUBLISHED']
   status varchar [not null, default: 'DRAFT']
   created_at timestamp [not null, default: `now()`]
   updated_at timestamp [not null, default: `now()`]
@@ -403,6 +403,7 @@ Purpose:
 *   enroll participants manually or through invitation links
 *   track enrollment lifecycle (active, completed, removed)
 *   support invitation code-based self-enrollment with expiry and usage limits
+*   enforce invitation usage limits atomically so concurrent joins cannot make `used_count` exceed `max_uses`
 
 ---
 
@@ -530,8 +531,9 @@ REMOVED      - member was removed by the organization owner
 DRAFT        - program is not yet published, not visible to participants
 PUBLISHED    - program is active and visible to enrolled participants
 ARCHIVED     - program is closed, preserved for historical reference
-DELETED      - soft deleted by owner
 ```
+
+`programs.status` is the single source of truth for publication state. `programs.is_published` is a backward-compatible mirror and must equal `(status = 'PUBLISHED')`. Soft deletion is represented by `deleted_at`, not a `DELETED` status.
 
 ---
 
@@ -592,8 +594,9 @@ CLOUDINARY   - resource image is stored in Cloudinary
 DRAFT        - quiz is not published, not visible to participants
 PUBLISHED    - quiz is active and available to enrolled participants
 ARCHIVED     - quiz is closed, no new attempts allowed
-DELETED      - soft deleted by owner
 ```
+
+`quizzes.status` is the single source of truth for publication state. `quizzes.is_published` is a backward-compatible mirror and must equal `(status = 'PUBLISHED')`. Soft deletion is represented by `deleted_at`, not a `DELETED` status.
 
 ---
 
@@ -764,7 +767,19 @@ This allows ordering and display without recounting.
 
 ---
 
-## 5.7 Score Fields on Attempts
+## 5.7 Historical Quiz Structure Protection
+
+Questions and options are part of historical attempt evidence once submitted attempts exist.
+
+Rules:
+
+* If a quiz has no submitted attempts, owners may update or delete questions/options according to validation rules.
+* If a quiz has submitted attempts, destructive question/option updates and deletes must be rejected unless a future versioning or archival strategy is implemented.
+* Options or questions referenced by attempt answers must not be physically deleted.
+
+---
+
+## 5.8 Score Fields on Attempts
 
 Scoring fields are null until the attempt is submitted:
 
@@ -912,6 +927,22 @@ CREATE UNIQUE INDEX uq_active_program_enrollment
 CREATE UNIQUE INDEX uq_active_certificate_user_quiz
   ON certificates(user_id, quiz_id)
   WHERE status = 'ACTIVE';
+```
+
+## Publication State Constraints
+
+```
+ALTER TABLE programs
+  ADD CONSTRAINT chk_program_status_values
+    CHECK (status IN ('DRAFT', 'PUBLISHED', 'ARCHIVED')),
+  ADD CONSTRAINT chk_program_is_published_matches_status
+    CHECK (is_published = (status = 'PUBLISHED'));
+
+ALTER TABLE quizzes
+  ADD CONSTRAINT chk_quiz_status_values
+    CHECK (status IN ('DRAFT', 'PUBLISHED', 'ARCHIVED')),
+  ADD CONSTRAINT chk_quiz_is_published_matches_status
+    CHECK (is_published = (status = 'PUBLISHED'));
 ```
 
 ---

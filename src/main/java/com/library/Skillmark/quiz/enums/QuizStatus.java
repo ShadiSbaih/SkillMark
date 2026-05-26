@@ -9,6 +9,5 @@ import com.library.Skillmark.quiz.service.*;
 public enum QuizStatus {
     DRAFT,
     PUBLISHED,
-    ARCHIVED,
-    DELETED
+    ARCHIVED
 }

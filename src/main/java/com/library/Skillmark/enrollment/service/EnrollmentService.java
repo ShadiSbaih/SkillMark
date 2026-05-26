@@ -53,7 +53,7 @@ public class EnrollmentService {
     @Transactional
     public EnrollmentResponse enroll(UUID programId, CreateEnrollmentRequest request, UUID actorId) {
         Program program = authorizationService.ensureProgramOwner(programId, actorId);
-        if (program.getStatus() == ProgramStatus.ARCHIVED || program.getStatus() == ProgramStatus.DELETED) {
+        if (program.getStatus() == ProgramStatus.ARCHIVED || program.getDeletedAt() != null) {
             throw new BusinessRuleException("Archived programs cannot accept new enrollments");
         }
         var user = userRepository.findById(request.userId()).orElseThrow(() -> new NotFoundException("User not found"));

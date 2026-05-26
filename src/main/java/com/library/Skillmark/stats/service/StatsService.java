@@ -7,10 +7,8 @@ import com.library.Skillmark.enrollment.enums.EnrollmentStatus;
 import com.library.Skillmark.enrollment.repository.ProgramEnrollmentRepository;
 import com.library.Skillmark.membership.enums.MembershipStatus;
 import com.library.Skillmark.membership.repository.OrganizationMembershipRepository;
-import com.library.Skillmark.program.enums.ProgramStatus;
 import com.library.Skillmark.program.repository.ProgramRepository;
 import com.library.Skillmark.quiz.repository.QuizRepository;
-import com.library.Skillmark.quiz.enums.QuizStatus;
 import com.library.Skillmark.resource.enums.ResourceStatus;
 import com.library.Skillmark.resource.repository.ProgramResourceRepository;
 import com.library.Skillmark.security.service.AuthorizationService;
@@ -57,10 +55,10 @@ public class StatsService {
         long attempts = attemptRepository.countByQuizProgramOrganizationId(organizationId);
         long passed = attemptRepository.countByQuizProgramOrganizationIdAndPassed(organizationId, true);
         return new OrganizationStatsResponse(
-                programRepository.countByOrganizationIdAndStatusNot(organizationId, ProgramStatus.DELETED),
+                programRepository.countByOrganizationIdAndDeletedAtIsNull(organizationId),
                 membershipRepository.countByOrganizationIdAndStatus(organizationId, MembershipStatus.ACTIVE),
                 enrollmentRepository.countDistinctUsersByOrganizationIdAndStatus(organizationId, EnrollmentStatus.ACTIVE),
-                quizRepository.countByProgramOrganizationIdAndStatusNot(organizationId, QuizStatus.DELETED),
+                quizRepository.countByProgramOrganizationIdAndDeletedAtIsNull(organizationId),
                 attempts,
                 certificateRepository.countByOrganizationId(organizationId),
                 zeroIfNull(attemptRepository.averageScoreForOrganization(organizationId)),
@@ -76,7 +74,7 @@ public class StatsService {
                 enrollmentRepository.countByProgramId(programId),
                 enrollmentRepository.countByProgramIdAndStatus(programId, EnrollmentStatus.ACTIVE),
                 resourceRepository.countByProgramIdAndStatus(programId, ResourceStatus.ACTIVE),
-                quizRepository.countByProgramIdAndStatusNot(programId, QuizStatus.DELETED),
+                quizRepository.countByProgramIdAndDeletedAtIsNull(programId),
                 attempts,
                 attemptRepository.countByQuizProgramIdAndPassed(programId, true),
                 certificateRepository.countByProgramId(programId),

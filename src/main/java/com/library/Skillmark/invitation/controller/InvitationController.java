@@ -46,6 +46,7 @@ public class InvitationController {
     }
 
     @PostMapping("/api/v1/invitations/{code}/join")
+    @io.swagger.v3.oas.annotations.Operation(summary = "Join by invitation", description = "Joins a program using a concurrency-safe invitation usage check; usedCount cannot exceed maxUses.")
     ApiResponse<InvitationResponse> join(@PathVariable String code, Authentication authentication) {
         return ApiResponse.success("Invitation joined successfully",
                 invitationService.join(code, SecurityUtil.userId(authentication)));

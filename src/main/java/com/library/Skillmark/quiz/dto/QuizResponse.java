@@ -2,6 +2,7 @@ package com.library.Skillmark.quiz.dto;
 
 import com.library.Skillmark.quiz.enums.CertificateIssueMode;
 import com.library.Skillmark.quiz.enums.QuizStatus;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
 import java.util.List;
@@ -18,6 +19,7 @@ public record QuizResponse(
         Integer maxAttempts,
         boolean certificateEnabled,
         CertificateIssueMode certificateIssueMode,
+        @Schema(description = "Compatibility field derived from status == PUBLISHED. Do not treat as an independent state.")
         boolean isPublished,
         QuizStatus status,
         Instant createdAt,

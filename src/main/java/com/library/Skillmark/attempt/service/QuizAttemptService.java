@@ -70,7 +70,7 @@ public class QuizAttemptService {
     @Transactional
     public StartAttemptResponse start(UUID quizId, UUID userId) {
         Quiz quiz = quizRepository.findById(quizId).orElseThrow(() -> new NotFoundException("Quiz not found"));
-        if (!quiz.isPublished() || quiz.getStatus() != QuizStatus.PUBLISHED) {
+        if (quiz.getStatus() != QuizStatus.PUBLISHED) {
             throw new BusinessRuleException("Quiz is not open for attempts");
         }
         authorizationService.ensureProgramEnrollment(quiz.getProgram().getId(), userId);

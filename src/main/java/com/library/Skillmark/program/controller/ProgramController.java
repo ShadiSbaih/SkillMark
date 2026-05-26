@@ -75,6 +75,7 @@ public class ProgramController {
     }
 
     @PatchMapping("/api/v1/programs/{programId}/status")
+    @io.swagger.v3.oas.annotations.Operation(summary = "Update program status", description = "Updates program status. Status is the source of truth; isPublished is derived from status == PUBLISHED.")
     ApiResponse<ProgramResponse> updateStatus(@PathVariable UUID programId,
                                               @Valid @RequestBody UpdateProgramStatusRequest request,
                                               Authentication authentication) {

@@ -782,7 +782,7 @@ Create a training program or workshop inside an organization.
 3. Backend validates program data.
 4. Backend creates program with:
    - `status = DRAFT`
-   - `is_published = false`
+   - `is_published = false` as a compatibility mirror of `status`
 5. Backend writes audit log entry: `PROGRAM_CREATED`.
 6. Backend returns program response with HTTP 201.
 
@@ -863,7 +863,7 @@ Make a program visible and active for enrolled participants.
 3. Backend validates required program fields are complete.
 4. Backend sets:
    - `status = PUBLISHED`
-   - `is_published = true`
+   - `is_published = true` derived from `status`
 5. Backend writes audit log entry: `PROGRAM_PUBLISHED`.
 6. Backend returns updated program.
 
@@ -871,6 +871,7 @@ Make a program visible and active for enrolled participants.
 
 - Only owner can publish.
 - Published programs are accessible to enrolled participants.
+- Program `status` is the source of truth; `is_published` must only mirror `status = PUBLISHED`.
 
 ### Expected Result
 
@@ -1159,10 +1160,10 @@ Join a program using a valid invitation code.
    - `status = ACTIVE`
    - `expires_at` is null or in the future
    - `max_uses` is null or `used_count < max_uses`
-5. Backend checks program is not ARCHIVED or DELETED.
+5. Backend checks program `status = PUBLISHED` and `deleted_at` is null.
 6. Backend checks no active enrollment exists for current user in program.
-7. Within a single transaction:
-   - Backend increments `used_count`.
+7. Within a single transaction with row-level locking, optimistic locking, or an atomic conditional update:
+   - Backend checks and increments `used_count` atomically.
    - Backend creates program enrollment with `status = ACTIVE`.
    - Backend adds user as PARTICIPANT organization member if not already a member.
 8. Backend writes audit log entry: `USER_JOINED_BY_INVITATION`.
@@ -1174,6 +1175,7 @@ Join a program using a valid invitation code.
 - Expired invitations must be rejected with HTTP 422.
 - Disabled invitations must be rejected with HTTP 422.
 - Max uses must be enforced before creating enrollment.
+- Concurrent joins must never allow `used_count` to exceed `max_uses`.
 - Duplicate active enrollment must be rejected with HTTP 409.
 - The entire join operation must be transactional.
 
@@ -1560,7 +1562,7 @@ Create a quiz inside a program.
 3. Backend validates quiz settings.
 4. Backend creates quiz:
    - `status = DRAFT`
-   - `is_published = false`
+   - `is_published = false` as a compatibility mirror of `status`
 5. Backend writes audit log entry: `QUIZ_CREATED`.
 6. Backend returns quiz with HTTP 201.
 
@@ -1570,6 +1572,7 @@ Create a quiz inside a program.
 - `passingScore` must be between 1 and 100.
 - `maxAttempts` must be at least 1.
 - `durationMinutes` must be at least 1.
+- Quiz `status` is the source of truth; `is_published` must only mirror `status = PUBLISHED`.
 
 ### Expected Result
 
@@ -1611,6 +1614,7 @@ Add a question to a quiz.
 
 - MVP supports SINGLE\_CHOICE only.
 - Points must be a positive integer.
+- Questions can be added only while the quiz has no submitted attempts.
 
 ### Expected Result
 
@@ -1652,6 +1656,7 @@ Add answer options to a quiz question.
 - A SINGLE\_CHOICE question must have exactly one `isCorrect = true` option at publish time.
 - The system validates the correct-option count during quiz publishing, not necessarily at option creation time.
 - Minimum two options per question are required before publishing.
+- Options can be added only while the quiz has no submitted attempts.
 
 ### Expected Result
 
@@ -1680,8 +1685,9 @@ Update an existing quiz question.
    PUT /api/v1/questions/{questionId}
    ```
 2. Backend calls `ensureQuizOwner` for the parent quiz.
-3. Backend validates and updates question.
-4. Backend returns updated question.
+3. Backend rejects the update with HTTP 422 if the quiz has submitted attempts.
+4. Backend validates and updates question if no submitted attempts exist.
+5. Backend returns updated question.
 
 ### Expected Result
 
@@ -1702,7 +1708,7 @@ Remove a question from a quiz.
 ### Preconditions
 
 - Question exists under owned quiz.
-- Quiz is not published (or product policy allows editing published quizzes).
+- Quiz has no submitted attempts.
 
 ### Main Flow
 
@@ -1711,17 +1717,18 @@ Remove a question from a quiz.
    DELETE /api/v1/questions/{questionId}
    ```
 2. Backend calls `ensureQuizOwner` for the parent quiz.
-3. Backend deletes the question and its associated options.
-4. Backend returns HTTP 204.
+3. Backend rejects deletion with HTTP 422 if the quiz has submitted attempts.
+4. Backend deletes the question and its associated options only if no submitted attempts exist.
+5. Backend returns HTTP 204.
 
 ### Business Rules
 
-- Deleting a question from a published quiz should be used carefully.
-- Historical attempt answers referencing deleted questions are preserved.
+- Questions/options referenced by submitted attempt answers must not be physically deleted.
+- Future versioning or archiving may allow safe edits after attempts, but the MVP rejects destructive changes.
 
 ### Expected Result
 
-Question and its options are removed.
+Question and its options are removed only when historical submitted attempts are not affected.
 
 ---
 
@@ -1746,8 +1753,9 @@ Update an answer option.
    PUT /api/v1/options/{optionId}
    ```
 2. Backend calls `ensureQuizOwner` for the parent quiz.
-3. Backend validates and updates option.
-4. Backend returns updated option.
+3. Backend rejects the update with HTTP 422 if the quiz has submitted attempts.
+4. Backend validates and updates option if no submitted attempts exist.
+5. Backend returns updated option.
 
 ### Expected Result
 
@@ -1776,13 +1784,15 @@ Remove an answer option from a question.
    DELETE /api/v1/options/{optionId}
    ```
 2. Backend calls `ensureQuizOwner` for the parent quiz.
-3. Backend deletes the option.
-4. Backend returns HTTP 204.
+3. Backend rejects deletion with HTTP 422 if the quiz has submitted attempts.
+4. Backend deletes the option only if no submitted attempts exist.
+5. Backend returns HTTP 204.
 
 ### Business Rules
 
 - Deleting the only correct option from a question invalidates the question for publishing.
 - System enforces correct-option rules at publish time.
+- Options referenced by submitted attempt answers must not be physically deleted.
 
 ### Expected Result
 

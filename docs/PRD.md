@@ -780,7 +780,13 @@ Program fields:
 *   startDate
 *   endDate
 *   status
-*   isPublished
+*   isPublished (backward-compatible response field derived from `status == PUBLISHED`)
+
+Program publishing state rule:
+
+*   `status` is the single source of truth.
+*   Valid program statuses are `DRAFT`, `PUBLISHED`, and `ARCHIVED`.
+*   `isPublished` must not be treated as an independent state. If present in DTOs or legacy database columns, it must be derived from `status == PUBLISHED`.
 
 ---
 
@@ -853,7 +859,7 @@ The system must check:
 *   program is joinable (not archived)
 *   duplicate active enrollment does not exist
 
-The join operation must be transactional.
+The join operation must be transactional and concurrency-safe. The invitation row must be locked or updated atomically so the check and increment of `usedCount` cannot allow `usedCount` to exceed `maxUses` under concurrent joins.
 
 On success:
 
@@ -1002,8 +1008,14 @@ Quiz fields:
 *   maxAttempts
 *   certificateEnabled
 *   certificateIssueMode (AUTO or MANUAL)
-*   isPublished
 *   status
+*   isPublished (backward-compatible response field derived from `status == PUBLISHED`)
+
+Quiz publishing state rule:
+
+*   `status` is the single source of truth.
+*   Valid quiz statuses are `DRAFT`, `PUBLISHED`, and `ARCHIVED`.
+*   `isPublished` must not be treated as an independent state. If present in DTOs or legacy database columns, it must be derived from `status == PUBLISHED`.
 
 ---
 
@@ -1028,11 +1040,19 @@ Future (out of scope for MVP):
 
 Only organization owner can update a quiz question.
 
+Historical attempt protection:
+
+*   If a quiz has no submitted attempts, owners may update questions and options according to validation rules.
+*   If a quiz has submitted attempts, destructive question/option edits must be rejected or implemented with a safe strategy such as versioning or archiving.
+*   The MVP rejects destructive question/option changes after submitted attempts exist.
+*   Existing attempt answers must remain historically valid.
+*   Questions or options referenced by attempt answers must not be physically deleted.
+
 ---
 
 ### FR-36: Delete Quiz Question
 
-Only organization owner can delete a quiz question.
+Only organization owner can delete a quiz question. Deletion is allowed only while the quiz has no submitted attempts; after submitted attempts exist, deletion must be rejected or handled through a non-destructive archival/versioning strategy.
 
 ---
 
@@ -1046,13 +1066,13 @@ A SINGLE\_CHOICE question must have exactly one correct answer before publishing
 
 ### FR-38: Update Quiz Option
 
-Only organization owner can update a quiz option.
+Only organization owner can update a quiz option. Updates are allowed only while the quiz has no submitted attempts.
 
 ---
 
 ### FR-39: Delete Quiz Option
 
-Only organization owner can delete a quiz option.
+Only organization owner can delete a quiz option. Physical deletion is allowed only while the quiz has no submitted attempts and the option is not referenced by attempt answers.
 
 ---
 
@@ -1542,7 +1562,7 @@ Unique constraint: `(organizationId, userId)` where status = ACTIVE.
 | description | String | Nullable |
 | coverImageUrl | String | Nullable |
 | status | Enum | DRAFT, PUBLISHED, ARCHIVED |
-| isPublished | Boolean |   |
+| isPublished | Boolean | Compatibility field/column derived from `status = PUBLISHED`; not an independent state |
 | startDate | Date | Nullable |
 | endDate | Date | Nullable |
 | createdAt | Timestamp |   |
@@ -1584,6 +1604,8 @@ Unique constraint: `(programId, userId)` where status = ACTIVE.
 | createdAt | Timestamp |   |
 | disabledAt | Timestamp | Nullable |
 
+Concurrency rule: invitation joins must lock the invitation row, use optimistic locking, or use an atomic conditional update so `usedCount` never exceeds `maxUses`. Duplicate active enrollments still return HTTP 409.
+
 ---
 
 ## 6.9 ProgramResource Entity
@@ -1619,8 +1641,8 @@ Unique constraint: `(programId, userId)` where status = ACTIVE.
 | maxAttempts | Integer | Minimum 1 |
 | certificateEnabled | Boolean |   |
 | certificateIssueMode | Enum | AUTO, MANUAL |
-| isPublished | Boolean |   |
 | status | Enum | DRAFT, PUBLISHED, ARCHIVED |
+| isPublished | Boolean | Compatibility field/column derived from `status = PUBLISHED`; not an independent state |
 | createdAt | Timestamp |   |
 | updatedAt | Timestamp |   |
 | deletedAt | Timestamp | Nullable, soft delete |

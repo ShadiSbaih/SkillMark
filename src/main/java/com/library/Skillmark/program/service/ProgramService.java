@@ -68,11 +68,11 @@ public class ProgramService {
         boolean owner = membershipRepository.existsByOrganizationIdAndUserIdAndRoleAndStatus(
                 organizationId, actorId, MembershipRole.OWNER, MembershipStatus.ACTIVE);
         var programs = owner
-                ? programRepository.findByOrganizationIdAndStatusNot(organizationId, ProgramStatus.DELETED).stream()
+                ? programRepository.findByOrganizationIdAndDeletedAtIsNull(organizationId).stream()
                 : enrollmentRepository.findByUserIdAndStatus(actorId, EnrollmentStatus.ACTIVE).stream()
                 .map(enrollment -> enrollment.getProgram())
                 .filter(program -> program.getOrganization().getId().equals(organizationId))
-                .filter(program -> program.getStatus() != ProgramStatus.DELETED);
+                .filter(program -> program.getDeletedAt() == null);
         return PageResponse.fromList(programs
                 .sorted(Comparator.comparing(Program::getCreatedAt).reversed())
                 .map(ProgramResponse::from)
@@ -95,7 +95,6 @@ public class ProgramService {
     @Transactional
     public ProgramResponse publish(UUID programId, UUID actorId) {
         Program program = authorizationService.ensureProgramOwner(programId, actorId);
-        program.setPublished(true);
         program.setStatus(ProgramStatus.PUBLISHED);
         auditLogService.record(actorId, program.getOrganization().getId(), AuditAction.PROGRAM_PUBLISHED, "Program", programId);
         return ProgramResponse.from(program);
@@ -104,7 +103,6 @@ public class ProgramService {
     @Transactional
     public ProgramResponse archive(UUID programId, UUID actorId) {
         Program program = authorizationService.ensureProgramOwner(programId, actorId);
-        program.setPublished(false);
         program.setStatus(ProgramStatus.ARCHIVED);
         auditLogService.record(actorId, program.getOrganization().getId(), AuditAction.PROGRAM_ARCHIVED, "Program", programId);
         return ProgramResponse.from(program);
@@ -124,8 +122,7 @@ public class ProgramService {
     @Transactional
     public void delete(UUID programId, UUID actorId) {
         Program program = authorizationService.ensureProgramOwner(programId, actorId);
-        program.setPublished(false);
-        program.setStatus(ProgramStatus.DELETED);
+        program.setStatus(ProgramStatus.ARCHIVED);
         program.setDeletedAt(Instant.now());
     }
 

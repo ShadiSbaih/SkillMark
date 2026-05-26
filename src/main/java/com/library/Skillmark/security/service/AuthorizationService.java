@@ -123,7 +123,7 @@ public class AuthorizationService {
         if (!enrollmentRepository.existsByProgramIdAndUserIdAndStatus(quiz.getProgram().getId(), userId, EnrollmentStatus.ACTIVE)) {
             throw new NotFoundException("Quiz not found");
         }
-        if (!quiz.isPublished() || quiz.getStatus() != QuizStatus.PUBLISHED) {
+        if (quiz.getStatus() != QuizStatus.PUBLISHED) {
             throw new ForbiddenException("Quiz is not available");
         }
         return quiz;
@@ -168,14 +168,14 @@ public class AuthorizationService {
 
     private void ensureProgramNotDeleted(Program program) {
         ensureOrganizationNotDeleted(program.getOrganization().getId());
-        if (program.getStatus() == ProgramStatus.DELETED || program.getDeletedAt() != null) {
+        if (program.getDeletedAt() != null) {
             throw new NotFoundException("Program not found");
         }
     }
 
     private void ensureQuizNotDeleted(Quiz quiz) {
         ensureProgramNotDeleted(quiz.getProgram());
-        if (quiz.getStatus() == QuizStatus.DELETED || quiz.getDeletedAt() != null) {
+        if (quiz.getDeletedAt() != null) {
             throw new NotFoundException("Quiz not found");
         }
     }

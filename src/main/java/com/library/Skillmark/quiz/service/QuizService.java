@@ -89,7 +89,7 @@ public class QuizService {
                 .map(quiz -> toResponse(quiz, true))
                 .toList();
         var enrolledQuizzes = enrollmentRepository.findByUserIdAndStatus(actorId, EnrollmentStatus.ACTIVE).stream()
-                .flatMap(enrollment -> quizRepository.findByProgramIdAndPublishedTrueAndStatus(
+                .flatMap(enrollment -> quizRepository.findByProgramIdAndStatusAndDeletedAtIsNull(
                         enrollment.getProgram().getId(), QuizStatus.PUBLISHED).stream())
                 .distinct()
                 .sorted(Comparator.comparing(Quiz::getCreatedAt).reversed())
@@ -108,8 +108,8 @@ public class QuizService {
         boolean owner = membershipRepository.existsByOrganizationIdAndUserIdAndRoleAndStatus(
                 program.getOrganization().getId(), actorId, MembershipRole.OWNER, MembershipStatus.ACTIVE);
         List<Quiz> quizzes = owner
-                ? quizRepository.findByProgramIdAndStatusNot(programId, QuizStatus.DELETED)
-                : quizRepository.findByProgramIdAndPublishedTrueAndStatus(programId, QuizStatus.PUBLISHED);
+                ? quizRepository.findByProgramIdAndDeletedAtIsNull(programId)
+                : quizRepository.findByProgramIdAndStatusAndDeletedAtIsNull(programId, QuizStatus.PUBLISHED);
         return PageResponse.fromList(quizzes.stream()
                 .sorted(Comparator.comparing(Quiz::getCreatedAt).reversed())
                 .map(quiz -> toResponse(quiz, owner))
@@ -145,7 +145,6 @@ public class QuizService {
     @Transactional
     public QuizResponse archive(UUID quizId, UUID actorId) {
         Quiz quiz = authorizationService.ensureQuizOwner(quizId, actorId);
-        quiz.setPublished(false);
         quiz.setStatus(QuizStatus.ARCHIVED);
         auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.QUIZ_ARCHIVED, "Quiz", quizId);
         return toResponse(quiz, true);
@@ -165,8 +164,7 @@ public class QuizService {
     @Transactional
     public void delete(UUID quizId, UUID actorId) {
         Quiz quiz = authorizationService.ensureQuizOwner(quizId, actorId);
-        quiz.setPublished(false);
-        quiz.setStatus(QuizStatus.DELETED);
+        quiz.setStatus(QuizStatus.ARCHIVED);
         quiz.setDeletedAt(Instant.now());
         auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.QUIZ_ARCHIVED, "Quiz", quizId);
     }
@@ -297,7 +295,6 @@ public class QuizService {
     public QuizResponse publish(UUID quizId, UUID actorId) {
         Quiz quiz = authorizationService.ensureQuizOwner(quizId, actorId);
         validatePublishable(quiz);
-        quiz.setPublished(true);
         quiz.setStatus(QuizStatus.PUBLISHED);
         auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.QUIZ_PUBLISHED, "Quiz", quizId);
         return toResponse(quiz, true);
@@ -306,16 +303,16 @@ public class QuizService {
     private List<Quiz> quizzesForOwnerMembership(OrganizationMembership membership) {
         UUID organizationId = membership.getOrganization().getId();
         if (membership.getRole() == MembershipRole.OWNER) {
-            return programRepository.findByOrganizationIdAndStatusNot(organizationId, com.library.Skillmark.program.enums.ProgramStatus.DELETED)
+            return programRepository.findByOrganizationIdAndDeletedAtIsNull(organizationId)
                     .stream()
-                    .flatMap(program -> quizRepository.findByProgramIdAndStatusNot(program.getId(), QuizStatus.DELETED).stream())
+                    .flatMap(program -> quizRepository.findByProgramIdAndDeletedAtIsNull(program.getId()).stream())
                     .toList();
         }
         return List.of();
     }
 
     private void validatePublishable(Quiz quiz) {
-        if (quiz.getStatus() == QuizStatus.ARCHIVED || quiz.getStatus() == QuizStatus.DELETED) {
+        if (quiz.getStatus() == QuizStatus.ARCHIVED || quiz.getDeletedAt() != null) {
             throw new BusinessRuleException("Archived or deleted quizzes cannot be published");
         }
         if (quiz.getPassingScore() < 0 || quiz.getPassingScore() > 100) {
@@ -337,11 +334,11 @@ public class QuizService {
     }
 
     private void ensureQuizStructureMutable(Quiz quiz) {
-        if (quiz.getStatus() == QuizStatus.ARCHIVED || quiz.getStatus() == QuizStatus.DELETED) {
+        if (quiz.getStatus() == QuizStatus.ARCHIVED || quiz.getDeletedAt() != null) {
             throw new BusinessRuleException("Archived or deleted quizzes cannot be changed");
         }
-        if (attemptRepository.existsByQuizId(quiz.getId())) {
-            throw new BusinessRuleException("Questions cannot be changed after attempts exist");
+        if (attemptRepository.countByQuizIdAndStatus(quiz.getId(), com.library.Skillmark.attempt.enums.AttemptStatus.SUBMITTED) > 0) {
+            throw new BusinessRuleException("Questions and options cannot be changed after submitted attempts exist");
         }
     }
 

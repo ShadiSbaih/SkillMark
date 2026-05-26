@@ -29,12 +29,17 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -269,6 +274,20 @@ class SkillmarkApiIntegrationTests {
                 .andExpect(jsonPath("$.data.certificateIssued", is(true)))
                 .andReturn(), "/data/certificateId");
 
+        putJson("/api/v1/questions/" + questionId, ownerToken, """
+                {
+                  "text": "Changed after submit?",
+                  "type": "SINGLE_CHOICE",
+                  "points": 1,
+                  "position": 1,
+                  "options": [
+                    {"text": "A", "isCorrect": true, "position": 1},
+                    {"text": "B", "isCorrect": false, "position": 2}
+                  ]
+                }
+                """)
+                .andExpect(status().isUnprocessableEntity());
+
         MvcResult certificateResult = getJson("/api/v1/certificates/" + certificateId, participantToken)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.programTitleSnapshot", is("Git Workshop")))
@@ -350,6 +369,46 @@ class SkillmarkApiIntegrationTests {
     }
 
     @Test
+    void concurrentInvitationJoinsCannotExceedMaxUses() throws Exception {
+        String ownerToken = token("clerk_owner", "owner@example.com", "Owner_One");
+        String organizationId = createOrganization(ownerToken, "Computer Science Club");
+        String programId = createPublishedProgram(ownerToken, organizationId);
+        String invitationCode = read(postJson("/api/v1/programs/" + programId + "/invitations", ownerToken, """
+                {
+                  "maxUses": 1
+                }
+                """)
+                .andExpect(status().isCreated())
+                .andReturn(), "/data/code");
+
+        var executor = Executors.newFixedThreadPool(2);
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+        List<java.util.concurrent.Callable<Integer>> tasks = List.of(
+                () -> joinConcurrently(invitationCode, token("clerk_student_1", "student1@example.com", "Student_One"), ready, start),
+                () -> joinConcurrently(invitationCode, token("clerk_student_2", "student2@example.com", "Student_Two"), ready, start)
+        );
+        var futures = tasks.stream().map(executor::submit).toList();
+        org.assertj.core.api.Assertions.assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+        start.countDown();
+        var statuses = futures.stream().map(future -> {
+            try {
+                return future.get(10, TimeUnit.SECONDS);
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
+            }
+        }).toList();
+        executor.shutdownNow();
+
+        org.assertj.core.api.Assertions.assertThat(statuses).contains(200);
+        org.assertj.core.api.Assertions.assertThat(statuses).contains(422);
+
+        getJson("/api/v1/programs/" + programId + "/invitations", ownerToken)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items[0].usedCount", is(1)));
+    }
+
+    @Test
     void swaggerEndpointsArePublicAndDescribeClerkScopedApi() throws Exception {
         mockMvc.perform(get("/swagger-ui.html"))
                 .andExpect(status().is3xxRedirection());
@@ -415,6 +474,14 @@ class SkillmarkApiIntegrationTests {
         return mockMvc.perform(request);
     }
 
+    private org.springframework.test.web.servlet.ResultActions putJson(String path, String token, String json) throws Exception {
+        var request = put(path).contentType(MediaType.APPLICATION_JSON).content(json);
+        if (token != null) {
+            request.header(HttpHeaders.AUTHORIZATION, "Bearer " + token);
+        }
+        return mockMvc.perform(request);
+    }
+
     private org.springframework.test.web.servlet.ResultActions postWebhook(String payload, String signature) throws Exception {
         return mockMvc.perform(post("/api/v1/webhooks/clerk")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -437,6 +504,15 @@ class SkillmarkApiIntegrationTests {
             request.header(HttpHeaders.AUTHORIZATION, "Bearer " + token);
         }
         return mockMvc.perform(request);
+    }
+
+    private int joinConcurrently(String invitationCode, String token, CountDownLatch ready, CountDownLatch start) throws Exception {
+        ready.countDown();
+        org.assertj.core.api.Assertions.assertThat(start.await(5, TimeUnit.SECONDS)).isTrue();
+        return postJson("/api/v1/invitations/" + invitationCode + "/join", token, "{}")
+                .andReturn()
+                .getResponse()
+                .getStatus();
     }
 
     private String read(MvcResult result, String pointer) throws Exception {

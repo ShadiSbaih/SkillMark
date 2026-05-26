@@ -79,7 +79,7 @@ public class InvitationService {
 
     @Transactional(noRollbackFor = BusinessRuleException.class)
     public InvitationResponse join(String code, UUID userId) {
-        InvitationLink invitation = invitationRepository.findByCode(code)
+        InvitationLink invitation = invitationRepository.findByCodeForUpdate(code)
                 .orElseThrow(() -> new NotFoundException("Invitation not found"));
         validateJoinable(invitation);
         if (enrollmentRepository.existsByProgramIdAndUserIdAndStatus(invitation.getProgram().getId(), userId, EnrollmentStatus.ACTIVE)) {
@@ -126,7 +126,7 @@ public class InvitationService {
         if (invitation.getMaxUses() != null && invitation.getUsedCount() >= invitation.getMaxUses()) {
             throw new BusinessRuleException("Invitation usage limit reached");
         }
-        if (!invitation.getProgram().isPublished() || invitation.getProgram().getStatus() != ProgramStatus.PUBLISHED) {
+        if (invitation.getProgram().getStatus() != ProgramStatus.PUBLISHED || invitation.getProgram().getDeletedAt() != null) {
             throw new BusinessRuleException("Program is not joinable");
         }
     }

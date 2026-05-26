@@ -90,10 +90,15 @@ public class Quiz {
     public void setCertificateEnabled(boolean certificateEnabled) { this.certificateEnabled = certificateEnabled; }
     public CertificateIssueMode getCertificateIssueMode() { return certificateIssueMode; }
     public void setCertificateIssueMode(CertificateIssueMode certificateIssueMode) { this.certificateIssueMode = certificateIssueMode; }
-    public boolean isPublished() { return published; }
-    public void setPublished(boolean published) { this.published = published; }
+    public boolean isPublished() { return status == QuizStatus.PUBLISHED; }
+    public void setPublished(boolean published) {
+        setStatus(published ? QuizStatus.PUBLISHED : QuizStatus.DRAFT);
+    }
     public QuizStatus getStatus() { return status; }
-    public void setStatus(QuizStatus status) { this.status = status; }
+    public void setStatus(QuizStatus status) {
+        this.status = status;
+        this.published = status == QuizStatus.PUBLISHED;
+    }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public Instant getDeletedAt() { return deletedAt; }

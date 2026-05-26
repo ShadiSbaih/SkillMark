@@ -2,6 +2,7 @@ package com.library.Skillmark.program.dto;
 
 import com.library.Skillmark.program.entity.Program;
 import com.library.Skillmark.program.enums.ProgramStatus;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -14,6 +15,7 @@ public record ProgramResponse(
         String description,
         String coverImageUrl,
         ProgramStatus status,
+        @Schema(description = "Compatibility field derived from status == PUBLISHED. Do not treat as an independent state.")
         boolean isPublished,
         LocalDate startDate,
         LocalDate endDate,

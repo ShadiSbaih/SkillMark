@@ -72,9 +72,14 @@ public class Program {
     public String getCoverImageUrl() { return coverImageUrl; }
     public void setCoverImageUrl(String coverImageUrl) { this.coverImageUrl = coverImageUrl; }
     public ProgramStatus getStatus() { return status; }
-    public void setStatus(ProgramStatus status) { this.status = status; }
-    public boolean isPublished() { return published; }
-    public void setPublished(boolean published) { this.published = published; }
+    public void setStatus(ProgramStatus status) {
+        this.status = status;
+        this.published = status == ProgramStatus.PUBLISHED;
+    }
+    public boolean isPublished() { return status == ProgramStatus.PUBLISHED; }
+    public void setPublished(boolean published) {
+        setStatus(published ? ProgramStatus.PUBLISHED : ProgramStatus.DRAFT);
+    }
     public LocalDate getStartDate() { return startDate; }
     public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
     public LocalDate getEndDate() { return endDate; }
