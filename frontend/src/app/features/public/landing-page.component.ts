@@ -8,46 +8,86 @@ import { CardComponent } from '../../shared/ui/card.component';
   standalone: true,
   imports: [RouterLink, ButtonComponent, CardComponent],
   template: `
-    <section class="mx-auto max-w-7xl px-6 pb-20 pt-14">
-      <div class="grid items-center gap-10 lg:grid-cols-[1fr_0.9fr]">
-        <div>
-          <p class="text-xs font-normal uppercase tracking-[0.1px] text-[var(--color-primary-deep)]">API-first certification platform</p>
-          <h1 class="mt-4 max-w-4xl text-5xl font-light leading-[1.03] tracking-[-1.4px] text-[var(--color-ink)] md:text-6xl">
-            Train. Assess. Certify.
-          </h1>
-          <p class="mt-6 max-w-2xl text-base leading-7 text-[var(--color-ink-secondary)]">
+    <section class="landing-shell">
+      <div class="landing-hero">
+        <div class="hero-copy fade-up">
+          <div class="hero-pill">
+            <span class="hero-dot"></span>
+            <span>API-first certification platform</span>
+          </div>
+          <h1 class="hero-title font-display">Train. Assess. Certify.</h1>
+          <p class="hero-subtitle">
             Skillmark gives organizations a focused workspace for programs, resources, quizzes, attempts, certificates, and public verification.
           </p>
-          <div class="mt-8 flex flex-wrap gap-3">
+          <div class="hero-actions">
             <a routerLink="/sign-up"><app-button>Get started</app-button></a>
             <a routerLink="/verify"><app-button variant="secondary">Verify certificate</app-button></a>
           </div>
+          <div class="hero-badges">
+            <span>Org-ready workflows</span>
+            <span>Audit friendly tracking</span>
+            <span>Public verification</span>
+          </div>
         </div>
-        <app-card tone="dark">
-          <div class="rounded-lg bg-[#0d253d] p-5 text-white">
-            <div class="flex items-center justify-between border-b border-white/10 pb-4">
-              <span class="text-sm">Program dashboard</span>
-              <span class="rounded-full bg-white/10 px-2 py-1 text-xs">Live</span>
+        <div class="hero-panel fade-up" style="--delay: 0.12s">
+          <div class="hero-panel-header">
+            <span>Program dashboard</span>
+            <span class="hero-live">Live</span>
+          </div>
+          <div class="hero-panel-grid">
+            @for (row of mockRows; track row.label) {
+              <div class="hero-row">
+                <span class="hero-row-label">{{ row.label }}</span>
+                <span class="hero-row-value font-tabular">{{ row.value }}</span>
+              </div>
+            }
+          </div>
+          <div class="hero-panel-footer">
+            <div>
+              <p class="hero-panel-label">Active learners</p>
+              <p class="hero-panel-value font-tabular">1,248</p>
             </div>
-            <div class="mt-5 grid gap-3">
-              @for (row of mockRows; track row.label) {
-                <div class="grid grid-cols-[1fr_auto] items-center rounded-lg bg-white/8 p-3">
-                  <span class="text-sm text-white/80">{{ row.label }}</span>
-                  <span class="font-tabular text-sm">{{ row.value }}</span>
-                </div>
-              }
+            <div>
+              <p class="hero-panel-label">Completion rate</p>
+              <p class="hero-panel-value font-tabular">93%</p>
             </div>
           </div>
-        </app-card>
+        </div>
       </div>
 
-      <section class="mt-20 grid gap-4 md:grid-cols-3">
-        @for (feature of features; track feature.title) {
-          <app-card>
-            <p class="text-lg font-light tracking-[-0.2px] text-[var(--color-ink)]">{{ feature.title }}</p>
-            <p class="mt-3 text-sm leading-6 text-[var(--color-ink-mute)]">{{ feature.description }}</p>
-          </app-card>
-        }
+      <section class="landing-split">
+        <div class="split-copy fade-up" style="--delay: 0.18s">
+          <p class="split-kicker">Built for teams</p>
+          <h2 class="split-title font-display">Deliver assessments that feel premium.</h2>
+          <p class="split-body">
+            Automate invite flows, protect quizzes, and issue verifiable certificates without building custom tooling.
+          </p>
+          <ul class="split-list">
+            <li><span class="split-index">01</span> Invite cohorts in minutes with tokenized enrollment links.</li>
+            <li><span class="split-index">02</span> Control quiz access with visibility, timers, and attempt limits.</li>
+            <li><span class="split-index">03</span> Publish certificates with public lookup and revocation history.</li>
+          </ul>
+        </div>
+        <div class="split-grid fade-up" style="--delay: 0.24s">
+          @for (feature of features; track feature.title) {
+            <div class="feature-card">
+              <p class="feature-title">{{ feature.title }}</p>
+              <p class="feature-body">{{ feature.description }}</p>
+            </div>
+          }
+        </div>
+      </section>
+
+      <section class="cta-panel fade-up" style="--delay: 0.3s">
+        <div>
+          <p class="cta-kicker">Ready to launch</p>
+          <h3 class="cta-title font-display">Give your programs a certification hub.</h3>
+          <p class="cta-body">Spin up your first program, connect resources, and publish quizzes in one place.</p>
+        </div>
+        <div class="cta-actions">
+          <a routerLink="/sign-up"><app-button>Start for free</app-button></a>
+          <a routerLink="/sign-in"><app-button variant="ghost">Sign in</app-button></a>
+        </div>
       </section>
     </section>
   `,
