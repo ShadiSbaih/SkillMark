@@ -80,6 +80,7 @@ export class InvitationsPageComponent {
 
   readonly query = injectQuery(() => ({
     queryKey: ['invitations', this.programId, this.page()],
+    enabled: !!this.programId,
     queryFn: () => this.api.list(this.programId, this.page(), 10),
   }));
 

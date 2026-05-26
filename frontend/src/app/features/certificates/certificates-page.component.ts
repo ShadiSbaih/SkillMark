@@ -98,7 +98,11 @@ export class CertificateDetailPageComponent {
   private readonly api = inject(CertificatesApi);
   private readonly queryClient = inject(QueryClient);
   readonly certificateId = this.route.snapshot.paramMap.get('certificateId') ?? '';
-  readonly query = injectQuery(() => ({ queryKey: ['certificates', this.certificateId], queryFn: () => this.api.get(this.certificateId) }));
+  readonly query = injectQuery(() => ({
+    queryKey: ['certificates', this.certificateId],
+    enabled: !!this.certificateId,
+    queryFn: () => this.api.get(this.certificateId),
+  }));
   readonly revokeMutation = injectMutation(() => ({
     mutationFn: (id: string) => this.api.revoke(id, { reason: 'Revoked from frontend' }),
     onSuccess: async () => {

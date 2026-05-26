@@ -79,6 +79,7 @@ export class MembersPageComponent {
 
   readonly query = injectQuery(() => ({
     queryKey: ['members', this.organizationId, this.page()],
+    enabled: !!this.organizationId,
     queryFn: () => this.api.list(this.organizationId, this.page(), 10),
   }));
 

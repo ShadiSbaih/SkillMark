@@ -85,6 +85,7 @@ export class QuizBuilderPageComponent {
 
   readonly query = injectQuery(() => ({
     queryKey: ['quizzes', this.quizId],
+    enabled: !!this.quizId,
     queryFn: () => this.api.get(this.quizId),
   }));
 

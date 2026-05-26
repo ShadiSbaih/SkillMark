@@ -29,6 +29,10 @@ export class AttemptResultPageComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly api = inject(AttemptsApi);
   readonly attemptId = this.route.snapshot.paramMap.get('attemptId') ?? '';
-  readonly query = injectQuery(() => ({ queryKey: ['attempts', this.attemptId], queryFn: () => this.api.get(this.attemptId) }));
+  readonly query = injectQuery(() => ({
+    queryKey: ['attempts', this.attemptId],
+    enabled: !!this.attemptId,
+    queryFn: () => this.api.get(this.attemptId),
+  }));
 }
 

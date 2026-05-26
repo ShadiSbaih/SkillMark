@@ -62,7 +62,9 @@ import { CardComponent } from '../../shared/ui/card.component';
 export class AuthPageComponent implements AfterViewInit, OnDestroy {
   readonly clerk = inject(ClerkService);
   private readonly route = inject(ActivatedRoute);
-  readonly mode = computed<'sign-in' | 'sign-up'>(() => this.route.snapshot.routeConfig?.path === 'sign-up' ? 'sign-up' : 'sign-in');
+  readonly mode = computed<'sign-in' | 'sign-up'>(() =>
+    this.route.snapshot.routeConfig?.path?.startsWith('sign-up') ? 'sign-up' : 'sign-in',
+  );
   readonly mounting = signal(true);
   readonly mountError = signal<string | null>(null);
   @ViewChild('mount') mount?: ElementRef<HTMLDivElement>;

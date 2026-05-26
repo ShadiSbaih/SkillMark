@@ -80,6 +80,7 @@ export class ProgramDetailPageComponent {
 
   readonly query = injectQuery(() => ({
     queryKey: ['programs', this.programId],
+    enabled: !!this.programId,
     queryFn: async () => {
       const program = await this.api.get(this.programId);
       this.form.patchValue({

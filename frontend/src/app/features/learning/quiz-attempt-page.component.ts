@@ -64,7 +64,11 @@ export class QuizAttemptPageComponent {
   readonly now = signal(Date.now());
   readonly answers = signal<Record<string, string>>({});
 
-  readonly quiz = injectQuery(() => ({ queryKey: ['quizzes', this.quizId], queryFn: () => this.quizzes.get(this.quizId) }));
+  readonly quiz = injectQuery(() => ({
+    queryKey: ['quizzes', this.quizId],
+    enabled: !!this.quizId,
+    queryFn: () => this.quizzes.get(this.quizId),
+  }));
 
   readonly remainingLabel = computed(() => {
     const expiresAt = this.expiresAt();

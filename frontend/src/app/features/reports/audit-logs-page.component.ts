@@ -43,6 +43,7 @@ export class AuditLogsPageComponent {
   readonly page = signal(0);
   readonly query = injectQuery(() => ({
     queryKey: ['audit-logs', this.organizationId, this.page()],
+    enabled: !!this.organizationId,
     queryFn: () => this.api.auditLogs(this.organizationId, this.page(), 10),
   }));
 }

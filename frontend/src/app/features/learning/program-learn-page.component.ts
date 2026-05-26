@@ -54,8 +54,20 @@ export class ProgramLearnPageComponent {
   private readonly quizzesApi = inject(QuizzesApi);
   readonly programId = this.route.snapshot.paramMap.get('programId') ?? '';
 
-  readonly program = injectQuery(() => ({ queryKey: ['programs', this.programId], queryFn: () => this.programs.get(this.programId) }));
-  readonly resources = injectQuery(() => ({ queryKey: ['resources', this.programId, 0], queryFn: () => this.resourcesApi.list(this.programId, 0, 50) }));
-  readonly quizzes = injectQuery(() => ({ queryKey: ['quizzes', this.programId, 0], queryFn: () => this.quizzesApi.listByProgram(this.programId, 0, 50) }));
+  readonly program = injectQuery(() => ({
+    queryKey: ['programs', this.programId],
+    enabled: !!this.programId,
+    queryFn: () => this.programs.get(this.programId),
+  }));
+  readonly resources = injectQuery(() => ({
+    queryKey: ['resources', this.programId, 0],
+    enabled: !!this.programId,
+    queryFn: () => this.resourcesApi.list(this.programId, 0, 50),
+  }));
+  readonly quizzes = injectQuery(() => ({
+    queryKey: ['quizzes', this.programId, 0],
+    enabled: !!this.programId,
+    queryFn: () => this.quizzesApi.listByProgram(this.programId, 0, 50),
+  }));
 }
 

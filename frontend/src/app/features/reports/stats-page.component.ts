@@ -36,10 +36,11 @@ export class StatsPageComponent {
   readonly quizId = this.route.snapshot.paramMap.get('quizId');
   readonly query = injectQuery(() => ({
     queryKey: ['stats', this.organizationId ?? this.programId ?? this.quizId],
+    enabled: !!(this.organizationId || this.programId || this.quizId),
     queryFn: () => {
       if (this.organizationId) return this.api.organization(this.organizationId).then((stats) => stats as unknown as StatsRecord);
       if (this.programId) return this.api.program(this.programId).then((stats) => stats as unknown as StatsRecord);
-      return this.api.quiz(this.quizId ?? '').then((stats) => stats as unknown as StatsRecord);
+      return this.api.quiz(this.quizId as string).then((stats) => stats as unknown as StatsRecord);
     },
   }));
 

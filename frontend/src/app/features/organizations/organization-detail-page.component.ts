@@ -72,6 +72,7 @@ export class OrganizationDetailPageComponent {
 
   readonly query = injectQuery(() => ({
     queryKey: ['organizations', this.organizationId],
+    enabled: !!this.organizationId,
     queryFn: async () => {
       const org = await this.api.get(this.organizationId);
       this.form.patchValue({
