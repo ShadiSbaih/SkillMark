@@ -14,6 +14,7 @@ import java.util.UUID;
 
 public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, UUID> {
     long countByQuizIdAndUserIdAndStatus(UUID quizId, UUID userId, AttemptStatus status);
+    long countByQuizIdAndUserId(UUID quizId, UUID userId);
     boolean existsByQuizIdAndUserIdAndStatus(UUID quizId, UUID userId, AttemptStatus status);
     boolean existsByQuizId(UUID quizId);
     long countByQuizId(UUID quizId);

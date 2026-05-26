@@ -14,6 +14,8 @@ import java.util.UUID;
 
 public interface CertificateRepository extends JpaRepository<Certificate, UUID> {
     boolean existsByQuizIdAndUserIdAndStatus(UUID quizId, UUID userId, CertificateStatus status);
+    boolean existsByCertificateNumber(String certificateNumber);
+    boolean existsByVerificationCode(String verificationCode);
     List<Certificate> findByUserId(UUID userId);
     List<Certificate> findByOrganizationId(UUID organizationId);
     long countByOrganizationId(UUID organizationId);

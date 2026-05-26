@@ -23,6 +23,7 @@ import com.library.Skillmark.security.service.AuthorizationService;
 import com.library.Skillmark.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
 import java.time.Instant;
 import java.time.Year;
@@ -53,7 +54,7 @@ public class CertificateService {
         this.auditLogService = auditLogService;
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public Optional<Certificate> issueAutomaticallyIfEligible(QuizAttempt attempt) {
         Quiz quiz = attempt.getQuiz();
         if (!Boolean.TRUE.equals(attempt.getPassed()) || !quiz.isCertificateEnabled()
@@ -161,7 +162,7 @@ public class CertificateService {
         validateEligibility(quiz, user.getId(), attempt);
         Certificate certificate = new Certificate();
         certificate.setCertificateNumber(nextCertificateNumber());
-        certificate.setVerificationCode(TokenGenerator.randomToken());
+        certificate.setVerificationCode(nextVerificationCode());
         certificate.setOrganization(quiz.getProgram().getOrganization());
         certificate.setProgram(quiz.getProgram());
         certificate.setQuiz(quiz);
@@ -176,7 +177,22 @@ public class CertificateService {
     }
 
     private String nextCertificateNumber() {
-        long sequence = certificateRepository.count() + 1;
-        return "SKILLMARK-" + Year.now().getValue() + "-" + String.format("%06d", sequence);
+        for (int attempt = 0; attempt < 10; attempt++) {
+            String value = "CERT-" + Year.now().getValue() + "-" + TokenGenerator.randomUppercase(8);
+            if (!certificateRepository.existsByCertificateNumber(value)) {
+                return value;
+            }
+        }
+        throw new IllegalStateException("Unable to generate unique certificate number");
+    }
+
+    private String nextVerificationCode() {
+        for (int attempt = 0; attempt < 10; attempt++) {
+            String value = TokenGenerator.randomUppercase(16);
+            if (!certificateRepository.existsByVerificationCode(value)) {
+                return value;
+            }
+        }
+        throw new IllegalStateException("Unable to generate unique verification code");
     }
 }

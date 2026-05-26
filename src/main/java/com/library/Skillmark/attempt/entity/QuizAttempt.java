@@ -103,6 +103,7 @@ public class QuizAttempt {
     public AttemptStatus getStatus() { return status; }
     public void setStatus(AttemptStatus status) { this.status = status; }
     public Instant getStartedAt() { return startedAt; }
+    public void setStartedAt(Instant startedAt) { this.startedAt = startedAt; }
     public Instant getSubmittedAt() { return submittedAt; }
     public void setSubmittedAt(Instant submittedAt) { this.submittedAt = submittedAt; }
 }

@@ -2,6 +2,8 @@ package com.library.Skillmark;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.library.Skillmark.attempt.enums.AttemptStatus;
+import com.library.Skillmark.attempt.repository.QuizAttemptRepository;
 import com.library.Skillmark.user.enums.UserStatus;
 import com.library.Skillmark.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,6 +22,7 @@ import org.springframework.web.context.WebApplicationContext;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Base64;
 
 import static org.hamcrest.Matchers.containsString;
@@ -41,6 +44,9 @@ class SkillmarkApiIntegrationTests {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private QuizAttemptRepository attemptRepository;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -256,6 +262,71 @@ class SkillmarkApiIntegrationTests {
         getJson("/api/v1/quizzes/" + quizId + "/stats", ownerToken)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.submittedAttempts", is(1)));
+    }
+
+    @Test
+    void expiredAttemptIsRejectedAndCountsTowardMaxAttempts() throws Exception {
+        String ownerToken = token("clerk_owner", "owner@example.com", "Owner_One");
+        String organizationId = createOrganization(ownerToken, "Computer Science Club");
+        String programId = createPublishedProgram(ownerToken, organizationId);
+        String participantToken = token("clerk_student", "student@example.com", "Jane_Student");
+        joinProgram(ownerToken, participantToken, programId);
+
+        String quizId = read(postJson("/api/v1/programs/" + programId + "/quizzes", ownerToken, """
+                {
+                  "title": "Timed Quiz",
+                  "passingScore": 70,
+                  "durationMinutes": 1,
+                  "maxAttempts": 1,
+                  "certificateEnabled": false,
+                  "certificateIssueMode": "NONE"
+                }
+                """)
+                .andExpect(status().isCreated())
+                .andReturn(), "/data/id");
+
+        String correctOptionId = read(postJson("/api/v1/quizzes/" + quizId + "/questions", ownerToken, """
+                {
+                  "text": "Pick one",
+                  "type": "SINGLE_CHOICE",
+                  "points": 1,
+                  "position": 1,
+                  "options": [
+                    {"text": "A", "isCorrect": true, "position": 1},
+                    {"text": "B", "isCorrect": false, "position": 2}
+                  ]
+                }
+                """)
+                .andExpect(status().isCreated())
+                .andReturn(), "/data/options/0/id");
+
+        postJson("/api/v1/quizzes/" + quizId + "/publish", ownerToken, "{}")
+                .andExpect(status().isOk());
+        String questionId = read(getJson("/api/v1/quizzes/" + quizId, participantToken)
+                .andExpect(status().isOk())
+                .andReturn(), "/data/questions/0/id");
+        String attemptId = read(postJson("/api/v1/quizzes/" + quizId + "/attempts", participantToken, "{}")
+                .andExpect(status().isCreated())
+                .andReturn(), "/data/attemptId");
+
+        var attempt = attemptRepository.findById(java.util.UUID.fromString(attemptId)).orElseThrow();
+        attempt.setExpiresAt(Instant.now().minusSeconds(1));
+        attemptRepository.save(attempt);
+
+        postJson("/api/v1/quiz-attempts/" + attemptId + "/submit", participantToken, """
+                {
+                  "answers": [
+                    {"questionId": "%s", "selectedOptionId": "%s"}
+                  ]
+                }
+                """.formatted(questionId, correctOptionId))
+                .andExpect(status().isUnprocessableEntity());
+
+        org.assertj.core.api.Assertions.assertThat(attemptRepository.findById(java.util.UUID.fromString(attemptId)).orElseThrow().getStatus())
+                .isEqualTo(AttemptStatus.EXPIRED);
+
+        postJson("/api/v1/quizzes/" + quizId + "/attempts", participantToken, "{}")
+                .andExpect(status().isUnprocessableEntity());
     }
 
     @Test

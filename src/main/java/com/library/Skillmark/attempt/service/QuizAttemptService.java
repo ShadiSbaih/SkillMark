@@ -22,6 +22,8 @@ import com.library.Skillmark.quiz.repository.*;
 import com.library.Skillmark.quiz.service.*;
 import com.library.Skillmark.security.service.AuthorizationService;
 import com.library.Skillmark.user.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +36,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class QuizAttemptService {
+    private static final Logger LOGGER = LoggerFactory.getLogger(QuizAttemptService.class);
     private final QuizAttemptRepository attemptRepository;
     private final QuizAttemptAnswerRepository answerRepository;
     private final QuizRepository quizRepository;
@@ -74,21 +77,29 @@ public class QuizAttemptService {
         if (attemptRepository.existsByQuizIdAndUserIdAndStatus(quizId, userId, AttemptStatus.IN_PROGRESS)) {
             throw new ConflictException("An in-progress attempt already exists for this quiz");
         }
-        long submittedAttempts = attemptRepository.countByQuizIdAndUserIdAndStatus(quizId, userId, AttemptStatus.SUBMITTED);
-        if (submittedAttempts >= quiz.getMaxAttempts()) {
+        long priorAttempts = attemptRepository.countByQuizIdAndUserId(quizId, userId);
+        if (priorAttempts >= quiz.getMaxAttempts()) {
             throw new BusinessRuleException("Maximum attempts reached");
         }
+        Instant startedAt = Instant.now();
         QuizAttempt attempt = new QuizAttempt();
         attempt.setQuiz(quiz);
         attempt.setUser(userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User not found")));
+        attempt.setAttemptNumber((int) priorAttempts + 1);
+        attempt.setStartedAt(startedAt);
+        attempt.setExpiresAt(startedAt.plus(java.time.Duration.ofMinutes(quiz.getDurationMinutes())));
         return StartAttemptResponse.from(attemptRepository.save(attempt));
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = BusinessRuleException.class)
     public AttemptResultResponse submit(UUID attemptId, SubmitAttemptRequest request, UUID userId) {
         QuizAttempt attempt = authorizationService.ensureAttemptOwner(attemptId, userId);
         if (attempt.getStatus() != AttemptStatus.IN_PROGRESS) {
             throw new ConflictException("Attempt has already been submitted");
+        }
+        if (Instant.now().isAfter(attempt.getExpiresAt())) {
+            attempt.setStatus(AttemptStatus.EXPIRED);
+            throw new BusinessRuleException("Attempt time limit has expired");
         }
         Map<UUID, SubmitAnswerRequest> answerMap = new LinkedHashMap<>();
         for (SubmitAnswerRequest answer : request.answers()) {
@@ -137,7 +148,12 @@ public class QuizAttemptService {
         attempt.setSubmittedAt(Instant.now());
         auditLogService.record(userId, attempt.getQuiz().getProgram().getOrganization().getId(), AuditAction.ATTEMPT_SUBMITTED, "QuizAttempt", attemptId);
 
-        var certificate = certificateService.issueAutomaticallyIfEligible(attempt);
+        Optional<com.library.Skillmark.certificate.entity.Certificate> certificate = Optional.empty();
+        try {
+            certificate = certificateService.issueAutomaticallyIfEligible(attempt);
+        } catch (RuntimeException ex) {
+            LOGGER.error("AUTO certificate issuance failed for attempt {}", attempt.getId(), ex);
+        }
         return new AttemptResultResponse(attempt.getId(), totalPoints, awarded, percentage, passed, attempt.getStatus(),
                 attempt.getSubmittedAt(), certificate.isPresent(), certificate.map(com.library.Skillmark.certificate.entity.Certificate::getId).orElse(null));
     }

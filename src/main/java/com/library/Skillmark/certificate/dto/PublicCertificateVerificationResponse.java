@@ -13,7 +13,9 @@ public record PublicCertificateVerificationResponse(
         String programTitle,
         String organizationName,
         Instant issuedAt,
-        Instant revokedAt
+        boolean isRevoked,
+        Instant revokedAt,
+        String revokeReason
 ) {
     public static PublicCertificateVerificationResponse from(Certificate certificate) {
         return new PublicCertificateVerificationResponse(
@@ -24,7 +26,9 @@ public record PublicCertificateVerificationResponse(
                 certificate.getProgramTitleSnapshot(),
                 certificate.getOrganizationNameSnapshot(),
                 certificate.getIssuedAt(),
-                certificate.getRevokedAt()
+                certificate.getStatus() == CertificateStatus.REVOKED,
+                certificate.getRevokedAt(),
+                certificate.getRevokeReason()
         );
     }
 }
