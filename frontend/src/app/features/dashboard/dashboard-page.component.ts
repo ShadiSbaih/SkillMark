@@ -1,24 +1,27 @@
-import { Component, computed, inject } from '@angular/core';
 import { DatePipe } from '@angular/common';
+import { Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { injectQuery } from '@tanstack/angular-query-experimental';
+import { CertificatesApi } from '../../core/api/certificates.api';
 import { OrganizationsApi } from '../../core/api/organizations.api';
 import { QuizzesApi } from '../../core/api/quizzes.api';
-import { CertificatesApi } from '../../core/api/certificates.api';
 import { StatsApi } from '../../core/api/stats.api';
 import { AuthService } from '../../core/auth/auth.service';
-import { LoadingStateComponent } from '../../shared/ui/loading-state.component';
 import { ErrorStateComponent } from '../../shared/ui/error-state.component';
+import { LoadingStateComponent } from '../../shared/ui/loading-state.component';
+import { StatCardComponent } from '../../shared/ui/stat-card.component';
 
 @Component({
   selector: 'app-dashboard-page',
   standalone: true,
-  imports: [DatePipe, RouterLink, LoadingStateComponent, ErrorStateComponent],
+  imports: [DatePipe, RouterLink, LoadingStateComponent, ErrorStateComponent, StatCardComponent],
   template: `
     <section class="workspace-dashboard">
       <header class="workspace-page-header">
         <div>
-          <h1>Welcome back, {{ firstName() }} <span aria-hidden="true">👋</span></h1>
+          <p class="page-breadcrumb">Dashboard</p>
+          <h1>Welcome back, {{ firstName() }}</h1>
+          <p class="page-description">Manage organizations, monitor training activity, and jump back into participant workflows.</p>
         </div>
         <a routerLink="/organizations" class="workspace-create-button app-focus">
           <span aria-hidden="true">+</span>
@@ -28,7 +31,6 @@ import { ErrorStateComponent } from '../../shared/ui/error-state.component';
 
       <section class="workspace-section">
         <p class="workspace-section-title">My Organizations</p>
-
         @if (organizations.isPending()) {
           <app-loading-state />
         } @else if (organizations.isError()) {
@@ -39,6 +41,7 @@ import { ErrorStateComponent } from '../../shared/ui/error-state.component';
               <article class="organization-card">
                 <div class="organization-avatar">{{ orgInitial(org.name) }}</div>
                 <h2>{{ org.name }}</h2>
+                <p>{{ org.description || 'Organization workspace' }}</p>
                 <div class="organization-card-metrics">
                   <div>
                     <strong>{{ i === 0 ? quickStats()[0].value : '-' }}</strong>
@@ -49,7 +52,7 @@ import { ErrorStateComponent } from '../../shared/ui/error-state.component';
                     <span>Members</span>
                   </div>
                 </div>
-                <a [routerLink]="['/organizations', org.id]" class="organization-open-button app-focus">Open</a>
+                <a [routerLink]="['/organizations', org.id]" class="organization-open-button app-focus">Overview</a>
               </article>
             } @empty {
               <a routerLink="/organizations" class="organization-create-card app-focus">
@@ -57,7 +60,6 @@ import { ErrorStateComponent } from '../../shared/ui/error-state.component';
                 <strong>New Organization</strong>
               </a>
             }
-
             <a routerLink="/organizations" class="organization-create-card app-focus">
               <span>+</span>
               <strong>New Organization</strong>
@@ -72,12 +74,9 @@ import { ErrorStateComponent } from '../../shared/ui/error-state.component';
           @if (statsQuery.isPending() && selectedOrganizationId()) {
             <app-loading-state />
           } @else {
-            <div class="quick-stat-grid">
+            <div class="ui-stat-grid">
               @for (stat of quickStats(); track stat.label) {
-                <article class="quick-stat-card" [class.featured]="stat.featured">
-                  <strong>{{ stat.value }}</strong>
-                  <span>{{ stat.label }}</span>
-                </article>
+                <app-stat-card [label]="stat.label" [value]="stat.value" [tone]="stat.featured ? 'dark' : 'light'" />
               }
             </div>
           }
@@ -104,6 +103,24 @@ import { ErrorStateComponent } from '../../shared/ui/error-state.component';
               }
             }
           </article>
+        </div>
+      </section>
+
+      <section class="workspace-section">
+        <p class="workspace-section-title">Participant Portal</p>
+        <div class="portal-link-grid">
+          <a routerLink="/my-enrollments" class="portal-link-card app-focus">
+            <strong>My Programs</strong>
+            <span>Open enrolled programs and learning resources.</span>
+          </a>
+          <a routerLink="/my-attempts" class="portal-link-card app-focus">
+            <strong>My Attempts</strong>
+            <span>Review quiz attempts and submitted scores.</span>
+          </a>
+          <a routerLink="/my-certificates" class="portal-link-card app-focus">
+            <strong>My Certificates</strong>
+            <span>Download certificates and verification codes.</span>
+          </a>
         </div>
       </section>
     </section>

@@ -7,6 +7,12 @@ import { NgTemplateOutlet } from '@angular/common';
   imports: [NgTemplateOutlet],
   template: `
     <div class="app-table-shell">
+      @if (caption()) {
+        <div class="table-caption-row">
+          <p>{{ caption() }}</p>
+          <span>{{ rows().length }} shown</span>
+        </div>
+      }
       <div class="overflow-x-auto">
         <table class="app-table">
           <thead>
@@ -49,6 +55,7 @@ export class DataTableComponent<T extends Record<string, unknown>> {
   readonly columns = input.required<Array<{ key: keyof T & string; label: string; numeric?: boolean }>>();
   readonly actions = input<TemplateRef<{ $implicit: T }> | null>(null);
   readonly emptyLabel = input('No records match this view.');
+  readonly caption = input<string | null>(null);
 
   value(row: T, key: keyof T & string): string {
     const value = row[key];

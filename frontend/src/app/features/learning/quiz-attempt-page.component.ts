@@ -6,13 +6,14 @@ import { AttemptsApi } from '../../core/api/attempts.api';
 import { QuizzesApi } from '../../core/api/quizzes.api';
 import { ButtonComponent } from '../../shared/ui/button.component';
 import { CardComponent } from '../../shared/ui/card.component';
+import { ConfirmDialogComponent } from '../../shared/ui/confirm-dialog.component';
 import { LoadingStateComponent } from '../../shared/ui/loading-state.component';
 import { PageHeaderComponent } from '../../shared/ui/page-header.component';
 
 @Component({
   selector: 'app-quiz-attempt-page',
   standalone: true,
-  imports: [ButtonComponent, CardComponent, LoadingStateComponent, PageHeaderComponent],
+  imports: [ButtonComponent, CardComponent, ConfirmDialogComponent, LoadingStateComponent, PageHeaderComponent],
   template: `
     @if (quiz.isPending()) {
       <app-loading-state />
@@ -32,7 +33,7 @@ import { PageHeaderComponent } from '../../shared/ui/page-header.component';
           </p>
         </app-card>
       } @else {
-        <form class="grid gap-4" (ngSubmit)="submit()">
+        <form class="quiz-attempt-form" (ngSubmit)="requestSubmit()">
           @for (question of item.questions; track question.id) {
             <app-card>
               <p class="text-xs text-[var(--color-ink-mute)]">Question {{ question.position }} · {{ question.points }} pts</p>
@@ -50,6 +51,13 @@ import { PageHeaderComponent } from '../../shared/ui/page-header.component';
           <app-button type="submit" [disabled]="submitMutation.isPending()">Submit quiz</app-button>
         </form>
       }
+      <app-confirm-dialog
+        [open]="confirmSubmit()"
+        title="Submit quiz"
+        message="Submit your answers now? You will not be able to change them after submission."
+        (cancel)="confirmSubmit.set(false)"
+        (confirm)="submit()"
+      />
     }
   `,
 })
@@ -63,6 +71,7 @@ export class QuizAttemptPageComponent {
   readonly expiresAt = signal<string | null>(null);
   readonly now = signal(Date.now());
   readonly answers = signal<Record<string, string>>({});
+  readonly confirmSubmit = signal(false);
 
   readonly quiz = injectQuery(() => ({
     queryKey: ['quizzes', this.quizId],
@@ -122,12 +131,17 @@ export class QuizAttemptPageComponent {
     this.answers.update((answers) => ({ ...answers, [questionId]: optionId }));
   }
 
-  submit(): void {
+  requestSubmit(): void {
     const questionCount = this.quiz.data()?.questions.length ?? 0;
     if (Object.keys(this.answers()).length !== questionCount) {
       toast.error('Answer every question before submitting');
       return;
     }
+    this.confirmSubmit.set(true);
+  }
+
+  submit(): void {
+    this.confirmSubmit.set(false);
     this.submitMutation.mutate();
   }
 }

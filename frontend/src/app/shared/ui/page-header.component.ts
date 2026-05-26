@@ -4,15 +4,15 @@ import { Component, input } from '@angular/core';
   selector: 'app-page-header',
   standalone: true,
   template: `
-    <header class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-      <div>
-        <p class="app-eyebrow">{{ eyebrow() }}</p>
-        <h1 class="app-title">{{ title() }}</h1>
+    <header class="page-header">
+      <div class="page-header-copy">
+        <p class="page-breadcrumb">{{ breadcrumb() || eyebrow() }}</p>
+        <h1 class="page-title">{{ title() }}</h1>
         @if (description()) {
-          <p class="app-description">{{ description() }}</p>
+          <p class="page-description">{{ description() }}</p>
         }
       </div>
-      <div class="flex flex-wrap gap-2">
+      <div class="page-actions">
         <ng-content />
       </div>
     </header>
@@ -20,6 +20,7 @@ import { Component, input } from '@angular/core';
 })
 export class PageHeaderComponent {
   readonly eyebrow = input('Skillmark');
+  readonly breadcrumb = input<string | null>(null);
   readonly title = input.required<string>();
   readonly description = input<string | null>(null);
 }

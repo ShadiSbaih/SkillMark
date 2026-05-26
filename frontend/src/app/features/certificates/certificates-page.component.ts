@@ -5,6 +5,7 @@ import { toast } from 'ngx-sonner';
 import { CertificatesApi } from '../../core/api/certificates.api';
 import { ButtonComponent } from '../../shared/ui/button.component';
 import { CardComponent } from '../../shared/ui/card.component';
+import { ConfirmDialogComponent } from '../../shared/ui/confirm-dialog.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { LoadingStateComponent } from '../../shared/ui/loading-state.component';
 import { PageHeaderComponent } from '../../shared/ui/page-header.component';
@@ -14,7 +15,7 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
 @Component({
   selector: 'app-certificates-page',
   standalone: true,
-  imports: [RouterLink, CardComponent, EmptyStateComponent, LoadingStateComponent, PageHeaderComponent, PaginationComponent, StatusBadgeComponent],
+  imports: [RouterLink, ButtonComponent, EmptyStateComponent, LoadingStateComponent, PageHeaderComponent, PaginationComponent, StatusBadgeComponent],
   template: `
     <app-page-header eyebrow="Certificates" [title]="organizationId ? 'Organization certificates' : 'My certificates'" description="Review issued certificates and verification codes." />
     @if (query.isPending()) {
@@ -22,19 +23,24 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
     } @else if ((query.data()?.items?.length ?? 0) === 0) {
       <app-empty-state title="No certificates found" description="Certificates appear after passing eligible quizzes or manual issue." />
     } @else {
-      <div class="grid gap-3">
-        @for (certificate of query.data()?.items ?? []; track certificate.id) {
-          <app-card>
-            <div class="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <a [routerLink]="['/certificates', certificate.id]" class="text-lg font-light">{{ certificate.title }}</a>
-                <p class="font-tabular text-xs text-[var(--color-ink-mute)]">{{ certificate.certificateNumber }} · {{ certificate.verificationCode }}</p>
-                <p class="text-sm text-[var(--color-ink-mute)]">{{ certificate.participantNameSnapshot }} · {{ certificate.programTitleSnapshot }}</p>
-              </div>
-              <app-status-badge [status]="certificate.status" />
-            </div>
-          </app-card>
-        }
+      <div class="app-table-shell">
+        <table class="app-table">
+          <thead><tr><th>Certificate</th><th>Participant</th><th>Program</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            @for (certificate of query.data()?.items ?? []; track certificate.id) {
+              <tr>
+                <td>
+                  <a [routerLink]="['/certificates', certificate.id]" class="table-primary-link">{{ certificate.title }}</a>
+                  <p class="font-tabular">{{ certificate.certificateNumber }} · {{ certificate.verificationCode }}</p>
+                </td>
+                <td>{{ certificate.participantNameSnapshot }}</td>
+                <td>{{ certificate.programTitleSnapshot }}</td>
+                <td><app-status-badge [status]="certificate.status" /></td>
+                <td class="table-actions"><a [routerLink]="['/certificates', certificate.id]"><app-button variant="secondary">Open</app-button></a></td>
+              </tr>
+            }
+          </tbody>
+        </table>
       </div>
       <app-pagination [page]="page()" [totalPages]="query.data()?.totalPages ?? 0" [totalElements]="query.data()?.totalElements ?? 0" (pageChange)="page.set($event)" />
     }
@@ -54,7 +60,7 @@ export class CertificatesPageComponent {
 @Component({
   selector: 'app-certificate-detail-page',
   standalone: true,
-  imports: [ButtonComponent, CardComponent, LoadingStateComponent, PageHeaderComponent, StatusBadgeComponent],
+  imports: [ButtonComponent, CardComponent, ConfirmDialogComponent, LoadingStateComponent, PageHeaderComponent, StatusBadgeComponent],
   template: `
     @if (query.isPending()) {
       <app-loading-state />
@@ -63,7 +69,8 @@ export class CertificatesPageComponent {
         @if (certificate.pdfUrl) {
           <a [href]="certificate.pdfUrl" target="_blank" rel="noopener"><app-button>Download PDF</app-button></a>
         }
-        <app-button variant="secondary" (click)="revoke(certificate.id)">Revoke</app-button>
+        <a [href]="'/verify/' + certificate.verificationCode" target="_blank" rel="noopener"><app-button variant="secondary">Public verify</app-button></a>
+        <app-button variant="ghost" (click)="pendingRevokeId = certificate.id">Revoke</app-button>
       </app-page-header>
       <section class="grid gap-6 lg:grid-cols-[1fr_20rem]">
         <app-card>
@@ -90,6 +97,13 @@ export class CertificatesPageComponent {
           }
         </app-card>
       </section>
+      <app-confirm-dialog
+        [open]="!!pendingRevokeId"
+        title="Revoke certificate"
+        message="Revoke this certificate and show it as revoked in public verification?"
+        (cancel)="pendingRevokeId = null"
+        (confirm)="revoke(pendingRevokeId!)"
+      />
     }
   `,
 })
@@ -98,6 +112,7 @@ export class CertificateDetailPageComponent {
   private readonly api = inject(CertificatesApi);
   private readonly queryClient = inject(QueryClient);
   readonly certificateId = this.route.snapshot.paramMap.get('certificateId') ?? '';
+  pendingRevokeId: string | null = null;
   readonly query = injectQuery(() => ({
     queryKey: ['certificates', this.certificateId],
     enabled: !!this.certificateId,
@@ -112,6 +127,7 @@ export class CertificateDetailPageComponent {
   }));
 
   revoke(id: string): void {
+    this.pendingRevokeId = null;
     this.revokeMutation.mutate(id);
   }
 }

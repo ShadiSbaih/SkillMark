@@ -121,6 +121,18 @@ import { OrganizationsApi } from '../core/api/organizations.api';
                 <lucide-icon name="award" size="17" />
                 Certificates
               </a>
+              <a routerLink="/my-enrollments" routerLinkActive="active" class="dashboard-nav-link app-focus">
+                <lucide-icon name="book-open" size="17" />
+                My Programs
+              </a>
+              <a routerLink="/my-attempts" routerLinkActive="active" class="dashboard-nav-link app-focus">
+                <lucide-icon name="clipboard-list" size="17" />
+                My Attempts
+              </a>
+              <a routerLink="/my-certificates" routerLinkActive="active" class="dashboard-nav-link app-focus">
+                <lucide-icon name="shield-check" size="17" />
+                My Certificates
+              </a>
             </section>
           </nav>
         </aside>

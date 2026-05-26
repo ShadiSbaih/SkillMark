@@ -13,8 +13,11 @@ export class StatusBadgeComponent {
   readonly status = input.required<string>();
   readonly classes = computed(() => {
     const status = this.status().toUpperCase();
-    if (['ACTIVE', 'PUBLISHED', 'COMPLETED', 'SUBMITTED'].includes(status)) {
+    if (['ACTIVE', 'COMPLETED'].includes(status)) {
       return 'status-badge status-success';
+    }
+    if (['PUBLISHED', 'SUBMITTED'].includes(status)) {
+      return 'status-badge status-primary';
     }
     if (['REVOKED', 'DELETED', 'CANCELLED', 'REMOVED'].includes(status)) {
       return 'status-badge status-danger';

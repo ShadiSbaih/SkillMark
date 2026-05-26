@@ -6,6 +6,7 @@ import { toast } from 'ngx-sonner';
 import { MembersApi } from '../../core/api/members.api';
 import { ButtonComponent } from '../../shared/ui/button.component';
 import { CardComponent } from '../../shared/ui/card.component';
+import { ConfirmDialogComponent } from '../../shared/ui/confirm-dialog.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { LoadingStateComponent } from '../../shared/ui/loading-state.component';
 import { PageHeaderComponent } from '../../shared/ui/page-header.component';
@@ -15,7 +16,7 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
 @Component({
   selector: 'app-members-page',
   standalone: true,
-  imports: [ReactiveFormsModule, ButtonComponent, CardComponent, EmptyStateComponent, LoadingStateComponent, PageHeaderComponent, PaginationComponent, StatusBadgeComponent],
+  imports: [ReactiveFormsModule, ButtonComponent, CardComponent, ConfirmDialogComponent, EmptyStateComponent, LoadingStateComponent, PageHeaderComponent, PaginationComponent, StatusBadgeComponent],
   template: `
     <app-page-header eyebrow="Organization" title="Members" description="Add existing users by UUID and review membership status." />
     <section class="grid gap-6 lg:grid-cols-[22rem_1fr]">
@@ -31,37 +32,48 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
               <option value="OWNER">OWNER</option>
             </select>
           </label>
-          <app-button type="submit" [disabled]="form.invalid || addMutation.isPending()">Add</app-button>
+          <app-button type="submit" [disabled]="form.invalid || addMutation.isPending()">Add member</app-button>
         </form>
       </app-card>
+
       <div>
         @if (query.isPending()) {
           <app-loading-state />
         } @else if ((query.data()?.items?.length ?? 0) === 0) {
           <app-empty-state title="No members found" description="Memberships will appear here after users are added or join programs." />
         } @else {
-          <div class="grid gap-3">
-            @for (member of query.data()?.items ?? []; track member.id) {
-              <app-card>
-                <div class="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p class="text-sm font-normal">{{ member.userName || member.userEmail }}</p>
-                    <p class="text-xs text-[var(--color-ink-mute)]">{{ member.userEmail }} · {{ member.role }}</p>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <app-status-badge [status]="member.status" />
-                    @if (member.role !== 'OWNER') {
-                      <app-button variant="ghost" (click)="remove(member.userId)">Remove</app-button>
-                    }
-                  </div>
-                </div>
-              </app-card>
-            }
+          <div class="app-table-shell">
+            <table class="app-table">
+              <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th></th></tr></thead>
+              <tbody>
+                @for (member of query.data()?.items ?? []; track member.id) {
+                  <tr>
+                    <td>{{ member.userName || member.userEmail }}</td>
+                    <td>{{ member.userEmail }}</td>
+                    <td>{{ member.role }}</td>
+                    <td><app-status-badge [status]="member.status" /></td>
+                    <td class="table-actions">
+                      @if (member.role !== 'OWNER') {
+                        <app-button variant="ghost" (click)="pendingRemoveUserId = member.userId">Remove</app-button>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
           </div>
           <app-pagination [page]="page()" [totalPages]="query.data()?.totalPages ?? 0" [totalElements]="query.data()?.totalElements ?? 0" (pageChange)="page.set($event)" />
         }
       </div>
     </section>
+
+    <app-confirm-dialog
+      [open]="!!pendingRemoveUserId"
+      title="Remove member"
+      message="This user will lose organization membership access."
+      (cancel)="pendingRemoveUserId = null"
+      (confirm)="remove(pendingRemoveUserId!)"
+    />
   `,
 })
 export class MembersPageComponent {
@@ -71,6 +83,7 @@ export class MembersPageComponent {
   private readonly queryClient = inject(QueryClient);
   readonly organizationId = this.route.snapshot.paramMap.get('orgId') ?? '';
   readonly page = signal(0);
+  pendingRemoveUserId: string | null = null;
 
   readonly form = this.fb.nonNullable.group({
     userId: ['', Validators.required],
@@ -107,7 +120,7 @@ export class MembersPageComponent {
   }
 
   remove(userId: string): void {
+    this.pendingRemoveUserId = null;
     this.removeMutation.mutate(userId);
   }
 }
-

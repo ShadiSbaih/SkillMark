@@ -1,5 +1,4 @@
 import { Component, inject, signal } from '@angular/core';
-import { NgTemplateOutlet } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { injectMutation, injectQuery, QueryClient } from '@tanstack/angular-query-experimental';
@@ -8,6 +7,7 @@ import { QuizzesApi } from '../../core/api/quizzes.api';
 import { QuizResponse } from '../../core/models/api.model';
 import { ButtonComponent } from '../../shared/ui/button.component';
 import { CardComponent } from '../../shared/ui/card.component';
+import { ConfirmDialogComponent } from '../../shared/ui/confirm-dialog.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { LoadingStateComponent } from '../../shared/ui/loading-state.component';
 import { PageHeaderComponent } from '../../shared/ui/page-header.component';
@@ -17,11 +17,11 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
 @Component({
   selector: 'app-quizzes-page',
   standalone: true,
-  imports: [NgTemplateOutlet, ReactiveFormsModule, RouterLink, ButtonComponent, CardComponent, EmptyStateComponent, LoadingStateComponent, PageHeaderComponent, PaginationComponent, StatusBadgeComponent],
+  imports: [ReactiveFormsModule, RouterLink, ButtonComponent, CardComponent, ConfirmDialogComponent, EmptyStateComponent, LoadingStateComponent, PageHeaderComponent, PaginationComponent, StatusBadgeComponent],
   template: `
     <app-page-header eyebrow="Program" title="Quizzes" description="Create draft assessments and publish them after adding questions." />
-    @if (programId) {
-      <section class="grid gap-6 lg:grid-cols-[22rem_1fr]">
+    <section class="quizzes-layout" [class.has-form]="!!programId">
+      @if (programId) {
         <app-card>
           <h2 class="text-xl font-light">Create quiz</h2>
           <form class="app-form mt-5" [formGroup]="form" (ngSubmit)="create()">
@@ -31,16 +31,18 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
             <label class="app-label">Description
               <textarea class="app-input app-focus min-h-20" placeholder="Participant-facing context" formControlName="description"></textarea>
             </label>
-            <label class="app-label">Passing score
-              <input class="app-input app-focus" type="number" min="0" max="100" formControlName="passingScore" />
-            </label>
-            <label class="app-label">Duration minutes
-              <input class="app-input app-focus" type="number" min="1" formControlName="durationMinutes" />
-            </label>
+            <div class="grid gap-3 sm:grid-cols-2">
+              <label class="app-label">Passing score
+                <input class="app-input app-focus" type="number" min="0" max="100" formControlName="passingScore" />
+              </label>
+              <label class="app-label">Duration minutes
+                <input class="app-input app-focus" type="number" min="1" formControlName="durationMinutes" />
+              </label>
+            </div>
             <label class="app-label">Max attempts
               <input class="app-input app-focus" type="number" min="1" formControlName="maxAttempts" />
             </label>
-            <label class="flex items-center gap-2 text-sm text-[var(--color-ink-secondary)]"><input type="checkbox" formControlName="certificateEnabled" /> Certificate enabled</label>
+            <label class="form-check"><input type="checkbox" formControlName="certificateEnabled" /> Certificate enabled</label>
             <label class="app-label">Certificate issue mode
               <select class="app-input app-focus" formControlName="certificateIssueMode">
                 <option value="AUTO">AUTO</option>
@@ -48,51 +50,54 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
                 <option value="NONE">NONE</option>
               </select>
             </label>
-            <app-button type="submit" [disabled]="form.invalid || createMutation.isPending()">Create</app-button>
+            <app-button type="submit" [disabled]="form.invalid || createMutation.isPending()">Create quiz</app-button>
           </form>
         </app-card>
-        <ng-container *ngTemplateOutlet="listTpl" />
-      </section>
-    } @else {
-      <ng-container *ngTemplateOutlet="listTpl" />
-    }
+      }
 
-    <ng-template #listTpl>
       <div>
         @if (query.isPending()) {
           <app-loading-state />
         } @else if ((query.data()?.items?.length ?? 0) === 0) {
           <app-empty-state title="No quizzes found" description="Create or publish quizzes to make them available." />
         } @else {
-          <div class="grid gap-4">
-            @for (quiz of query.data()?.items ?? []; track quiz.id) {
-              <app-card>
-                <div class="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <a [routerLink]="['/quizzes', quiz.id]" class="text-xl font-light tracking-[-0.2px]">{{ quiz.title }}</a>
-                    <p class="text-sm text-[var(--color-ink-mute)]">{{ quiz.description || 'No description' }}</p>
-                    <p class="font-tabular mt-2 text-xs text-[var(--color-ink-mute)]">{{ quiz.durationMinutes }} min · pass {{ quiz.passingScore }}% · {{ quiz.questions.length }} questions</p>
-                  </div>
-                  <app-status-badge [status]="quiz.status" />
-                </div>
-                <div class="mt-5 flex flex-wrap gap-2">
-                  <a [routerLink]="['/quizzes', quiz.id, 'builder']"><app-button variant="secondary">Builder</app-button></a>
-                  <a [routerLink]="['/quizzes', quiz.id, 'attempt']"><app-button variant="ghost">Take quiz</app-button></a>
-                  <app-button variant="ghost" (click)="publish(quiz.id)">Publish</app-button>
-                  <app-button variant="ghost" (click)="toggleVisibility(quiz)">
-                    {{ quiz.visibleToParticipants ? 'Hide from participants' : 'Show to participants' }}
-                  </app-button>
-                </div>
-                <p class="mt-3 text-xs text-[var(--color-ink-mute)]">
-                  {{ quiz.visibleToParticipants ? 'Visible to participants' : 'Hidden from participants' }}
-                </p>
-              </app-card>
-            }
+          <div class="app-table-shell">
+            <table class="app-table">
+              <thead><tr><th>Quiz</th><th>Rules</th><th>Status</th><th>Visibility</th><th></th></tr></thead>
+              <tbody>
+                @for (quiz of query.data()?.items ?? []; track quiz.id) {
+                  <tr>
+                    <td>
+                      <a [routerLink]="['/quizzes', quiz.id]" class="table-primary-link">{{ quiz.title }}</a>
+                      <p>{{ quiz.description || 'No description' }}</p>
+                    </td>
+                    <td class="font-tabular">{{ quiz.durationMinutes }} min · pass {{ quiz.passingScore }}% · {{ quiz.questions.length }} questions</td>
+                    <td><app-status-badge [status]="quiz.status" /></td>
+                    <td>{{ quiz.visibleToParticipants ? 'Visible' : 'Hidden' }}</td>
+                    <td class="table-actions">
+                      <a [routerLink]="['/quizzes', quiz.id, 'builder']"><app-button variant="secondary">Builder</app-button></a>
+                      <a [routerLink]="['/quizzes', quiz.id, 'attempt']"><app-button variant="ghost">Take</app-button></a>
+                      <app-button variant="ghost" (click)="publish(quiz.id)">Publish</app-button>
+                      <app-button variant="ghost" (click)="toggleVisibility(quiz)">{{ quiz.visibleToParticipants ? 'Hide' : 'Show' }}</app-button>
+                      <app-button variant="ghost" (click)="pendingArchiveId = quiz.id">Archive</app-button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
           </div>
           <app-pagination [page]="page()" [totalPages]="query.data()?.totalPages ?? 0" [totalElements]="query.data()?.totalElements ?? 0" (pageChange)="page.set($event)" />
         }
       </div>
-    </ng-template>
+    </section>
+
+    <app-confirm-dialog
+      [open]="!!pendingArchiveId"
+      title="Archive quiz"
+      message="Archive this quiz and stop using it for active participant attempts?"
+      (cancel)="pendingArchiveId = null"
+      (confirm)="archive(pendingArchiveId!)"
+    />
   `,
 })
 export class QuizzesPageComponent {
@@ -102,6 +107,7 @@ export class QuizzesPageComponent {
   private readonly queryClient = inject(QueryClient);
   readonly programId = this.route.snapshot.paramMap.get('programId') ?? '';
   readonly page = signal(0);
+  pendingArchiveId: string | null = null;
 
   readonly form = this.fb.nonNullable.group({
     title: ['', Validators.required],
@@ -135,6 +141,14 @@ export class QuizzesPageComponent {
     },
   }));
 
+  readonly archiveMutation = injectMutation(() => ({
+    mutationFn: (id: string) => this.api.archive(id),
+    onSuccess: async () => {
+      await this.queryClient.invalidateQueries({ queryKey: ['quizzes'] });
+      toast.warning('Quiz archived');
+    },
+  }));
+
   readonly visibilityMutation = injectMutation(() => ({
     mutationFn: (quiz: QuizResponse) => this.api.updateVisibility(quiz.id, !quiz.visibleToParticipants),
     onSuccess: async () => {
@@ -151,6 +165,11 @@ export class QuizzesPageComponent {
 
   publish(id: string): void {
     this.publishMutation.mutate(id);
+  }
+
+  archive(id: string): void {
+    this.pendingArchiveId = null;
+    this.archiveMutation.mutate(id);
   }
 
   toggleVisibility(quiz: QuizResponse): void {

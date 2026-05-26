@@ -22,8 +22,21 @@ type StatsRecord = Record<string, string | number | boolean | null | undefined>;
           <app-card [tone]="entry.dark ? 'dark' : 'light'">
             <p class="metric-label">{{ entry.key }}</p>
             <p class="metric-value mt-3">{{ entry.value }}</p>
+            @if (entry.percent !== null) {
+              <div class="stat-meter"><span [style.width.%]="entry.percent"></span></div>
+            }
           </app-card>
         }
+      </section>
+      <section class="stats-chart-panel">
+        <div>
+          <p class="workspace-section-title">Performance Shape</p>
+          <div class="bar-chart">
+            @for (entry of entries(stats).slice(0, 6); track entry.key) {
+              <span [style.height.%]="entry.percent ?? 35" [attr.title]="entry.key + ': ' + entry.value"></span>
+            }
+          </div>
+        </div>
       </section>
     }
   `,
@@ -47,6 +60,10 @@ export class StatsPageComponent {
   entries(stats: StatsRecord) {
     return Object.entries(stats)
       .filter(([, value]) => typeof value !== 'object')
-      .map(([key, value], index) => ({ key, value: String(value), dark: index === 0 }));
+      .map(([key, value], index) => {
+        const numeric = typeof value === 'number' ? value : Number(value);
+        const percent = Number.isFinite(numeric) ? Math.max(6, Math.min(100, numeric)) : null;
+        return { key, value: String(value), dark: index === 0, percent };
+      });
   }
 }

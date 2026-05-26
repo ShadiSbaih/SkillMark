@@ -5,19 +5,22 @@ import { injectQuery } from '@tanstack/angular-query-experimental';
 import { CertificatesApi } from '../../core/api/certificates.api';
 import { ButtonComponent } from '../../shared/ui/button.component';
 import { CardComponent } from '../../shared/ui/card.component';
-import { ErrorStateComponent } from '../../shared/ui/error-state.component';
 import { LoadingStateComponent } from '../../shared/ui/loading-state.component';
 import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
 
 @Component({
   selector: 'app-verification-page',
   standalone: true,
-  imports: [FormsModule, ButtonComponent, CardComponent, ErrorStateComponent, LoadingStateComponent, StatusBadgeComponent],
+  imports: [FormsModule, ButtonComponent, CardComponent, LoadingStateComponent, StatusBadgeComponent],
   template: `
-    <section class="public-card-shell verification-shell">
-      <app-card>
+    <section class="verification-page">
+      <div class="verification-heading">
         <p class="app-eyebrow">Public verification</p>
-        <h1 class="display-lg">Verify a certificate</h1>
+        <h1 class="display-lg">Certificate Verification</h1>
+        <p>Enter a verification code or open a verification link to confirm certificate status.</p>
+      </div>
+
+      <app-card>
         <form class="verify-form" (ngSubmit)="go()">
           <label class="app-label">
             Verification code
@@ -31,6 +34,8 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
           </label>
           <app-button type="submit">Verify</app-button>
         </form>
+        <div class="verification-divider"><span>OR</span></div>
+        <p class="verification-note">If the code is in the URL, Skillmark auto-loads the certificate on page open.</p>
       </app-card>
 
       <div class="mt-6">
@@ -38,9 +43,14 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
           @if (query.isPending()) {
             <app-loading-state />
           } @else if (query.isError()) {
-            <app-error-state title="Certificate not found" message="No public certificate matched that verification code." />
+            <div class="verification-result not-found">
+              <p class="result-kicker">Not found</p>
+              <h2>No certificate matched this code.</h2>
+              <p>Check the code and try again. Public verification does not require sign in.</p>
+            </div>
           } @else if (query.data(); as certificate) {
             <app-card [tone]="certificate.isRevoked ? 'cream' : 'light'">
+              <p class="result-kicker">{{ certificate.isRevoked ? 'Revoked certificate' : 'Valid certificate' }}</p>
               <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p class="text-sm text-[var(--color-ink-mute)]">Certificate number</p>
@@ -56,6 +66,8 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
               </dl>
               @if (certificate.isRevoked) {
                 <p class="mt-5 rounded-[var(--radius-lg)] border border-[rgb(var(--ruby-rgb)/0.18)] bg-[rgb(var(--ruby-rgb)/0.08)] p-3 text-sm text-[var(--color-ink-secondary)]">Revoked: {{ certificate.revokeReason || 'No reason provided' }}</p>
+              } @else {
+                <p class="verification-valid-note">This certificate is active and matches Skillmark records.</p>
               }
             </app-card>
           }

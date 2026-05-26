@@ -6,6 +6,7 @@ import { toast } from 'ngx-sonner';
 import { ProgramsApi } from '../../core/api/programs.api';
 import { ButtonComponent } from '../../shared/ui/button.component';
 import { CardComponent } from '../../shared/ui/card.component';
+import { ConfirmDialogComponent } from '../../shared/ui/confirm-dialog.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { LoadingStateComponent } from '../../shared/ui/loading-state.component';
 import { PageHeaderComponent } from '../../shared/ui/page-header.component';
@@ -15,7 +16,7 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
 @Component({
   selector: 'app-programs-page',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, ButtonComponent, CardComponent, EmptyStateComponent, LoadingStateComponent, PageHeaderComponent, PaginationComponent, StatusBadgeComponent],
+  imports: [ReactiveFormsModule, RouterLink, ButtonComponent, CardComponent, ConfirmDialogComponent, EmptyStateComponent, LoadingStateComponent, PageHeaderComponent, PaginationComponent, StatusBadgeComponent],
   template: `
     <app-page-header eyebrow="Organization" title="Programs" description="Create workshops and manage publication state." />
     <section class="grid gap-6 lg:grid-cols-[22rem_1fr]">
@@ -31,44 +32,58 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
           <label class="app-label">Cover image URL
             <input class="app-input app-focus" placeholder="https://..." formControlName="coverImageUrl" />
           </label>
-          <label class="app-label">Start date
-            <input class="app-input app-focus" type="date" formControlName="startDate" />
-          </label>
-          <label class="app-label">End date
-            <input class="app-input app-focus" type="date" formControlName="endDate" />
-          </label>
-          <app-button type="submit" [disabled]="form.invalid || createMutation.isPending()">Create</app-button>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <label class="app-label">Start date
+              <input class="app-input app-focus" type="date" formControlName="startDate" />
+            </label>
+            <label class="app-label">End date
+              <input class="app-input app-focus" type="date" formControlName="endDate" />
+            </label>
+          </div>
+          <app-button type="submit" [disabled]="form.invalid || createMutation.isPending()">Create program</app-button>
         </form>
       </app-card>
+
       <div>
         @if (query.isPending()) {
           <app-loading-state />
         } @else if ((query.data()?.items?.length ?? 0) === 0) {
           <app-empty-state title="No programs yet" description="Create your first program to add resources, quizzes, and invitations." />
         } @else {
-          <div class="grid gap-4">
-            @for (program of query.data()?.items ?? []; track program.id) {
-              <app-card>
-                <div class="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <a [routerLink]="['/programs', program.id]" class="text-xl font-light tracking-[-0.2px]">{{ program.title }}</a>
-                    <p class="mt-1 text-sm text-[var(--color-ink-mute)]">{{ program.description || 'No description' }}</p>
-                    <p class="font-tabular mt-2 text-xs text-[var(--color-ink-mute)]">{{ program.startDate || 'No start date' }} → {{ program.endDate || 'No end date' }}</p>
-                  </div>
-                  <app-status-badge [status]="program.status" />
-                </div>
-                <div class="mt-5 flex flex-wrap gap-2">
-                  <a [routerLink]="['/programs', program.id]"><app-button variant="secondary">Open</app-button></a>
-                  <app-button variant="ghost" (click)="publish(program.id)">Publish</app-button>
-                  <app-button variant="ghost" (click)="archive(program.id)">Archive</app-button>
-                </div>
-              </app-card>
-            }
+          <div class="app-table-shell">
+            <table class="app-table">
+              <thead><tr><th>Program</th><th>Dates</th><th>Status</th><th></th></tr></thead>
+              <tbody>
+                @for (program of query.data()?.items ?? []; track program.id) {
+                  <tr>
+                    <td>
+                      <a [routerLink]="['/programs', program.id]" class="table-primary-link">{{ program.title }}</a>
+                      <p>{{ program.description || 'No description' }}</p>
+                    </td>
+                    <td class="font-tabular">{{ program.startDate || 'No start' }} -> {{ program.endDate || 'No end' }}</td>
+                    <td><app-status-badge [status]="program.status" /></td>
+                    <td class="table-actions">
+                      <a [routerLink]="['/programs', program.id]"><app-button variant="secondary">Open</app-button></a>
+                      <app-button variant="ghost" (click)="publish(program.id)">Publish</app-button>
+                      <app-button variant="ghost" (click)="pendingArchiveId = program.id">Archive</app-button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
           </div>
           <app-pagination [page]="page()" [totalPages]="query.data()?.totalPages ?? 0" [totalElements]="query.data()?.totalElements ?? 0" (pageChange)="page.set($event)" />
         }
       </div>
     </section>
+
+    <app-confirm-dialog
+      [open]="!!pendingArchiveId"
+      title="Archive program"
+      message="Archive this program and remove it from active participant workflows?"
+      (cancel)="pendingArchiveId = null"
+      (confirm)="archive(pendingArchiveId!)"
+    />
   `,
 })
 export class ProgramsPageComponent {
@@ -78,6 +93,8 @@ export class ProgramsPageComponent {
   private readonly queryClient = inject(QueryClient);
   readonly organizationId = this.route.snapshot.paramMap.get('orgId') ?? '';
   readonly page = signal(0);
+  pendingArchiveId: string | null = null;
+
   readonly form = this.fb.nonNullable.group({
     title: ['', Validators.required],
     description: [''],
@@ -120,6 +137,7 @@ export class ProgramsPageComponent {
   }
 
   archive(id: string): void {
+    this.pendingArchiveId = null;
     this.statusMutation.mutate({ id, action: 'archive' });
   }
 }

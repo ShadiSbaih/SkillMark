@@ -8,6 +8,7 @@ import { StorageApi } from '../../core/api/storage.api';
 import { ResourceResponse } from '../../core/models/api.model';
 import { ButtonComponent } from '../../shared/ui/button.component';
 import { CardComponent } from '../../shared/ui/card.component';
+import { ConfirmDialogComponent } from '../../shared/ui/confirm-dialog.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
 import { LoadingStateComponent } from '../../shared/ui/loading-state.component';
 import { PageHeaderComponent } from '../../shared/ui/page-header.component';
@@ -17,7 +18,7 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
 @Component({
   selector: 'app-resources-page',
   standalone: true,
-  imports: [ReactiveFormsModule, ButtonComponent, CardComponent, EmptyStateComponent, LoadingStateComponent, PageHeaderComponent, PaginationComponent, StatusBadgeComponent],
+  imports: [ReactiveFormsModule, ButtonComponent, CardComponent, ConfirmDialogComponent, EmptyStateComponent, LoadingStateComponent, PageHeaderComponent, PaginationComponent, StatusBadgeComponent],
   template: `
     <app-page-header eyebrow="Program" title="Resources" description="Manage links, files, images, and video links for participants." />
     <section class="grid gap-6 lg:grid-cols-[22rem_1fr]">
@@ -72,7 +73,7 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
                     <app-button variant="ghost" (click)="toggleVisibility(resource)">
                       {{ resource.visibleToParticipants ? 'Hide from participants' : 'Show to participants' }}
                     </app-button>
-                    <app-button variant="ghost" (click)="archive(resource.id)">Archive</app-button>
+                    <app-button variant="ghost" (click)="pendingArchiveId = resource.id">Archive</app-button>
                   </div>
                 </div>
                 <p class="mt-3 text-xs text-[var(--color-ink-mute)]">
@@ -85,6 +86,13 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
         }
       </div>
     </section>
+    <app-confirm-dialog
+      [open]="!!pendingArchiveId"
+      title="Archive resource"
+      message="Archive this resource and remove it from active learning materials?"
+      (cancel)="pendingArchiveId = null"
+      (confirm)="archive(pendingArchiveId!)"
+    />
   `,
 })
 export class ResourcesPageComponent {
@@ -96,6 +104,7 @@ export class ResourcesPageComponent {
   readonly programId = this.route.snapshot.paramMap.get('programId') ?? '';
   readonly page = signal(0);
   private pendingFile?: File;
+  pendingArchiveId: string | null = null;
 
   readonly form = this.fb.nonNullable.group({
     title: ['', Validators.required],
@@ -169,6 +178,7 @@ export class ResourcesPageComponent {
   }
 
   archive(id: string): void {
+    this.pendingArchiveId = null;
     this.archiveMutation.mutate(id);
   }
 
