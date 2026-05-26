@@ -8,6 +8,8 @@ import com.library.Skillmark.user.repository.*;
 import com.library.Skillmark.user.service.*;
 public enum UserStatus {
     ACTIVE,
+    INACTIVE,
+    SUSPENDED,
     DISABLED,
     DELETED
 }

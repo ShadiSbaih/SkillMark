@@ -11,7 +11,10 @@ import com.library.Skillmark.enrollment.repository.ProgramEnrollmentRepository;
 import com.library.Skillmark.membership.enums.MembershipRole;
 import com.library.Skillmark.membership.enums.MembershipStatus;
 import com.library.Skillmark.membership.repository.OrganizationMembershipRepository;
+import com.library.Skillmark.organization.enums.OrganizationStatus;
+import com.library.Skillmark.organization.repository.OrganizationRepository;
 import com.library.Skillmark.program.entity.Program;
+import com.library.Skillmark.program.enums.ProgramStatus;
 import com.library.Skillmark.program.repository.ProgramRepository;
 import com.library.Skillmark.quiz.entity.Quiz;
 import com.library.Skillmark.quiz.repository.QuizRepository;
@@ -23,6 +26,7 @@ import java.util.UUID;
 @Service
 public class AuthorizationService {
     private final OrganizationMembershipRepository membershipRepository;
+    private final OrganizationRepository organizationRepository;
     private final ProgramRepository programRepository;
     private final ProgramEnrollmentRepository enrollmentRepository;
     private final QuizRepository quizRepository;
@@ -30,12 +34,14 @@ public class AuthorizationService {
     private final CertificateRepository certificateRepository;
 
     public AuthorizationService(OrganizationMembershipRepository membershipRepository,
+                                OrganizationRepository organizationRepository,
                                 ProgramRepository programRepository,
                                 ProgramEnrollmentRepository enrollmentRepository,
                                 QuizRepository quizRepository,
                                 QuizAttemptRepository attemptRepository,
                                 CertificateRepository certificateRepository) {
         this.membershipRepository = membershipRepository;
+        this.organizationRepository = organizationRepository;
         this.programRepository = programRepository;
         this.enrollmentRepository = enrollmentRepository;
         this.quizRepository = quizRepository;
@@ -44,16 +50,23 @@ public class AuthorizationService {
     }
 
     public void ensureOrganizationOwner(UUID organizationId, UUID userId) {
-        if (!membershipRepository.existsByOrganizationIdAndUserIdAndRoleAndStatus(
+        ensureOrganizationNotDeleted(organizationId);
+        if (membershipRepository.existsByOrganizationIdAndUserIdAndRoleAndStatus(
                 organizationId, userId, MembershipRole.OWNER, MembershipStatus.ACTIVE)) {
+            return;
+        }
+        if (membershipRepository.existsByOrganizationIdAndUserIdAndStatus(
+                organizationId, userId, MembershipStatus.ACTIVE)) {
             throw new ForbiddenException("Organization owner permission is required");
         }
+        throw new NotFoundException("Organization not found");
     }
 
     public void ensureOrganizationMember(UUID organizationId, UUID userId) {
+        ensureOrganizationNotDeleted(organizationId);
         if (!membershipRepository.existsByOrganizationIdAndUserIdAndStatus(
                 organizationId, userId, MembershipStatus.ACTIVE)) {
-            throw new ForbiddenException("Active organization membership is required");
+            throw new NotFoundException("Organization not found");
         }
     }
 
@@ -67,6 +80,7 @@ public class AuthorizationService {
     public Program ensureProgramOwner(UUID programId, UUID userId) {
         Program program = programRepository.findById(programId)
                 .orElseThrow(() -> new NotFoundException("Program not found"));
+        ensureProgramNotDeleted(program);
         ensureOrganizationOwner(program.getOrganization().getId(), userId);
         return program;
     }
@@ -74,11 +88,14 @@ public class AuthorizationService {
     public Program ensureProgramAccessible(UUID programId, UUID userId) {
         Program program = programRepository.findById(programId)
                 .orElseThrow(() -> new NotFoundException("Program not found"));
+        ensureProgramNotDeleted(program);
         if (membershipRepository.existsByOrganizationIdAndUserIdAndRoleAndStatus(
                 program.getOrganization().getId(), userId, MembershipRole.OWNER, MembershipStatus.ACTIVE)) {
             return program;
         }
-        ensureProgramEnrollment(programId, userId);
+        if (!enrollmentRepository.existsByProgramIdAndUserIdAndStatus(programId, userId, EnrollmentStatus.ACTIVE)) {
+            throw new NotFoundException("Program not found");
+        }
         return program;
     }
 
@@ -90,18 +107,22 @@ public class AuthorizationService {
 
     public Quiz ensureQuizOwner(UUID quizId, UUID userId) {
         Quiz quiz = quizRepository.findById(quizId).orElseThrow(() -> new NotFoundException("Quiz not found"));
+        ensureQuizNotDeleted(quiz);
         ensureOrganizationOwner(quiz.getProgram().getOrganization().getId(), userId);
         return quiz;
     }
 
     public Quiz ensureQuizAccessible(UUID quizId, UUID userId) {
         Quiz quiz = quizRepository.findById(quizId).orElseThrow(() -> new NotFoundException("Quiz not found"));
+        ensureQuizNotDeleted(quiz);
         UUID organizationId = quiz.getProgram().getOrganization().getId();
         if (membershipRepository.existsByOrganizationIdAndUserIdAndRoleAndStatus(
                 organizationId, userId, MembershipRole.OWNER, MembershipStatus.ACTIVE)) {
             return quiz;
         }
-        ensureProgramEnrollment(quiz.getProgram().getId(), userId);
+        if (!enrollmentRepository.existsByProgramIdAndUserIdAndStatus(quiz.getProgram().getId(), userId, EnrollmentStatus.ACTIVE)) {
+            throw new NotFoundException("Quiz not found");
+        }
         if (!quiz.isPublished() || quiz.getStatus() != QuizStatus.PUBLISHED) {
             throw new ForbiddenException("Quiz is not available");
         }
@@ -135,5 +156,27 @@ public class AuthorizationService {
         }
         ensureOrganizationOwner(certificate.getOrganization().getId(), userId);
         return certificate;
+    }
+
+    private void ensureOrganizationNotDeleted(UUID organizationId) {
+        var organization = organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new NotFoundException("Organization not found"));
+        if (organization.getStatus() == OrganizationStatus.DELETED || organization.getDeletedAt() != null) {
+            throw new NotFoundException("Organization not found");
+        }
+    }
+
+    private void ensureProgramNotDeleted(Program program) {
+        ensureOrganizationNotDeleted(program.getOrganization().getId());
+        if (program.getStatus() == ProgramStatus.DELETED || program.getDeletedAt() != null) {
+            throw new NotFoundException("Program not found");
+        }
+    }
+
+    private void ensureQuizNotDeleted(Quiz quiz) {
+        ensureProgramNotDeleted(quiz.getProgram());
+        if (quiz.getStatus() == QuizStatus.DELETED || quiz.getDeletedAt() != null) {
+            throw new NotFoundException("Quiz not found");
+        }
     }
 }

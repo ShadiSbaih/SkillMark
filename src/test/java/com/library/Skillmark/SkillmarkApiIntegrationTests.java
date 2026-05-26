@@ -2,6 +2,8 @@ package com.library.Skillmark;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.library.Skillmark.user.enums.UserStatus;
+import com.library.Skillmark.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +16,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -31,6 +38,9 @@ class SkillmarkApiIntegrationTests {
 
     @Autowired
     private WebApplicationContext webApplicationContext;
+
+    @Autowired
+    private UserRepository userRepository;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -71,6 +81,48 @@ class SkillmarkApiIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.name", is("Owner Updated")))
                 .andExpect(jsonPath("$.data.avatarUrl", is("https://example.com/avatar.png")));
+    }
+
+    @Test
+    void clerkWebhookRequiresValidSignatureAndSyncsUserLifecycle() throws Exception {
+        String createPayload = """
+                {
+                  "type": "user.created",
+                  "data": {
+                    "id": "clerk_webhook_user",
+                    "first_name": "Webhook",
+                    "last_name": "User",
+                    "image_url": "https://example.com/webhook.png",
+                    "primary_email_address_id": "email_1",
+                    "email_addresses": [
+                      {"id": "email_1", "email_address": "webhook@example.com"}
+                    ]
+                  }
+                }
+                """;
+
+        postWebhook(createPayload, "bad-signature")
+                .andExpect(status().isUnauthorized());
+
+        postWebhook(createPayload, signature("msg_1", "123", createPayload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)));
+
+        var created = userRepository.findByClerkUserId("clerk_webhook_user").orElseThrow();
+        org.assertj.core.api.Assertions.assertThat(created.getEmail()).isEqualTo("webhook@example.com");
+        org.assertj.core.api.Assertions.assertThat(created.getName()).isEqualTo("Webhook User");
+
+        String deletePayload = """
+                {
+                  "type": "user.deleted",
+                  "data": {"id": "clerk_webhook_user"}
+                }
+                """;
+        postWebhook(deletePayload, signature("msg_1", "123", deletePayload))
+                .andExpect(status().isOk());
+
+        org.assertj.core.api.Assertions.assertThat(userRepository.findByClerkUserId("clerk_webhook_user").orElseThrow().getStatus())
+                .isEqualTo(UserStatus.DELETED);
     }
 
     @Test
@@ -270,6 +322,22 @@ class SkillmarkApiIntegrationTests {
             request.header(HttpHeaders.AUTHORIZATION, "Bearer " + token);
         }
         return mockMvc.perform(request);
+    }
+
+    private org.springframework.test.web.servlet.ResultActions postWebhook(String payload, String signature) throws Exception {
+        return mockMvc.perform(post("/api/v1/webhooks/clerk")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("svix-id", "msg_1")
+                .header("svix-timestamp", "123")
+                .header("svix-signature", signature)
+                .content(payload));
+    }
+
+    private String signature(String id, String timestamp, String payload) throws Exception {
+        Mac mac = Mac.getInstance("HmacSHA256");
+        mac.init(new SecretKeySpec("test-webhook-secret".getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+        byte[] digest = mac.doFinal((id + "." + timestamp + "." + payload).getBytes(StandardCharsets.UTF_8));
+        return "v1," + Base64.getEncoder().encodeToString(digest);
     }
 
     private org.springframework.test.web.servlet.ResultActions getJson(String path, String token) throws Exception {

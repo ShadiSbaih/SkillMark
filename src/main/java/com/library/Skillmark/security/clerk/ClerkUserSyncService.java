@@ -4,6 +4,7 @@ import com.library.Skillmark.security.AuthUser;
 import com.library.Skillmark.user.entity.User;
 import com.library.Skillmark.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtDecoders;
@@ -19,19 +20,22 @@ public class ClerkUserSyncService {
     private final UserRepository userRepository;
     private final String issuer;
     private final String jwksUrl;
+    private final Environment environment;
     private JwtDecoder jwtDecoder;
 
     public ClerkUserSyncService(UserRepository userRepository,
                                 @Value("${clerk.issuer:}") String issuer,
-                                @Value("${clerk.jwks-url:}") String jwksUrl) {
+                                @Value("${clerk.jwks-url:}") String jwksUrl,
+                                Environment environment) {
         this.userRepository = userRepository;
         this.issuer = issuer;
         this.jwksUrl = jwksUrl;
+        this.environment = environment;
     }
 
     @Transactional
     public AuthUser resolve(String token) {
-        ClerkClaims claims = token.startsWith("dev:") ? parseDevToken(token) : parseJwt(token);
+        ClerkClaims claims = token.startsWith("dev:") && devTokensAllowed() ? parseDevToken(token) : parseJwt(token);
         User user = userRepository.findByClerkUserId(claims.clerkUserId())
                 .orElseGet(() -> {
                     User created = new User();
@@ -94,6 +98,15 @@ public class ClerkUserSyncService {
         String email = parts.length > 2 && !parts[2].isBlank() ? parts[2] : clerkUserId + "@example.com";
         String name = parts.length > 3 && !parts[3].isBlank() ? parts[3].replace('_', ' ') : "Skillmark User";
         return new ClerkClaims(clerkUserId, email, name, null);
+    }
+
+    private boolean devTokensAllowed() {
+        for (String profile : environment.getActiveProfiles()) {
+            if ("local".equals(profile) || "test".equals(profile)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private record ClerkClaims(String clerkUserId, String email, String name, String avatarUrl) {
