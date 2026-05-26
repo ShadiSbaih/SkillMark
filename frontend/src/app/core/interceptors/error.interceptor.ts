@@ -10,7 +10,9 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((error: HttpErrorResponse) => {
       const message = getMessage(error);
       if (error.status === 401 && !req.url.includes('/public/')) {
-        void router.navigate(['/sign-in']);
+        if (!req.url.includes('/users/sync') && !router.url.startsWith('/sign-in')) {
+          void router.navigate(['/sign-in']);
+        }
       } else if (error.status === 403) {
         toast.error(message || 'You do not have access to this action');
       } else if (error.status >= 500) {

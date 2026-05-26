@@ -23,14 +23,20 @@ export class AuthService {
     }
     if (!this.synced()) {
       const user = this.clerk.user();
-      this.currentUser.set(
-        await this.users.sync({
-          name: user?.fullName,
-          email: user?.primaryEmailAddress?.emailAddress,
-          avatarUrl: user?.imageUrl,
-        }),
-      );
-      this.synced.set(true);
+      try {
+        this.currentUser.set(
+          await this.users.sync({
+            name: user?.fullName,
+            email: user?.primaryEmailAddress?.emailAddress,
+            avatarUrl: user?.imageUrl,
+          }),
+        );
+        this.synced.set(true);
+      } catch {
+        this.synced.set(false);
+        this.currentUser.set(null);
+        return false;
+      }
     }
     return true;
   }

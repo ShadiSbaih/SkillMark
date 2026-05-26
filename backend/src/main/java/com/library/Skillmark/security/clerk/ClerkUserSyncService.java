@@ -44,8 +44,12 @@ public class ClerkUserSyncService {
                     created.setName(claims.name());
                     return userRepository.save(created);
                 });
-        user.setEmail(claims.email());
-        user.setName(claims.name());
+        if (StringUtils.hasText(claims.email())) {
+            user.setEmail(claims.email());
+        }
+        if (StringUtils.hasText(claims.name())) {
+            user.setName(claims.name());
+        }
         user.setAvatarUrl(claims.avatarUrl());
         return new AuthUser(user.getId(), user.getClerkUserId(), user.getEmail());
     }
@@ -66,8 +70,14 @@ public class ClerkUserSyncService {
         if (!StringUtils.hasText(name)) {
             name = email;
         }
-        if (!StringUtils.hasText(clerkUserId) || !StringUtils.hasText(email)) {
-            throw new JwtException("Clerk token must contain subject and email");
+        if (!StringUtils.hasText(clerkUserId)) {
+            throw new JwtException("Clerk token must contain subject");
+        }
+        if (!StringUtils.hasText(email)) {
+            email = clerkUserId + "@clerk.local";
+        }
+        if (!StringUtils.hasText(name)) {
+            name = email;
         }
         return new ClerkClaims(clerkUserId, email, name, claim(jwt, "image_url"));
     }
