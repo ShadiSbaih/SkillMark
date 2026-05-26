@@ -9,12 +9,20 @@ type ClerkUserSnapshot = {
   imageUrl?: string | null;
 };
 
+type ClerkLoadOptions = NonNullable<Parameters<Clerk['load']>[0]>;
+type ClerkUiConstructor = NonNullable<NonNullable<ClerkLoadOptions['ui']>['ClerkUI']>;
+
+declare global {
+  interface Window {
+    __internal_ClerkUICtor?: ClerkUiConstructor;
+  }
+}
+
 @Injectable({ providedIn: 'root' })
 export class ClerkService {
-  private static readonly clerkJsUrl = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@6.12.1/dist/clerk.browser.js';
-
   private clerk?: Clerk;
   private loadPromise?: Promise<void>;
+  private uiScriptPromise?: Promise<void>;
   private scriptPromise?: Promise<void>;
 
   readonly loaded = signal(false);
@@ -41,6 +49,7 @@ export class ClerkService {
           signInUrl: '/sign-in',
           signUpUrl: '/sign-up',
           afterSignOutUrl: '/',
+          ui: { ClerkUI: window.__internal_ClerkUICtor },
         });
         this.refreshState();
         this.clerk.addListener(() => this.refreshState());
@@ -121,9 +130,7 @@ export class ClerkService {
       return this.scriptPromise;
     }
 
-    window.__clerk_publishable_key = environment.clerkPublishableKey;
-
-    this.scriptPromise = new Promise((resolve, reject) => {
+    this.scriptPromise = this.ensureClerkUiScript().then(() => new Promise((resolve, reject) => {
       const existingScript = document.querySelector<HTMLScriptElement>('script[data-skillmark-clerk-js]');
       if (existingScript) {
         existingScript.addEventListener('load', () => resolve(), { once: true });
@@ -134,14 +141,51 @@ export class ClerkService {
       const script = document.createElement('script');
       script.async = true;
       script.crossOrigin = 'anonymous';
-      script.src = ClerkService.clerkJsUrl;
+      script.src = `${this.clerkFrontendApiUrl()}/npm/@clerk/clerk-js@6/dist/clerk.browser.js`;
       script.dataset['skillmarkClerkJs'] = 'true';
       script.setAttribute('data-clerk-publishable-key', environment.clerkPublishableKey);
       script.addEventListener('load', () => resolve(), { once: true });
       script.addEventListener('error', () => reject(new Error('Failed to load Clerk browser bundle.')), { once: true });
       document.head.appendChild(script);
-    });
+    }));
 
     return this.scriptPromise;
+  }
+
+  private ensureClerkUiScript(): Promise<void> {
+    if (window.__internal_ClerkUICtor) {
+      return Promise.resolve();
+    }
+    if (this.uiScriptPromise) {
+      return this.uiScriptPromise;
+    }
+
+    this.uiScriptPromise = new Promise((resolve, reject) => {
+      const existingScript = document.querySelector<HTMLScriptElement>('script[data-skillmark-clerk-ui]');
+      if (existingScript) {
+        existingScript.addEventListener('load', () => resolve(), { once: true });
+        existingScript.addEventListener('error', () => reject(new Error('Failed to load Clerk UI bundle.')), { once: true });
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.async = true;
+      script.crossOrigin = 'anonymous';
+      script.src = `${this.clerkFrontendApiUrl()}/npm/@clerk/ui@1/dist/ui.browser.js`;
+      script.dataset['skillmarkClerkUi'] = 'true';
+      script.addEventListener('load', () => resolve(), { once: true });
+      script.addEventListener('error', () => reject(new Error('Failed to load Clerk UI bundle.')), { once: true });
+      document.head.appendChild(script);
+    });
+
+    return this.uiScriptPromise;
+  }
+
+  private clerkFrontendApiUrl(): string {
+    const encodedDomain = environment.clerkPublishableKey.split('_')[2];
+    if (!encodedDomain) {
+      throw new Error('Invalid Clerk publishable key.');
+    }
+    return `https://${atob(encodedDomain).slice(0, -1)}`;
   }
 }

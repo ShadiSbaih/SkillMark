@@ -35,7 +35,9 @@ export const routes: Routes = [
     children: [
       { path: '', component: LandingPageComponent },
       { path: 'sign-in', component: AuthPageComponent },
+      { path: 'sign-in/sso-callback', component: AuthPageComponent },
       { path: 'sign-up', component: AuthPageComponent },
+      { path: 'sign-up/sso-callback', component: AuthPageComponent },
       { path: 'verify', component: VerificationPageComponent },
       { path: 'verify/:verificationCode', component: VerificationPageComponent },
     ],
