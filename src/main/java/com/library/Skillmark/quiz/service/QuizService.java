@@ -143,10 +143,30 @@ public class QuizService {
     }
 
     @Transactional
-    public void archive(UUID quizId, UUID actorId) {
+    public QuizResponse archive(UUID quizId, UUID actorId) {
         Quiz quiz = authorizationService.ensureQuizOwner(quizId, actorId);
         quiz.setPublished(false);
         quiz.setStatus(QuizStatus.ARCHIVED);
+        auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.QUIZ_ARCHIVED, "Quiz", quizId);
+        return toResponse(quiz, true);
+    }
+
+    @Transactional
+    public QuizResponse updateStatus(UUID quizId, QuizStatus status, UUID actorId) {
+        if (status == QuizStatus.PUBLISHED) {
+            return publish(quizId, actorId);
+        }
+        if (status == QuizStatus.ARCHIVED) {
+            return archive(quizId, actorId);
+        }
+        throw new BusinessRuleException("Quiz status can only be changed to PUBLISHED or ARCHIVED");
+    }
+
+    @Transactional
+    public void delete(UUID quizId, UUID actorId) {
+        Quiz quiz = authorizationService.ensureQuizOwner(quizId, actorId);
+        quiz.setPublished(false);
+        quiz.setStatus(QuizStatus.DELETED);
         quiz.setDeletedAt(Instant.now());
         auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.QUIZ_ARCHIVED, "Quiz", quizId);
     }
@@ -154,12 +174,7 @@ public class QuizService {
     @Transactional
     public QuestionResponse addQuestion(UUID quizId, CreateQuestionRequest request, UUID actorId) {
         Quiz quiz = authorizationService.ensureQuizOwner(quizId, actorId);
-        if (quiz.getStatus() == QuizStatus.ARCHIVED || quiz.getStatus() == QuizStatus.DELETED) {
-            throw new BusinessRuleException("Archived or deleted quizzes cannot be changed");
-        }
-        if (attemptRepository.existsByQuizId(quizId)) {
-            throw new BusinessRuleException("Questions cannot be changed after attempts exist");
-        }
+        ensureQuizStructureMutable(quiz);
         if (request.type() != QuestionType.SINGLE_CHOICE) {
             throw new BadRequestException("MVP supports SINGLE_CHOICE questions only");
         }
@@ -183,6 +198,99 @@ public class QuizService {
             optionRepository.save(option);
         });
         return toQuestionResponse(saved, true);
+    }
+
+    @Transactional
+    public QuestionResponse updateQuestion(UUID questionId, CreateQuestionRequest request, UUID actorId) {
+        QuizQuestion question = questionRepository.findById(questionId)
+                .orElseThrow(() -> new NotFoundException("Question not found"));
+        Quiz quiz = authorizationService.ensureQuizOwner(question.getQuiz().getId(), actorId);
+        ensureQuizStructureMutable(quiz);
+        if (request.type() != QuestionType.SINGLE_CHOICE) {
+            throw new BadRequestException("MVP supports SINGLE_CHOICE questions only");
+        }
+        validateOptions(request.options());
+        boolean duplicatePosition = questionRepository.findByQuizIdOrderByPositionAsc(quiz.getId()).stream()
+                .anyMatch(existing -> existing.getPosition().equals(request.position()) && !existing.getId().equals(questionId));
+        if (duplicatePosition) {
+            throw new BadRequestException("Question position already exists for this quiz");
+        }
+        question.setText(request.text().trim());
+        question.setType(request.type());
+        question.setPoints(request.points());
+        question.setPosition(request.position());
+        optionRepository.findByQuestionIdOrderByPositionAsc(questionId).forEach(optionRepository::delete);
+        optionRepository.flush();
+        request.options().forEach(optionRequest -> {
+            QuizOption option = new QuizOption();
+            option.setQuestion(question);
+            option.setText(optionRequest.text().trim());
+            option.setCorrect(optionRequest.isCorrect());
+            option.setPosition(optionRequest.position());
+            optionRepository.save(option);
+        });
+        auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.QUIZ_UPDATED, "QuizQuestion", questionId);
+        return toQuestionResponse(question, true);
+    }
+
+    @Transactional
+    public void deleteQuestion(UUID questionId, UUID actorId) {
+        QuizQuestion question = questionRepository.findById(questionId)
+                .orElseThrow(() -> new NotFoundException("Question not found"));
+        Quiz quiz = authorizationService.ensureQuizOwner(question.getQuiz().getId(), actorId);
+        ensureQuizStructureMutable(quiz);
+        optionRepository.findByQuestionIdOrderByPositionAsc(questionId).forEach(optionRepository::delete);
+        questionRepository.delete(question);
+        auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.QUIZ_UPDATED, "QuizQuestion", questionId);
+    }
+
+    @Transactional
+    public OptionResponse addOption(UUID questionId, CreateOptionRequest request, UUID actorId) {
+        QuizQuestion question = questionRepository.findById(questionId)
+                .orElseThrow(() -> new NotFoundException("Question not found"));
+        Quiz quiz = authorizationService.ensureQuizOwner(question.getQuiz().getId(), actorId);
+        ensureQuizStructureMutable(quiz);
+        boolean duplicatePosition = optionRepository.findByQuestionIdOrderByPositionAsc(questionId).stream()
+                .anyMatch(existing -> existing.getPosition().equals(request.position()));
+        if (duplicatePosition) {
+            throw new BadRequestException("Option position already exists for this question");
+        }
+        QuizOption option = new QuizOption();
+        option.setQuestion(question);
+        option.setText(request.text().trim());
+        option.setCorrect(request.isCorrect());
+        option.setPosition(request.position());
+        QuizOption saved = optionRepository.save(option);
+        auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.QUIZ_UPDATED, "QuizOption", saved.getId());
+        return OptionResponse.from(saved, true);
+    }
+
+    @Transactional
+    public OptionResponse updateOption(UUID optionId, CreateOptionRequest request, UUID actorId) {
+        QuizOption option = optionRepository.findById(optionId)
+                .orElseThrow(() -> new NotFoundException("Option not found"));
+        Quiz quiz = authorizationService.ensureQuizOwner(option.getQuestion().getQuiz().getId(), actorId);
+        ensureQuizStructureMutable(quiz);
+        boolean duplicatePosition = optionRepository.findByQuestionIdOrderByPositionAsc(option.getQuestion().getId()).stream()
+                .anyMatch(existing -> existing.getPosition().equals(request.position()) && !existing.getId().equals(optionId));
+        if (duplicatePosition) {
+            throw new BadRequestException("Option position already exists for this question");
+        }
+        option.setText(request.text().trim());
+        option.setCorrect(request.isCorrect());
+        option.setPosition(request.position());
+        auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.QUIZ_UPDATED, "QuizOption", optionId);
+        return OptionResponse.from(option, true);
+    }
+
+    @Transactional
+    public void deleteOption(UUID optionId, UUID actorId) {
+        QuizOption option = optionRepository.findById(optionId)
+                .orElseThrow(() -> new NotFoundException("Option not found"));
+        Quiz quiz = authorizationService.ensureQuizOwner(option.getQuestion().getQuiz().getId(), actorId);
+        ensureQuizStructureMutable(quiz);
+        optionRepository.delete(option);
+        auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.QUIZ_UPDATED, "QuizOption", optionId);
     }
 
     @Transactional
@@ -226,6 +334,15 @@ public class QuizService {
                 throw new BusinessRuleException("Each SINGLE_CHOICE question must have exactly one correct option");
             }
         });
+    }
+
+    private void ensureQuizStructureMutable(Quiz quiz) {
+        if (quiz.getStatus() == QuizStatus.ARCHIVED || quiz.getStatus() == QuizStatus.DELETED) {
+            throw new BusinessRuleException("Archived or deleted quizzes cannot be changed");
+        }
+        if (attemptRepository.existsByQuizId(quiz.getId())) {
+            throw new BusinessRuleException("Questions cannot be changed after attempts exist");
+        }
     }
 
     private void validateOptions(List<CreateOptionRequest> options) {

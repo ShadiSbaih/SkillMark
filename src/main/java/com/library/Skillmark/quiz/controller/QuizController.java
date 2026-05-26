@@ -77,8 +77,8 @@ public class QuizController {
     @DeleteMapping("/api/v1/quizzes/{quizId}")
     @Operation(summary = "Archive quiz", description = "Archives a quiz using a soft deletion policy. Requires owner permission.")
     ApiResponse<Void> archive(@PathVariable UUID quizId, Authentication authentication) {
-        quizService.archive(quizId, SecurityUtil.userId(authentication));
-        return ApiResponse.success("Quiz archived successfully", null);
+        quizService.delete(quizId, SecurityUtil.userId(authentication));
+        return ApiResponse.success("Quiz deleted successfully", null);
     }
 
     @PostMapping("/api/v1/quizzes/{quizId}/questions")
@@ -90,9 +90,60 @@ public class QuizController {
                 quizService.addQuestion(quizId, request, SecurityUtil.userId(authentication))));
     }
 
+    @PutMapping("/api/v1/questions/{questionId}")
+    @Operation(summary = "Update quiz question", description = "Updates a question and its options before attempts exist. Requires owner permission.")
+    ApiResponse<QuestionResponse> updateQuestion(@PathVariable UUID questionId,
+                                                 @Valid @RequestBody CreateQuestionRequest request,
+                                                 Authentication authentication) {
+        return ApiResponse.success("Question updated successfully",
+                quizService.updateQuestion(questionId, request, SecurityUtil.userId(authentication)));
+    }
+
+    @DeleteMapping("/api/v1/questions/{questionId}")
+    @Operation(summary = "Delete quiz question", description = "Deletes a question before attempts exist. Requires owner permission.")
+    ApiResponse<Void> deleteQuestion(@PathVariable UUID questionId, Authentication authentication) {
+        quizService.deleteQuestion(questionId, SecurityUtil.userId(authentication));
+        return ApiResponse.success("Question deleted successfully", null);
+    }
+
+    @PostMapping("/api/v1/questions/{questionId}/options")
+    @Operation(summary = "Add quiz option", description = "Adds an option to a question before attempts exist. Requires owner permission.")
+    ResponseEntity<ApiResponse<OptionResponse>> addOption(@PathVariable UUID questionId,
+                                                          @Valid @RequestBody CreateOptionRequest request,
+                                                          Authentication authentication) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Option added successfully",
+                quizService.addOption(questionId, request, SecurityUtil.userId(authentication))));
+    }
+
+    @PutMapping("/api/v1/options/{optionId}")
+    @Operation(summary = "Update quiz option", description = "Updates an option before attempts exist. Requires owner permission.")
+    ApiResponse<OptionResponse> updateOption(@PathVariable UUID optionId,
+                                             @Valid @RequestBody CreateOptionRequest request,
+                                             Authentication authentication) {
+        return ApiResponse.success("Option updated successfully",
+                quizService.updateOption(optionId, request, SecurityUtil.userId(authentication)));
+    }
+
+    @DeleteMapping("/api/v1/options/{optionId}")
+    @Operation(summary = "Delete quiz option", description = "Deletes an option before attempts exist. Requires owner permission.")
+    ApiResponse<Void> deleteOption(@PathVariable UUID optionId, Authentication authentication) {
+        quizService.deleteOption(optionId, SecurityUtil.userId(authentication));
+        return ApiResponse.success("Option deleted successfully", null);
+    }
+
     @PostMapping("/api/v1/quizzes/{quizId}/publish")
     @Operation(summary = "Publish quiz", description = "Publishes a quiz after validating that it has valid questions, options, settings, and exactly one correct option per SINGLE_CHOICE question.")
     ApiResponse<QuizResponse> publish(@PathVariable UUID quizId, Authentication authentication) {
-        return ApiResponse.success("Quiz published successfully", quizService.publish(quizId, SecurityUtil.userId(authentication)));
+        return ApiResponse.success("Quiz published successfully",
+                quizService.updateStatus(quizId, QuizStatus.PUBLISHED, SecurityUtil.userId(authentication)));
+    }
+
+    @PatchMapping("/api/v1/quizzes/{quizId}/status")
+    @Operation(summary = "Update quiz status", description = "Publishes or archives a quiz after applying owner checks and publish validation.")
+    ApiResponse<QuizResponse> updateStatus(@PathVariable UUID quizId,
+                                           @Valid @RequestBody UpdateQuizStatusRequest request,
+                                           Authentication authentication) {
+        return ApiResponse.success("Quiz status updated successfully",
+                quizService.updateStatus(quizId, request.status(), SecurityUtil.userId(authentication)));
     }
 }

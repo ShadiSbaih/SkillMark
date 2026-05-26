@@ -32,10 +32,19 @@ public class UserController {
         return ApiResponse.success("User profile retrieved successfully", userService.me(SecurityUtil.userId(authentication)));
     }
 
+    @PatchMapping("/me")
+    @Operation(summary = "Update current user", description = "Updates the current user's local profile fields.")
+    ApiResponse<UserResponse> updateMe(@RequestBody SyncUserRequest request, Authentication authentication) {
+        return ApiResponse.success("User profile updated successfully",
+                userService.update(SecurityUtil.userId(authentication), request));
+    }
+
     @PostMapping("/sync")
-    @Operation(summary = "Sync current Clerk user", description = "Returns the local user profile mapped by Clerk identity.")
-    ApiResponse<UserResponse> sync(Authentication authentication) {
+    @Operation(summary = "Sync current Clerk user", description = "Compatibility alias for updating the local user profile.")
+    ApiResponse<UserResponse> sync(@RequestBody(required = false) SyncUserRequest request, Authentication authentication) {
         return ApiResponse.success("User profile synced successfully",
-                userService.sync(SecurityUtil.authUser(authentication)));
+                request == null
+                        ? userService.sync(SecurityUtil.authUser(authentication))
+                        : userService.update(SecurityUtil.userId(authentication), request));
     }
 }

@@ -35,13 +35,13 @@ public class SecurityConfig {
                             response.setStatus(HttpStatus.UNAUTHORIZED.value());
                             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                             objectMapper.writeValue(response.getWriter(), ApiResponse.failure(
-                                    "Authentication required", java.util.List.of()));
+                                    "Authentication required", java.util.List.of(), request.getRequestURI()));
                         })
                         .accessDeniedHandler((request, response, accessDeniedException) -> {
                             response.setStatus(HttpStatus.FORBIDDEN.value());
                             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                             objectMapper.writeValue(response.getWriter(), ApiResponse.failure(
-                                    "Access denied", java.util.List.of()));
+                                    "Access denied", java.util.List.of(), request.getRequestURI()));
                         }))
                 .addFilterBefore(clerkAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();

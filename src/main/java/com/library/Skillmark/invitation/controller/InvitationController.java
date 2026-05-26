@@ -5,6 +5,7 @@ import com.library.Skillmark.common.response.PageResponse;
 import com.library.Skillmark.config.OpenApiConfig;
 import com.library.Skillmark.invitation.dto.CreateInvitationRequest;
 import com.library.Skillmark.invitation.dto.InvitationResponse;
+import com.library.Skillmark.invitation.dto.UpdateInvitationStatusRequest;
 import com.library.Skillmark.invitation.service.InvitationService;
 import com.library.Skillmark.security.SecurityUtil;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -53,6 +54,15 @@ public class InvitationController {
     @PostMapping("/api/v1/invitations/{invitationId}/disable")
     ApiResponse<InvitationResponse> disable(@PathVariable UUID invitationId, Authentication authentication) {
         return ApiResponse.success("Invitation disabled successfully",
-                invitationService.disable(invitationId, SecurityUtil.userId(authentication)));
+                invitationService.updateStatus(invitationId, com.library.Skillmark.invitation.enums.InvitationStatus.DISABLED,
+                        SecurityUtil.userId(authentication)));
+    }
+
+    @PatchMapping("/api/v1/invitations/{invitationId}/status")
+    ApiResponse<InvitationResponse> updateStatus(@PathVariable UUID invitationId,
+                                                 @Valid @RequestBody UpdateInvitationStatusRequest request,
+                                                 Authentication authentication) {
+        return ApiResponse.success("Invitation status updated successfully",
+                invitationService.updateStatus(invitationId, request.status(), SecurityUtil.userId(authentication)));
     }
 }

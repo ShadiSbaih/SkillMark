@@ -6,6 +6,7 @@ import com.library.Skillmark.config.OpenApiConfig;
 import com.library.Skillmark.program.dto.CreateProgramRequest;
 import com.library.Skillmark.program.dto.ProgramResponse;
 import com.library.Skillmark.program.dto.UpdateProgramRequest;
+import com.library.Skillmark.program.dto.UpdateProgramStatusRequest;
 import com.library.Skillmark.program.service.ProgramService;
 import com.library.Skillmark.security.SecurityUtil;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -62,13 +63,23 @@ public class ProgramController {
     @PostMapping("/api/v1/programs/{programId}/publish")
     ApiResponse<ProgramResponse> publish(@PathVariable UUID programId, Authentication authentication) {
         return ApiResponse.success("Program published successfully",
-                programService.publish(programId, SecurityUtil.userId(authentication)));
+                programService.updateStatus(programId, com.library.Skillmark.program.enums.ProgramStatus.PUBLISHED,
+                        SecurityUtil.userId(authentication)));
     }
 
     @PostMapping("/api/v1/programs/{programId}/archive")
     ApiResponse<ProgramResponse> archive(@PathVariable UUID programId, Authentication authentication) {
         return ApiResponse.success("Program archived successfully",
-                programService.archive(programId, SecurityUtil.userId(authentication)));
+                programService.updateStatus(programId, com.library.Skillmark.program.enums.ProgramStatus.ARCHIVED,
+                        SecurityUtil.userId(authentication)));
+    }
+
+    @PatchMapping("/api/v1/programs/{programId}/status")
+    ApiResponse<ProgramResponse> updateStatus(@PathVariable UUID programId,
+                                              @Valid @RequestBody UpdateProgramStatusRequest request,
+                                              Authentication authentication) {
+        return ApiResponse.success("Program status updated successfully",
+                programService.updateStatus(programId, request.status(), SecurityUtil.userId(authentication)));
     }
 
     @DeleteMapping("/api/v1/programs/{programId}")

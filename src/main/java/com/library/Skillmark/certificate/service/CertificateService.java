@@ -87,6 +87,18 @@ public class CertificateService {
         return CertificateResponse.from(certificate);
     }
 
+    @Transactional
+    public CertificateResponse issueForAttempt(UUID attemptId, ManualCertificateRequest request, UUID actorId) {
+        QuizAttempt attempt = attemptRepository.findById(attemptId).orElseThrow(() -> new NotFoundException("Attempt not found"));
+        Quiz quiz = attempt.getQuiz();
+        return issue(new IssueCertificateRequest(
+                quiz.getId(),
+                attempt.getUser().getId(),
+                attempt.getId(),
+                request == null ? null : request.title()
+        ), actorId);
+    }
+
     @Transactional(readOnly = true)
     public PageResponse<CertificateResponse> mine(UUID userId, int page, int size) {
         return PageResponse.fromList(certificateRepository.findByUserId(userId).stream()

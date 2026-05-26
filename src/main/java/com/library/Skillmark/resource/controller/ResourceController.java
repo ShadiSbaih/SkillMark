@@ -44,6 +44,20 @@ public class ResourceController {
                 resourceService.list(programId, SecurityUtil.userId(authentication), page, size));
     }
 
+    @GetMapping("/api/v1/resources/{resourceId}")
+    ApiResponse<ResourceResponse> get(@PathVariable UUID resourceId, Authentication authentication) {
+        return ApiResponse.success("Resource retrieved successfully",
+                resourceService.get(resourceId, SecurityUtil.userId(authentication)));
+    }
+
+    @PutMapping("/api/v1/resources/{resourceId}")
+    ApiResponse<ResourceResponse> update(@PathVariable UUID resourceId,
+                                         @Valid @RequestBody CreateResourceRequest request,
+                                         Authentication authentication) {
+        return ApiResponse.success("Resource updated successfully",
+                resourceService.update(resourceId, request, SecurityUtil.userId(authentication)));
+    }
+
     @DeleteMapping("/api/v1/resources/{resourceId}")
     ApiResponse<Void> archive(@PathVariable UUID resourceId, Authentication authentication) {
         resourceService.archive(resourceId, SecurityUtil.userId(authentication));

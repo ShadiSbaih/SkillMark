@@ -2,6 +2,7 @@ package com.library.Skillmark.program.service;
 
 import com.library.Skillmark.audit.enums.AuditAction;
 import com.library.Skillmark.audit.service.AuditLogService;
+import com.library.Skillmark.common.exception.BusinessRuleException;
 import com.library.Skillmark.common.exception.NotFoundException;
 import com.library.Skillmark.common.response.PageResponse;
 import com.library.Skillmark.organization.repository.OrganizationRepository;
@@ -106,6 +107,17 @@ public class ProgramService {
         program.setStatus(ProgramStatus.ARCHIVED);
         auditLogService.record(actorId, program.getOrganization().getId(), AuditAction.PROGRAM_ARCHIVED, "Program", programId);
         return ProgramResponse.from(program);
+    }
+
+    @Transactional
+    public ProgramResponse updateStatus(UUID programId, ProgramStatus status, UUID actorId) {
+        if (status == ProgramStatus.PUBLISHED) {
+            return publish(programId, actorId);
+        }
+        if (status == ProgramStatus.ARCHIVED) {
+            return archive(programId, actorId);
+        }
+        throw new BusinessRuleException("Program status can only be changed to PUBLISHED or ARCHIVED");
     }
 
     @Transactional

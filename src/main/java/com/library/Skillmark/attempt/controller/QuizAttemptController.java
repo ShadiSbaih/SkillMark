@@ -9,6 +9,9 @@ import com.library.Skillmark.attempt.service.*;
 import com.library.Skillmark.common.response.ApiResponse;
 import com.library.Skillmark.common.response.PageResponse;
 import com.library.Skillmark.config.OpenApiConfig;
+import com.library.Skillmark.certificate.dto.CertificateResponse;
+import com.library.Skillmark.certificate.dto.ManualCertificateRequest;
+import com.library.Skillmark.certificate.service.CertificateService;
 import com.library.Skillmark.security.SecurityUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -26,9 +29,11 @@ import java.util.UUID;
 @SecurityRequirement(name = OpenApiConfig.BEARER_AUTH)
 public class QuizAttemptController {
     private final QuizAttemptService attemptService;
+    private final CertificateService certificateService;
 
-    public QuizAttemptController(QuizAttemptService attemptService) {
+    public QuizAttemptController(QuizAttemptService attemptService, CertificateService certificateService) {
         this.attemptService = attemptService;
+        this.certificateService = certificateService;
     }
 
     @PostMapping("/api/v1/quizzes/{quizId}/attempts")
@@ -71,5 +76,14 @@ public class QuizAttemptController {
                                                            @RequestParam(defaultValue = "10") int size) {
         return ApiResponse.success("Quiz attempts retrieved successfully",
                 attemptService.listForQuiz(quizId, SecurityUtil.userId(authentication), page, size));
+    }
+
+    @PostMapping("/api/v1/quiz-attempts/{attemptId}/certificate")
+    @Operation(summary = "Issue certificate for attempt", description = "Manually issues a certificate for a submitted passing attempt. Requires owner permission.")
+    ResponseEntity<ApiResponse<CertificateResponse>> issueCertificate(@PathVariable UUID attemptId,
+                                                                      @RequestBody(required = false) ManualCertificateRequest request,
+                                                                      Authentication authentication) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Certificate issued successfully",
+                certificateService.issueForAttempt(attemptId, request, SecurityUtil.userId(authentication))));
     }
 }

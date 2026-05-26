@@ -10,6 +10,7 @@ import com.library.Skillmark.common.exception.NotFoundException;
 import com.library.Skillmark.security.AuthUser;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.UUID;
 
@@ -24,6 +25,24 @@ public class UserService {
     public UserResponse me(UUID userId) {
         return UserResponse.from(userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found")));
+    }
+
+    @Transactional
+    public UserResponse update(UUID userId, SyncUserRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+        if (request != null) {
+            if (StringUtils.hasText(request.name())) {
+                user.setName(request.name().trim());
+            }
+            if (StringUtils.hasText(request.email())) {
+                user.setEmail(request.email().trim());
+            }
+            if (request.avatarUrl() != null) {
+                user.setAvatarUrl(request.avatarUrl());
+            }
+        }
+        return UserResponse.from(user);
     }
 
     @Transactional

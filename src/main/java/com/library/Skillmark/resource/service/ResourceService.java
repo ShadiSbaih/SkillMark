@@ -65,6 +65,31 @@ public class ResourceService {
         return PageResponse.fromList(resources.stream().map(ResourceResponse::from).toList(), page, size);
     }
 
+    @Transactional(readOnly = true)
+    public ResourceResponse get(UUID resourceId, UUID actorId) {
+        ProgramResource resource = resourceRepository.findById(resourceId)
+                .orElseThrow(() -> new NotFoundException("Resource not found"));
+        authorizationService.ensureProgramAccessible(resource.getProgram().getId(), actorId);
+        return ResourceResponse.from(resource);
+    }
+
+    @Transactional
+    public ResourceResponse update(UUID resourceId, CreateResourceRequest request, UUID actorId) {
+        ProgramResource resource = resourceRepository.findById(resourceId)
+                .orElseThrow(() -> new NotFoundException("Resource not found"));
+        authorizationService.ensureProgramOwner(resource.getProgram().getId(), actorId);
+        validateStorage(request);
+        resource.setTitle(request.title().trim());
+        resource.setDescription(request.description());
+        resource.setType(request.type());
+        resource.setUrl(request.url());
+        resource.setStorageProvider(request.storageProvider() == null ? StorageProvider.EXTERNAL : request.storageProvider());
+        resource.setObjectKey(request.objectKey());
+        resource.setPosition(request.position());
+        auditLogService.record(actorId, resource.getProgram().getOrganization().getId(), AuditAction.RESOURCE_CREATED, "ProgramResource", resourceId);
+        return ResourceResponse.from(resource);
+    }
+
     @Transactional
     public void archive(UUID resourceId, UUID actorId) {
         ProgramResource resource = resourceRepository.findById(resourceId)

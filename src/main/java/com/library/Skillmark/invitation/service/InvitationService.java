@@ -105,6 +105,14 @@ public class InvitationService {
         return InvitationResponse.from(invitation);
     }
 
+    @Transactional
+    public InvitationResponse updateStatus(UUID invitationId, InvitationStatus status, UUID actorId) {
+        if (status != InvitationStatus.DISABLED) {
+            throw new BusinessRuleException("Invitation status can only be changed to DISABLED");
+        }
+        return disable(invitationId, actorId);
+    }
+
     private void validateJoinable(InvitationLink invitation) {
         if (invitation.getStatus() != InvitationStatus.ACTIVE) {
             throw new BusinessRuleException("Invitation is not active");

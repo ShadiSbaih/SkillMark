@@ -11,19 +11,17 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
     @ExceptionHandler(ApiException.class)
-    ResponseEntity<ApiResponse<Map<String, Object>>> handleApi(ApiException ex, HttpServletRequest request) {
+    ResponseEntity<ApiResponse<Void>> handleApi(ApiException ex, HttpServletRequest request) {
         return ResponseEntity.status(ex.getStatus()).body(error(ex.getMessage(), List.of(), request));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    ResponseEntity<ApiResponse<Map<String, Object>>> handleValidation(MethodArgumentNotValidException ex,
+    ResponseEntity<ApiResponse<Void>> handleValidation(MethodArgumentNotValidException ex,
                                                                        HttpServletRequest request) {
         List<String> errors = ex.getBindingResult().getFieldErrors().stream()
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
@@ -32,33 +30,30 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(AuthenticationException.class)
-    ResponseEntity<ApiResponse<Map<String, Object>>> handleAuthentication(AuthenticationException ex,
+    ResponseEntity<ApiResponse<Void>> handleAuthentication(AuthenticationException ex,
                                                                           HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error("Authentication required", List.of(), request));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    ResponseEntity<ApiResponse<Map<String, Object>>> handleUnreadable(HttpMessageNotReadableException ex,
+    ResponseEntity<ApiResponse<Void>> handleUnreadable(HttpMessageNotReadableException ex,
                                                                       HttpServletRequest request) {
         return ResponseEntity.badRequest().body(error("Invalid request body", List.of(ex.getMostSpecificCause().getMessage()), request));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    ResponseEntity<ApiResponse<Map<String, Object>>> handleAccessDenied(AccessDeniedException ex,
+    ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException ex,
                                                                         HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error("Access denied", List.of(), request));
     }
 
     @ExceptionHandler(Exception.class)
-    ResponseEntity<ApiResponse<Map<String, Object>>> handleUnexpected(Exception ex, HttpServletRequest request) {
+    ResponseEntity<ApiResponse<Void>> handleUnexpected(Exception ex, HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(error("Internal server error", List.of(), request));
     }
 
-    private ApiResponse<Map<String, Object>> error(String message, List<String> errors, HttpServletRequest request) {
-        return new ApiResponse<>(false, message, Map.of(
-                "timestamp", Instant.now().toString(),
-                "path", request.getRequestURI()
-        ), errors);
+    private ApiResponse<Void> error(String message, List<String> errors, HttpServletRequest request) {
+        return ApiResponse.failure(message, errors, request.getRequestURI());
     }
 }
