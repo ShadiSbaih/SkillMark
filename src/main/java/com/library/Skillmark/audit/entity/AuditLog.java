@@ -5,6 +5,8 @@ import com.library.Skillmark.audit.enums.*;
 import com.library.Skillmark.audit.repository.*;
 import com.library.Skillmark.audit.service.*;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -38,7 +40,8 @@ public class AuditLog {
     @Column(name = "user_agent", columnDefinition = "TEXT")
     private String userAgent;
 
-    @Column(columnDefinition = "TEXT")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
     private String metadata;
 
     @Column(name = "created_at", nullable = false)
@@ -47,6 +50,16 @@ public class AuditLog {
     @PrePersist
     void prePersist() { createdAt = Instant.now(); }
 
+    public UUID getId() { return id; }
+    public UUID getActorUserId() { return actorUserId; }
+    public UUID getOrganizationId() { return organizationId; }
+    public AuditAction getAction() { return action; }
+    public String getEntityType() { return entityType; }
+    public UUID getEntityId() { return entityId; }
+    public String getIpAddress() { return ipAddress; }
+    public String getUserAgent() { return userAgent; }
+    public String getMetadata() { return metadata; }
+    public Instant getCreatedAt() { return createdAt; }
     public void setActorUserId(UUID actorUserId) { this.actorUserId = actorUserId; }
     public void setOrganizationId(UUID organizationId) { this.organizationId = organizationId; }
     public void setAction(AuditAction action) { this.action = action; }

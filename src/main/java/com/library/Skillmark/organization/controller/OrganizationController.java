@@ -6,6 +6,8 @@ import com.library.Skillmark.organization.entity.*;
 import com.library.Skillmark.organization.enums.*;
 import com.library.Skillmark.organization.repository.*;
 import com.library.Skillmark.organization.service.*;
+import com.library.Skillmark.audit.dto.AuditLogResponse;
+import com.library.Skillmark.audit.service.AuditLogService;
 import com.library.Skillmark.common.response.ApiResponse;
 import com.library.Skillmark.common.response.PageResponse;
 import com.library.Skillmark.config.OpenApiConfig;
@@ -27,9 +29,11 @@ import java.util.UUID;
 @SecurityRequirement(name = OpenApiConfig.BEARER_AUTH)
 public class OrganizationController {
     private final OrganizationService organizationService;
+    private final AuditLogService auditLogService;
 
-    public OrganizationController(OrganizationService organizationService) {
+    public OrganizationController(OrganizationService organizationService, AuditLogService auditLogService) {
         this.organizationService = organizationService;
+        this.auditLogService = auditLogService;
     }
 
     @PostMapping
@@ -70,5 +74,15 @@ public class OrganizationController {
     ApiResponse<Void> delete(@PathVariable UUID organizationId, Authentication authentication) {
         organizationService.delete(organizationId, SecurityUtil.userId(authentication));
         return ApiResponse.success("Organization deleted successfully", null);
+    }
+
+    @GetMapping("/{organizationId}/audit-logs")
+    @Operation(summary = "List organization audit logs", description = "Returns audit logs for an owned organization.")
+    ApiResponse<PageResponse<AuditLogResponse>> auditLogs(@PathVariable UUID organizationId,
+                                                          Authentication authentication,
+                                                          @RequestParam(defaultValue = "0") int page,
+                                                          @RequestParam(defaultValue = "10") int size) {
+        return ApiResponse.success("Audit logs retrieved successfully",
+                auditLogService.listForOrganization(organizationId, SecurityUtil.userId(authentication), page, size));
     }
 }

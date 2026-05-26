@@ -22,7 +22,7 @@ public record PageResponse<T>(
     }
 
     public static <T> PageResponse<T> fromList(List<T> items, int page, int size) {
-        int safeSize = Math.max(size, 1);
+        int safeSize = Math.min(Math.max(size, 1), 100);
         int from = Math.min(Math.max(page, 0) * safeSize, items.size());
         int to = Math.min(from + safeSize, items.size());
         List<T> slice = items.subList(from, to);
