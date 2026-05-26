@@ -15,6 +15,10 @@ public record MembershipResponse(
         String userEmail,
         MembershipRole role,
         MembershipStatus status,
+        UUID invitedBy,
+        Instant joinedAt,
+        UUID removedBy,
+        Instant removedAt,
         Instant createdAt
 ) {
     public static MembershipResponse from(OrganizationMembership membership) {
@@ -26,6 +30,10 @@ public record MembershipResponse(
                 membership.getUser().getEmail(),
                 membership.getRole(),
                 membership.getStatus(),
+                membership.getInvitedBy() == null ? null : membership.getInvitedBy().getId(),
+                membership.getJoinedAt(),
+                membership.getRemovedBy() == null ? null : membership.getRemovedBy().getId(),
+                membership.getRemovedAt(),
                 membership.getCreatedAt()
         );
     }

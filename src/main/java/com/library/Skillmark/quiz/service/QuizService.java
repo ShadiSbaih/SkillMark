@@ -318,7 +318,7 @@ public class QuizService {
         if (quiz.getStatus() == QuizStatus.ARCHIVED || quiz.getStatus() == QuizStatus.DELETED) {
             throw new BusinessRuleException("Archived or deleted quizzes cannot be published");
         }
-        if (quiz.getPassingScore().signum() < 0 || quiz.getPassingScore().compareTo(java.math.BigDecimal.valueOf(100)) > 0) {
+        if (quiz.getPassingScore() < 0 || quiz.getPassingScore() > 100) {
             throw new BusinessRuleException("Passing score must be between 0 and 100");
         }
         if (questionRepository.countByQuizId(quiz.getId()) == 0) {
@@ -373,7 +373,7 @@ public class QuizService {
     }
 
     private boolean protectedSettingsChanged(Quiz quiz, UpdateQuizRequest request) {
-        return quiz.getPassingScore().compareTo(request.passingScore()) != 0
+        return !Objects.equals(quiz.getPassingScore(), request.passingScore())
                 || !Objects.equals(quiz.getDurationMinutes(), request.durationMinutes())
                 || !Objects.equals(quiz.getMaxAttempts(), request.maxAttempts())
                 || quiz.isCertificateEnabled() != Boolean.TRUE.equals(request.certificateEnabled())

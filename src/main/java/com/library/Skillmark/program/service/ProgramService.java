@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.UUID;
 
@@ -128,7 +129,7 @@ public class ProgramService {
         program.setDeletedAt(Instant.now());
     }
 
-    private void apply(Program program, String title, String description, String coverImageUrl, Instant startDate, Instant endDate) {
+    private void apply(Program program, String title, String description, String coverImageUrl, LocalDate startDate, LocalDate endDate) {
         program.setTitle(title.trim());
         program.setDescription(description);
         program.setCoverImageUrl(coverImageUrl);

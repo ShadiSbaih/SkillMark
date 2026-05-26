@@ -59,6 +59,7 @@ public class InvitationService {
         invitation.setProgram(program);
         invitation.setOrganization(program.getOrganization());
         invitation.setCode(uniqueCode());
+        invitation.setDescription(request.description());
         invitation.setMaxUses(request.maxUses());
         invitation.setExpiresAt(request.expiresAt());
         invitation.setCreatedBy(userRepository.findById(actorId).orElseThrow(() -> new NotFoundException("User not found")));
@@ -101,6 +102,7 @@ public class InvitationService {
                 .orElseThrow(() -> new NotFoundException("Invitation not found"));
         authorizationService.ensureOrganizationOwner(invitation.getOrganization().getId(), actorId);
         invitation.setStatus(InvitationStatus.DISABLED);
+        invitation.setDisabledAt(Instant.now());
         auditLogService.record(actorId, invitation.getOrganization().getId(), AuditAction.INVITATION_DISABLED, "InvitationLink", invitationId);
         return InvitationResponse.from(invitation);
     }
@@ -130,7 +132,8 @@ public class InvitationService {
     }
 
     private void ensureActiveMembership(InvitationLink invitation, User user) {
-        var existing = membershipRepository.findByOrganizationIdAndUserId(invitation.getOrganization().getId(), user.getId());
+        var existing = membershipRepository.findByOrganizationIdAndUserIdAndStatus(
+                invitation.getOrganization().getId(), user.getId(), MembershipStatus.ACTIVE);
         if (existing.isPresent()) {
             OrganizationMembership membership = existing.get();
             if (membership.getRole() == null) {
@@ -146,6 +149,7 @@ public class InvitationService {
         membership.setUser(user);
         membership.setRole(MembershipRole.PARTICIPANT);
         membership.setStatus(MembershipStatus.ACTIVE);
+        membership.setInvitedBy(invitation.getCreatedBy());
         membershipRepository.save(membership);
     }
 

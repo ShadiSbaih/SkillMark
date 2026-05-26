@@ -5,6 +5,7 @@ import com.library.Skillmark.program.enums.ProgramStatus;
 import jakarta.persistence.*;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
@@ -35,10 +36,10 @@ public class Program {
     private boolean published;
 
     @Column(name = "start_date")
-    private Instant startDate;
+    private LocalDate startDate;
 
     @Column(name = "end_date")
-    private Instant endDate;
+    private LocalDate endDate;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -74,10 +75,10 @@ public class Program {
     public void setStatus(ProgramStatus status) { this.status = status; }
     public boolean isPublished() { return published; }
     public void setPublished(boolean published) { this.published = published; }
-    public Instant getStartDate() { return startDate; }
-    public void setStartDate(Instant startDate) { this.startDate = startDate; }
-    public Instant getEndDate() { return endDate; }
-    public void setEndDate(Instant endDate) { this.endDate = endDate; }
+    public LocalDate getStartDate() { return startDate; }
+    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
+    public LocalDate getEndDate() { return endDate; }
+    public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public Instant getDeletedAt() { return deletedAt; }

@@ -8,7 +8,6 @@ import com.library.Skillmark.quiz.repository.*;
 import com.library.Skillmark.quiz.service.*;
 import jakarta.persistence.*;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -31,8 +30,8 @@ public class QuizQuestion {
     @Column(nullable = false, length = 30)
     private QuestionType type = QuestionType.SINGLE_CHOICE;
 
-    @Column(nullable = false, precision = 8, scale = 2)
-    private BigDecimal points = BigDecimal.ONE;
+    @Column(nullable = false)
+    private Integer points = 1;
 
     @Column(nullable = false)
     private Integer position;
@@ -62,8 +61,8 @@ public class QuizQuestion {
     public void setText(String text) { this.text = text; }
     public QuestionType getType() { return type; }
     public void setType(QuestionType type) { this.type = type; }
-    public BigDecimal getPoints() { return points; }
-    public void setPoints(BigDecimal points) { this.points = points; }
+    public Integer getPoints() { return points; }
+    public void setPoints(Integer points) { this.points = points; }
     public Integer getPosition() { return position; }
     public void setPosition(Integer position) { this.position = position; }
     public Instant getCreatedAt() { return createdAt; }

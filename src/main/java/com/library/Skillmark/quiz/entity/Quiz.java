@@ -9,7 +9,6 @@ import com.library.Skillmark.quiz.service.*;
 import com.library.Skillmark.program.entity.Program;
 import jakarta.persistence.*;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -30,8 +29,8 @@ public class Quiz {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "passing_score", nullable = false, precision = 5, scale = 2)
-    private BigDecimal passingScore;
+    @Column(name = "passing_score", nullable = false)
+    private Integer passingScore;
 
     @Column(name = "duration_minutes")
     private Integer durationMinutes;
@@ -81,8 +80,8 @@ public class Quiz {
     public void setTitle(String title) { this.title = title; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
-    public BigDecimal getPassingScore() { return passingScore; }
-    public void setPassingScore(BigDecimal passingScore) { this.passingScore = passingScore; }
+    public Integer getPassingScore() { return passingScore; }
+    public void setPassingScore(Integer passingScore) { this.passingScore = passingScore; }
     public Integer getDurationMinutes() { return durationMinutes; }
     public void setDurationMinutes(Integer durationMinutes) { this.durationMinutes = durationMinutes; }
     public Integer getMaxAttempts() { return maxAttempts; }

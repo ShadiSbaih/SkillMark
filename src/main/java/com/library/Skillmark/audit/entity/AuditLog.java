@@ -32,6 +32,12 @@ public class AuditLog {
     @Column(name = "entity_id")
     private UUID entityId;
 
+    @Column(name = "ip_address", length = 100)
+    private String ipAddress;
+
+    @Column(name = "user_agent", columnDefinition = "TEXT")
+    private String userAgent;
+
     @Column(columnDefinition = "TEXT")
     private String metadata;
 
@@ -46,5 +52,7 @@ public class AuditLog {
     public void setAction(AuditAction action) { this.action = action; }
     public void setEntityType(String entityType) { this.entityType = entityType; }
     public void setEntityId(UUID entityId) { this.entityId = entityId; }
+    public void setIpAddress(String ipAddress) { this.ipAddress = ipAddress; }
+    public void setUserAgent(String userAgent) { this.userAgent = userAgent; }
     public void setMetadata(String metadata) { this.metadata = metadata; }
 }

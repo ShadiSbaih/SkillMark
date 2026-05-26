@@ -29,12 +29,22 @@ public class QuizAttempt {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(precision = 8, scale = 2)
-    private BigDecimal score;
+    @Column(name = "attempt_number", nullable = false)
+    private Integer attemptNumber = 1;
+
+    @Column(name = "expires_at", nullable = false)
+    private Instant expiresAt;
+
+    @Column(name = "total_points")
+    private Integer totalPoints;
+
+    @Column(name = "earned_points")
+    private Integer earnedPoints;
 
     @Column(name = "score_percentage", precision = 5, scale = 2)
     private BigDecimal scorePercentage;
 
+    @Column(name = "is_passed")
     private Boolean passed;
 
     @Enumerated(EnumType.STRING)
@@ -61,6 +71,9 @@ public class QuizAttempt {
         if (startedAt == null) {
             startedAt = now;
         }
+        if (expiresAt == null) {
+            expiresAt = startedAt;
+        }
     }
 
     @PreUpdate
@@ -73,8 +86,16 @@ public class QuizAttempt {
     public void setQuiz(Quiz quiz) { this.quiz = quiz; }
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }
-    public BigDecimal getScore() { return score; }
-    public void setScore(BigDecimal score) { this.score = score; }
+    public Integer getAttemptNumber() { return attemptNumber; }
+    public void setAttemptNumber(Integer attemptNumber) { this.attemptNumber = attemptNumber; }
+    public Instant getExpiresAt() { return expiresAt; }
+    public void setExpiresAt(Instant expiresAt) { this.expiresAt = expiresAt; }
+    public Integer getTotalPoints() { return totalPoints; }
+    public void setTotalPoints(Integer totalPoints) { this.totalPoints = totalPoints; }
+    public Integer getEarnedPoints() { return earnedPoints; }
+    public void setEarnedPoints(Integer earnedPoints) { this.earnedPoints = earnedPoints; }
+    public BigDecimal getScore() { return earnedPoints == null ? null : BigDecimal.valueOf(earnedPoints); }
+    public void setScore(BigDecimal score) { this.earnedPoints = score == null ? null : score.setScale(0, java.math.RoundingMode.HALF_UP).intValue(); }
     public BigDecimal getScorePercentage() { return scorePercentage; }
     public void setScorePercentage(BigDecimal scorePercentage) { this.scorePercentage = scorePercentage; }
     public Boolean getPassed() { return passed; }

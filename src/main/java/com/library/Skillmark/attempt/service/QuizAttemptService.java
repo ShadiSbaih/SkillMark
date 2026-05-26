@@ -98,8 +98,8 @@ public class QuizAttemptService {
         }
         List<QuizQuestion> questions = questionRepository.findByQuizIdOrderByPositionAsc(attempt.getQuiz().getId());
         Map<UUID, QuizQuestion> questionMap = questions.stream().collect(Collectors.toMap(QuizQuestion::getId, Function.identity()));
-        BigDecimal totalPoints = questions.stream().map(QuizQuestion::getPoints).reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal awarded = BigDecimal.ZERO;
+        int totalPoints = questions.stream().mapToInt(QuizQuestion::getPoints).sum();
+        int awarded = 0;
 
         for (SubmitAnswerRequest answerRequest : request.answers()) {
             QuizQuestion question = questionMap.get(answerRequest.questionId());
@@ -112,8 +112,8 @@ public class QuizAttemptService {
                 throw new BadRequestException("Selected option does not belong to the submitted question");
             }
             boolean correct = selected.isCorrect();
-            BigDecimal points = correct ? question.getPoints() : BigDecimal.ZERO;
-            awarded = awarded.add(points);
+            int points = correct ? question.getPoints() : 0;
+            awarded += points;
 
             QuizAttemptAnswer answer = new QuizAttemptAnswer();
             answer.setAttempt(attempt);
@@ -124,11 +124,13 @@ public class QuizAttemptService {
             answerRepository.save(answer);
         }
 
-        BigDecimal percentage = totalPoints.signum() == 0
+        BigDecimal percentage = totalPoints == 0
                 ? BigDecimal.ZERO
-                : awarded.multiply(BigDecimal.valueOf(100)).divide(totalPoints, 2, RoundingMode.HALF_UP);
-        boolean passed = percentage.compareTo(attempt.getQuiz().getPassingScore()) >= 0;
-        attempt.setScore(awarded);
+                : BigDecimal.valueOf(awarded).multiply(BigDecimal.valueOf(100))
+                .divide(BigDecimal.valueOf(totalPoints), 2, RoundingMode.HALF_UP);
+        boolean passed = percentage.compareTo(BigDecimal.valueOf(attempt.getQuiz().getPassingScore())) >= 0;
+        attempt.setTotalPoints(totalPoints);
+        attempt.setEarnedPoints(awarded);
         attempt.setScorePercentage(percentage);
         attempt.setPassed(passed);
         attempt.setStatus(AttemptStatus.SUBMITTED);
@@ -136,7 +138,7 @@ public class QuizAttemptService {
         auditLogService.record(userId, attempt.getQuiz().getProgram().getOrganization().getId(), AuditAction.ATTEMPT_SUBMITTED, "QuizAttempt", attemptId);
 
         var certificate = certificateService.issueAutomaticallyIfEligible(attempt);
-        return new AttemptResultResponse(attempt.getId(), awarded, percentage, passed, attempt.getStatus(),
+        return new AttemptResultResponse(attempt.getId(), totalPoints, awarded, percentage, passed, attempt.getStatus(),
                 attempt.getSubmittedAt(), certificate.isPresent(), certificate.map(com.library.Skillmark.certificate.entity.Certificate::getId).orElse(null));
     }
 

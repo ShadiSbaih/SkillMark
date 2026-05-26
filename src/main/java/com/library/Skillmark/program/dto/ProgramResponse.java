@@ -4,6 +4,7 @@ import com.library.Skillmark.program.entity.Program;
 import com.library.Skillmark.program.enums.ProgramStatus;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 public record ProgramResponse(
@@ -14,8 +15,8 @@ public record ProgramResponse(
         String coverImageUrl,
         ProgramStatus status,
         boolean isPublished,
-        Instant startDate,
-        Instant endDate,
+        LocalDate startDate,
+        LocalDate endDate,
         Instant createdAt
 ) {
     public static ProgramResponse from(Program program) {

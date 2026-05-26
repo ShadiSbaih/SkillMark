@@ -14,8 +14,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "organization_memberships",
-        uniqueConstraints = @UniqueConstraint(name = "uq_membership_org_user", columnNames = {"organization_id", "user_id"}))
+@Table(name = "organization_memberships")
 public class OrganizationMembership {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -37,6 +36,20 @@ public class OrganizationMembership {
     @Column(nullable = false, length = 30)
     private MembershipStatus status = MembershipStatus.ACTIVE;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "invited_by")
+    private User invitedBy;
+
+    @Column(name = "joined_at", nullable = false)
+    private Instant joinedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "removed_by")
+    private User removedBy;
+
+    @Column(name = "removed_at")
+    private Instant removedAt;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -48,6 +61,9 @@ public class OrganizationMembership {
         Instant now = Instant.now();
         createdAt = now;
         updatedAt = now;
+        if (joinedAt == null) {
+            joinedAt = now;
+        }
     }
 
     @PreUpdate
@@ -64,6 +80,14 @@ public class OrganizationMembership {
     public void setRole(MembershipRole role) { this.role = role; }
     public MembershipStatus getStatus() { return status; }
     public void setStatus(MembershipStatus status) { this.status = status; }
+    public User getInvitedBy() { return invitedBy; }
+    public void setInvitedBy(User invitedBy) { this.invitedBy = invitedBy; }
+    public Instant getJoinedAt() { return joinedAt; }
+    public void setJoinedAt(Instant joinedAt) { this.joinedAt = joinedAt; }
+    public User getRemovedBy() { return removedBy; }
+    public void setRemovedBy(User removedBy) { this.removedBy = removedBy; }
+    public Instant getRemovedAt() { return removedAt; }
+    public void setRemovedAt(Instant removedAt) { this.removedAt = removedAt; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 }

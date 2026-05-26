@@ -60,6 +60,7 @@ public class OrganizationService {
         membership.setOrganization(saved);
         membership.setUser(owner);
         membership.setRole(MembershipRole.OWNER);
+        membership.setInvitedBy(owner);
         membershipRepository.save(membership);
         auditLogService.record(userId, saved.getId(), AuditAction.ORGANIZATION_CREATED, "Organization", saved.getId());
         return OrganizationResponse.from(saved);

@@ -8,7 +8,8 @@ import java.util.UUID;
 
 public record AttemptResultResponse(
         UUID attemptId,
-        BigDecimal score,
+        Integer totalPoints,
+        Integer earnedPoints,
         BigDecimal scorePercentage,
         boolean passed,
         AttemptStatus status,

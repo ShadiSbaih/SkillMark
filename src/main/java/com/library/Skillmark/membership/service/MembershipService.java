@@ -49,16 +49,21 @@ public class MembershipService {
         }
         var organization = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new NotFoundException("Organization not found"));
+        var actor = userRepository.findById(actorId).orElseThrow(() -> new NotFoundException("User not found"));
         var user = userRepository.findById(request.userId()).orElseThrow(() -> new NotFoundException("User not found"));
-        var existing = membershipRepository.findByOrganizationIdAndUserId(organizationId, request.userId());
-        if (existing.isPresent() && existing.get().getStatus() == MembershipStatus.ACTIVE) {
+        var existing = membershipRepository.findByOrganizationIdAndUserIdAndStatus(organizationId, request.userId(), MembershipStatus.ACTIVE);
+        if (existing.isPresent()) {
             throw new ConflictException("Active membership already exists");
         }
-        OrganizationMembership membership = existing.orElseGet(OrganizationMembership::new);
+        OrganizationMembership membership = new OrganizationMembership();
         membership.setOrganization(organization);
         membership.setUser(user);
         membership.setRole(MembershipRole.PARTICIPANT);
         membership.setStatus(MembershipStatus.ACTIVE);
+        membership.setInvitedBy(actor);
+        membership.setJoinedAt(java.time.Instant.now());
+        membership.setRemovedBy(null);
+        membership.setRemovedAt(null);
         OrganizationMembership saved = membershipRepository.save(membership);
         auditLogService.record(actorId, organizationId, AuditAction.MEMBER_ADDED, "User", request.userId());
         return MembershipResponse.from(saved);
@@ -77,12 +82,14 @@ public class MembershipService {
     @Transactional
     public void remove(UUID organizationId, UUID userId, UUID actorId) {
         authorizationService.ensureOrganizationOwner(organizationId, actorId);
-        OrganizationMembership membership = membershipRepository.findByOrganizationIdAndUserId(organizationId, userId)
+        OrganizationMembership membership = membershipRepository.findByOrganizationIdAndUserIdAndStatus(organizationId, userId, MembershipStatus.ACTIVE)
                 .orElseThrow(() -> new NotFoundException("Membership not found"));
         if (membership.getRole() == MembershipRole.OWNER) {
             throw new BadRequestException("Owner membership cannot be removed in the MVP");
         }
         membership.setStatus(MembershipStatus.REMOVED);
+        membership.setRemovedBy(userRepository.findById(actorId).orElseThrow(() -> new NotFoundException("User not found")));
+        membership.setRemovedAt(java.time.Instant.now());
         auditLogService.record(actorId, organizationId, AuditAction.MEMBER_REMOVED, "User", userId);
     }
 }

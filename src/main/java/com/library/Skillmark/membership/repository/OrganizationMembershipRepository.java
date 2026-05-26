@@ -13,7 +13,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface OrganizationMembershipRepository extends JpaRepository<OrganizationMembership, UUID> {
-    Optional<OrganizationMembership> findByOrganizationIdAndUserId(UUID organizationId, UUID userId);
+    Optional<OrganizationMembership> findByOrganizationIdAndUserIdAndStatus(UUID organizationId, UUID userId, MembershipStatus status);
     List<OrganizationMembership> findByOrganizationId(UUID organizationId);
     List<OrganizationMembership> findByUserIdAndStatus(UUID userId, MembershipStatus status);
     long countByOrganizationIdAndStatus(UUID organizationId, MembershipStatus status);

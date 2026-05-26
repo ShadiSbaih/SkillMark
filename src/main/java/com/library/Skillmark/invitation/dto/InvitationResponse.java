@@ -11,10 +11,12 @@ public record InvitationResponse(
         UUID organizationId,
         UUID programId,
         String code,
+        String description,
         Integer maxUses,
         int usedCount,
         Instant expiresAt,
         InvitationStatus status,
+        Instant disabledAt,
         Instant createdAt
 ) {
     public static InvitationResponse from(InvitationLink invitation) {
@@ -23,10 +25,12 @@ public record InvitationResponse(
                 invitation.getOrganization().getId(),
                 invitation.getProgram().getId(),
                 invitation.getCode(),
+                invitation.getDescription(),
                 invitation.getMaxUses(),
                 invitation.getUsedCount(),
                 invitation.getExpiresAt(),
                 invitation.getStatus(),
+                invitation.getDisabledAt(),
                 invitation.getCreatedAt()
         );
     }

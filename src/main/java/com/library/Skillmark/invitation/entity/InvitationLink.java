@@ -27,6 +27,9 @@ public class InvitationLink {
     @Column(nullable = false, unique = true, length = 120)
     private String code;
 
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
     @Column(name = "max_uses")
     private Integer maxUses;
 
@@ -46,6 +49,9 @@ public class InvitationLink {
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
+
+    @Column(name = "disabled_at")
+    private Instant disabledAt;
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
@@ -69,6 +75,8 @@ public class InvitationLink {
     public void setProgram(Program program) { this.program = program; }
     public String getCode() { return code; }
     public void setCode(String code) { this.code = code; }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
     public Integer getMaxUses() { return maxUses; }
     public void setMaxUses(Integer maxUses) { this.maxUses = maxUses; }
     public int getUsedCount() { return usedCount; }
@@ -80,5 +88,7 @@ public class InvitationLink {
     public User getCreatedBy() { return createdBy; }
     public void setCreatedBy(User createdBy) { this.createdBy = createdBy; }
     public Instant getCreatedAt() { return createdAt; }
+    public Instant getDisabledAt() { return disabledAt; }
+    public void setDisabledAt(Instant disabledAt) { this.disabledAt = disabledAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 }

@@ -3,7 +3,6 @@ package com.library.Skillmark.quiz.dto;
 import com.library.Skillmark.quiz.enums.CertificateIssueMode;
 import com.library.Skillmark.quiz.enums.QuizStatus;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -14,7 +13,7 @@ public record QuizResponse(
         UUID organizationId,
         String title,
         String description,
-        BigDecimal passingScore,
+        Integer passingScore,
         Integer durationMinutes,
         Integer maxAttempts,
         boolean certificateEnabled,

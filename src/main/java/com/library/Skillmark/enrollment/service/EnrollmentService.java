@@ -60,7 +60,8 @@ public class EnrollmentService {
         if (enrollmentRepository.existsByProgramIdAndUserIdAndStatus(programId, request.userId(), EnrollmentStatus.ACTIVE)) {
             throw new ConflictException("User is already actively enrolled in this program");
         }
-        var membership = membershipRepository.findByOrganizationIdAndUserId(program.getOrganization().getId(), user.getId())
+        var membership = membershipRepository.findByOrganizationIdAndUserIdAndStatus(
+                        program.getOrganization().getId(), user.getId(), MembershipStatus.ACTIVE)
                 .orElseGet(OrganizationMembership::new);
         if (membership.getId() == null) {
             membership.setOrganization(program.getOrganization());
