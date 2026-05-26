@@ -15,7 +15,8 @@ export class AuthService {
   async ensureSession(): Promise<boolean> {
     await this.clerk.load();
     if (!this.clerk.isConfigured) {
-      return true;
+      this.currentUser.set(null);
+      return false;
     }
     if (!this.clerk.isSignedIn()) {
       return false;

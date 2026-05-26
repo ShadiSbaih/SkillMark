@@ -321,28 +321,30 @@ export interface RevokeCertificateRequest {
 }
 
 export interface OrganizationStatsResponse {
-  organizationId: Uuid;
-  organizationName: string;
-  programsCount: number;
-  membersCount: number;
-  certificatesIssued: number;
-  quizzesCount: number;
+  totalPrograms: number;
+  totalMembers: number;
+  totalEnrolledParticipants: number;
+  totalQuizzes: number;
+  totalAttempts: number;
+  totalCertificates: number;
+  averageScore: number;
+  passRate: number;
 }
 
 export interface ProgramStatsResponse {
-  programId: Uuid;
-  programTitle: string;
-  enrollmentsCount: number;
+  totalEnrollments: number;
+  activeEnrollments: number;
   resourcesCount: number;
   quizzesCount: number;
   attemptsCount: number;
+  passedParticipants: number;
   certificatesIssued: number;
+  averageScore: number;
 }
 
 export interface QuizStatsResponse {
-  quizId: Uuid;
-  quizTitle: string;
   attemptsCount: number;
+  submittedAttempts: number;
   averageScore: number;
   highestScore: number;
   lowestScore: number;
@@ -353,13 +355,14 @@ export interface QuizStatsResponse {
 
 export interface AuditLogResponse {
   id: Uuid;
+  actorUserId?: Uuid | null;
   organizationId: Uuid;
-  actorId?: Uuid | null;
-  actorName?: string | null;
   action: string;
   entityType?: string | null;
   entityId?: Uuid | null;
-  metadata?: Record<string, unknown> | null;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  metadata?: string | null;
   createdAt: string;
 }
 

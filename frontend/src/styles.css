@@ -104,6 +104,11 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+html,
+body {
+  overflow-x: hidden;
+}
+
 a {
   color: inherit;
   text-decoration-thickness: 1px;
@@ -383,6 +388,154 @@ textarea {
 
 .app-section {
   padding: var(--space-huge) 0;
+}
+
+.public-card-shell {
+  width: min(980px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 5rem 0 6rem;
+}
+
+.verification-shell {
+  width: min(980px, calc(100% - 48px));
+}
+
+.verify-form {
+  display: grid;
+  gap: var(--space-md);
+  margin-top: var(--space-xl);
+}
+
+@media (min-width: 640px) {
+  .verify-form {
+    align-items: end;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
+
+.auth-shell {
+  width: min(1120px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 5rem 0 6rem;
+  display: grid;
+  gap: var(--space-xxl);
+  align-items: center;
+}
+
+@media (min-width: 1024px) {
+  .auth-shell {
+    grid-template-columns: minmax(0, 0.92fr) minmax(360px, 0.78fr);
+  }
+}
+
+.auth-copy {
+  min-width: 0;
+}
+
+.auth-lede {
+  max-width: 38rem;
+  margin-top: var(--space-lg);
+  color: var(--color-ink-secondary);
+  font-size: var(--body-lg);
+  line-height: 1.7;
+}
+
+.auth-proof-panel {
+  max-width: 34rem;
+  margin-top: var(--space-xxl);
+  padding: var(--space-xl);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-xl);
+  background: rgb(var(--canvas-rgb) / 0.82);
+  box-shadow: var(--shadow-soft);
+}
+
+.auth-proof-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-md);
+  align-items: start;
+  margin-top: var(--space-md);
+  color: var(--color-ink-secondary);
+  font-size: var(--body-md);
+  line-height: 1.5;
+}
+
+.auth-proof-row span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid rgb(var(--ink-rgb) / 0.1);
+  border-radius: var(--radius-pill);
+  background: var(--color-canvas-cream);
+  color: var(--color-ink);
+  font-size: var(--caption);
+  font-variant-numeric: tabular-nums;
+}
+
+.clerk-card-shell {
+  min-height: 32rem;
+}
+
+.clerk-mount {
+  display: grid;
+  min-height: 30rem;
+  place-items: center;
+}
+
+.clerk-mount-hidden {
+  display: none;
+}
+
+.clerk-mount :where(.cl-rootBox) {
+  width: 100%;
+}
+
+.clerk-mount :where(.cl-card) {
+  width: 100%;
+  border: 0;
+  box-shadow: none;
+}
+
+.clerk-loading {
+  display: grid;
+  gap: var(--space-md);
+  padding: var(--space-lg) 0;
+}
+
+.clerk-loading-bar,
+.clerk-loading-button {
+  min-height: 2.75rem;
+  border-radius: var(--radius-pill);
+  background: rgb(var(--ink-rgb) / 0.06);
+  animation: pulse-soft 1.4s ease-in-out infinite;
+}
+
+.clerk-loading-bar:first-child {
+  min-height: 1rem;
+}
+
+.clerk-loading-button {
+  width: 9rem;
+  background: rgb(var(--primary-rgb) / 0.14);
+}
+
+.clerk-error {
+  display: grid;
+  gap: var(--space-md);
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+
+  50% {
+    opacity: 1;
+  }
 }
 
 .app-panel {

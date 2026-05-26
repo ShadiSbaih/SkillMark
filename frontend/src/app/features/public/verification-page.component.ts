@@ -14,11 +14,11 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
   standalone: true,
   imports: [FormsModule, ButtonComponent, CardComponent, ErrorStateComponent, LoadingStateComponent, StatusBadgeComponent],
   template: `
-    <section class="container-shell app-section">
+    <section class="public-card-shell verification-shell">
       <app-card>
         <p class="app-eyebrow">Public verification</p>
         <h1 class="display-lg">Verify a certificate</h1>
-        <form class="mt-6 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end" (ngSubmit)="go()">
+        <form class="verify-form" (ngSubmit)="go()">
           <label class="app-label">
             Verification code
             <input

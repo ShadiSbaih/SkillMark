@@ -1,5 +1,5 @@
 import { Injectable, computed, signal } from '@angular/core';
-import { Clerk } from '@clerk/clerk-js';
+import type { Clerk } from '@clerk/clerk-js';
 import { environment } from '../../../environments/environment';
 
 type ClerkUserSnapshot = {
@@ -11,10 +11,14 @@ type ClerkUserSnapshot = {
 
 @Injectable({ providedIn: 'root' })
 export class ClerkService {
+  private static readonly clerkJsUrl = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@6.12.1/dist/clerk.browser.js';
+
   private clerk?: Clerk;
   private loadPromise?: Promise<void>;
+  private scriptPromise?: Promise<void>;
 
   readonly loaded = signal(false);
+  readonly loadError = signal<string | null>(null);
   readonly user = signal<ClerkUserSnapshot | null>(null);
   readonly isSignedIn = computed(() => !!this.user());
   readonly isConfigured = !!environment.clerkPublishableKey;
@@ -27,16 +31,27 @@ export class ClerkService {
     if (this.loadPromise) {
       return this.loadPromise;
     }
-    this.clerk = new Clerk(environment.clerkPublishableKey);
-    this.loadPromise = this.clerk.load({
-      signInUrl: '/sign-in',
-      signUpUrl: '/sign-up',
-      afterSignOutUrl: '/',
-    }).then(() => {
-      this.refreshState();
-      this.clerk?.addListener(() => this.refreshState());
-      this.loaded.set(true);
-    });
+    this.loadPromise = this.ensureClerkScript()
+      .then(async () => {
+        this.clerk = window.Clerk;
+        if (!this.clerk) {
+          throw new Error('Clerk browser bundle loaded, but window.Clerk was not initialized.');
+        }
+        await this.clerk.load({
+          signInUrl: '/sign-in',
+          signUpUrl: '/sign-up',
+          afterSignOutUrl: '/',
+        });
+        this.refreshState();
+        this.clerk.addListener(() => this.refreshState());
+        this.loaded.set(true);
+        this.loadError.set(null);
+      })
+      .catch((error: unknown) => {
+        this.loaded.set(true);
+        this.loadError.set(error instanceof Error ? error.message : 'Clerk could not be loaded.');
+        throw error;
+      });
     return this.loadPromise;
   }
 
@@ -96,5 +111,37 @@ export class ClerkService {
           }
         : null,
     );
+  }
+
+  private ensureClerkScript(): Promise<void> {
+    if (window.Clerk) {
+      return Promise.resolve();
+    }
+    if (this.scriptPromise) {
+      return this.scriptPromise;
+    }
+
+    window.__clerk_publishable_key = environment.clerkPublishableKey;
+
+    this.scriptPromise = new Promise((resolve, reject) => {
+      const existingScript = document.querySelector<HTMLScriptElement>('script[data-skillmark-clerk-js]');
+      if (existingScript) {
+        existingScript.addEventListener('load', () => resolve(), { once: true });
+        existingScript.addEventListener('error', () => reject(new Error('Failed to load Clerk browser bundle.')), { once: true });
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.async = true;
+      script.crossOrigin = 'anonymous';
+      script.src = ClerkService.clerkJsUrl;
+      script.dataset['skillmarkClerkJs'] = 'true';
+      script.setAttribute('data-clerk-publishable-key', environment.clerkPublishableKey);
+      script.addEventListener('load', () => resolve(), { once: true });
+      script.addEventListener('error', () => reject(new Error('Failed to load Clerk browser bundle.')), { once: true });
+      document.head.appendChild(script);
+    });
+
+    return this.scriptPromise;
   }
 }

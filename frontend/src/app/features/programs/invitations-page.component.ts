@@ -116,7 +116,7 @@ export class InvitationsPageComponent {
   }
 
   copy(code: string): void {
-    const url = `${environment.certificateVerifyBaseUrl}/join/${code}`;
+    const url = `${environment.appBaseUrl}/join/${code}`;
     void navigator.clipboard.writeText(url);
     toast.info('Invitation link copied');
   }

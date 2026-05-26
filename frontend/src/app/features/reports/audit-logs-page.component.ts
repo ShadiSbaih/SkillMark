@@ -25,7 +25,7 @@ import { PaginationComponent } from '../../shared/ui/pagination.component';
             <div class="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p class="text-sm font-normal">{{ log.action }}</p>
-                <p class="text-xs text-[var(--color-ink-mute)]">{{ log.actorName || log.actorId || 'System' }} · {{ log.entityType || 'entity' }}</p>
+                <p class="text-xs text-[var(--color-ink-mute)]">{{ log.actorUserId || 'System' }} · {{ log.entityType || 'entity' }}</p>
               </div>
               <p class="font-tabular text-xs text-[var(--color-ink-mute)]">{{ log.createdAt }}</p>
             </div>
