@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-SkillmarkApplication<Skillmark>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.library.Skillmark.SkillmarkApplication",
+            "projectName": "Skillmark",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}

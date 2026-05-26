@@ -1,0 +1,145 @@
+import { Component, inject, signal } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
+import { injectMutation, injectQuery, QueryClient } from '@tanstack/angular-query-experimental';
+import { toast } from 'ngx-sonner';
+import { ResourcesApi } from '../../core/api/resources.api';
+import { StorageApi } from '../../core/api/storage.api';
+import { ButtonComponent } from '../../shared/ui/button.component';
+import { CardComponent } from '../../shared/ui/card.component';
+import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
+import { LoadingStateComponent } from '../../shared/ui/loading-state.component';
+import { PageHeaderComponent } from '../../shared/ui/page-header.component';
+import { PaginationComponent } from '../../shared/ui/pagination.component';
+import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
+
+@Component({
+  selector: 'app-resources-page',
+  standalone: true,
+  imports: [ReactiveFormsModule, ButtonComponent, CardComponent, EmptyStateComponent, LoadingStateComponent, PageHeaderComponent, PaginationComponent, StatusBadgeComponent],
+  template: `
+    <app-page-header eyebrow="Program" title="Resources" description="Manage links, files, images, and video links for participants." />
+    <section class="grid gap-6 lg:grid-cols-[22rem_1fr]">
+      <app-card>
+        <h2 class="text-xl font-light">Add resource</h2>
+        <form class="mt-5 grid gap-3" [formGroup]="form" (ngSubmit)="create()">
+          <input class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" placeholder="Title *" formControlName="title" />
+          <textarea class="app-focus min-h-20 rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" placeholder="Description" formControlName="description"></textarea>
+          <select class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" formControlName="type">
+            <option value="LINK">LINK</option>
+            <option value="VIDEO_LINK">VIDEO_LINK</option>
+            <option value="FILE">FILE</option>
+            <option value="IMAGE">IMAGE</option>
+          </select>
+          <input class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" placeholder="URL *" formControlName="url" />
+          <input class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" type="number" min="1" formControlName="position" />
+          <input class="text-sm" type="file" (change)="prepareUpload($event)" />
+          <app-button type="submit" [disabled]="form.invalid || createMutation.isPending()">Create</app-button>
+        </form>
+      </app-card>
+      <div>
+        @if (query.isPending()) {
+          <app-loading-state />
+        } @else if ((query.data()?.items?.length ?? 0) === 0) {
+          <app-empty-state title="No resources yet" description="Add a link or upload-backed resource for this program." />
+        } @else {
+          <div class="grid gap-4">
+            @for (resource of query.data()?.items ?? []; track resource.id) {
+              <app-card>
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <a [href]="resource.url" target="_blank" rel="noopener" class="text-lg font-light">{{ resource.title }}</a>
+                    <p class="text-sm text-[var(--color-ink-mute)]">{{ resource.description || resource.type }}</p>
+                    <p class="font-tabular mt-2 text-xs text-[var(--color-ink-mute)]">Position {{ resource.position }} · {{ resource.storageProvider }}</p>
+                  </div>
+                  <app-status-badge [status]="resource.status" />
+                </div>
+                <div class="mt-4">
+                  <app-button variant="ghost" (click)="archive(resource.id)">Archive</app-button>
+                </div>
+              </app-card>
+            }
+          </div>
+          <app-pagination [page]="page()" [totalPages]="query.data()?.totalPages ?? 0" [totalElements]="query.data()?.totalElements ?? 0" (pageChange)="page.set($event)" />
+        }
+      </div>
+    </section>
+  `,
+})
+export class ResourcesPageComponent {
+  private readonly route = inject(ActivatedRoute);
+  private readonly api = inject(ResourcesApi);
+  private readonly storage = inject(StorageApi);
+  private readonly fb = inject(FormBuilder);
+  private readonly queryClient = inject(QueryClient);
+  readonly programId = this.route.snapshot.paramMap.get('programId') ?? '';
+  readonly page = signal(0);
+  private pendingFile?: File;
+
+  readonly form = this.fb.nonNullable.group({
+    title: ['', Validators.required],
+    description: [''],
+    type: this.fb.nonNullable.control<'LINK' | 'FILE' | 'IMAGE' | 'VIDEO_LINK'>('LINK'),
+    url: ['', Validators.required],
+    position: [1, Validators.required],
+  });
+
+  readonly query = injectQuery(() => ({
+    queryKey: ['resources', this.programId, this.page()],
+    queryFn: () => this.api.list(this.programId, this.page(), 10),
+  }));
+
+  readonly createMutation = injectMutation(() => ({
+    mutationFn: async () => {
+      const raw = this.form.getRawValue();
+      let url = raw.url;
+      let objectKey: string | null = null;
+      let storageProvider: 'EXTERNAL' | 'R2' = 'EXTERNAL';
+      if (this.pendingFile) {
+        objectKey = `${this.programId}/${Date.now()}-${this.pendingFile.name}`;
+        const upload = await this.storage.createR2UploadUrl({
+          programId: this.programId,
+          objectKey,
+          contentType: this.pendingFile.type,
+        });
+        await this.storage.uploadToR2(upload.uploadUrl, this.pendingFile, this.pendingFile.type);
+        url = upload.publicUrl;
+        storageProvider = 'R2';
+      }
+      return this.api.create(this.programId, { ...raw, url, objectKey, storageProvider });
+    },
+    onSuccess: async () => {
+      this.form.reset({ title: '', description: '', type: 'LINK', url: '', position: 1 });
+      this.pendingFile = undefined;
+      await this.queryClient.invalidateQueries({ queryKey: ['resources', this.programId] });
+      toast.success('Resource created');
+    },
+  }));
+
+  readonly archiveMutation = injectMutation(() => ({
+    mutationFn: (id: string) => this.api.archive(id),
+    onSuccess: async () => {
+      await this.queryClient.invalidateQueries({ queryKey: ['resources', this.programId] });
+      toast.warning('Resource archived');
+    },
+  }));
+
+  prepareUpload(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.pendingFile = input.files?.[0];
+    if (this.pendingFile) {
+      this.form.patchValue({ type: this.pendingFile.type.startsWith('image/') ? 'IMAGE' : 'FILE', url: this.pendingFile.name });
+    }
+  }
+
+  create(): void {
+    if (this.form.valid) {
+      this.createMutation.mutate();
+    }
+  }
+
+  archive(id: string): void {
+    this.archiveMutation.mutate(id);
+  }
+}
+
