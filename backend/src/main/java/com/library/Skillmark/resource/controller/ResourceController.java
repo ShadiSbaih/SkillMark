@@ -5,6 +5,7 @@ import com.library.Skillmark.common.response.PageResponse;
 import com.library.Skillmark.config.OpenApiConfig;
 import com.library.Skillmark.resource.dto.CreateResourceRequest;
 import com.library.Skillmark.resource.dto.ResourceResponse;
+import com.library.Skillmark.resource.dto.UpdateResourceVisibilityRequest;
 import com.library.Skillmark.resource.service.ResourceService;
 import com.library.Skillmark.security.SecurityUtil;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -62,5 +63,13 @@ public class ResourceController {
     ApiResponse<Void> archive(@PathVariable UUID resourceId, Authentication authentication) {
         resourceService.archive(resourceId, SecurityUtil.userId(authentication));
         return ApiResponse.success("Resource archived successfully", null);
+    }
+
+    @PatchMapping("/api/v1/resources/{resourceId}/visibility")
+    ApiResponse<ResourceResponse> updateVisibility(@PathVariable UUID resourceId,
+                                                   @Valid @RequestBody UpdateResourceVisibilityRequest request,
+                                                   Authentication authentication) {
+        return ApiResponse.success("Resource visibility updated successfully",
+                resourceService.updateVisibility(resourceId, request.visibleToParticipants(), SecurityUtil.userId(authentication)));
     }
 }

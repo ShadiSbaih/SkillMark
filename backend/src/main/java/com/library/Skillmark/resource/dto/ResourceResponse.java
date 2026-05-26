@@ -17,6 +17,7 @@ public record ResourceResponse(
         String url,
         StorageProvider storageProvider,
         String objectKey,
+        boolean visibleToParticipants,
         ResourceStatus status,
         int position,
         Instant createdAt
@@ -31,6 +32,7 @@ public record ResourceResponse(
                 resource.getUrl(),
                 resource.getStorageProvider(),
                 resource.getObjectKey(),
+                resource.isVisibleToParticipants(),
                 resource.getStatus(),
                 resource.getPosition(),
                 resource.getCreatedAt()

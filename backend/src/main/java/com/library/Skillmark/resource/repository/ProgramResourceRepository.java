@@ -9,6 +9,7 @@ import java.util.UUID;
 
 public interface ProgramResourceRepository extends JpaRepository<ProgramResource, UUID> {
     List<ProgramResource> findByProgramIdAndStatusOrderByPositionAsc(UUID programId, ResourceStatus status);
+    List<ProgramResource> findByProgramIdAndStatusAndVisibleToParticipantsTrueOrderByPositionAsc(UUID programId, ResourceStatus status);
     List<ProgramResource> findByProgramIdOrderByPositionAsc(UUID programId);
     long countByProgramIdAndStatus(UUID programId, ResourceStatus status);
 }

@@ -245,8 +245,8 @@ Used for:
 | Program Overview | `/programs/:programId` | Program dashboard |
 | Program Enrollments | `/programs/:programId/enrollments` | View and manage enrollments |
 | Program Invitations | `/programs/:programId/invitations` | Manage invitation links |
-| Program Resources | `/programs/:programId/resources` | Manage learning resources |
-| Program Quizzes | `/programs/:programId/quizzes` | List and manage quizzes |
+| Program Resources | `/programs/:programId/resources` | Manage learning resources, including visibility toggles |
+| Program Quizzes | `/programs/:programId/quizzes` | List and manage quizzes, including visibility toggles |
 | Program Statistics | `/programs/:programId/stats` | Program-level stats |
 | Program Settings | `/programs/:programId/settings` | Update program details |
 

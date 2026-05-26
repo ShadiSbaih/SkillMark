@@ -25,5 +25,9 @@ export class ResourcesApi {
   archive(resourceId: Uuid): Promise<void> {
     return this.api.delete<void>(`/resources/${resourceId}`);
   }
+
+  updateVisibility(resourceId: Uuid, visibleToParticipants: boolean): Promise<ResourceResponse> {
+    return this.api.patch<ResourceResponse>(`/resources/${resourceId}/visibility`, { visibleToParticipants });
+  }
 }
 

@@ -1,16 +1,25 @@
 package com.library.Skillmark.quiz.entity;
 
-import com.library.Skillmark.quiz.controller.*;
-import com.library.Skillmark.quiz.dto.*;
-import com.library.Skillmark.quiz.entity.*;
-import com.library.Skillmark.quiz.enums.*;
-import com.library.Skillmark.quiz.repository.*;
-import com.library.Skillmark.quiz.service.*;
-import com.library.Skillmark.program.entity.Program;
-import jakarta.persistence.*;
-
 import java.time.Instant;
 import java.util.UUID;
+
+import com.library.Skillmark.program.entity.Program;
+import com.library.Skillmark.quiz.enums.CertificateIssueMode;
+import com.library.Skillmark.quiz.enums.QuizStatus;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "quizzes")
@@ -47,6 +56,9 @@ public class Quiz {
 
     @Column(name = "is_published", nullable = false)
     private boolean published;
+
+    @Column(name = "visible_to_participants", nullable = false)
+    private boolean visibleToParticipants = true;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
@@ -99,6 +111,8 @@ public class Quiz {
         this.status = status;
         this.published = status == QuizStatus.PUBLISHED;
     }
+    public boolean isVisibleToParticipants() { return visibleToParticipants; }
+    public void setVisibleToParticipants(boolean visibleToParticipants) { this.visibleToParticipants = visibleToParticipants; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public Instant getDeletedAt() { return deletedAt; }

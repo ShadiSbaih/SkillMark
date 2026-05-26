@@ -152,6 +152,7 @@ export interface ResourceResponse {
   url: string;
   storageProvider: StorageProvider;
   objectKey?: string | null;
+  visibleToParticipants: boolean;
   status: ResourceStatus;
   position: number;
   createdAt: string;
@@ -208,6 +209,7 @@ export interface QuizResponse {
   maxAttempts: number;
   certificateEnabled: boolean;
   certificateIssueMode: CertificateIssueMode;
+  visibleToParticipants: boolean;
   isPublished: boolean;
   status: QuizStatus;
   createdAt: string;

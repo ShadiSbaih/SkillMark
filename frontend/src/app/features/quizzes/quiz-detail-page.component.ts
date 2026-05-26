@@ -3,6 +3,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { injectMutation, injectQuery, QueryClient } from '@tanstack/angular-query-experimental';
 import { toast } from 'ngx-sonner';
 import { QuizzesApi } from '../../core/api/quizzes.api';
+import { QuizResponse } from '../../core/models/api.model';
 import { ButtonComponent } from '../../shared/ui/button.component';
 import { CardComponent } from '../../shared/ui/card.component';
 import { LoadingStateComponent } from '../../shared/ui/loading-state.component';
@@ -30,9 +31,15 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
       <app-card class="mt-6">
         <div class="flex flex-wrap gap-2">
           <app-button (click)="publish(quiz.id)">Publish</app-button>
+          <app-button variant="ghost" (click)="toggleVisibility(quiz)">
+            {{ quiz.visibleToParticipants ? 'Hide from participants' : 'Show to participants' }}
+          </app-button>
           <a [routerLink]="['/quizzes', quiz.id, 'attempts']"><app-button variant="secondary">Attempts</app-button></a>
           <a [routerLink]="['/quizzes', quiz.id, 'stats']"><app-button variant="ghost">Statistics</app-button></a>
         </div>
+        <p class="mt-3 text-xs text-[var(--color-ink-mute)]">
+          {{ quiz.visibleToParticipants ? 'Visible to participants' : 'Hidden from participants' }}
+        </p>
       </app-card>
     }
   `,
@@ -56,8 +63,20 @@ export class QuizDetailPageComponent {
     },
   }));
 
+  readonly visibilityMutation = injectMutation(() => ({
+    mutationFn: (quiz: QuizResponse) => this.api.updateVisibility(quiz.id, !quiz.visibleToParticipants),
+    onSuccess: async () => {
+      await this.queryClient.invalidateQueries({ queryKey: ['quizzes'] });
+      toast.success('Quiz visibility updated');
+    },
+  }));
+
   publish(id: string): void {
     this.publishMutation.mutate(id);
+  }
+
+  toggleVisibility(quiz: QuizResponse): void {
+    this.visibilityMutation.mutate(quiz);
   }
 }
 

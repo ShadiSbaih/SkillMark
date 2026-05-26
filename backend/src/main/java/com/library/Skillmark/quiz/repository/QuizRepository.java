@@ -17,6 +17,7 @@ public interface QuizRepository extends JpaRepository<Quiz, UUID> {
     long countByProgramOrganizationIdAndStatusNot(UUID organizationId, QuizStatus status);
     List<Quiz> findByProgramIdAndDeletedAtIsNull(UUID programId);
     List<Quiz> findByProgramIdAndStatusAndDeletedAtIsNull(UUID programId, QuizStatus status);
+    List<Quiz> findByProgramIdAndStatusAndVisibleToParticipantsTrueAndDeletedAtIsNull(UUID programId, QuizStatus status);
     long countByProgramIdAndDeletedAtIsNull(UUID programId);
     long countByProgramOrganizationIdAndDeletedAtIsNull(UUID organizationId);
 }

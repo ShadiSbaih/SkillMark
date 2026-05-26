@@ -19,6 +19,7 @@ public record QuizResponse(
         Integer maxAttempts,
         boolean certificateEnabled,
         CertificateIssueMode certificateIssueMode,
+        boolean visibleToParticipants,
         @Schema(description = "Compatibility field derived from status == PUBLISHED. Do not treat as an independent state.")
         boolean isPublished,
         QuizStatus status,

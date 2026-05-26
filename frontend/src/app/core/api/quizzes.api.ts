@@ -72,5 +72,9 @@ export class QuizzesApi {
   updateStatus(quizId: Uuid, status: QuizStatus): Promise<QuizResponse> {
     return this.api.patch<QuizResponse>(`/quizzes/${quizId}/status`, { status });
   }
+
+  updateVisibility(quizId: Uuid, visibleToParticipants: boolean): Promise<QuizResponse> {
+    return this.api.patch<QuizResponse>(`/quizzes/${quizId}/visibility`, { visibleToParticipants });
+  }
 }
 

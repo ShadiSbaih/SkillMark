@@ -1449,7 +1449,8 @@ Access learning resources for an enrolled program.
 ### Business Rules
 
 - Unenrolled users receive HTTP 404.
-- Archived or deleted resources are not returned to participants.
+- Archived resources are not returned to participants.
+- Resources with `visibleToParticipants = false` are not returned to participants.
 - Owners can view all resources regardless of status.
 
 ### Expected Result
@@ -1490,7 +1491,7 @@ Resource details are updated.
 
 ---
 
-## SC-034: Owner Archives Resource
+## SC-034: Owner Hides or Archives Resource
 
 ### Actor
 
@@ -1498,7 +1499,7 @@ Organization Owner
 
 ### Goal
 
-Hide a resource from participants without deleting it.
+Hide a resource from participants without deleting it, or archive it when it is no longer needed.
 
 ### Preconditions
 
@@ -1508,21 +1509,32 @@ Hide a resource from participants without deleting it.
 
 1. Owner sends request:
    ```
-   DELETE /api/v1/resources/{resourceId}
+   PATCH /api/v1/resources/{resourceId}/visibility
+   Body: { "visibleToParticipants": false }
    ```
 2. Backend calls `ensureResourceOwner(resourceId)`.
-3. Backend sets `status = ARCHIVED` or `status = DELETED`.
-4. Backend writes audit log entry: `RESOURCE_DELETED`.
-5. Backend returns HTTP 204.
+3. Backend sets `visibleToParticipants = false`.
+4. Backend writes audit log entry: `RESOURCE_UPDATED`.
+5. Backend returns updated resource.
+
+Optional archival flow:
+
+1. Owner sends request:
+   ```
+   DELETE /api/v1/resources/{resourceId}
+   ```
+2. Backend sets `status = ARCHIVED`.
+3. Backend writes audit log entry: `RESOURCE_ARCHIVED`.
+4. Backend returns HTTP 204.
 
 ### Business Rules
 
-- Prefer soft deletion (set status).
+- Prefer soft deletion (set status) for archival.
 - Do not delete R2 or Cloudinary files unless explicitly required.
 
 ### Expected Result
 
-Resource is no longer visible to participants.
+Resource is hidden from participants or archived, depending on the chosen action.
 
 ---
 
@@ -1853,7 +1865,7 @@ Quiz becomes available to enrolled participants.
 
 ---
 
-## SC-043: Owner Archives Quiz
+## SC-043: Owner Hides or Archives Quiz
 
 ### Actor
 
@@ -1861,7 +1873,7 @@ Organization Owner
 
 ### Goal
 
-Stop a quiz from accepting new attempts.
+Hide a quiz from participants or archive it to stop new attempts.
 
 ### Preconditions
 
@@ -1871,23 +1883,35 @@ Stop a quiz from accepting new attempts.
 
 1. Owner sends request:
    ```
+   PATCH /api/v1/quizzes/{quizId}/visibility
+   Body: { "visibleToParticipants": false }
+   ```
+2. Backend calls `ensureQuizOwner(quizId)`.
+3. Backend sets `visibleToParticipants = false`.
+4. Backend writes audit log entry: `QUIZ_UPDATED`.
+5. Backend returns updated quiz.
+
+Optional archival flow:
+
+1. Owner sends request:
+   ```
    PATCH /api/v1/quizzes/{quizId}/status
    Body: { "status": "ARCHIVED" }
    ```
-2. Backend calls `ensureQuizOwner(quizId)`.
-3. Backend sets `status = ARCHIVED`.
-4. Backend writes audit log entry: `QUIZ_ARCHIVED`.
-5. Backend returns updated quiz.
+2. Backend sets `status = ARCHIVED`.
+3. Backend writes audit log entry: `QUIZ_ARCHIVED`.
+4. Backend returns updated quiz.
 
 ### Business Rules
 
+- Hidden quizzes do not appear in participant lists or direct access.
 - Archived quizzes do not accept new attempts.
 - Historical attempts and certificates remain consistent.
 - Certificates issued before archiving remain valid unless separately revoked.
 
 ### Expected Result
 
-Quiz is archived safely.
+Quiz is hidden from participants or archived, depending on the chosen action.
 
 ---
 
@@ -1917,12 +1941,13 @@ View available quizzes inside an enrolled program.
    GET /api/v1/programs/{programId}/quizzes
    ```
 2. Backend calls `ensureProgramEnrollment(programId, currentUserId)` or `ensureProgramOwner`.
-3. Backend returns published quizzes only for participants.
+3. Backend returns published quizzes that are visible to participants only.
 4. Owners see all quizzes regardless of status.
 
 ### Business Rules
 
 - Participants cannot view DRAFT or ARCHIVED quizzes.
+- Participants cannot view quizzes hidden by the owner.
 
 ### Expected Result
 
@@ -1944,6 +1969,7 @@ Start a new quiz attempt.
 
 - User has an active enrollment in the program.
 - Quiz is PUBLISHED.
+- Quiz is visible to participants.
 - User has not exceeded `maxAttempts`.
 - No IN\_PROGRESS attempt exists for this user and quiz.
 
@@ -1955,6 +1981,7 @@ Start a new quiz attempt.
    ```
 2. Backend checks:
    - Quiz exists and `status = PUBLISHED`.
+   - Quiz is visible to participants.
    - User has an active enrollment in the quiz's program.
    - Count of user's attempts for this quiz is less than `quiz.maxAttempts`.
    - No existing IN\_PROGRESS attempt for this user and quiz.
@@ -2610,7 +2637,7 @@ USER_ENROLLED
 ENROLLMENT_REMOVED
 RESOURCE_CREATED
 RESOURCE_UPDATED
-RESOURCE_DELETED
+RESOURCE_ARCHIVED
 QUIZ_CREATED
 QUIZ_UPDATED
 QUIZ_PUBLISHED

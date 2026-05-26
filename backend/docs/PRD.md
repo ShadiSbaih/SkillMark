@@ -962,11 +962,17 @@ Program resources can be viewed by:
 
 Unenrolled users shall receive HTTP 404.
 
+Visibility rule:
+
+*   Resources marked `visibleToParticipants = false` are excluded from participant responses and direct access.
+
 ---
 
 ### FR-30: Update Program Resource
 
 Only organization owner can update resource details.
+
+Owners can also toggle resource visibility without archiving.
 
 ---
 
@@ -1008,6 +1014,7 @@ Quiz fields:
 *   maxAttempts
 *   certificateEnabled
 *   certificateIssueMode (AUTO or MANUAL)
+*   visibleToParticipants (default true)
 *   status
 *   isPublished (backward-compatible response field derived from `status == PUBLISHED`)
 
@@ -1100,7 +1107,7 @@ A quiz cannot be published unless:
 
 Owners can view all quizzes in owned programs.
 
-Participants can view published quizzes in enrolled programs only.
+Participants can view published quizzes that are visible to participants in enrolled programs only.
 
 ---
 
@@ -1122,6 +1129,7 @@ The system must enforce:
 
 *   user is enrolled in the quiz program
 *   quiz is published and active
+*   quiz is visible to participants
 *   max attempts limit is not exceeded
 *   no currently active (in-progress) attempt exists for this user and quiz
 
@@ -1413,7 +1421,8 @@ The system shall record audit logs for the following actions:
 *   user joined program via invitation
 *   user manually enrolled in program
 *   resource created
-*   resource deleted
+*   resource updated
+*   resource archived
 *   quiz created
 *   quiz updated
 *   quiz published
@@ -1621,6 +1630,7 @@ Concurrency rule: invitation joins must lock the invitation row, use optimistic 
 | storageProvider | Enum | R2, CLOUDINARY, EXTERNAL, Nullable |
 | objectKey | String | Nullable |
 | status | Enum | ACTIVE, ARCHIVED |
+| visibleToParticipants | Boolean | Default true |
 | position | Integer | Display order |
 | createdBy | UUID | FK to users |
 | createdAt | Timestamp |   |
@@ -1643,6 +1653,7 @@ Concurrency rule: invitation joins must lock the invitation row, use optimistic 
 | certificateIssueMode | Enum | AUTO, MANUAL |
 | status | Enum | DRAFT, PUBLISHED, ARCHIVED |
 | isPublished | Boolean | Compatibility field/column derived from `status = PUBLISHED`; not an independent state |
+| visibleToParticipants | Boolean | Default true |
 | createdAt | Timestamp |   |
 | updatedAt | Timestamp |   |
 | deletedAt | Timestamp | Nullable, soft delete |
@@ -2038,6 +2049,7 @@ Triggered when a resource does not exist or when hiding existence for security.
 | GET | `/api/v1/programs/{programId}/resources` | List program resources |
 | GET | `/api/v1/resources/{resourceId}` | Get single resource |
 | PUT | `/api/v1/resources/{resourceId}` | Update resource (owner only) |
+| PATCH | `/api/v1/resources/{resourceId}/visibility` | Update resource visibility (owner only) |
 | DELETE | `/api/v1/resources/{resourceId}` | Archive/delete resource (owner only) |
 
 Optional file upload endpoints:
@@ -2057,6 +2069,7 @@ Optional file upload endpoints:
 | GET | `/api/v1/programs/{programId}/quizzes` | List quizzes in program |
 | GET | `/api/v1/quizzes/{quizId}` | Get quiz details |
 | PUT | `/api/v1/quizzes/{quizId}` | Update quiz (owner only) |
+| PATCH | `/api/v1/quizzes/{quizId}/visibility` | Update quiz visibility (owner only) |
 | PATCH | `/api/v1/quizzes/{quizId}/status` | Publish or archive quiz (owner only) |
 | DELETE | `/api/v1/quizzes/{quizId}` | Soft delete quiz (owner only) |
 | GET | `/api/v1/quizzes/{quizId}/stats` | Get quiz statistics (owner only) |

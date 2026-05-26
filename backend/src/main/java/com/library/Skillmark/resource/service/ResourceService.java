@@ -3,8 +3,12 @@ package com.library.Skillmark.resource.service;
 import com.library.Skillmark.audit.enums.AuditAction;
 import com.library.Skillmark.audit.service.AuditLogService;
 import com.library.Skillmark.common.exception.BadRequestException;
+import com.library.Skillmark.common.exception.ForbiddenException;
 import com.library.Skillmark.common.exception.NotFoundException;
 import com.library.Skillmark.common.response.PageResponse;
+import com.library.Skillmark.membership.enums.MembershipRole;
+import com.library.Skillmark.membership.enums.MembershipStatus;
+import com.library.Skillmark.membership.repository.OrganizationMembershipRepository;
 import com.library.Skillmark.resource.dto.CreateResourceRequest;
 import com.library.Skillmark.resource.dto.ResourceResponse;
 import com.library.Skillmark.resource.entity.ProgramResource;
@@ -23,15 +27,18 @@ import java.util.UUID;
 public class ResourceService {
     private final ProgramResourceRepository resourceRepository;
     private final UserRepository userRepository;
+    private final OrganizationMembershipRepository membershipRepository;
     private final AuthorizationService authorizationService;
     private final AuditLogService auditLogService;
 
     public ResourceService(ProgramResourceRepository resourceRepository,
                            UserRepository userRepository,
+                           OrganizationMembershipRepository membershipRepository,
                            AuthorizationService authorizationService,
                            AuditLogService auditLogService) {
         this.resourceRepository = resourceRepository;
         this.userRepository = userRepository;
+        this.membershipRepository = membershipRepository;
         this.authorizationService = authorizationService;
         this.auditLogService = auditLogService;
     }
@@ -58,10 +65,11 @@ public class ResourceService {
     @Transactional(readOnly = true)
     public PageResponse<ResourceResponse> list(UUID programId, UUID actorId, int page, int size) {
         var program = authorizationService.ensureProgramAccessible(programId, actorId);
-        boolean owner = program.getOrganization().getOwner().getId().equals(actorId);
+        boolean owner = membershipRepository.existsByOrganizationIdAndUserIdAndRoleAndStatus(
+            program.getOrganization().getId(), actorId, MembershipRole.OWNER, MembershipStatus.ACTIVE);
         var resources = owner
                 ? resourceRepository.findByProgramIdOrderByPositionAsc(programId)
-                : resourceRepository.findByProgramIdAndStatusOrderByPositionAsc(programId, ResourceStatus.ACTIVE);
+            : resourceRepository.findByProgramIdAndStatusAndVisibleToParticipantsTrueOrderByPositionAsc(programId, ResourceStatus.ACTIVE);
         return PageResponse.fromList(resources.stream().map(ResourceResponse::from).toList(), page, size);
     }
 
@@ -70,6 +78,11 @@ public class ResourceService {
         ProgramResource resource = resourceRepository.findById(resourceId)
                 .orElseThrow(() -> new NotFoundException("Resource not found"));
         authorizationService.ensureProgramAccessible(resource.getProgram().getId(), actorId);
+        boolean owner = membershipRepository.existsByOrganizationIdAndUserIdAndRoleAndStatus(
+                resource.getProgram().getOrganization().getId(), actorId, MembershipRole.OWNER, MembershipStatus.ACTIVE);
+        if (!owner && !resource.isVisibleToParticipants()) {
+            throw new ForbiddenException("Resource is not available");
+        }
         return ResourceResponse.from(resource);
     }
 
@@ -86,7 +99,17 @@ public class ResourceService {
         resource.setStorageProvider(request.storageProvider() == null ? StorageProvider.EXTERNAL : request.storageProvider());
         resource.setObjectKey(request.objectKey());
         resource.setPosition(request.position());
-        auditLogService.record(actorId, resource.getProgram().getOrganization().getId(), AuditAction.RESOURCE_CREATED, "ProgramResource", resourceId);
+        auditLogService.record(actorId, resource.getProgram().getOrganization().getId(), AuditAction.RESOURCE_UPDATED, "ProgramResource", resourceId);
+        return ResourceResponse.from(resource);
+    }
+
+    @Transactional
+    public ResourceResponse updateVisibility(UUID resourceId, boolean visibleToParticipants, UUID actorId) {
+        ProgramResource resource = resourceRepository.findById(resourceId)
+                .orElseThrow(() -> new NotFoundException("Resource not found"));
+        authorizationService.ensureProgramOwner(resource.getProgram().getId(), actorId);
+        resource.setVisibleToParticipants(visibleToParticipants);
+        auditLogService.record(actorId, resource.getProgram().getOrganization().getId(), AuditAction.RESOURCE_UPDATED, "ProgramResource", resourceId);
         return ResourceResponse.from(resource);
     }
 

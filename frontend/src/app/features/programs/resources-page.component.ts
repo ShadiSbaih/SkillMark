@@ -5,6 +5,7 @@ import { injectMutation, injectQuery, QueryClient } from '@tanstack/angular-quer
 import { toast } from 'ngx-sonner';
 import { ResourcesApi } from '../../core/api/resources.api';
 import { StorageApi } from '../../core/api/storage.api';
+import { ResourceResponse } from '../../core/models/api.model';
 import { ButtonComponent } from '../../shared/ui/button.component';
 import { CardComponent } from '../../shared/ui/card.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
@@ -55,8 +56,16 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
                   <app-status-badge [status]="resource.status" />
                 </div>
                 <div class="mt-4">
-                  <app-button variant="ghost" (click)="archive(resource.id)">Archive</app-button>
+                  <div class="flex flex-wrap gap-2">
+                    <app-button variant="ghost" (click)="toggleVisibility(resource)">
+                      {{ resource.visibleToParticipants ? 'Hide from participants' : 'Show to participants' }}
+                    </app-button>
+                    <app-button variant="ghost" (click)="archive(resource.id)">Archive</app-button>
+                  </div>
                 </div>
+                <p class="mt-3 text-xs text-[var(--color-ink-mute)]">
+                  {{ resource.visibleToParticipants ? 'Visible to participants' : 'Hidden from participants' }}
+                </p>
               </app-card>
             }
           </div>
@@ -124,6 +133,14 @@ export class ResourcesPageComponent {
     },
   }));
 
+  readonly visibilityMutation = injectMutation(() => ({
+    mutationFn: (resource: ResourceResponse) => this.api.updateVisibility(resource.id, !resource.visibleToParticipants),
+    onSuccess: async () => {
+      await this.queryClient.invalidateQueries({ queryKey: ['resources', this.programId] });
+      toast.success('Resource visibility updated');
+    },
+  }));
+
   prepareUpload(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.pendingFile = input.files?.[0];
@@ -140,6 +157,10 @@ export class ResourcesPageComponent {
 
   archive(id: string): void {
     this.archiveMutation.mutate(id);
+  }
+
+  toggleVisibility(resource: ResourceResponse): void {
+    this.visibilityMutation.mutate(resource);
   }
 }
 

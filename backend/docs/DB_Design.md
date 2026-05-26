@@ -157,6 +157,7 @@ table program_resources {
   storage_provider varchar
   object_key text
   status varchar [not null, default: 'ACTIVE']
+  visible_to_participants boolean [not null, default: true]
   position int [not null, default: 0]
   created_at timestamp [not null, default: `now()`]
   updated_at timestamp [not null, default: `now()`]
@@ -180,6 +181,7 @@ table quizzes {
   certificate_issue_mode varchar [not null, default: 'NONE']
   is_published boolean [not null, default: false, note: 'compatibility mirror of status = PUBLISHED']
   status varchar [not null, default: 'DRAFT']
+  visible_to_participants boolean [not null, default: true]
   created_at timestamp [not null, default: `now()`]
   updated_at timestamp [not null, default: `now()`]
   deleted_at timestamp

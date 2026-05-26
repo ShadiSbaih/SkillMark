@@ -146,4 +146,13 @@ public class QuizController {
         return ApiResponse.success("Quiz status updated successfully",
                 quizService.updateStatus(quizId, request.status(), SecurityUtil.userId(authentication)));
     }
+
+    @PatchMapping("/api/v1/quizzes/{quizId}/visibility")
+    @Operation(summary = "Update quiz visibility", description = "Shows or hides a quiz for participants. Owner access only.")
+    ApiResponse<QuizResponse> updateVisibility(@PathVariable UUID quizId,
+                                               @Valid @RequestBody UpdateQuizVisibilityRequest request,
+                                               Authentication authentication) {
+        return ApiResponse.success("Quiz visibility updated successfully",
+                quizService.updateVisibility(quizId, request.visibleToParticipants(), SecurityUtil.userId(authentication)));
+    }
 }

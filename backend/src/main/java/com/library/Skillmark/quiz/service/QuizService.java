@@ -89,8 +89,8 @@ public class QuizService {
                 .map(quiz -> toResponse(quiz, true))
                 .toList();
         var enrolledQuizzes = enrollmentRepository.findByUserIdAndStatus(actorId, EnrollmentStatus.ACTIVE).stream()
-                .flatMap(enrollment -> quizRepository.findByProgramIdAndStatusAndDeletedAtIsNull(
-                        enrollment.getProgram().getId(), QuizStatus.PUBLISHED).stream())
+            .flatMap(enrollment -> quizRepository.findByProgramIdAndStatusAndVisibleToParticipantsTrueAndDeletedAtIsNull(
+                enrollment.getProgram().getId(), QuizStatus.PUBLISHED).stream())
                 .distinct()
                 .sorted(Comparator.comparing(Quiz::getCreatedAt).reversed())
                 .map(quiz -> toResponse(quiz, membershipRepository.existsByOrganizationIdAndUserIdAndRoleAndStatus(
@@ -109,7 +109,7 @@ public class QuizService {
                 program.getOrganization().getId(), actorId, MembershipRole.OWNER, MembershipStatus.ACTIVE);
         List<Quiz> quizzes = owner
                 ? quizRepository.findByProgramIdAndDeletedAtIsNull(programId)
-                : quizRepository.findByProgramIdAndStatusAndDeletedAtIsNull(programId, QuizStatus.PUBLISHED);
+            : quizRepository.findByProgramIdAndStatusAndVisibleToParticipantsTrueAndDeletedAtIsNull(programId, QuizStatus.PUBLISHED);
         return PageResponse.fromList(quizzes.stream()
                 .sorted(Comparator.comparing(Quiz::getCreatedAt).reversed())
                 .map(quiz -> toResponse(quiz, owner))
@@ -138,6 +138,14 @@ public class QuizService {
         quiz.setMaxAttempts(request.maxAttempts());
         quiz.setCertificateEnabled(Boolean.TRUE.equals(request.certificateEnabled()));
         quiz.setCertificateIssueMode(mode(request.certificateEnabled(), request.certificateIssueMode()));
+        auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.QUIZ_UPDATED, "Quiz", quizId);
+        return toResponse(quiz, true);
+    }
+
+    @Transactional
+    public QuizResponse updateVisibility(UUID quizId, boolean visibleToParticipants, UUID actorId) {
+        Quiz quiz = authorizationService.ensureQuizOwner(quizId, actorId);
+        quiz.setVisibleToParticipants(visibleToParticipants);
         auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.QUIZ_UPDATED, "Quiz", quizId);
         return toResponse(quiz, true);
     }
@@ -382,8 +390,8 @@ public class QuizService {
                 .map(question -> toQuestionResponse(question, includeCorrectAnswers))
                 .toList();
         return new QuizResponse(quiz.getId(), quiz.getProgram().getId(), quiz.getProgram().getOrganization().getId(), quiz.getTitle(), quiz.getDescription(),
-                quiz.getPassingScore(), quiz.getDurationMinutes(), quiz.getMaxAttempts(), quiz.isCertificateEnabled(),
-                quiz.getCertificateIssueMode(), quiz.isPublished(), quiz.getStatus(), quiz.getCreatedAt(), questions);
+            quiz.getPassingScore(), quiz.getDurationMinutes(), quiz.getMaxAttempts(), quiz.isCertificateEnabled(),
+            quiz.getCertificateIssueMode(), quiz.isVisibleToParticipants(), quiz.isPublished(), quiz.getStatus(), quiz.getCreatedAt(), questions);
     }
 
     private QuestionResponse toQuestionResponse(QuizQuestion question, boolean includeCorrectAnswers) {

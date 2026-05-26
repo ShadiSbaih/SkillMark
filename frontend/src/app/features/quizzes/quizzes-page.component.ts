@@ -5,6 +5,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { injectMutation, injectQuery, QueryClient } from '@tanstack/angular-query-experimental';
 import { toast } from 'ngx-sonner';
 import { QuizzesApi } from '../../core/api/quizzes.api';
+import { QuizResponse } from '../../core/models/api.model';
 import { ButtonComponent } from '../../shared/ui/button.component';
 import { CardComponent } from '../../shared/ui/card.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state.component';
@@ -66,7 +67,13 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
                   <a [routerLink]="['/quizzes', quiz.id, 'builder']"><app-button variant="secondary">Builder</app-button></a>
                   <a [routerLink]="['/quizzes', quiz.id, 'attempt']"><app-button variant="ghost">Take quiz</app-button></a>
                   <app-button variant="ghost" (click)="publish(quiz.id)">Publish</app-button>
+                  <app-button variant="ghost" (click)="toggleVisibility(quiz)">
+                    {{ quiz.visibleToParticipants ? 'Hide from participants' : 'Show to participants' }}
+                  </app-button>
                 </div>
+                <p class="mt-3 text-xs text-[var(--color-ink-mute)]">
+                  {{ quiz.visibleToParticipants ? 'Visible to participants' : 'Hidden from participants' }}
+                </p>
               </app-card>
             }
           </div>
@@ -116,6 +123,14 @@ export class QuizzesPageComponent {
     },
   }));
 
+  readonly visibilityMutation = injectMutation(() => ({
+    mutationFn: (quiz: QuizResponse) => this.api.updateVisibility(quiz.id, !quiz.visibleToParticipants),
+    onSuccess: async () => {
+      await this.queryClient.invalidateQueries({ queryKey: ['quizzes'] });
+      toast.success('Quiz visibility updated');
+    },
+  }));
+
   create(): void {
     if (this.programId && this.form.valid) {
       this.createMutation.mutate();
@@ -124,5 +139,9 @@ export class QuizzesPageComponent {
 
   publish(id: string): void {
     this.publishMutation.mutate(id);
+  }
+
+  toggleVisibility(quiz: QuizResponse): void {
+    this.visibilityMutation.mutate(quiz);
   }
 }

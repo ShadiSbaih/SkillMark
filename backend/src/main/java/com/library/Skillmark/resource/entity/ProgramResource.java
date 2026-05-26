@@ -1,14 +1,27 @@
 package com.library.Skillmark.resource.entity;
 
+import java.time.Instant;
+import java.util.UUID;
+
 import com.library.Skillmark.program.entity.Program;
 import com.library.Skillmark.resource.enums.ResourceStatus;
 import com.library.Skillmark.resource.enums.ResourceType;
 import com.library.Skillmark.resource.enums.StorageProvider;
 import com.library.Skillmark.user.entity.User;
-import jakarta.persistence.*;
 
-import java.time.Instant;
-import java.util.UUID;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "program_resources")
@@ -48,6 +61,9 @@ public class ProgramResource {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private ResourceStatus status = ResourceStatus.ACTIVE;
+
+    @Column(name = "visible_to_participants", nullable = false)
+    private boolean visibleToParticipants = true;
 
     @Column(nullable = false)
     private int position;
@@ -89,6 +105,8 @@ public class ProgramResource {
     public void setObjectKey(String objectKey) { this.objectKey = objectKey; }
     public ResourceStatus getStatus() { return status; }
     public void setStatus(ResourceStatus status) { this.status = status; }
+    public boolean isVisibleToParticipants() { return visibleToParticipants; }
+    public void setVisibleToParticipants(boolean visibleToParticipants) { this.visibleToParticipants = visibleToParticipants; }
     public int getPosition() { return position; }
     public void setPosition(int position) { this.position = position; }
     public Instant getCreatedAt() { return createdAt; }

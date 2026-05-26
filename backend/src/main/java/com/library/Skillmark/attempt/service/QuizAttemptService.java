@@ -73,6 +73,9 @@ public class QuizAttemptService {
         if (quiz.getStatus() != QuizStatus.PUBLISHED) {
             throw new BusinessRuleException("Quiz is not open for attempts");
         }
+        if (!quiz.isVisibleToParticipants()) {
+            throw new BusinessRuleException("Quiz is not open for attempts");
+        }
         authorizationService.ensureProgramEnrollment(quiz.getProgram().getId(), userId);
         if (attemptRepository.existsByQuizIdAndUserIdAndStatus(quizId, userId, AttemptStatus.IN_PROGRESS)) {
             throw new ConflictException("An in-progress attempt already exists for this quiz");

@@ -126,6 +126,9 @@ public class AuthorizationService {
         if (quiz.getStatus() != QuizStatus.PUBLISHED) {
             throw new ForbiddenException("Quiz is not available");
         }
+        if (!quiz.isVisibleToParticipants()) {
+            throw new ForbiddenException("Quiz is not available");
+        }
         return quiz;
     }
 
