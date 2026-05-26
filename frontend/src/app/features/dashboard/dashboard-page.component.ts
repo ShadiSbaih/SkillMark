@@ -9,12 +9,13 @@ import { CertificatesApi } from '../../core/api/certificates.api';
 import { CardComponent } from '../../shared/ui/card.component';
 import { PageHeaderComponent } from '../../shared/ui/page-header.component';
 import { LoadingStateComponent } from '../../shared/ui/loading-state.component';
+import { ErrorStateComponent } from '../../shared/ui/error-state.component';
 import { ButtonComponent } from '../../shared/ui/button.component';
 
 @Component({
   selector: 'app-dashboard-page',
   standalone: true,
-  imports: [DatePipe, RouterLink, CardComponent, PageHeaderComponent, LoadingStateComponent, ButtonComponent],
+  imports: [DatePipe, RouterLink, CardComponent, PageHeaderComponent, LoadingStateComponent, ErrorStateComponent, ButtonComponent],
   template: `
     <app-page-header
       eyebrow="Dashboard"
@@ -41,6 +42,10 @@ import { ButtonComponent } from '../../shared/ui/button.component';
         </div>
         @if (organizations.isPending()) {
           <div class="mt-4"><app-loading-state /></div>
+        } @else if (organizations.isError()) {
+          <div class="mt-4">
+            <app-error-state title="Organizations unavailable" message="Check the backend connection and try again." />
+          </div>
         } @else {
           <div class="mt-4 divide-y divide-[var(--color-hairline)]">
             @for (org of organizations.data()?.items ?? []; track org.id) {

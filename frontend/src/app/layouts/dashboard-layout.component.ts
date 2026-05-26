@@ -17,18 +17,18 @@ import { ButtonComponent } from '../shared/ui/button.component';
   template: `
     <main class="dashboard-shell">
       <header class="dashboard-header">
-        <div class="container-shell flex h-16 items-center justify-between">
-          <div class="flex items-center gap-3">
-            <button class="app-focus rounded-[var(--radius-pill)] p-2 lg:hidden" (click)="sidebarOpen.set(!sidebarOpen())" aria-label="Toggle navigation">
+        <div class="dashboard-header-inner">
+          <div class="dashboard-brand-row">
+            <button class="dashboard-menu-button app-focus" (click)="sidebarOpen.set(!sidebarOpen())" aria-label="Toggle navigation">
               <lucide-icon name="menu" size="20" />
             </button>
-            <a routerLink="/dashboard" class="font-display text-xl font-light tracking-[-0.4px] text-[var(--color-ink)]">Skillmark</a>
+            <a routerLink="/dashboard" class="dashboard-brand font-display">Skillmark</a>
           </div>
-          <div class="flex items-center gap-3">
-            <button class="app-focus rounded-[var(--radius-pill)] border border-[var(--color-hairline)] bg-[var(--color-canvas)] p-2 text-[var(--color-ink-mute)]" aria-label="Notifications">
+          <div class="dashboard-user-row">
+            <button class="dashboard-icon-button app-focus" aria-label="Notifications">
               <lucide-icon name="bell" size="18" />
             </button>
-            <a routerLink="/profile" class="hidden text-sm text-[var(--color-ink-secondary)] sm:block">{{ displayName() }}</a>
+            <a routerLink="/profile" class="dashboard-profile-link">{{ displayName() }}</a>
             <app-button variant="ghost" (click)="signOut()">
               <lucide-icon name="log-out" size="16" />
               Sign out
@@ -37,15 +37,18 @@ import { ButtonComponent } from '../shared/ui/button.component';
         </div>
       </header>
 
-      <div class="flex">
+      <div class="dashboard-body">
+        @if (sidebarOpen()) {
+          <button class="dashboard-scrim" aria-label="Close navigation" (click)="sidebarOpen.set(false)"></button>
+        }
         <aside
-          class="dashboard-sidebar fixed inset-y-16 left-0 z-20 w-72 p-4 transition lg:sticky lg:top-16 lg:block lg:h-[calc(100vh-4rem)]"
-          [class.hidden]="!sidebarOpen()"
+          class="dashboard-sidebar"
+          [class.open]="sidebarOpen()"
         >
-          <nav class="space-y-6">
-            <section>
-              <p class="px-3 text-[10px] font-normal uppercase tracking-[0.1px] text-[var(--color-ink-mute)]">Workspace</p>
-              <div class="mt-2 space-y-1">
+          <nav class="dashboard-nav">
+            <section class="dashboard-nav-section">
+              <p class="dashboard-nav-heading">Workspace</p>
+              <div class="dashboard-nav-list">
                 @for (item of mainItems; track item.path) {
                   <a
                     [routerLink]="item.path"
@@ -59,9 +62,9 @@ import { ButtonComponent } from '../shared/ui/button.component';
                 }
               </div>
             </section>
-            <section>
-              <p class="px-3 text-[10px] font-normal uppercase tracking-[0.1px] text-[var(--color-ink-mute)]">Participant</p>
-              <div class="mt-2 space-y-1">
+            <section class="dashboard-nav-section">
+              <p class="dashboard-nav-heading">Participant</p>
+              <div class="dashboard-nav-list">
                 @for (item of participantItems; track item.path) {
                   <a
                     [routerLink]="item.path"
@@ -78,8 +81,8 @@ import { ButtonComponent } from '../shared/ui/button.component';
           </nav>
         </aside>
 
-        <section class="min-w-0 flex-1 px-4 py-8 lg:px-8">
-          <div class="mx-auto max-w-7xl">
+        <section class="dashboard-content">
+          <div class="dashboard-content-inner">
             <router-outlet />
           </div>
         </section>
