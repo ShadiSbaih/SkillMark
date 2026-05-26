@@ -4,11 +4,11 @@ import { Component, input } from '@angular/core';
   selector: 'app-loading-state',
   standalone: true,
   template: `
-    <div class="rounded-xl border border-[var(--color-hairline)] bg-white p-6">
-      <div class="h-4 w-32 animate-pulse rounded-full bg-slate-200"></div>
+    <div class="state-card soft">
+      <div class="h-4 w-32 animate-pulse rounded-[var(--radius-pill)] bg-[rgb(var(--ink-rgb)/0.1)]"></div>
       <div class="mt-5 grid gap-3">
         @for (_ of rows(); track $index) {
-          <div class="h-10 animate-pulse rounded-lg bg-slate-100"></div>
+          <div class="h-10 animate-pulse rounded-[var(--radius-lg)] bg-[rgb(var(--ink-rgb)/0.06)]"></div>
         }
       </div>
     </div>

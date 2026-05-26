@@ -4,8 +4,8 @@ import { Component, input } from '@angular/core';
   selector: 'app-empty-state',
   standalone: true,
   template: `
-    <div class="rounded-xl border border-dashed border-[var(--color-hairline)] bg-white p-8 text-center">
-      <p class="text-sm font-normal text-[var(--color-ink)]">{{ title() }}</p>
+    <div class="state-card">
+      <p class="app-card-title">{{ title() }}</p>
       <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--color-ink-mute)]">{{ description() }}</p>
       <div class="mt-5">
         <ng-content />

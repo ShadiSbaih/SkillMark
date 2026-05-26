@@ -18,9 +18,9 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
     } @else if (query.data(); as attempt) {
       <section class="grid gap-4 md:grid-cols-4">
         <app-card><p class="text-sm text-[var(--color-ink-mute)]">Status</p><div class="mt-3"><app-status-badge [status]="attempt.status" /></div></app-card>
-        <app-card><p class="text-sm text-[var(--color-ink-mute)]">Score</p><p class="font-tabular mt-3 text-3xl font-light">{{ attempt.scorePercentage ?? '-' }}%</p></app-card>
-        <app-card><p class="text-sm text-[var(--color-ink-mute)]">Points</p><p class="font-tabular mt-3 text-3xl font-light">{{ attempt.earnedPoints ?? '-' }}/{{ attempt.totalPoints ?? '-' }}</p></app-card>
-        <app-card tone="dark"><p class="text-sm opacity-75">Passed</p><p class="mt-3 text-3xl font-light">{{ attempt.passed === null ? '-' : attempt.passed ? 'Yes' : 'No' }}</p></app-card>
+        <app-card><p class="metric-label">Score</p><p class="metric-value mt-3">{{ attempt.scorePercentage ?? '-' }}%</p></app-card>
+        <app-card><p class="metric-label">Points</p><p class="metric-value mt-3">{{ attempt.earnedPoints ?? '-' }}/{{ attempt.totalPoints ?? '-' }}</p></app-card>
+        <app-card tone="dark"><p class="metric-label">Passed</p><p class="metric-value mt-3">{{ attempt.passed === null ? '-' : attempt.passed ? 'Yes' : 'No' }}</p></app-card>
       </section>
     }
   `,

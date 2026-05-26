@@ -20,18 +20,18 @@ import { PageHeaderComponent } from '../../shared/ui/page-header.component';
       <app-loading-state />
     } @else {
       <app-card>
-        <form class="grid gap-4" [formGroup]="form" (ngSubmit)="save()">
-          <label class="grid gap-1 text-sm">
-            Name
-            <input class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2" formControlName="name" />
+        <form class="app-form" [formGroup]="form" (ngSubmit)="save()">
+          <label class="app-label">
+            Name *
+            <input class="app-input app-focus" formControlName="name" />
           </label>
-          <label class="grid gap-1 text-sm">
-            Email
-            <input class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2" formControlName="email" />
+          <label class="app-label">
+            Email *
+            <input class="app-input app-focus" formControlName="email" />
           </label>
-          <label class="grid gap-1 text-sm">
+          <label class="app-label">
             Avatar URL
-            <input class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2" formControlName="avatarUrl" />
+            <input class="app-input app-focus" formControlName="avatarUrl" />
           </label>
           <div class="flex gap-2">
             <app-button type="submit" [disabled]="form.invalid || mutation.isPending()">Save profile</app-button>

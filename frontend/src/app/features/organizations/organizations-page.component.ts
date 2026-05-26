@@ -36,10 +36,16 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
     <section class="grid gap-6 lg:grid-cols-[22rem_1fr]">
       <app-card>
         <h2 class="text-xl font-light tracking-[-0.2px]">Create organization</h2>
-        <form class="mt-5 grid gap-3" [formGroup]="form" (ngSubmit)="create()">
-          <input class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" placeholder="Name *" formControlName="name" />
-          <textarea class="app-focus min-h-28 rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" placeholder="Description" formControlName="description"></textarea>
-          <input class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" placeholder="Logo URL" formControlName="logoUrl" />
+        <form class="app-form mt-5" [formGroup]="form" (ngSubmit)="create()">
+          <label class="app-label">Name *
+            <input class="app-input app-focus" placeholder="Organization name" formControlName="name" />
+          </label>
+          <label class="app-label">Description
+            <textarea class="app-input app-focus min-h-28" placeholder="Short internal summary" formControlName="description"></textarea>
+          </label>
+          <label class="app-label">Logo URL
+            <input class="app-input app-focus" placeholder="https://..." formControlName="logoUrl" />
+          </label>
           <app-button type="submit" [disabled]="form.invalid || createMutation.isPending()">Create</app-button>
         </form>
       </app-card>

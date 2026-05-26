@@ -24,9 +24,9 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
       </app-page-header>
       <section class="grid gap-4 md:grid-cols-4">
         <app-card><p class="text-sm text-[var(--color-ink-mute)]">Status</p><div class="mt-3"><app-status-badge [status]="quiz.status" /></div></app-card>
-        <app-card><p class="text-sm text-[var(--color-ink-mute)]">Passing score</p><p class="font-tabular mt-3 text-3xl font-light">{{ quiz.passingScore }}%</p></app-card>
-        <app-card><p class="text-sm text-[var(--color-ink-mute)]">Duration</p><p class="font-tabular mt-3 text-3xl font-light">{{ quiz.durationMinutes }}m</p></app-card>
-        <app-card tone="dark"><p class="text-sm opacity-75">Questions</p><p class="font-tabular mt-3 text-3xl font-light">{{ quiz.questions.length }}</p></app-card>
+        <app-card><p class="metric-label">Passing score</p><p class="metric-value mt-3">{{ quiz.passingScore }}%</p></app-card>
+        <app-card><p class="metric-label">Duration</p><p class="metric-value mt-3">{{ quiz.durationMinutes }}m</p></app-card>
+        <app-card tone="dark"><p class="metric-label">Questions</p><p class="metric-value mt-3">{{ quiz.questions.length }}</p></app-card>
       </section>
       <app-card class="mt-6">
         <div class="flex flex-wrap gap-2">

@@ -84,7 +84,7 @@ export class CertificatesPageComponent {
         <app-card tone="dark">
           <p class="text-sm opacity-75">QR code</p>
           @if (certificate.qrCodeUrl) {
-            <img class="mt-4 rounded-lg bg-white p-2" [src]="certificate.qrCodeUrl" alt="Certificate QR code" />
+            <img class="mt-4 rounded-[var(--radius-lg)] bg-[var(--color-canvas)] p-2" [src]="certificate.qrCodeUrl" alt="Certificate QR code" />
           } @else {
             <p class="mt-4 text-sm opacity-80">No QR image is attached.</p>
           }

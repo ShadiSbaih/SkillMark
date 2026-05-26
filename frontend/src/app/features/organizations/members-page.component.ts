@@ -21,12 +21,16 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
     <section class="grid gap-6 lg:grid-cols-[22rem_1fr]">
       <app-card>
         <h2 class="text-xl font-light">Add member</h2>
-        <form class="mt-5 grid gap-3" [formGroup]="form" (ngSubmit)="add()">
-          <input class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" placeholder="User UUID *" formControlName="userId" />
-          <select class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" formControlName="role">
-            <option value="PARTICIPANT">PARTICIPANT</option>
-            <option value="OWNER">OWNER</option>
-          </select>
+        <form class="app-form mt-5" [formGroup]="form" (ngSubmit)="add()">
+          <label class="app-label">User UUID *
+            <input class="app-input app-focus" placeholder="Paste backend user id" formControlName="userId" />
+          </label>
+          <label class="app-label">Role
+            <select class="app-input app-focus" formControlName="role">
+              <option value="PARTICIPANT">PARTICIPANT</option>
+              <option value="OWNER">OWNER</option>
+            </select>
+          </label>
           <app-button type="submit" [disabled]="form.invalid || addMutation.isPending()">Add</app-button>
         </form>
       </app-card>

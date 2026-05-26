@@ -15,17 +15,17 @@ import { ButtonComponent } from '../shared/ui/button.component';
     LucideAngularModule,
   ],
   template: `
-    <main class="mesh-bg min-h-screen bg-[var(--color-canvas-soft)]">
-      <header class="sticky top-0 z-30 border-b border-[var(--color-hairline)] bg-white/90 backdrop-blur">
-        <div class="flex h-16 items-center justify-between px-4 lg:px-6">
+    <main class="dashboard-shell">
+      <header class="dashboard-header">
+        <div class="container-shell flex h-16 items-center justify-between">
           <div class="flex items-center gap-3">
-            <button class="app-focus rounded-full p-2 lg:hidden" (click)="sidebarOpen.set(!sidebarOpen())" aria-label="Toggle navigation">
+            <button class="app-focus rounded-[var(--radius-pill)] p-2 lg:hidden" (click)="sidebarOpen.set(!sidebarOpen())" aria-label="Toggle navigation">
               <lucide-icon name="menu" size="20" />
             </button>
-            <a routerLink="/dashboard" class="text-xl font-normal tracking-[-0.2px] text-[var(--color-ink)]">Skillmark</a>
+            <a routerLink="/dashboard" class="font-display text-xl font-light tracking-[-0.4px] text-[var(--color-ink)]">Skillmark</a>
           </div>
           <div class="flex items-center gap-3">
-            <button class="app-focus rounded-full border border-[var(--color-hairline)] p-2 text-[var(--color-ink-mute)]" aria-label="Notifications">
+            <button class="app-focus rounded-[var(--radius-pill)] border border-[var(--color-hairline)] bg-[var(--color-canvas)] p-2 text-[var(--color-ink-mute)]" aria-label="Notifications">
               <lucide-icon name="bell" size="18" />
             </button>
             <a routerLink="/profile" class="hidden text-sm text-[var(--color-ink-secondary)] sm:block">{{ displayName() }}</a>
@@ -39,7 +39,7 @@ import { ButtonComponent } from '../shared/ui/button.component';
 
       <div class="flex">
         <aside
-          class="fixed inset-y-16 left-0 z-20 w-72 border-r border-[var(--color-hairline)] bg-white p-4 transition lg:sticky lg:top-16 lg:block lg:h-[calc(100vh-4rem)]"
+          class="dashboard-sidebar fixed inset-y-16 left-0 z-20 w-72 p-4 transition lg:sticky lg:top-16 lg:block lg:h-[calc(100vh-4rem)]"
           [class.hidden]="!sidebarOpen()"
         >
           <nav class="space-y-6">
@@ -49,8 +49,8 @@ import { ButtonComponent } from '../shared/ui/button.component';
                 @for (item of mainItems; track item.path) {
                   <a
                     [routerLink]="item.path"
-                    routerLinkActive="bg-[var(--color-primary-subdued)] text-[var(--color-primary-deep)]"
-                    class="app-focus flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-[var(--color-ink-secondary)]"
+                    routerLinkActive="active"
+                    class="dashboard-nav-link app-focus"
                     (click)="sidebarOpen.set(false)"
                   >
                     <lucide-icon [name]="item.icon" size="17" />
@@ -65,8 +65,8 @@ import { ButtonComponent } from '../shared/ui/button.component';
                 @for (item of participantItems; track item.path) {
                   <a
                     [routerLink]="item.path"
-                    routerLinkActive="bg-[var(--color-primary-subdued)] text-[var(--color-primary-deep)]"
-                    class="app-focus flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-[var(--color-ink-secondary)]"
+                    routerLinkActive="active"
+                    class="dashboard-nav-link app-focus"
                     (click)="sidebarOpen.set(false)"
                   >
                     <lucide-icon [name]="item.icon" size="17" />

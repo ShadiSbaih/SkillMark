@@ -3,6 +3,9 @@ import { Component, input } from '@angular/core';
 @Component({
   selector: 'app-card',
   standalone: true,
+  host: {
+    class: 'block',
+  },
   template: `
     <section
       class="app-card"

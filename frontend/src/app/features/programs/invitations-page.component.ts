@@ -22,10 +22,16 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
     <section class="grid gap-6 lg:grid-cols-[22rem_1fr]">
       <app-card>
         <h2 class="text-xl font-light">Create invitation</h2>
-        <form class="mt-5 grid gap-3" [formGroup]="form" (ngSubmit)="create()">
-          <textarea class="app-focus min-h-24 rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" placeholder="Description" formControlName="description"></textarea>
-          <input class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" type="number" min="1" placeholder="Max uses" formControlName="maxUses" />
-          <input class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" type="datetime-local" formControlName="expiresAt" />
+        <form class="app-form mt-5" [formGroup]="form" (ngSubmit)="create()">
+          <label class="app-label">Description
+            <textarea class="app-input app-focus min-h-24" placeholder="Cohort or invite context" formControlName="description"></textarea>
+          </label>
+          <label class="app-label">Max uses
+            <input class="app-input app-focus" type="number" min="1" placeholder="Leave empty for unlimited" formControlName="maxUses" />
+          </label>
+          <label class="app-label">Expires at
+            <input class="app-input app-focus" type="datetime-local" formControlName="expiresAt" />
+          </label>
           <app-button type="submit" [disabled]="createMutation.isPending()">Create</app-button>
         </form>
       </app-card>

@@ -7,10 +7,10 @@ import { ButtonComponent } from '../shared/ui/button.component';
   standalone: true,
   imports: [RouterOutlet, RouterLink, ButtonComponent],
   template: `
-    <main class="public-shell mesh-bg">
+    <main class="public-shell mesh-bg mesh-hero">
       <header class="public-header">
-        <div class="public-header-inner">
-          <a routerLink="/" class="public-brand">Skillmark</a>
+        <div class="public-header-inner container-shell">
+          <a routerLink="/" class="public-brand font-display">Skillmark</a>
           <nav class="public-nav">
             <a routerLink="/verify" class="public-link">Verify</a>
             <a routerLink="/sign-in" class="public-link">Sign in</a>

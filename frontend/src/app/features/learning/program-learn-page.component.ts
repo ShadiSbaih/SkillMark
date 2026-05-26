@@ -23,7 +23,7 @@ import { PageHeaderComponent } from '../../shared/ui/page-header.component';
           <h2 class="text-xl font-light">Resources</h2>
           <div class="mt-4 grid gap-2">
             @for (resource of resources.data()?.items ?? []; track resource.id) {
-              <a class="rounded-lg bg-[var(--color-canvas-soft)] p-3 text-sm" [href]="resource.url" target="_blank" rel="noopener">{{ resource.title }}</a>
+              <a class="tile text-sm" [href]="resource.url" target="_blank" rel="noopener">{{ resource.title }}</a>
             } @empty {
               <p class="text-sm text-[var(--color-ink-mute)]">No resources yet.</p>
             }
@@ -33,7 +33,7 @@ import { PageHeaderComponent } from '../../shared/ui/page-header.component';
           <h2 class="text-xl font-light">Quizzes</h2>
           <div class="mt-4 grid gap-2">
             @for (quiz of quizzes.data()?.items ?? []; track quiz.id) {
-              <div class="rounded-lg bg-[var(--color-canvas-soft)] p-3">
+              <div class="tile">
                 <p class="text-sm font-normal">{{ quiz.title }}</p>
                 <p class="font-tabular text-xs text-[var(--color-ink-mute)]">{{ quiz.durationMinutes }} min · {{ quiz.maxAttempts }} attempts</p>
                 <a [routerLink]="['/quizzes', quiz.id, 'attempt']" class="mt-3 inline-flex"><app-button variant="secondary">Start</app-button></a>

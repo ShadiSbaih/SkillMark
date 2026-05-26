@@ -21,7 +21,7 @@ import { PageHeaderComponent } from '../../shared/ui/page-header.component';
         @if (!attemptId()) {
           <app-button (click)="start()">Start attempt</app-button>
         } @else {
-          <span class="font-tabular rounded-full bg-white px-4 py-2 text-sm text-[var(--color-ink)]">{{ remainingLabel() }}</span>
+          <span class="tile font-tabular text-sm">{{ remainingLabel() }}</span>
         }
       </app-page-header>
 
@@ -39,7 +39,7 @@ import { PageHeaderComponent } from '../../shared/ui/page-header.component';
               <h2 class="mt-2 text-lg font-light">{{ question.text }}</h2>
               <div class="mt-4 grid gap-2">
                 @for (option of question.options; track option.id) {
-                  <label class="app-focus flex cursor-pointer items-center gap-3 rounded-lg bg-[var(--color-canvas-soft)] p-3 text-sm">
+                  <label class="app-focus tile flex cursor-pointer items-center gap-3 text-sm">
                     <input type="radio" [name]="question.id" [value]="option.id" (change)="answer(question.id, option.id)" />
                     {{ option.text }}
                   </label>

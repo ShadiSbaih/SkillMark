@@ -21,12 +21,22 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
     <section class="grid gap-6 lg:grid-cols-[22rem_1fr]">
       <app-card>
         <h2 class="text-xl font-light">Create program</h2>
-        <form class="mt-5 grid gap-3" [formGroup]="form" (ngSubmit)="create()">
-          <input class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" placeholder="Title *" formControlName="title" />
-          <textarea class="app-focus min-h-24 rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" placeholder="Description" formControlName="description"></textarea>
-          <input class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" placeholder="Cover image URL" formControlName="coverImageUrl" />
-          <input class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" type="date" formControlName="startDate" />
-          <input class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" type="date" formControlName="endDate" />
+        <form class="app-form mt-5" [formGroup]="form" (ngSubmit)="create()">
+          <label class="app-label">Title *
+            <input class="app-input app-focus" placeholder="Program title" formControlName="title" />
+          </label>
+          <label class="app-label">Description
+            <textarea class="app-input app-focus min-h-24" placeholder="What participants will learn" formControlName="description"></textarea>
+          </label>
+          <label class="app-label">Cover image URL
+            <input class="app-input app-focus" placeholder="https://..." formControlName="coverImageUrl" />
+          </label>
+          <label class="app-label">Start date
+            <input class="app-input app-focus" type="date" formControlName="startDate" />
+          </label>
+          <label class="app-label">End date
+            <input class="app-input app-focus" type="date" formControlName="endDate" />
+          </label>
           <app-button type="submit" [disabled]="form.invalid || createMutation.isPending()">Create</app-button>
         </form>
       </app-card>

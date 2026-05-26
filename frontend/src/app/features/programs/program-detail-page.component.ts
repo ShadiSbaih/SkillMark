@@ -29,13 +29,23 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
             <h2 class="text-xl font-light">Settings</h2>
             <app-status-badge [status]="program.status" />
           </div>
-          <form class="mt-5 grid gap-3" [formGroup]="form" (ngSubmit)="save(program.id)">
-            <input class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" formControlName="title" />
-            <textarea class="app-focus min-h-28 rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" formControlName="description"></textarea>
-            <input class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" formControlName="coverImageUrl" />
+          <form class="app-form mt-5" [formGroup]="form" (ngSubmit)="save(program.id)">
+            <label class="app-label">Title *
+              <input class="app-input app-focus" formControlName="title" />
+            </label>
+            <label class="app-label">Description
+              <textarea class="app-input app-focus min-h-28" formControlName="description"></textarea>
+            </label>
+            <label class="app-label">Cover image URL
+              <input class="app-input app-focus" formControlName="coverImageUrl" />
+            </label>
             <div class="grid gap-3 sm:grid-cols-2">
-              <input class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" type="date" formControlName="startDate" />
-              <input class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" type="date" formControlName="endDate" />
+              <label class="app-label">Start date
+                <input class="app-input app-focus" type="date" formControlName="startDate" />
+              </label>
+              <label class="app-label">End date
+                <input class="app-input app-focus" type="date" formControlName="endDate" />
+              </label>
             </div>
             <app-button type="submit" [disabled]="form.invalid || updateMutation.isPending()">Save</app-button>
           </form>
@@ -45,7 +55,7 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
           <p class="text-sm opacity-75">Program tools</p>
           <div class="mt-4 grid gap-2 text-sm">
             @for (link of links(program.id); track link.path) {
-              <a [routerLink]="link.path" class="rounded-lg bg-white/10 p-3">{{ link.label }}</a>
+              <a [routerLink]="link.path" class="tile dark">{{ link.label }}</a>
             }
           </div>
         </app-card>

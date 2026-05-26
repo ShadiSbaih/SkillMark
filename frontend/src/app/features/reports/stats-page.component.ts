@@ -20,8 +20,8 @@ type StatsRecord = Record<string, string | number | boolean | null | undefined>;
       <section class="grid gap-4 md:grid-cols-3">
         @for (entry of entries(stats); track entry.key) {
           <app-card [tone]="entry.dark ? 'dark' : 'light'">
-            <p class="text-sm opacity-75">{{ entry.key }}</p>
-            <p class="font-tabular mt-3 text-2xl font-light">{{ entry.value }}</p>
+            <p class="metric-label">{{ entry.key }}</p>
+            <p class="metric-value mt-3">{{ entry.value }}</p>
           </app-card>
         }
       </section>

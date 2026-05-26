@@ -23,18 +23,30 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
     <section class="grid gap-6 lg:grid-cols-[22rem_1fr]">
       <app-card>
         <h2 class="text-xl font-light">Add resource</h2>
-        <form class="mt-5 grid gap-3" [formGroup]="form" (ngSubmit)="create()">
-          <input class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" placeholder="Title *" formControlName="title" />
-          <textarea class="app-focus min-h-20 rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" placeholder="Description" formControlName="description"></textarea>
-          <select class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" formControlName="type">
-            <option value="LINK">LINK</option>
-            <option value="VIDEO_LINK">VIDEO_LINK</option>
-            <option value="FILE">FILE</option>
-            <option value="IMAGE">IMAGE</option>
-          </select>
-          <input class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" placeholder="URL *" formControlName="url" />
-          <input class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" type="number" min="1" formControlName="position" />
-          <input class="text-sm" type="file" (change)="prepareUpload($event)" />
+        <form class="app-form mt-5" [formGroup]="form" (ngSubmit)="create()">
+          <label class="app-label">Title *
+            <input class="app-input app-focus" placeholder="Resource title" formControlName="title" />
+          </label>
+          <label class="app-label">Description
+            <textarea class="app-input app-focus min-h-20" placeholder="Optional context for participants" formControlName="description"></textarea>
+          </label>
+          <label class="app-label">Type
+            <select class="app-input app-focus" formControlName="type">
+              <option value="LINK">LINK</option>
+              <option value="VIDEO_LINK">VIDEO_LINK</option>
+              <option value="FILE">FILE</option>
+              <option value="IMAGE">IMAGE</option>
+            </select>
+          </label>
+          <label class="app-label">URL *
+            <input class="app-input app-focus" placeholder="https://..." formControlName="url" />
+          </label>
+          <label class="app-label">Position
+            <input class="app-input app-focus" type="number" min="1" formControlName="position" />
+          </label>
+          <label class="app-label">Upload file
+            <input class="app-input app-focus" type="file" (change)="prepareUpload($event)" />
+          </label>
           <app-button type="submit" [disabled]="form.invalid || createMutation.isPending()">Create</app-button>
         </form>
       </app-card>

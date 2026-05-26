@@ -30,10 +30,16 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
             <h2 class="text-xl font-light tracking-[-0.2px]">Settings</h2>
             <app-status-badge [status]="org.status" />
           </div>
-          <form class="mt-5 grid gap-3" [formGroup]="form" (ngSubmit)="save(org.id)">
-            <input class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" formControlName="name" />
-            <textarea class="app-focus min-h-28 rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" formControlName="description"></textarea>
-            <input class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" formControlName="logoUrl" />
+          <form class="app-form mt-5" [formGroup]="form" (ngSubmit)="save(org.id)">
+            <label class="app-label">Name *
+              <input class="app-input app-focus" formControlName="name" />
+            </label>
+            <label class="app-label">Description
+              <textarea class="app-input app-focus min-h-28" formControlName="description"></textarea>
+            </label>
+            <label class="app-label">Logo URL
+              <input class="app-input app-focus" formControlName="logoUrl" />
+            </label>
             <app-button type="submit" [disabled]="form.invalid || updateMutation.isPending()">Save</app-button>
           </form>
         </app-card>
@@ -42,9 +48,9 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
           <p class="text-sm opacity-75">Created</p>
           <p class="font-tabular mt-2 text-lg">{{ org.createdAt | date:'medium' }}</p>
           <div class="mt-6 grid gap-2 text-sm">
-            <a [routerLink]="['/organizations', org.id, 'stats']" class="rounded-lg bg-white/10 p-3">Statistics</a>
-            <a [routerLink]="['/organizations', org.id, 'audit-logs']" class="rounded-lg bg-white/10 p-3">Audit logs</a>
-            <a [routerLink]="['/organizations', org.id, 'certificates']" class="rounded-lg bg-white/10 p-3">Certificates</a>
+            <a [routerLink]="['/organizations', org.id, 'stats']" class="tile dark">Statistics</a>
+            <a [routerLink]="['/organizations', org.id, 'audit-logs']" class="tile dark">Audit logs</a>
+            <a [routerLink]="['/organizations', org.id, 'certificates']" class="tile dark">Certificates</a>
           </div>
         </app-card>
       </section>

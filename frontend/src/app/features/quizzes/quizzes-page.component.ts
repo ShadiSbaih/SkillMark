@@ -24,18 +24,30 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
       <section class="grid gap-6 lg:grid-cols-[22rem_1fr]">
         <app-card>
           <h2 class="text-xl font-light">Create quiz</h2>
-          <form class="mt-5 grid gap-3" [formGroup]="form" (ngSubmit)="create()">
-            <input class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" placeholder="Title *" formControlName="title" />
-            <textarea class="app-focus min-h-20 rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" placeholder="Description" formControlName="description"></textarea>
-            <input class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" type="number" min="0" max="100" formControlName="passingScore" />
-            <input class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" type="number" min="1" formControlName="durationMinutes" />
-            <input class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" type="number" min="1" formControlName="maxAttempts" />
-            <label class="flex items-center gap-2 text-sm"><input type="checkbox" formControlName="certificateEnabled" /> Certificate enabled</label>
-            <select class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" formControlName="certificateIssueMode">
-              <option value="AUTO">AUTO</option>
-              <option value="MANUAL">MANUAL</option>
-              <option value="NONE">NONE</option>
-            </select>
+          <form class="app-form mt-5" [formGroup]="form" (ngSubmit)="create()">
+            <label class="app-label">Title *
+              <input class="app-input app-focus" placeholder="Quiz title" formControlName="title" />
+            </label>
+            <label class="app-label">Description
+              <textarea class="app-input app-focus min-h-20" placeholder="Participant-facing context" formControlName="description"></textarea>
+            </label>
+            <label class="app-label">Passing score
+              <input class="app-input app-focus" type="number" min="0" max="100" formControlName="passingScore" />
+            </label>
+            <label class="app-label">Duration minutes
+              <input class="app-input app-focus" type="number" min="1" formControlName="durationMinutes" />
+            </label>
+            <label class="app-label">Max attempts
+              <input class="app-input app-focus" type="number" min="1" formControlName="maxAttempts" />
+            </label>
+            <label class="flex items-center gap-2 text-sm text-[var(--color-ink-secondary)]"><input type="checkbox" formControlName="certificateEnabled" /> Certificate enabled</label>
+            <label class="app-label">Certificate issue mode
+              <select class="app-input app-focus" formControlName="certificateIssueMode">
+                <option value="AUTO">AUTO</option>
+                <option value="MANUAL">MANUAL</option>
+                <option value="NONE">NONE</option>
+              </select>
+            </label>
             <app-button type="submit" [disabled]="form.invalid || createMutation.isPending()">Create</app-button>
           </form>
         </app-card>

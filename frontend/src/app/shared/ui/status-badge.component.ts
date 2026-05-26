@@ -4,7 +4,7 @@ import { Component, computed, input } from '@angular/core';
   selector: 'app-status-badge',
   standalone: true,
   template: `
-    <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-normal" [class]="classes()">
+    <span [class]="classes()">
       {{ status() }}
     </span>
   `,
@@ -12,20 +12,20 @@ import { Component, computed, input } from '@angular/core';
 export class StatusBadgeComponent {
   readonly status = input.required<string>();
   readonly classes = computed(() => {
-    const status = this.status();
-    if (['ACTIVE', 'PUBLISHED', 'COMPLETED'].includes(status)) {
-      return 'bg-emerald-50 text-emerald-700';
+    const status = this.status().toUpperCase();
+    if (['ACTIVE', 'PUBLISHED', 'COMPLETED', 'SUBMITTED'].includes(status)) {
+      return 'status-badge status-success';
     }
-    if (['REVOKED', 'DELETED', 'CANCELLED'].includes(status)) {
-      return 'bg-rose-50 text-rose-700';
+    if (['REVOKED', 'DELETED', 'CANCELLED', 'REMOVED'].includes(status)) {
+      return 'status-badge status-danger';
     }
-    if (['ARCHIVED', 'EXPIRED'].includes(status)) {
-      return 'bg-amber-50 text-amber-700';
+    if (['ARCHIVED', 'EXPIRED', 'DISABLED'].includes(status)) {
+      return 'status-badge status-warning';
     }
     if (['IN_PROGRESS', 'DRAFT'].includes(status)) {
-      return 'bg-slate-100 text-slate-700';
+      return 'status-badge status-neutral';
     }
-    return 'bg-indigo-50 text-[var(--color-primary-deep)]';
+    return 'status-badge status-primary';
   });
 }
 

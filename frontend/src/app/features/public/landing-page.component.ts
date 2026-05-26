@@ -1,12 +1,11 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ButtonComponent } from '../../shared/ui/button.component';
-import { CardComponent } from '../../shared/ui/card.component';
 
 @Component({
   selector: 'app-landing-page',
   standalone: true,
-  imports: [RouterLink, ButtonComponent, CardComponent],
+  imports: [RouterLink, ButtonComponent],
   template: `
     <section class="landing-shell">
       <div class="landing-hero">
@@ -15,7 +14,7 @@ import { CardComponent } from '../../shared/ui/card.component';
             <span class="hero-dot"></span>
             <span>API-first certification platform</span>
           </div>
-          <h1 class="hero-title font-display">Train. Assess. Certify.</h1>
+          <h1 class="hero-title display-xxl">Train. Assess. Certify.</h1>
           <p class="hero-subtitle">
             Skillmark gives organizations a focused workspace for programs, resources, quizzes, attempts, certificates, and public verification.
           </p>
@@ -58,7 +57,7 @@ import { CardComponent } from '../../shared/ui/card.component';
       <section class="landing-split">
         <div class="split-copy fade-up" style="--delay: 0.18s">
           <p class="split-kicker">Built for teams</p>
-          <h2 class="split-title font-display">Deliver assessments that feel premium.</h2>
+          <h2 class="split-title display-lg">Deliver assessments that feel premium.</h2>
           <p class="split-body">
             Automate invite flows, protect quizzes, and issue verifiable certificates without building custom tooling.
           </p>
@@ -81,7 +80,7 @@ import { CardComponent } from '../../shared/ui/card.component';
       <section class="cta-panel fade-up" style="--delay: 0.3s">
         <div>
           <p class="cta-kicker">Ready to launch</p>
-          <h3 class="cta-title font-display">Give your programs a certification hub.</h3>
+          <h3 class="cta-title display-md">Give your programs a certification hub.</h3>
           <p class="cta-body">Spin up your first program, connect resources, and publish quizzes in one place.</p>
         </div>
         <div class="cta-actions">

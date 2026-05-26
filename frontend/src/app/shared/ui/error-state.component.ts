@@ -4,9 +4,9 @@ import { Component, input } from '@angular/core';
   selector: 'app-error-state',
   standalone: true,
   template: `
-    <div class="rounded-xl border border-rose-100 bg-rose-50 p-5 text-rose-800">
-      <p class="text-sm font-normal">{{ title() }}</p>
-      <p class="mt-1 text-sm">{{ message() }}</p>
+    <div class="state-card error">
+      <p class="app-card-title">{{ title() }}</p>
+      <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--color-ink-mute)]">{{ message() }}</p>
     </div>
   `,
 })

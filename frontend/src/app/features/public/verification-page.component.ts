@@ -14,18 +14,21 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
   standalone: true,
   imports: [FormsModule, ButtonComponent, CardComponent, ErrorStateComponent, LoadingStateComponent, StatusBadgeComponent],
   template: `
-    <section class="mx-auto max-w-3xl px-6 py-16">
+    <section class="container-shell app-section">
       <app-card>
-        <p class="text-xs font-normal uppercase tracking-[0.1px] text-[var(--color-primary-deep)]">Public verification</p>
-        <h1 class="mt-3 text-4xl font-light tracking-[-0.96px]">Verify a certificate</h1>
-        <form class="mt-6 flex flex-col gap-3 sm:flex-row" (ngSubmit)="go()">
-          <input
-            class="app-focus min-h-10 flex-1 rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm"
-            name="code"
-            [(ngModel)]="code"
-            placeholder="Verification code"
-            required
-          />
+        <p class="app-eyebrow">Public verification</p>
+        <h1 class="display-lg">Verify a certificate</h1>
+        <form class="mt-6 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end" (ngSubmit)="go()">
+          <label class="app-label">
+            Verification code
+            <input
+              class="app-input app-focus flex-1"
+              name="code"
+              [(ngModel)]="code"
+              placeholder="Paste the public code"
+              required
+            />
+          </label>
           <app-button type="submit">Verify</app-button>
         </form>
       </app-card>
@@ -52,7 +55,7 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge.component';
                 <div><dt class="text-xs text-[var(--color-ink-mute)]">Quiz</dt><dd>{{ certificate.quizTitle }}</dd></div>
               </dl>
               @if (certificate.isRevoked) {
-                <p class="mt-5 rounded-lg bg-rose-50 p-3 text-sm text-rose-700">Revoked: {{ certificate.revokeReason || 'No reason provided' }}</p>
+                <p class="mt-5 rounded-[var(--radius-lg)] border border-[rgb(var(--ruby-rgb)/0.18)] bg-[rgb(var(--ruby-rgb)/0.08)] p-3 text-sm text-[var(--color-ink-secondary)]">Revoked: {{ certificate.revokeReason || 'No reason provided' }}</p>
               }
             </app-card>
           }

@@ -7,9 +7,9 @@ import { ButtonComponent } from './button.component';
   imports: [ButtonComponent],
   template: `
     @if (open()) {
-      <div class="fixed inset-0 z-50 grid place-items-center bg-[rgba(13,37,61,0.32)] p-4">
-        <section class="w-full max-w-md rounded-xl bg-white p-6 shadow-[rgba(0,55,112,0.16)_0_18px_50px]">
-          <h2 class="text-xl font-light tracking-[-0.2px] text-[var(--color-ink)]">{{ title() }}</h2>
+      <div class="fixed inset-0 z-50 grid place-items-center bg-[rgb(var(--ink-rgb)/0.32)] p-4">
+        <section class="w-full max-w-md rounded-[var(--radius-xl)] border border-[var(--color-hairline)] bg-[var(--color-canvas)] p-6 shadow-[var(--shadow-strong)]">
+          <h2 class="app-card-title">{{ title() }}</h2>
           <p class="mt-2 text-sm leading-6 text-[var(--color-ink-mute)]">{{ message() }}</p>
           <div class="mt-6 flex justify-end gap-2">
             <app-button variant="ghost" (click)="cancel.emit()">Cancel</app-button>

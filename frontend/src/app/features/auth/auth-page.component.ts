@@ -10,8 +10,8 @@ import { CardComponent } from '../../shared/ui/card.component';
   template: `
     <section class="mx-auto grid min-h-[calc(100vh-6rem)] max-w-6xl items-center px-6 py-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-12">
       <div>
-        <p class="text-xs font-normal uppercase tracking-[0.1px] text-[var(--color-primary-deep)]">Skillmark auth</p>
-        <h1 class="mt-3 text-5xl font-light leading-[1.05] tracking-[-0.96px] text-[var(--color-ink)]">
+        <p class="app-eyebrow">Skillmark auth</p>
+        <h1 class="display-xl mt-3">
           Secure access for owners and participants.
         </h1>
         <p class="mt-5 max-w-xl text-base leading-7 text-[var(--color-ink-secondary)]">
@@ -22,7 +22,7 @@ import { CardComponent } from '../../shared/ui/card.component';
       <app-card>
         @if (!clerk.isConfigured) {
           <div class="space-y-3">
-            <h2 class="text-2xl font-light tracking-[-0.26px]">Clerk key required</h2>
+            <h2 class="display-md">Clerk key required</h2>
             <p class="text-sm leading-6 text-[var(--color-ink-mute)]">
               Set <code>clerkPublishableKey</code> in <code>src/environments/environment.ts</code> to mount embedded Clerk {{ mode() }}.
             </p>

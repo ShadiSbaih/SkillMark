@@ -21,13 +21,17 @@ import { PageHeaderComponent } from '../../shared/ui/page-header.component';
       <section class="grid gap-6 lg:grid-cols-[24rem_1fr]">
         <app-card>
           <h2 class="text-xl font-light">Add question</h2>
-          <form class="mt-5 grid gap-3" [formGroup]="form" (ngSubmit)="addQuestion(quiz.questions.length + 1)">
-            <textarea class="app-focus min-h-24 rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" placeholder="Question text *" formControlName="text"></textarea>
-            <input class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" type="number" min="1" formControlName="points" />
+          <form class="app-form mt-5" [formGroup]="form" (ngSubmit)="addQuestion(quiz.questions.length + 1)">
+            <label class="app-label">Question text *
+              <textarea class="app-input app-focus min-h-24" placeholder="Ask one clear single-choice question" formControlName="text"></textarea>
+            </label>
+            <label class="app-label">Points
+              <input class="app-input app-focus" type="number" min="1" formControlName="points" />
+            </label>
             <div formArrayName="options" class="grid gap-2">
               @for (option of options.controls; track $index; let i = $index) {
                 <div class="grid grid-cols-[1fr_auto] gap-2" [formGroupName]="i">
-                  <input class="app-focus rounded-md border border-[var(--color-hairline-input)] px-3 py-2 text-sm" placeholder="Option text" formControlName="text" />
+                  <input class="app-input app-focus" placeholder="Option text" formControlName="text" />
                   <label class="flex items-center gap-1 text-xs"><input type="radio" name="correct" [checked]="option.value.isCorrect" (change)="markCorrect(i)" /> Correct</label>
                 </div>
               }
@@ -43,7 +47,7 @@ import { PageHeaderComponent } from '../../shared/ui/page-header.component';
               <h2 class="mt-2 text-lg font-light">{{ question.text }}</h2>
               <ol class="mt-4 grid gap-2">
                 @for (option of question.options; track option.id) {
-                  <li class="rounded-lg bg-[var(--color-canvas-soft)] p-3 text-sm" [class.text-emerald-700]="option.isCorrect">
+                  <li class="tile text-sm" [class.status-primary]="option.isCorrect">
                     {{ option.position }}. {{ option.text }} @if (option.isCorrect) { <span>Correct</span> }
                   </li>
                 }

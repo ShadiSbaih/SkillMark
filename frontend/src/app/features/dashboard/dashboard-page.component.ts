@@ -27,8 +27,8 @@ import { ButtonComponent } from '../../shared/ui/button.component';
     <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       @for (stat of stats(); track stat.label) {
         <app-card [tone]="stat.dark ? 'dark' : 'light'">
-          <p class="text-sm opacity-75">{{ stat.label }}</p>
-          <p class="font-tabular mt-3 text-3xl font-light">{{ stat.value }}</p>
+          <p class="metric-label">{{ stat.label }}</p>
+          <p class="metric-value mt-3">{{ stat.value }}</p>
         </app-card>
       }
     </section>
@@ -36,8 +36,8 @@ import { ButtonComponent } from '../../shared/ui/button.component';
     <section class="mt-8 grid gap-5 lg:grid-cols-2">
       <app-card>
         <div class="flex items-center justify-between">
-          <h2 class="text-xl font-light tracking-[-0.2px]">Recent organizations</h2>
-          <a routerLink="/organizations" class="text-sm text-[var(--color-primary)]">View all</a>
+          <h2 class="app-card-title">Recent organizations</h2>
+          <a routerLink="/organizations" class="app-link text-sm">View all</a>
         </div>
         @if (organizations.isPending()) {
           <div class="mt-4"><app-loading-state /></div>
@@ -45,7 +45,7 @@ import { ButtonComponent } from '../../shared/ui/button.component';
           <div class="mt-4 divide-y divide-[var(--color-hairline)]">
             @for (org of organizations.data()?.items ?? []; track org.id) {
               <a [routerLink]="['/organizations', org.id]" class="block py-3">
-                <p class="text-sm font-normal">{{ org.name }}</p>
+                <p class="text-sm font-normal text-[var(--color-ink)]">{{ org.name }}</p>
                 <p class="text-xs text-[var(--color-ink-mute)]">{{ org.status }} · {{ org.createdAt | date:'mediumDate' }}</p>
               </a>
             } @empty {
@@ -56,11 +56,11 @@ import { ButtonComponent } from '../../shared/ui/button.component';
       </app-card>
 
       <app-card tone="cream">
-        <h2 class="text-xl font-light tracking-[-0.2px]">Next actions</h2>
+        <h2 class="app-card-title">Next actions</h2>
         <div class="mt-4 grid gap-3">
-          <a routerLink="/organizations" class="rounded-lg bg-white/70 p-4 text-sm">Create organization and invite participants</a>
-          <a routerLink="/quizzes" class="rounded-lg bg-white/70 p-4 text-sm">Review accessible quizzes</a>
-          <a routerLink="/my-certificates" class="rounded-lg bg-white/70 p-4 text-sm">Open certificate history</a>
+          <a routerLink="/organizations" class="tile text-sm">Create organization and invite participants</a>
+          <a routerLink="/quizzes" class="tile text-sm">Review accessible quizzes</a>
+          <a routerLink="/my-certificates" class="tile text-sm">Open certificate history</a>
         </div>
       </app-card>
     </section>
