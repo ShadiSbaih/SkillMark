@@ -6,7 +6,7 @@ import { NgxSonnerToaster } from 'ngx-sonner';
   selector: 'app-root',
   imports: [RouterOutlet, NgxSonnerToaster],
   templateUrl: './app.html',
-  styleUrl: './app.css'
+
 })
 export class App {
 }
