@@ -1,0 +1,19 @@
+# Gradle
+.gradle/
+/build/
+
+# Compiled output
+/bin/
+/out/
+
+# IntelliJ
+/.idea/
+*.iml
+
+# Logs
+*.log
+
+# Environment files
+.env
+.env.*
+!.env.example
