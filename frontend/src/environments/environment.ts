@@ -1,7 +1,6 @@
 export const environment = {
   production: false,
-  apiBaseUrl: 'http://localhost:8080/api/v1',
-  clerkPublishableKey: '',
+  apiBaseUrl: 'https://YOUR-BACKEND.onrender.com/api/v1',
+  clerkPublishableKey: 'pk_test_bG92ZWQtdHVydGxlLTE4LmNsZXJrLmFjY291bnRzLmRldiQ',
   certificateVerifyBaseUrl: 'http://localhost:4200',
 };
-
