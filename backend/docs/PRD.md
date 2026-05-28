@@ -1,1872 +1,644 @@
-# Skillmark Training, Assessment & Certification Platform
+# Skillmark Training & Certification Platform
 
-## Product Requirements Document (PRD) — Version 2.0
-
----
-
-# 1\. Introduction
-
-## 1.1 Purpose
-
-This document defines the expanded product, functional, technical, user-role, permission, architectural, and infrastructure requirements for **Skillmark**.
-
-Skillmark is an **API-first university training, assessment, and certification backend platform**.
-
-Skillmark helps organizations manage training programs and workshops, enroll participants, publish resources, run quizzes, evaluate attempts, track results, and issue verifiable certificates.
-
-The product is especially suitable for:
-
-*   university departments
-*   student clubs
-*   technical communities
-*   training workshops
-*   internship programs
-*   bootcamps
-*   internal university training
-*   independent instructors and trainers
-*   companies running internal employee training
-
-The current phase focuses mainly on the **backend API**.
-
-A frontend dashboard or student portal may be built later, but the backend must be designed to support it.
+## Product Requirements Document (PRD) — Version 3.0
 
 ---
 
-## 1.2 Product Expansion Summary
+# 1. Executive Summary
 
-The previous version of Skillmark focused mainly on:
+## 1.1 Product Vision
 
-```
-Organization → Quiz → Attempt → Certificate
-```
-
-The expanded version supports a larger university training flow:
-
-```
-Organization
-  → Program / Workshop
-      → Participants / Enrollments
-      → Invitation Links
-      → Resources
-      → Quizzes
-      → Attempts
-      → Results
-      → Certificates
-      → Public Verification
-      → Statistics
-```
-
-This makes Skillmark more than a quiz system.
-
-It becomes a lightweight training and certification platform.
-
----
-
-## 1.3 Product Scope
-
-Skillmark provides APIs for:
-
-*   authentication and user identity through Clerk
-*   user profile synchronization with the backend
-*   organization creation and management
-*   organization membership management
-*   program/workshop creation and management
-*   program enrollment
-*   invitation links for joining programs
-*   program learning resources
-*   file/image/media storage integration
-*   quiz creation and publishing
-*   quiz questions and answer options
-*   quiz attempts and automatic scoring
-*   certificate issuing
-*   certificate PDF metadata
-*   certificate QR code metadata
-*   public certificate verification
-*   statistics APIs
-*   audit logging
-
----
-
-## 1.4 What Skillmark Is Not
-
-Skillmark is **not a full LMS** in the current phase.
-
-The following features are out of scope for the MVP:
-
-*   full course system
-*   lessons
-*   attendance
-*   assignments
-*   payments
-*   billing and subscriptions
-*   discussion rooms
-*   chat system
-*   calendar scheduling
-*   video lectures
-*   AI recommendations
-*   advanced analytics dashboard
-*   marketplace/public discovery
-*   mobile app
-
-Some of these features may be added later.
-
----
-
-## 1.5 Product Positioning
+**Skillmark** is a modern, API-first platform that helps universities, student clubs, and training organizations create workshops, assess participants, and issue verifiable digital certificates.
 
 ### One-line pitch
+> Create workshops, assess skills, issue certificates—all through a simple API.
 
-> Skillmark helps university clubs, trainers, and organizations manage workshops, assess participants, and issue trusted verifiable certificates.
-
-### Longer pitch
-
-> Skillmark is a backend platform for managing university training programs, workshops, participant enrollment, resources, quizzes, scoring, and verifiable certificates using secure organization-scoped permissions.
+### Core value proposition
+Skillmark eliminates the complexity of managing training programs by providing a clean, secure backend that handles enrollment, assessments, and certificate verification out of the box.
 
 ---
 
-## 1.6 Target Users
+## 1.2 What Makes This Version Better
 
-The platform targets:
+This redesigned version focuses on:
 
-*   university students
-*   instructors
-*   trainers
-*   student club leaders
-*   university departments
-*   internship supervisors
-*   technical community organizers
-*   training centers
-*   companies running internal training
+✅ **Simplicity first** — Fewer entities, clearer relationships  
+✅ **Better API design** — RESTful, predictable, intuitive  
+✅ **Cleaner permissions** — Role-based access that makes sense  
+✅ **Single source of truth** — No duplicate state management  
+✅ **Modern auth** — Clerk integration without the complexity  
+✅ **Unified storage** — One provider, consistent approach  
+✅ **Production ready** — Built for real-world deployment  
 
 ---
 
-## 1.7 Example University Use Case
+## 1.3 Target Users
 
-A student club runs a workshop called **Introduction to Git & GitHub**.
-
-The flow:
-
-1.  Club leader creates an organization.
-2.  Club leader creates a program/workshop.
-3.  Club leader creates an invitation link.
-4.  Students join using the invitation link.
-5.  Club leader adds workshop resources.
-6.  Club leader creates a quiz.
-7.  Students submit attempts.
-8.  System calculates score.
-9.  Students who pass receive certificates.
-10.  Anyone can verify certificates publicly.
-
-Example:
-
-*   Organization: Computer Science Club
-*   Program: Git & GitHub Workshop
-*   Resource: Git slides PDF
-*   Quiz: Git Basics Final Quiz
-*   Certificate: Git & GitHub Workshop Completion Certificate
-*   Verification: Public verification code and QR code
+| User Type | Example | Primary Use Case |
+|-----------|---------|-----------------|
+| **Workshop Organizers** | Student club leaders | Run training workshops |
+| **Training Coordinators** | University departments | Manage certification programs |
+| **Instructors** | Technical trainers | Create assessments |
+| **Participants** | Students, trainees | Complete courses, earn certificates |
 
 ---
 
-# 2\. Technology Stack
-
-## 2.1 Backend
-
-Recommended backend stack:
-
-*   Java 17+
-*   Spring Boot
-*   Spring Web
-*   Spring Security
-*   Spring Data JPA
-*   Hibernate
-*   Jakarta Validation
-*   Flyway
-*   Swagger/OpenAPI
-*   Testcontainers (for integration tests)
-
----
-
-## 2.2 Authentication Provider
-
-Skillmark shall use:
+## 1.4 Core User Journey
 
 ```
-Clerk
-```
-
-Clerk will handle:
-
-*   user sign up
-*   login
-*   logout
-*   session management
-*   email verification
-*   password reset
-*   social login if enabled later
-*   JWT/session token issuing
-
-The backend shall verify Clerk-issued tokens.
-
-The backend shall not implement its own password hashing, refresh token storage, email verification tokens, or password reset tokens.
-
----
-
-## 2.3 Database Provider
-
-Skillmark shall use:
-
-```
-Neon DB
-```
-
-Neon DB is the managed PostgreSQL database provider.
-
-Use:
-
-*   PostgreSQL
-*   Neon connection string
-*   Flyway migrations
-*   database indexes
-*   relational constraints
-
----
-
-## 2.4 File/Object Storage
-
-Skillmark shall use:
-
-```
-Cloudflare R2
-```
-
-Cloudflare R2 will be used for object storage such as:
-
-*   certificate PDFs
-*   uploaded resource files
-*   generated QR code images if stored as files
-*   other private or downloadable files
-
-The backend shall store only file metadata and URLs/keys in the database.
-
----
-
-## 2.5 Image/Media Management
-
-Skillmark shall use:
-
-```
-Cloudinary
-```
-
-Cloudinary may be used for image/media assets such as:
-
-*   organization logos
-*   program cover images
-*   certificate visual assets
-*   public image transformations
-*   optimized media delivery
-
-Recommended separation:
-
-| Provider | Main Use |
-| --- | --- |
-| Clerk | Authentication and user identity |
-| Neon DB | PostgreSQL relational data |
-| Cloudflare R2 | Files, PDFs, private objects |
-| Cloudinary | Images, logos, media transformations |
-
----
-
-# 3\. System Overview
-
-## 3.1 System Type
-
-Skillmark is an:
-
-*   API-first backend platform
-*   multi-tenant SaaS backend
-*   university training platform
-*   assessment and certification backend
-*   organization-scoped permission system
-
----
-
-## 3.2 Architecture Style
-
-The system shall follow:
-
-*   modular monolith architecture
-*   RESTful API architecture
-*   multi-tenant architecture
-*   organization-scoped authorization
-*   program-scoped enrollment
-*   layered backend architecture
-*   database-backed persistence
-*   Clerk-based authentication
-*   cloud object storage abstraction
-
----
-
-## 3.3 Core Product Concept
-
-A **User** is an identity/account.
-
-A user must not be treated as globally `OWNER` or globally `PARTICIPANT`.
-
-Permissions are defined at the organization level through:
-
-```
-organization_memberships
-```
-
-not through:
-
-```
-users.role
-```
-
-A single user can:
-
-*   own one or more organizations
-*   be a participant in one or more organizations
-*   be OWNER in one organization
-*   be PARTICIPANT in another organization
-*   be enrolled in multiple programs
-*   have different permissions depending on the organization context
-
-Example:
-
-A user named Ahmad can be:
-
-*   OWNER of "Computer Science Club"
-*   PARTICIPANT in "AI Training Program"
-*   PARTICIPANT in "Java Bootcamp"
-
-All business permissions must be based on organization memberships and program enrollments.
-
----
-
-# 4\. User Types and Permissions
-
-## 4.1 User Type Summary
-
-The system supports four main user states/types:
-
-1.  Unauthenticated Visitor
-2.  Authenticated User
-3.  Organization Owner
-4.  Organization Participant / Program Participant
-
-Important note:
-
-`Organization Owner` and `Organization Participant` are not global user roles.
-
-They are organization-level roles stored in:
-
-```
-organization_memberships
-```
-
-Program access is controlled by:
-
-```
-program_enrollments
+1. Organizer creates a workspace
+2. Organizer creates a workshop
+3. Participants join using invite code
+4. Organizer adds learning materials
+5. Organizer creates an assessment
+6. Participants take the assessment
+7. System auto-grades and scores
+8. Qualified participants receive certificates
+9. Anyone can verify certificates publicly
 ```
 
 ---
 
-## 4.2 Unauthenticated Visitor
+# 2. Product Scope
 
-An unauthenticated visitor is not logged in.
+## 2.1 In Scope (MVP)
 
-Allowed actions:
+Core Features:
+- ✅ User authentication (Clerk)
+- ✅ Workspace management
+- ✅ Workshop creation & management
+- ✅ Participant enrollment via invite codes
+- ✅ Learning resources (links, files, videos)
+- ✅ Assessments (multiple choice quizzes)
+- ✅ Auto-grading & scoring
+- ✅ Certificate generation
+- ✅ Public certificate verification
+- ✅ Analytics & reports
+- ✅ Activity audit logs
 
-*   access public certificate verification
-*   view public verification result
+## 2.2 Out of Scope (Future)
 
-Not allowed:
-
-*   create organizations
-*   view private organizations
-*   join programs
-*   view private resources
-*   start quiz attempts
-*   submit quiz answers
-*   view private certificates
-*   manage members
-*   create programs
-*   create quizzes
-*   issue certificates
-
----
-
-## 4.3 Authenticated User
-
-An authenticated user is a user who has a valid Clerk session/token.
-
-Allowed actions:
-
-*   view own backend profile
-*   create organization
-*   become owner of created organization
-*   view accessible organizations
-*   join a program using a valid invitation link
-*   view own enrollments
-*   view own quiz attempts
-*   view own certificates
-
-Not allowed without permission:
-
-*   manage unrelated organizations
-*   access unrelated programs
-*   view private resources without enrollment
-*   manage quizzes without OWNER permission
-*   issue certificates without OWNER permission
+- ❌ Payment processing
+- ❌ Video hosting/streaming
+- ❌ Live classes/webinars
+- ❌ Discussion forums
+- ❌ Mobile apps
+- ❌ Marketplace/public discovery
+- ❌ AI-powered features
+- ❌ Advanced analytics dashboard
 
 ---
 
-## 4.4 Organization Owner
+# 3. Technology Stack
 
-An Organization Owner is a user who has OWNER permission in a specific organization.
-
-Ownership is represented by:
-
-*   `organizations.owner_id`
-*   `organization_memberships.role = OWNER`
-
-An owner can manage only owned organizations.
-
-Owner responsibilities:
-
-*   manage organization details
-*   manage organization members
-*   create programs/workshops
-*   manage programs/workshops
-*   create invitation links
-*   manually enroll participants
-*   manage program resources
-*   create quizzes
-*   add questions and options
-*   publish quizzes
-*   view attempts and results
-*   view statistics
-*   issue certificates
-*   revoke certificates
-*   manage organization files/media
-
----
-
-## 4.5 Organization Participant / Program Participant
-
-A participant is a user with PARTICIPANT membership in an organization and/or active enrollment in a program.
-
-Participant responsibilities:
-
-*   view organizations where they are a member
-*   join programs through invitation links
-*   view programs they are enrolled in
-*   view program resources
-*   view published quizzes in enrolled programs
-*   start quiz attempts
-*   submit quiz answers
-*   view own results
-*   view own certificates
-*   use public certificate verification
-
-Participants cannot:
-
-*   update organization details
-*   add/remove members
-*   create programs
-*   create resources
-*   create quizzes
-*   publish quizzes
-*   view unpublished quizzes
-*   submit attempts for another user
-*   issue/revoke certificates
-
----
-
-## 4.6 Permission Matrix
-
-| Feature | Visitor | Authenticated User | Organization Owner | Program Participant |
-| --- | --- | --- | --- | --- |
-| Public certificate verification | Yes | Yes | Yes | Yes |
-| View own profile | No | Yes | Yes | Yes |
-| Create organization | No | Yes | Yes | Yes |
-| Manage organization | No | No | Yes, owned only | No |
-| Add/remove members | No | No | Yes, owned only | No |
-| Create program/workshop | No | No | Yes, owned only | No |
-| Publish/archive program | No | No | Yes, owned only | No |
-| Create invitation link | No | No | Yes, owned only | No |
-| Join program by invitation | No | Yes | Yes | Yes |
-| View program resources | No | If enrolled | Yes, owned only | Yes, if enrolled |
-| Create resources | No | No | Yes, owned only | No |
-| Create quiz | No | No | Yes, owned only | No |
-| Publish quiz | No | No | Yes, owned only | No |
-| View published quiz | No | If enrolled | Yes | Yes, if enrolled |
-| Start attempt | No | If enrolled | If also enrolled | Yes |
-| Submit attempt | No | Own attempt only | Own attempt only if enrolled | Own attempt only |
-| View own attempts | No | Yes | Yes | Yes |
-| View all attempts | No | No | Yes, owned only | No |
-| Issue certificate | No | No | Yes, owned only | No |
-| Revoke certificate | No | No | Yes, owned only | No |
-| View own certificates | No | Yes | Yes | Yes |
-| View organization statistics | No | No | Yes, owned only | No |
-| View audit logs | No | No | Yes, owned only | No |
-
----
-
-# 5\. Functional Requirements
-
----
-
-## 5.1 Authentication and User Account Management
-
-### FR-1: Clerk Authentication
-
-The system shall use Clerk for authentication.
-
-Clerk handles:
-
-*   sign up
-*   login
-*   logout
-*   session management
-*   password reset
-*   email verification
-*   OAuth/social login if enabled later
-
-The backend shall verify Clerk tokens on protected endpoints.
-
----
-
-### FR-2: Clerk Token Verification Mechanism
-
-The backend shall verify Clerk-issued tokens using the following strategy:
+## 3.1 Backend
 
 ```
-1. Frontend sends Bearer token in Authorization header:
-   Authorization: Bearer <clerk_token>
-
-2. Backend extracts the token from the Authorization header.
-
-3. Backend fetches the JSON Web Key Set (JWKS) from the Clerk JWKS endpoint
-   configured via CLERK_JWKS_URL environment variable.
-
-4. Backend validates the token signature using the fetched public keys.
-
-5. Backend validates standard JWT claims:
-   - exp (not expired)
-   - iss (matches CLERK_ISSUER)
-   - nbf (not before, if present)
-
-6. Backend extracts clerkUserId from the token subject (sub) claim.
-
-7. Backend looks up local user by clerkUserId:
-   - If found: load user into SecurityContext
-   - If not found: auto-create local user from token claims, then load into SecurityContext
-
-8. Backend stores the resolved local user in the Spring SecurityContext
-   for use by controllers and services.
+Runtime:       Java 17+
+Framework:     Spring Boot 3.x
+Web:           Spring Web MVC
+Security:      Spring Security
+Data:          Spring Data JPA + Hibernate
+Validation:    Jakarta Validation
+Migration:     Flyway
+Documentation: OpenAPI 3 / Springdoc
+Testing:       JUnit 5, Testcontainers
 ```
 
-Implementation notes:
-
-*   Use a custom Spring Security `OncePerRequestFilter` to perform token verification.
-*   Use a JWT library such as `nimbus-jose-jwt` or `jjwt` for verification.
-*   Cache the JWKS response to avoid fetching on every request.
-*   Do not store raw tokens in the database.
-
----
-
-### FR-3: Clerk Webhook Integration
-
-The backend shall expose a Clerk webhook endpoint to receive user lifecycle events.
-
-Webhook endpoint:
+## 3.2 Infrastructure
 
 ```
-POST /api/v1/webhooks/clerk
+Authentication:  Clerk
+Database:        Neon (PostgreSQL 15+)
+Storage:         Cloudflare R2 (S3-compatible)
+Deployment:      Any cloud platform (AWS, GCP, Railway, Render)
 ```
 
-Supported Clerk webhook events:
+### Why These Choices?
 
-| Event | Backend Action |
-| --- | --- |
-| `user.created` | Create local user record if not exists |
-| `user.updated` | Update local user name, email, avatar |
-| `user.deleted` | Soft delete or deactivate local user |
-
-Webhook security:
-
-*   Verify the Clerk webhook signature on every incoming request.
-*   Use `CLERK_WEBHOOK_SECRET` environment variable.
-*   Reject requests with invalid or missing signatures with HTTP 401.
-*   Do not process webhook payloads without signature verification.
-
-Webhook reliability:
-
-*   Webhook processing must be idempotent.
-*   Duplicate events must not create duplicate users.
-*   Failed webhook processing must be logged.
+| Service | Reason |
+|---------|--------|
+| **Clerk** | Best-in-class auth, no custom password management |
+| **Neon** | Serverless Postgres, generous free tier, branching |
+| **Cloudflare R2** | Zero egress fees, S3-compatible, global CDN |
 
 ---
 
-### FR-4: Backend User Profile Sync
+# 4. Core Concepts & Terminology
 
-The backend shall maintain a local `users` table for domain data.
-
-The local user record shall be linked to Clerk using:
+## 4.1 Entity Model (Simplified)
 
 ```
-clerk_user_id
+User (managed by Clerk, synced locally)
+  └── Workspace (organization/institution)
+       └── Member (workspace membership with role)
+       └── Workshop (training program)
+            └── Enrollment (participant registration)
+            └── Resource (learning materials)
+            └── Assessment (quiz/test)
+                 └── Question
+                      └── Answer Option
+                 └── Submission (student attempt)
+                      └── Response (answers)
+                 └── Certificate
 ```
 
-User auto-creation strategy:
-
-```
-On first authenticated API request:
-1. Extract clerkUserId from verified token
-2. Look up local user by clerkUserId
-3. If not found: create local user from token claims (name, email, avatarUrl)
-4. If found: proceed normally
-5. Optionally update name/email/avatar if changed in token claims
-```
-
-The webhook strategy (FR-3) and the auto-creation strategy (FR-4) complement each other:
-
-*   Webhooks handle proactive sync for events like user deletion.
-*   Auto-creation handles the case where a user first hits the API before a webhook fires.
+**Total entities: 11** (vs 15+ in original)
 
 ---
 
-### FR-5: Current User Profile
+## 4.2 Simplified Terminology
 
-The system shall allow authenticated users to retrieve their own backend profile.
-
-```
-GET /api/v1/users/me
-```
-
-The response must not expose sensitive internal data or raw Clerk tokens.
-
----
-
-### FR-6: Auth Security
-
-Since Clerk handles password and session security, the backend shall not store:
-
-*   password hashes
-*   refresh token hashes
-*   password reset tokens
-*   email verification tokens
+| Old Term | New Term | Why? |
+|----------|----------|------|
+| Organization | **Workspace** | More modern, familiar from tools like Notion |
+| Program | **Workshop** | Clearer purpose, less corporate |
+| Quiz | **Assessment** | More professional terminology |
+| Attempt | **Submission** | Clearer action/noun |
+| InvitationLink | **Invite** | Simpler, shorter |
 
 ---
 
-## 5.2 Organization Management
+# 5. User Roles & Permissions
 
-### FR-7: Create Organization
+## 5.1 Role Model (Simplified)
 
-Any authenticated user can create an organization.
+Instead of complex organization + program permissions, we use **workspace-level roles**:
 
-When a user creates an organization:
+### Roles
 
-*   create organization record
-*   set `owner_id` to current local user
-*   create organization membership row with role OWNER and status ACTIVE
+| Role | Description |
+|------|-------------|
+| **ADMIN** | Workspace owner, full control |
+| **INSTRUCTOR** | Can create workshops & assessments |
+| **MEMBER** | Can enroll in workshops, take assessments |
 
----
+### Permission Matrix
 
-### FR-8: View Accessible Organizations
-
-Users can view only organizations where they are active members or owners.
-
----
-
-### FR-9: View Organization Details
-
-Organization owners and active members can view organization details.
-
-Unrelated users shall receive HTTP 404, not HTTP 403, to avoid leaking the existence of the organization.
-
----
-
-### FR-10: Update Organization
-
-Only organization owner can update organization details.
+| Action | ADMIN | INSTRUCTOR | MEMBER |
+|--------|-------|------------|--------|
+| Manage workspace | ✅ | ❌ | ❌ |
+| Invite members | ✅ | ✅ | ❌ |
+| Create workshops | ✅ | ✅ | ❌ |
+| Create assessments | ✅ | ✅ | ❌ |
+| Issue certificates | ✅ | ✅ | ❌ |
+| Enroll in workshops | ✅ | ✅ | ✅ |
+| Take assessments | ✅ | ✅ | ✅ |
+| View own certificates | ✅ | ✅ | ✅ |
 
 ---
 
-### FR-11: Disable or Delete Organization
+## 5.2 Access Control Rules
 
-Only organization owner can disable or soft delete organization.
+### Workspace-level
+- Users can only access workspaces where they are members
+- Users can be members of multiple workspaces with different roles
 
-Soft delete rules:
+### Workshop-level
+- Only enrolled members can access workshop content
+- Instructors/Admins have automatic access to their workspace's workshops
 
-*   Set `deletedAt` timestamp.
-*   Exclude soft deleted organizations from all list responses.
-*   Preserve all historical programs, enrollments, attempts, and certificates.
-*   Soft deleted organizations cannot be recovered in the MVP.
+### Resource-level
+- Resources inherit workshop access control
+- Admins can hide resources from members
 
----
-
-## 5.3 Organization Membership Management
-
-### FR-12: Add Organization Member
-
-Only organization owner can add users as PARTICIPANT members.
-
-Required fields when adding a member:
-
-*   `userId` (must exist in local backend users table)
-
-Membership record must capture:
-
-*   `invitedBy` (the owner who added this member)
-*   `joinedAt` (timestamp of membership creation)
+### Assessment-level
+- Only published assessments are visible to members
+- Members can only submit their own assessment attempts
 
 ---
 
-### FR-13: List Organization Members
+# 6. Data Model
 
-Only organization owner can list organization members.
+## 6.1 User
 
----
+```sql
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    clerk_id VARCHAR(255) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    full_name VARCHAR(255) NOT NULL,
+    avatar_url TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 
-### FR-14: Remove Organization Member
-
-Only organization owner can remove or disable a member.
-
-Membership record must capture:
-
-*   `removedBy` (the owner who removed this member)
-*   `removedAt` (timestamp of removal)
-
-Removed members lose access to protected organization data.
-
-Historical attempts and certificates must remain preserved.
-
----
-
-### FR-15: Membership Roles
-
-Current roles:
-
-*   OWNER
-*   PARTICIPANT
-
-Future roles (out of scope for MVP):
-
-*   INSTRUCTOR
-*   MANAGER
-*   REVIEWER
-
----
-
-## 5.4 Program / Workshop Management
-
-### FR-16: Create Program
-
-Only organization owner can create a program under an owned organization.
-
-Program fields:
-
-*   organizationId
-*   title
-*   description
-*   coverImageUrl
-*   startDate
-*   endDate
-*   status
-*   isPublished (backward-compatible response field derived from `status == PUBLISHED`)
-
-Program publishing state rule:
-
-*   `status` is the single source of truth.
-*   Valid program statuses are `DRAFT`, `PUBLISHED`, and `ARCHIVED`.
-*   `isPublished` must not be treated as an independent state. If present in DTOs or legacy database columns, it must be derived from `status == PUBLISHED`.
-
----
-
-### FR-17: Update Program
-
-Only organization owner can update a program.
-
----
-
-### FR-18: Publish Program
-
-Only organization owner can publish a program.
-
-```
-PATCH /api/v1/programs/{programId}/status
-Body: { "status": "PUBLISHED" }
+CREATE INDEX idx_users_clerk_id ON users(clerk_id);
+CREATE INDEX idx_users_email ON users(email);
 ```
 
-A published program is visible to enrolled participants.
+**Notes:**
+- `clerk_id` links to Clerk user identity
+- Local copy maintained via webhook sync
+- No password/auth fields (handled by Clerk)
 
 ---
 
-### FR-19: Archive Program
+## 6.2 Workspace
 
-Only organization owner can archive a program.
+```sql
+CREATE TABLE workspaces (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(100) UNIQUE NOT NULL,
+    description TEXT,
+    logo_url TEXT,
+    created_by UUID NOT NULL REFERENCES users(id),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 
-```
-PATCH /api/v1/programs/{programId}/status
-Body: { "status": "ARCHIVED" }
-```
-
-Archived program rules:
-
-*   Preserve all enrollments, resources, quizzes, attempts, and certificates.
-*   No new enrollments allowed on archived programs.
-*   No new attempts allowed on quizzes in archived programs.
-
----
-
-### FR-20: View Programs
-
-Owners can view all programs in owned organizations.
-
-Participants can view programs they are enrolled in.
-
----
-
-## 5.5 Program Enrollment
-
-### FR-21: Manual Enrollment
-
-Organization owner can manually enroll a user into a program.
-
-The user must exist in the backend users table.
-
-Duplicate active enrollment must be prevented and return HTTP 409.
-
----
-
-### FR-22: Join Program by Invitation
-
-Authenticated users can join a program using a valid invitation code.
-
-The system must check:
-
-*   invitation exists
-*   invitation status is ACTIVE
-*   invitation is not expired
-*   usage limit is not exceeded
-*   program is joinable (not archived)
-*   duplicate active enrollment does not exist
-
-The join operation must be transactional and concurrency-safe. The invitation row must be locked or updated atomically so the check and increment of `usedCount` cannot allow `usedCount` to exceed `maxUses` under concurrent joins.
-
-On success:
-
-*   increment invitation `usedCount`
-*   create program enrollment record
-*   add user as PARTICIPANT organization member if not already a member
-
----
-
-### FR-23: View Own Enrollments
-
-Participants can view their own enrolled programs.
-
----
-
-### FR-24: Owner View Program Enrollments
-
-Organization owners can view enrollments for owned programs.
-
----
-
-## 5.6 Invitation Links
-
-### FR-25: Create Invitation Link
-
-Only organization owner can create invitation links for owned programs.
-
-Invitation fields:
-
-*   organizationId
-*   programId
-*   code
-*   description (optional note about the invitation)
-*   maxUses
-*   usedCount
-*   expiresAt
-*   status
-*   createdBy
-*   createdAt
-*   disabledAt
-
-Invitation code format:
-
-```
-- 12-character random alphanumeric string
-- Uppercase only
-- Example: A3FX9KL2MN8P
-- Generated using SecureRandom
-- Uniqueness verified at generation time
-- Case-insensitive comparison on lookup
+CREATE INDEX idx_workspaces_slug ON workspaces(slug);
+CREATE INDEX idx_workspaces_created_by ON workspaces(created_by);
 ```
 
----
-
-### FR-26: Disable Invitation Link
-
-Only organization owner can disable an invitation link.
-
-```
-PATCH /api/v1/invitations/{invitationId}/status
-Body: { "status": "DISABLED" }
-```
+**Notes:**
+- `slug` is URL-friendly identifier (e.g., "cs-club")
+- Creator automatically becomes ADMIN
 
 ---
 
-### FR-27: List Invitation Links
+## 6.3 Member
 
-Only organization owner can list invitation links for owned programs.
+```sql
+CREATE TABLE members (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role VARCHAR(20) NOT NULL CHECK (role IN ('ADMIN', 'INSTRUCTOR', 'MEMBER')),
+    joined_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    
+    UNIQUE(workspace_id, user_id)
+);
 
----
-
-## 5.7 Program Resources
-
-### FR-28: Create Program Resource
-
-Only organization owner can add resources to a program.
-
-Supported resource types:
-
-*   LINK
-*   FILE
-*   IMAGE
-*   VIDEO\_LINK
-
-Storage rules:
-
-*   LINK resources store an external URL.
-*   FILE resources may be uploaded to Cloudflare R2.
-*   IMAGE resources may be uploaded to Cloudinary.
-*   Public media URLs or object keys shall be stored in the database.
-
----
-
-### FR-29: View Program Resources
-
-Program resources can be viewed by:
-
-*   organization owner
-*   active enrolled participants
-
-Unenrolled users shall receive HTTP 404.
-
-Visibility rule:
-
-*   Resources marked `visibleToParticipants = false` are excluded from participant responses and direct access.
-
----
-
-### FR-30: Update Program Resource
-
-Only organization owner can update resource details.
-
-Owners can also toggle resource visibility without archiving.
-
----
-
-### FR-31: Archive/Delete Program Resource
-
-Only organization owner can archive or delete resources.
-
-Do not hard-delete storage files unless explicitly required.
-
----
-
-### FR-32: File Upload Abstraction
-
-The backend shall include a storage abstraction:
-
-```
-StorageService (interface)
-  → R2StorageService (implementation)
-  → CloudinaryMediaService (implementation)
+CREATE INDEX idx_members_workspace ON members(workspace_id);
+CREATE INDEX idx_members_user ON members(user_id);
 ```
 
-Business logic and controllers shall not depend on vendor-specific SDKs directly.
+**Notes:**
+- One membership per user per workspace
+- Cascade delete when workspace or user is deleted
 
 ---
 
-## 5.8 Quiz Management
+## 6.4 Workshop
 
-### FR-33: Create Quiz
+```sql
+CREATE TABLE workshops (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    cover_image_url TEXT,
+    status VARCHAR(20) NOT NULL DEFAULT 'DRAFT' 
+        CHECK (status IN ('DRAFT', 'PUBLISHED', 'ARCHIVED')),
+    starts_at TIMESTAMP,
+    ends_at TIMESTAMP,
+    created_by UUID NOT NULL REFERENCES users(id),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 
-Only organization owner can create quizzes under owned programs.
-
-Quiz fields:
-
-*   programId
-*   title
-*   description
-*   passingScore
-*   durationMinutes
-*   maxAttempts
-*   certificateEnabled
-*   certificateIssueMode (AUTO or MANUAL)
-*   visibleToParticipants (default true)
-*   status
-*   isPublished (backward-compatible response field derived from `status == PUBLISHED`)
-
-Quiz publishing state rule:
-
-*   `status` is the single source of truth.
-*   Valid quiz statuses are `DRAFT`, `PUBLISHED`, and `ARCHIVED`.
-*   `isPublished` must not be treated as an independent state. If present in DTOs or legacy database columns, it must be derived from `status == PUBLISHED`.
-
----
-
-### FR-34: Add Quiz Questions
-
-Only organization owner can add questions to quizzes.
-
-Current MVP supports:
-
-*   SINGLE\_CHOICE
-
-Future (out of scope for MVP):
-
-*   TRUE\_FALSE
-*   MULTIPLE\_CHOICE
-*   SHORT\_ANSWER
-*   CODING\_QUESTION
-
----
-
-### FR-35: Update Quiz Question
-
-Only organization owner can update a quiz question.
-
-Historical attempt protection:
-
-*   If a quiz has no submitted attempts, owners may update questions and options according to validation rules.
-*   If a quiz has submitted attempts, destructive question/option edits must be rejected or implemented with a safe strategy such as versioning or archiving.
-*   The MVP rejects destructive question/option changes after submitted attempts exist.
-*   Existing attempt answers must remain historically valid.
-*   Questions or options referenced by attempt answers must not be physically deleted.
-
----
-
-### FR-36: Delete Quiz Question
-
-Only organization owner can delete a quiz question. Deletion is allowed only while the quiz has no submitted attempts; after submitted attempts exist, deletion must be rejected or handled through a non-destructive archival/versioning strategy.
-
----
-
-### FR-37: Add Quiz Options
-
-Only organization owner can add answer options to questions.
-
-A SINGLE\_CHOICE question must have exactly one correct answer before publishing.
-
----
-
-### FR-38: Update Quiz Option
-
-Only organization owner can update a quiz option. Updates are allowed only while the quiz has no submitted attempts.
-
----
-
-### FR-39: Delete Quiz Option
-
-Only organization owner can delete a quiz option. Physical deletion is allowed only while the quiz has no submitted attempts and the option is not referenced by attempt answers.
-
----
-
-### FR-40: Publish Quiz
-
-Only organization owner can publish a quiz.
-
-```
-PATCH /api/v1/quizzes/{quizId}/status
-Body: { "status": "PUBLISHED" }
+CREATE INDEX idx_workshops_workspace ON workshops(workspace_id);
+CREATE INDEX idx_workshops_status ON workshops(status);
 ```
 
-A quiz cannot be published unless:
-
-*   it has at least one question
-*   every question has at least two options
-*   every SINGLE\_CHOICE question has exactly one correct option
-*   passingScore is between 1 and 100
-*   maxAttempts is at least 1
-*   durationMinutes is at least 1
+**Notes:**
+- Single `status` field (no duplicate isPublished)
+- Optional scheduling with starts_at/ends_at
 
 ---
 
-### FR-41: View Quizzes
+## 6.5 Enrollment
 
-Owners can view all quizzes in owned programs.
+```sql
+CREATE TABLE enrollments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workshop_id UUID NOT NULL REFERENCES workshops(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    enrolled_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP,
+    
+    UNIQUE(workshop_id, user_id)
+);
 
-Participants can view published quizzes that are visible to participants in enrolled programs only.
-
----
-
-### FR-42: Archive or Delete Quiz
-
-Only organization owner can archive or soft delete a quiz.
-
-Historical attempts and certificates must remain consistent after archiving.
-
----
-
-## 5.9 Quiz Attempt Management
-
-### FR-43: Start Quiz Attempt
-
-An enrolled participant can start an attempt for a published quiz.
-
-The system must enforce:
-
-*   user is enrolled in the quiz program
-*   quiz is published and active
-*   quiz is visible to participants
-*   max attempts limit is not exceeded
-*   no currently active (in-progress) attempt exists for this user and quiz
-
-On attempt creation:
-
-*   record `startedAt` as current timestamp
-*   record `expiresAt` as `startedAt + quiz.durationMinutes`
-*   record `attemptNumber` as the count of previous attempts + 1
-*   set status to IN\_PROGRESS
-
----
-
-### FR-44: Submit Quiz Attempt
-
-The system shall allow users to submit answers for their own in-progress quiz attempts.
-
-Submission rules:
-
-*   Backend shall reject submissions if `current time > attempt.expiresAt`.
-*   The client must never send or control the final score.
-
-The backend shall calculate:
-
-*   points awarded per question
-*   total score
-*   score percentage
-*   pass/fail result based on `quiz.passingScore`
-*   `submittedAt` timestamp
-
-After calculation:
-
-*   set attempt status to SUBMITTED
-*   store score results on attempt record
-
----
-
-### FR-45: AUTO Certificate Issuance Flow
-
-When `quiz.certificateIssueMode = AUTO` and the attempt passes:
-
-```
-1. User submits attempt.
-2. Backend calculates score.
-3. Score >= passingScore AND certificateIssueMode = AUTO:
-   a. Check for duplicate active certificate (same user + quiz + ACTIVE status).
-   b. If no duplicate exists: issue certificate synchronously.
-   c. Return attempt result response with certificate reference included.
-4. If certificate issuance fails:
-   a. Log the error.
-   b. Return attempt result without certificate reference.
-   c. Do NOT fail or roll back the attempt submission.
+CREATE INDEX idx_enrollments_workshop ON enrollments(workshop_id);
+CREATE INDEX idx_enrollments_user ON enrollments(user_id);
 ```
 
----
-
-### FR-46: Prevent Invalid Submissions
-
-The system shall reject:
-
-*   submissions for another user's attempt (HTTP 403)
-*   submissions for already submitted attempts (HTTP 409)
-*   submissions received after `attempt.expiresAt` (HTTP 422)
-*   answers using options from another quiz (HTTP 422)
-*   answers using questions from another quiz (HTTP 422)
-*   attempts for archived or unpublished quizzes (HTTP 422)
-*   attempts exceeding `quiz.maxAttempts` (HTTP 422)
+**Notes:**
+- Simple enrollment tracking
+- `completed_at` set when certificate issued
 
 ---
 
-### FR-47: View Attempts
+## 6.6 Invite
 
-Participants can view their own attempts.
+```sql
+CREATE TABLE invites (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    workshop_id UUID REFERENCES workshops(id) ON DELETE CASCADE,
+    code VARCHAR(12) UNIQUE NOT NULL,
+    role VARCHAR(20) NOT NULL DEFAULT 'MEMBER',
+    max_uses INT,
+    uses_count INT NOT NULL DEFAULT 0,
+    expires_at TIMESTAMP,
+    created_by UUID NOT NULL REFERENCES users(id),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 
-Owners can view all attempts for quizzes in their owned programs.
-
----
-
-## 5.10 Certificate Management
-
-### FR-48: Issue Certificate
-
-Certificates may be issued:
-
-*   automatically after a passing attempt if `certificateIssueMode = AUTO`
-*   manually by organization owner if `certificateIssueMode = MANUAL`
-
----
-
-### FR-49: Certificate Eligibility
-
-A certificate can only be issued if:
-
-*   target user exists
-*   target user is actively enrolled in the program
-*   target user has a submitted passing attempt
-*   no duplicate active certificate exists for the same user and quiz
-
----
-
-### FR-50: Certificate Number
-
-The system shall generate a unique human-readable certificate number.
-
-Format:
-
-```
-CERT-{YEAR}-{RANDOM_8_ALPHANUMERIC}
-Example: CERT-2024-AX93KL2P
+CREATE UNIQUE INDEX idx_invites_code ON invites(code);
+CREATE INDEX idx_invites_workspace ON invites(workspace_id);
 ```
 
----
-
-### FR-51: Verification Code
-
-The system shall generate a unique verification code.
-
-Format:
-
-```
-- 16-character random alphanumeric string
-- Uppercase only
-- Generated using SecureRandom
-- Example: A3FX9KL2MN8PQR7Z
-```
+**Notes:**
+- If `workshop_id` is NULL, invite is for workspace membership
+- If `workshop_id` is set, invite enrolls user in specific workshop
+- Code format: 12 chars, uppercase alphanumeric (e.g., `A3FX9KL2MN8P`)
 
 ---
 
-### FR-52: Certificate Verification URL
+## 6.7 Resource
 
-The QR code embedded in a certificate shall encode a public verification URL.
+```sql
+CREATE TABLE resources (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workshop_id UUID NOT NULL REFERENCES workshops(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    type VARCHAR(20) NOT NULL CHECK (type IN ('LINK', 'FILE', 'VIDEO', 'DOCUMENT')),
+    url TEXT NOT NULL,
+    storage_key TEXT,
+    file_size BIGINT,
+    mime_type VARCHAR(100),
+    position INT NOT NULL DEFAULT 0,
+    is_visible BOOLEAN NOT NULL DEFAULT TRUE,
+    created_by UUID NOT NULL REFERENCES users(id),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 
-Format:
-
-```
-https://{APP_CERTIFICATE_VERIFY_BASE_URL}/verify/{verificationCode}
-
-Example:
-https://verify.skillmark.io/verify/A3FX9KL2MN8PQR7Z
-```
-
-The backend API verifies certificates via:
-
-```
-GET /api/v1/public/certificates/verify/{verificationCode}
+CREATE INDEX idx_resources_workshop ON resources(workshop_id);
+CREATE INDEX idx_resources_position ON resources(workshop_id, position);
 ```
 
-This endpoint is public and requires no authentication.
+**Notes:**
+- `url` is either external URL or generated R2 URL
+- `storage_key` is R2 object key for uploaded files
+- `position` for ordering
 
 ---
 
-### FR-53: Certificate Snapshots
+## 6.8 Assessment
 
-The system shall store snapshot values at issuance time:
+```sql
+CREATE TABLE assessments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workshop_id UUID NOT NULL REFERENCES workshops(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    instructions TEXT,
+    passing_score INT NOT NULL CHECK (passing_score BETWEEN 0 AND 100),
+    duration_minutes INT NOT NULL CHECK (duration_minutes > 0),
+    max_attempts INT NOT NULL DEFAULT 3 CHECK (max_attempts > 0),
+    status VARCHAR(20) NOT NULL DEFAULT 'DRAFT' 
+        CHECK (status IN ('DRAFT', 'PUBLISHED', 'ARCHIVED')),
+    auto_issue_certificate BOOLEAN NOT NULL DEFAULT TRUE,
+    created_by UUID NOT NULL REFERENCES users(id),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 
-*   participantNameSnapshot
-*   quizTitleSnapshot
-*   programTitleSnapshot
-*   organizationNameSnapshot
-
-This preserves certificate accuracy even if names change after issuance.
-
----
-
-### FR-54: Certificate PDF and QR Support
-
-Certificates shall support:
-
-*   pdfUrl
-*   pdfObjectKey
-*   qrCodeUrl
-*   qrCodeObjectKey
-
-Recommended storage:
-
-*   certificate PDFs in Cloudflare R2
-*   QR code images in Cloudflare R2 or Cloudinary
-
-The first MVP may store metadata only and generate actual files in a later phase.
-
----
-
-### FR-55: View Own Certificates
-
-Users can view their own certificates.
-
----
-
-### FR-56: View Organization Certificates
-
-Organization owners can view all certificates issued under owned organizations.
-
----
-
-### FR-57: Public Certificate Verification
-
-The system shall provide a public endpoint to verify certificates by verification code.
-
-```
-GET /api/v1/public/certificates/verify/{verificationCode}
+CREATE INDEX idx_assessments_workshop ON assessments(workshop_id);
+CREATE INDEX idx_assessments_status ON assessments(status);
 ```
 
-Public response must not expose sensitive user data.
-
-Required public response fields:
-
-*   certificateStatus
-*   participantNameSnapshot
-*   quizTitleSnapshot
-*   programTitleSnapshot
-*   organizationNameSnapshot
-*   issuedAt
-*   isRevoked
-*   revokedAt (if revoked)
-*   revokeReason (if revoked)
+**Notes:**
+- `auto_issue_certificate` replaces complex certificateIssueMode
+- Single status field
 
 ---
 
-### FR-58: Revoke Certificate
+## 6.9 Question
 
-Only organization owner can revoke certificates issued under owned organization.
+```sql
+CREATE TABLE questions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    assessment_id UUID NOT NULL REFERENCES assessments(id) ON DELETE CASCADE,
+    text TEXT NOT NULL,
+    explanation TEXT,
+    points INT NOT NULL DEFAULT 1 CHECK (points > 0),
+    position INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 
-Revoked certificates must remain historically visible and verifiable as REVOKED.
-
----
-
-## 5.11 Statistics
-
-### FR-59: Organization Statistics
-
-Organization owner can view statistics:
-
-*   total programs
-*   total members
-*   total enrolled participants
-*   total quizzes
-*   total attempts
-*   total certificates issued
-*   average score across all quizzes
-*   overall pass rate
-
----
-
-### FR-60: Program Statistics
-
-Organization owner can view program statistics:
-
-*   enrolled participants count
-*   resources count
-*   quizzes count
-*   attempts count
-*   passed participants count
-*   certificates issued count
-*   average score
-
----
-
-### FR-61: Quiz Statistics
-
-Organization owner can view quiz statistics:
-
-*   total attempts count
-*   submitted attempts count
-*   average score
-*   highest score
-*   lowest score
-*   pass count
-*   fail count
-*   pass rate percentage
-
----
-
-## 5.12 Audit Logging
-
-### FR-62: Audit Sensitive Actions
-
-The system shall record audit logs for the following actions:
-
-*   organization created
-*   organization updated
-*   organization deleted
-*   member added
-*   member removed
-*   program created
-*   program updated
-*   program published
-*   program archived
-*   invitation created
-*   invitation disabled
-*   user joined program via invitation
-*   user manually enrolled in program
-*   resource created
-*   resource updated
-*   resource archived
-*   quiz created
-*   quiz updated
-*   quiz published
-*   quiz archived
-*   attempt started
-*   attempt submitted
-*   certificate issued
-*   certificate revoked
-
----
-
-### FR-63: Audit Metadata
-
-Audit log fields:
-
-*   id
-*   actorUserId
-*   organizationId
-*   action
-*   entityType
-*   entityId
-*   ipAddress
-*   userAgent
-*   metadata (JSON, optional additional context)
-*   createdAt
-
-Audit logs must never be soft deleted.
-
-Audit metadata must not include:
-
-*   raw Clerk tokens
-*   secrets
-*   private API keys
-*   sensitive authentication data
-
----
-
-### FR-64: Audit Log Access
-
-Organization owners can view audit logs for their own organizations.
-
-```
-GET /api/v1/organizations/{organizationId}/audit-logs
+CREATE INDEX idx_questions_assessment ON questions(assessment_id);
+CREATE INDEX idx_questions_position ON questions(assessment_id, position);
 ```
 
-Audit log list endpoints must support pagination.
-
-Unauthenticated users cannot access audit logs.
-
-Non-owner members cannot access audit logs.
+**Notes:**
+- MVP supports multiple-choice only
+- Future: add `type` field for other question types
 
 ---
 
-# 6\. Data Model
+## 6.10 Answer
 
-## 6.1 Primary Entities
+```sql
+CREATE TABLE answers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    question_id UUID NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
+    text TEXT NOT NULL,
+    is_correct BOOLEAN NOT NULL DEFAULT FALSE,
+    position INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 
-*   User
-*   Organization
-*   OrganizationMembership
-*   Program
-*   ProgramEnrollment
-*   InvitationLink
-*   ProgramResource
-*   Quiz
-*   QuizQuestion
-*   QuizOption
-*   QuizAttempt
-*   QuizAttemptAnswer
-*   Certificate
-*   AuditLog
-
-Optional storage metadata entities (may be deferred):
-
-*   StoredFile
-*   MediaAsset
-
----
-
-## 6.2 Removed/Deprecated Auth Entities
-
-Because Skillmark uses Clerk, the backend MVP shall not implement:
-
-*   RefreshToken
-*   EmailVerificationToken
-*   PasswordResetToken
-
----
-
-## 6.3 User Entity
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| id | UUID | Primary key |
-| clerkUserId | String | Unique, indexed |
-| name | String |   |
-| email | String | Unique, indexed |
-| avatarUrl | String | Nullable |
-| status | Enum | ACTIVE, INACTIVE, DELETED |
-| createdAt | Timestamp |   |
-| updatedAt | Timestamp |   |
-
----
-
-## 6.4 Organization Entity
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| id | UUID | Primary key |
-| name | String |   |
-| description | String | Nullable |
-| ownerId | UUID | FK to users |
-| logoUrl | String | Nullable |
-| status | Enum | ACTIVE, DISABLED |
-| createdAt | Timestamp |   |
-| updatedAt | Timestamp |   |
-| deletedAt | Timestamp | Nullable, soft delete |
-
----
-
-## 6.5 OrganizationMembership Entity
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| id | UUID | Primary key |
-| organizationId | UUID | FK to organizations |
-| userId | UUID | FK to users |
-| role | Enum | OWNER, PARTICIPANT |
-| status | Enum | ACTIVE, REMOVED |
-| invitedBy | UUID | FK to users, nullable |
-| joinedAt | Timestamp |   |
-| removedBy | UUID | FK to users, nullable |
-| removedAt | Timestamp | Nullable |
-
-Unique constraint: `(organizationId, userId)` where status = ACTIVE.
-
----
-
-## 6.6 Program Entity
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| id | UUID | Primary key |
-| organizationId | UUID | FK to organizations |
-| title | String |   |
-| description | String | Nullable |
-| coverImageUrl | String | Nullable |
-| status | Enum | DRAFT, PUBLISHED, ARCHIVED |
-| isPublished | Boolean | Compatibility field/column derived from `status = PUBLISHED`; not an independent state |
-| startDate | Date | Nullable |
-| endDate | Date | Nullable |
-| createdAt | Timestamp |   |
-| updatedAt | Timestamp |   |
-| deletedAt | Timestamp | Nullable, soft delete |
-
----
-
-## 6.7 ProgramEnrollment Entity
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| id | UUID | Primary key |
-| programId | UUID | FK to programs |
-| userId | UUID | FK to users |
-| status | Enum | ACTIVE, COMPLETED, REMOVED |
-| enrolledAt | Timestamp |   |
-| completedAt | Timestamp | Nullable |
-| removedAt | Timestamp | Nullable |
-
-Unique constraint: `(programId, userId)` where status = ACTIVE.
-
----
-
-## 6.8 InvitationLink Entity
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| id | UUID | Primary key |
-| organizationId | UUID | FK to organizations |
-| programId | UUID | FK to programs |
-| code | String | Unique, indexed, 12-char uppercase alphanumeric |
-| description | String | Nullable |
-| maxUses | Integer | Nullable, null means unlimited |
-| usedCount | Integer | Default 0 |
-| expiresAt | Timestamp | Nullable |
-| status | Enum | ACTIVE, DISABLED |
-| createdBy | UUID | FK to users |
-| createdAt | Timestamp |   |
-| disabledAt | Timestamp | Nullable |
-
-Concurrency rule: invitation joins must lock the invitation row, use optimistic locking, or use an atomic conditional update so `usedCount` never exceeds `maxUses`. Duplicate active enrollments still return HTTP 409.
-
----
-
-## 6.9 ProgramResource Entity
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| id | UUID | Primary key |
-| programId | UUID | FK to programs |
-| title | String |   |
-| description | String | Nullable |
-| type | Enum | LINK, FILE, IMAGE, VIDEO\_LINK |
-| url | String | Nullable |
-| storageProvider | Enum | R2, CLOUDINARY, EXTERNAL, Nullable |
-| objectKey | String | Nullable |
-| status | Enum | ACTIVE, ARCHIVED |
-| visibleToParticipants | Boolean | Default true |
-| position | Integer | Display order |
-| createdBy | UUID | FK to users |
-| createdAt | Timestamp |   |
-| updatedAt | Timestamp |   |
-
----
-
-## 6.10 Quiz Entity
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| id | UUID | Primary key |
-| programId | UUID | FK to programs |
-| title | String |   |
-| description | String | Nullable |
-| passingScore | Integer | 1–100 |
-| durationMinutes | Integer | Minimum 1 |
-| maxAttempts | Integer | Minimum 1 |
-| certificateEnabled | Boolean |   |
-| certificateIssueMode | Enum | AUTO, MANUAL |
-| status | Enum | DRAFT, PUBLISHED, ARCHIVED |
-| isPublished | Boolean | Compatibility field/column derived from `status = PUBLISHED`; not an independent state |
-| visibleToParticipants | Boolean | Default true |
-| createdAt | Timestamp |   |
-| updatedAt | Timestamp |   |
-| deletedAt | Timestamp | Nullable, soft delete |
-
----
-
-## 6.11 QuizQuestion Entity
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| id | UUID | Primary key |
-| quizId | UUID | FK to quizzes |
-| text | String |   |
-| type | Enum | SINGLE\_CHOICE |
-| points | Integer | Default 1 |
-| position | Integer | Display order |
-| createdAt | Timestamp |   |
-| updatedAt | Timestamp |   |
-
----
-
-## 6.12 QuizOption Entity
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| id | UUID | Primary key |
-| questionId | UUID | FK to quiz\_questions |
-| text | String |   |
-| isCorrect | Boolean |   |
-| position | Integer | Display order |
-| createdAt | Timestamp |   |
-| updatedAt | Timestamp |   |
-
----
-
-## 6.13 QuizAttempt Entity
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| id | UUID | Primary key |
-| quizId | UUID | FK to quizzes |
-| userId | UUID | FK to users |
-| attemptNumber | Integer | Which attempt this is (1, 2, 3...) |
-| status | Enum | IN\_PROGRESS, SUBMITTED, EXPIRED |
-| startedAt | Timestamp | When attempt was started |
-| expiresAt | Timestamp | startedAt + quiz.durationMinutes |
-| submittedAt | Timestamp | Nullable |
-| totalPoints | Integer | Nullable, calculated on submit |
-| earnedPoints | Integer | Nullable, calculated on submit |
-| scorePercentage | Decimal | Nullable, calculated on submit |
-| isPassed | Boolean | Nullable, calculated on submit |
-| createdAt | Timestamp |   |
-| updatedAt | Timestamp |   |
-
----
-
-## 6.14 QuizAttemptAnswer Entity
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| id | UUID | Primary key |
-| attemptId | UUID | FK to quiz\_attempts |
-| questionId | UUID | FK to quiz\_questions |
-| selectedOptionId | UUID | FK to quiz\_options, nullable |
-| isCorrect | Boolean | Nullable, set on submission |
-| pointsAwarded | Integer | Nullable, set on submission |
-| createdAt | Timestamp |   |
-
----
-
-## 6.15 Certificate Entity
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| id | UUID | Primary key |
-| certificateNumber | String | Unique, format: CERT-{YEAR}-{8\_CHARS} |
-| verificationCode | String | Unique, indexed, 16-char uppercase alphanumeric |
-| organizationId | UUID | FK to organizations |
-| programId | UUID | FK to programs |
-| quizId | UUID | FK to quizzes |
-| userId | UUID | FK to users |
-| attemptId | UUID | FK to quiz\_attempts |
-| title | String |   |
-| participantNameSnapshot | String |   |
-| quizTitleSnapshot | String |   |
-| programTitleSnapshot | String |   |
-| organizationNameSnapshot | String |   |
-| status | Enum | ACTIVE, REVOKED |
-| issuedAt | Timestamp |   |
-| revokedAt | Timestamp | Nullable |
-| revokeReason | String | Nullable |
-| pdfUrl | String | Nullable |
-| pdfObjectKey | String | Nullable |
-| qrCodeUrl | String | Nullable |
-| qrCodeObjectKey | String | Nullable |
-| createdAt | Timestamp |   |
-| updatedAt | Timestamp |   |
-
----
-
-## 6.16 AuditLog Entity
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| id | UUID | Primary key |
-| actorUserId | UUID | FK to users, nullable (system actions) |
-| organizationId | UUID | FK to organizations, nullable |
-| action | String | e.g. CERTIFICATE\_ISSUED |
-| entityType | String | e.g. Certificate |
-| entityId | UUID | Nullable |
-| ipAddress | String | Nullable |
-| userAgent | String | Nullable |
-| metadata | JSONB | Nullable, additional context |
-| createdAt | Timestamp | Never updated or deleted |
-
----
-
-## 6.17 Database Indexes
-
-The following indexes shall be created via Flyway migrations:
-
-```
--- Users
-CREATE UNIQUE INDEX idx_users_clerk_user_id ON users(clerk_user_id);
-CREATE UNIQUE INDEX idx_users_email ON users(email);
-
--- Organization Memberships
-CREATE INDEX idx_org_memberships_user_id ON organization_memberships(user_id);
-CREATE INDEX idx_org_memberships_org_id ON organization_memberships(organization_id);
-
--- Program Enrollments
-CREATE INDEX idx_program_enrollments_user_id ON program_enrollments(user_id);
-CREATE INDEX idx_program_enrollments_program_id ON program_enrollments(program_id);
-
--- Invitation Links
-CREATE UNIQUE INDEX idx_invitation_links_code ON invitation_links(code);
-
--- Quiz Attempts
-CREATE INDEX idx_quiz_attempts_user_id ON quiz_attempts(user_id);
-CREATE INDEX idx_quiz_attempts_quiz_id ON quiz_attempts(quiz_id);
-
--- Certificates
-CREATE UNIQUE INDEX idx_certificates_verification_code ON certificates(verification_code);
-CREATE UNIQUE INDEX idx_certificates_certificate_number ON certificates(certificate_number);
-CREATE INDEX idx_certificates_user_id ON certificates(user_id);
-CREATE INDEX idx_certificates_organization_id ON certificates(organization_id);
-
--- Audit Logs
-CREATE INDEX idx_audit_logs_organization_id ON audit_logs(organization_id);
-CREATE INDEX idx_audit_logs_actor_user_id ON audit_logs(actor_user_id);
-CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at);
+CREATE INDEX idx_answers_question ON answers(question_id);
 ```
 
----
-
-## 6.18 Soft Delete Conventions
-
-The following rules govern soft deletion across all entities:
-
-```
-1. Soft deleted records have deletedAt set to a non-null timestamp.
-2. Soft deleted records are excluded from all list API responses by default.
-3. Soft deleted records are excluded from all permission and authorization checks.
-4. Soft deleting a parent record does NOT automatically soft delete children.
-   Children are preserved for historical integrity.
-5. Certificates are never hard deleted.
-6. Audit logs are never soft deleted and never hard deleted.
-7. Soft deleted organizations cannot be restored in the MVP.
-8. Soft deleted programs cannot be restored in the MVP.
-9. Soft deleted quizzes cannot be restored in the MVP.
-```
+**Notes:**
+- Each question must have exactly one `is_correct = TRUE` answer
+- Minimum 2 answers per question
 
 ---
 
-# 7\. API Design
+## 6.11 Submission
 
-## 7.1 API Base Path
+```sql
+CREATE TABLE submissions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    assessment_id UUID NOT NULL REFERENCES assessments(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    attempt_number INT NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'IN_PROGRESS' 
+        CHECK (status IN ('IN_PROGRESS', 'SUBMITTED', 'EXPIRED')),
+    score INT,
+    max_score INT,
+    percentage DECIMAL(5,2),
+    passed BOOLEAN,
+    started_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    submitted_at TIMESTAMP,
+    expires_at TIMESTAMP NOT NULL,
+    
+    UNIQUE(assessment_id, user_id, attempt_number)
+);
 
-All versioned endpoints shall use:
-
+CREATE INDEX idx_submissions_assessment ON submissions(assessment_id);
+CREATE INDEX idx_submissions_user ON submissions(user_id);
+CREATE INDEX idx_submissions_status ON submissions(status);
 ```
-/api/v1
-```
+
+**Notes:**
+- `attempt_number` auto-increments per user per assessment
+- `expires_at = started_at + assessment.duration_minutes`
+- Score calculated on submission
 
 ---
 
-## 7.2 Standard Response Wrapper
+## 6.12 Response
 
-All API responses shall use a consistent response wrapper.
+```sql
+CREATE TABLE responses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    submission_id UUID NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
+    question_id UUID NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
+    answer_id UUID REFERENCES answers(id) ON DELETE SET NULL,
+    is_correct BOOLEAN,
+    points_earned INT DEFAULT 0,
+    
+    UNIQUE(submission_id, question_id)
+);
 
-### Success response (single resource):
-
+CREATE INDEX idx_responses_submission ON responses(submission_id);
 ```
+
+**Notes:**
+- One response per question per submission
+- `is_correct` and `points_earned` calculated on grading
+
+---
+
+## 6.13 Certificate
+
+```sql
+CREATE TABLE certificates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    workshop_id UUID NOT NULL REFERENCES workshops(id) ON DELETE CASCADE,
+    assessment_id UUID NOT NULL REFERENCES assessments(id) ON DELETE CASCADE,
+    submission_id UUID NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    
+    certificate_number VARCHAR(50) UNIQUE NOT NULL,
+    verification_code VARCHAR(32) UNIQUE NOT NULL,
+    
+    -- Snapshots (immutable data)
+    recipient_name VARCHAR(255) NOT NULL,
+    workshop_title VARCHAR(255) NOT NULL,
+    workspace_name VARCHAR(255) NOT NULL,
+    score INT NOT NULL,
+    
+    -- Files
+    pdf_url TEXT,
+    pdf_storage_key TEXT,
+    
+    -- Status
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE' 
+        CHECK (status IN ('ACTIVE', 'REVOKED')),
+    revoked_at TIMESTAMP,
+    revoke_reason TEXT,
+    
+    issued_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    issued_by UUID NOT NULL REFERENCES users(id),
+    
+    UNIQUE(assessment_id, user_id)
+);
+
+CREATE UNIQUE INDEX idx_certificates_number ON certificates(certificate_number);
+CREATE UNIQUE INDEX idx_certificates_verification ON certificates(verification_code);
+CREATE INDEX idx_certificates_user ON certificates(user_id);
+CREATE INDEX idx_certificates_workspace ON certificates(workspace_id);
+```
+
+**Notes:**
+- One certificate per user per assessment
+- Certificate number format: `CERT-2024-A3FX9KL2` 
+- Verification code: 32-char alphanumeric
+- Snapshots preserve data even if workshop/workspace changes
+
+---
+
+## 6.14 Activity Log
+
+```sql
+CREATE TABLE activity_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    action VARCHAR(100) NOT NULL,
+    entity_type VARCHAR(50),
+    entity_id UUID,
+    metadata JSONB,
+    ip_address INET,
+    user_agent TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_activity_logs_workspace ON activity_logs(workspace_id);
+CREATE INDEX idx_activity_logs_user ON activity_logs(user_id);
+CREATE INDEX idx_activity_logs_created ON activity_logs(created_at);
+CREATE INDEX idx_activity_logs_entity ON activity_logs(entity_type, entity_id);
+```
+
+**Notes:**
+- Immutable audit trail
+- Never deleted
+- JSONB metadata for flexible context
+
+---
+
+# 7. API Design
+
+## 7.1 Design Principles
+
+1. **RESTful** — Use proper HTTP verbs and status codes
+2. **Resource-oriented** — URLs represent resources, not actions
+3. **Nested where logical** — Reflect entity relationships
+4. **Consistent responses** — Uniform success/error format
+5. **Versioned** — `/api/v1` prefix
+6. **Pagination** — All lists support `page`, `size`, `sort`
+
+---
+
+## 7.2 Response Format
+
+### Success Response (Single Resource)
+
+```json
 {
   "success": true,
-  "message": "Operation completed successfully",
-  "data": { },
+  "data": {
+    "id": "123e4567-e89b-12d3-a456-426614174000",
+    "name": "Computer Science Club"
+  },
   "timestamp": "2024-01-15T10:30:00Z"
 }
 ```
 
-### Success response (list with pagination):
+### Success Response (List)
 
-```
+```json
 {
   "success": true,
-  "message": "OK",
-  "data": [ ],
+  "data": [...],
   "pagination": {
     "page": 0,
     "size": 20,
-    "totalElements": 150,
-    "totalPages": 8,
+    "totalElements": 45,
+    "totalPages": 3,
     "hasNext": true,
     "hasPrevious": false
   },
@@ -1874,760 +646,1565 @@ All API responses shall use a consistent response wrapper.
 }
 ```
 
-### Error response:
+### Error Response
 
-```
+```json
 {
   "success": false,
-  "message": "Validation failed",
-  "errors": [
-    {
-      "field": "title",
-      "message": "Title is required"
-    }
-  ],
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid input data",
+    "details": [
+      {
+        "field": "email",
+        "message": "Email is required"
+      }
+    ]
+  },
   "timestamp": "2024-01-15T10:30:00Z",
-  "path": "/api/v1/organizations"
+  "path": "/api/v1/workspaces"
 }
 ```
 
 ---
 
-## 7.3 HTTP Status Code Conventions
+## 7.3 HTTP Status Codes
 
-| Status Code | Meaning | When to Use |
-| --- | --- | --- |
-| 200 | OK | Successful GET, PUT, PATCH responses |
-| 201 | Created | Successful POST that creates a resource |
-| 204 | No Content | Successful DELETE with no response body |
-| 400 | Bad Request | Request validation failure (missing fields, bad format) |
-| 401 | Unauthorized | Missing or invalid Clerk token |
-| 403 | Forbidden | Authenticated but no permission for the action |
-| 404 | Not Found | Resource does not exist or is hidden for security |
-| 409 | Conflict | Duplicate resource (already enrolled, duplicate certificate) |
-| 422 | Unprocessable Entity | Business rule violation (expired attempt, max attempts exceeded) |
-| 500 | Internal Server Error | Unexpected server-side failure |
-
-Security note:
-
-> Return HTTP 404 instead of HTTP 403 when the goal is to avoid revealing the existence of a resource to unauthorized users. For example, a user trying to access another organization's data should receive 404 not 403.
+| Code | Usage |
+|------|-------|
+| `200` | Successful GET, PUT, PATCH |
+| `201` | Successful POST (resource created) |
+| `204` | Successful DELETE (no content) |
+| `400` | Bad request (validation error) |
+| `401` | Unauthorized (missing/invalid token) |
+| `403` | Forbidden (no permission) |
+| `404` | Resource not found |
+| `409` | Conflict (duplicate resource) |
+| `422` | Unprocessable (business rule violation) |
+| `429` | Too many requests (rate limited) |
+| `500` | Internal server error |
 
 ---
 
-## 7.4 Pagination Conventions
+## 7.4 Authentication
 
-All list endpoints shall support pagination using the following query parameters:
-
-| Parameter | Type | Default | Description |
-| --- | --- | --- | --- |
-| page | Integer | 0 | Zero-based page number |
-| size | Integer | 20 | Page size, maximum 100 |
-| sort | String | createdAt | Field to sort by |
-| direction | String | DESC | ASC or DESC |
-
-Example request:
+All endpoints except public ones require:
 
 ```
-GET /api/v1/organizations/{organizationId}/members?page=0&size=20&sort=joinedAt&direction=DESC
+Authorization: Bearer <clerk_jwt_token>
+```
+
+Backend validates token using Clerk JWKS, extracts `clerk_id`, looks up local user.
+
+---
+
+## 7.5 Endpoint Catalog
+
+### Authentication & User
+
+```http
+GET    /api/v1/auth/me                    # Current user profile
+PATCH  /api/v1/auth/me                    # Update profile
+POST   /api/v1/webhooks/clerk             # Clerk user sync (no auth)
 ```
 
 ---
 
-## 7.5 Error Handling Conventions
+### Workspaces
 
-### Validation errors (HTTP 400):
+```http
+POST   /api/v1/workspaces                 # Create workspace
+GET    /api/v1/workspaces                 # List my workspaces
+GET    /api/v1/workspaces/:id             # Get workspace details
+PATCH  /api/v1/workspaces/:id             # Update workspace
+DELETE /api/v1/workspaces/:id             # Delete workspace
 
-Triggered by Jakarta Validation failures (`@NotBlank`, `@NotNull`, `@Size`, etc.).
-
-Response includes field-level error details.
-
-### Business rule errors (HTTP 422):
-
-Triggered by service-layer business rule violations.
-
-Examples:
-
-*   attempt submission after expiry
-*   quiz publish with no questions
-*   enrolling in an archived program
-
-### Conflict errors (HTTP 409):
-
-Triggered by duplicate data violations.
-
-Examples:
-
-*   user already enrolled in program
-*   active certificate already exists for user and quiz
-
-### Not found (HTTP 404):
-
-Triggered when a resource does not exist or when hiding existence for security.
-
-### Auth errors:
-
-*   HTTP 401: token is missing, expired, or invalid
-*   HTTP 403: token is valid but user lacks permission for the specific action
-
----
-
-## 7.6 Authentication / User APIs
-
-| Method | Path | Description |
-| --- | --- | --- |
-| GET | `/api/v1/users/me` | Get current authenticated user profile |
-| PATCH | `/api/v1/users/me` | Update current user profile (name, avatar) |
-| POST | `/api/v1/webhooks/clerk` | Clerk webhook receiver (no auth required, signature verified) |
-
----
-
-## 7.7 Organization APIs
-
-| Method | Path | Description |
-| --- | --- | --- |
-| POST | `/api/v1/organizations` | Create organization |
-| GET | `/api/v1/organizations` | List accessible organizations |
-| GET | `/api/v1/organizations/{organizationId}` | Get organization details |
-| PUT | `/api/v1/organizations/{organizationId}` | Update organization |
-| DELETE | `/api/v1/organizations/{organizationId}` | Soft delete organization |
-| GET | `/api/v1/organizations/{organizationId}/stats` | Get organization statistics |
-| GET | `/api/v1/organizations/{organizationId}/audit-logs` | Get organization audit logs |
-
----
-
-## 7.8 Organization Membership APIs
-
-| Method | Path | Description |
-| --- | --- | --- |
-| POST | `/api/v1/organizations/{organizationId}/members` | Add member |
-| GET | `/api/v1/organizations/{organizationId}/members` | List members |
-| DELETE | `/api/v1/organizations/{organizationId}/members/{userId}` | Remove member |
-
----
-
-## 7.9 Program APIs
-
-| Method | Path | Description |
-| --- | --- | --- |
-| POST | `/api/v1/organizations/{organizationId}/programs` | Create program |
-| GET | `/api/v1/organizations/{organizationId}/programs` | List programs in organization |
-| GET | `/api/v1/programs/{programId}` | Get program details |
-| PUT | `/api/v1/programs/{programId}` | Update program |
-| PATCH | `/api/v1/programs/{programId}/status` | Publish or archive program |
-| DELETE | `/api/v1/programs/{programId}` | Soft delete program |
-| GET | `/api/v1/programs/{programId}/stats` | Get program statistics |
-
----
-
-## 7.10 Program Enrollment APIs
-
-| Method | Path | Description |
-| --- | --- | --- |
-| POST | `/api/v1/programs/{programId}/enrollments` | Manually enroll user (owner only) |
-| GET | `/api/v1/programs/{programId}/enrollments` | List enrollments (owner only) |
-| GET | `/api/v1/enrollments/me` | View own enrollments |
-| DELETE | `/api/v1/programs/{programId}/enrollments/{userId}` | Remove enrollment (owner only) |
-
----
-
-## 7.11 Invitation APIs
-
-| Method | Path | Description |
-| --- | --- | --- |
-| POST | `/api/v1/programs/{programId}/invitations` | Create invitation link (owner only) |
-| GET | `/api/v1/programs/{programId}/invitations` | List invitation links (owner only) |
-| PATCH | `/api/v1/invitations/{invitationId}/status` | Disable invitation link (owner only) |
-| POST | `/api/v1/invitations/{code}/join` | Join program using invitation code |
-
----
-
-## 7.12 Resource APIs
-
-| Method | Path | Description |
-| --- | --- | --- |
-| POST | `/api/v1/programs/{programId}/resources` | Create resource (owner only) |
-| GET | `/api/v1/programs/{programId}/resources` | List program resources |
-| GET | `/api/v1/resources/{resourceId}` | Get single resource |
-| PUT | `/api/v1/resources/{resourceId}` | Update resource (owner only) |
-| PATCH | `/api/v1/resources/{resourceId}/visibility` | Update resource visibility (owner only) |
-| DELETE | `/api/v1/resources/{resourceId}` | Archive/delete resource (owner only) |
-
-Optional file upload endpoints:
-
-| Method | Path | Description |
-| --- | --- | --- |
-| POST | `/api/v1/files/r2/upload-url` | Generate R2 presigned upload URL |
-| POST | `/api/v1/media/cloudinary/signature` | Generate Cloudinary upload signature |
-
----
-
-## 7.13 Quiz APIs
-
-| Method | Path | Description |
-| --- | --- | --- |
-| POST | `/api/v1/programs/{programId}/quizzes` | Create quiz (owner only) |
-| GET | `/api/v1/programs/{programId}/quizzes` | List quizzes in program |
-| GET | `/api/v1/quizzes/{quizId}` | Get quiz details |
-| PUT | `/api/v1/quizzes/{quizId}` | Update quiz (owner only) |
-| PATCH | `/api/v1/quizzes/{quizId}/visibility` | Update quiz visibility (owner only) |
-| PATCH | `/api/v1/quizzes/{quizId}/status` | Publish or archive quiz (owner only) |
-| DELETE | `/api/v1/quizzes/{quizId}` | Soft delete quiz (owner only) |
-| GET | `/api/v1/quizzes/{quizId}/stats` | Get quiz statistics (owner only) |
-
----
-
-## 7.14 Quiz Question APIs
-
-| Method | Path | Description |
-| --- | --- | --- |
-| POST | `/api/v1/quizzes/{quizId}/questions` | Add question (owner only) |
-| PUT | `/api/v1/questions/{questionId}` | Update question (owner only) |
-| DELETE | `/api/v1/questions/{questionId}` | Delete question (owner only) |
-
----
-
-## 7.15 Quiz Option APIs
-
-| Method | Path | Description |
-| --- | --- | --- |
-| POST | `/api/v1/questions/{questionId}/options` | Add option (owner only) |
-| PUT | `/api/v1/options/{optionId}` | Update option (owner only) |
-| DELETE | `/api/v1/options/{optionId}` | Delete option (owner only) |
-
----
-
-## 7.16 Quiz Attempt APIs
-
-| Method | Path | Description |
-| --- | --- | --- |
-| POST | `/api/v1/quizzes/{quizId}/attempts` | Start quiz attempt |
-| POST | `/api/v1/quiz-attempts/{attemptId}/submit` | Submit quiz attempt |
-| GET | `/api/v1/quiz-attempts/me` | View own attempts |
-| GET | `/api/v1/quiz-attempts/{attemptId}` | Get single attempt |
-| GET | `/api/v1/quizzes/{quizId}/attempts` | View all attempts for quiz (owner only) |
-
----
-
-## 7.17 Certificate APIs
-
-| Method | Path | Description |
-| --- | --- | --- |
-| POST | `/api/v1/quiz-attempts/{attemptId}/certificate` | Issue certificate manually (owner only) |
-| GET | `/api/v1/certificates/me` | View own certificates |
-| GET | `/api/v1/certificates/organization/{organizationId}` | View organization certificates (owner only) |
-| GET | `/api/v1/certificates/{certificateId}` | Get certificate details |
-| POST | `/api/v1/certificates/{certificateId}/revoke` | Revoke certificate (owner only) |
-| GET | `/api/v1/public/certificates/verify/{verificationCode}` | Public certificate verification (no auth) |
-
----
-
-# 8\. Infrastructure and Integration Requirements
-
-## 8.1 Clerk Integration Requirements
-
-Environment variables:
-
-```
-CLERK_SECRET_KEY=
-CLERK_ISSUER=
-CLERK_JWKS_URL=
-CLERK_WEBHOOK_SECRET=
+GET    /api/v1/workspaces/:id/stats       # Workspace statistics
 ```
 
-The backend shall:
+---
 
-*   verify Clerk JWT tokens using JWKS
-*   extract `clerkUserId` from token `sub` claim
-*   map `clerkUserId` to local user record
-*   auto-create local user if missing
-*   protect private endpoints using a Spring Security filter
-*   allow public endpoints without authentication
-*   verify Clerk webhook signatures using `CLERK_WEBHOOK_SECRET`
-*   cache JWKS response to avoid unnecessary external calls
+### Members
+
+```http
+GET    /api/v1/workspaces/:id/members     # List workspace members
+POST   /api/v1/workspaces/:id/members     # Add member (via email)
+PATCH  /api/v1/workspaces/:id/members/:userId/role  # Update member role
+DELETE /api/v1/workspaces/:id/members/:userId       # Remove member
+```
 
 ---
 
-## 8.2 Neon DB Requirements
+### Invites
 
-Environment variables:
+```http
+POST   /api/v1/workspaces/:id/invites     # Create invite
+GET    /api/v1/workspaces/:id/invites     # List invites
+DELETE /api/v1/invites/:id                # Delete/disable invite
 
+POST   /api/v1/invites/accept             # Accept invite by code (public)
+GET    /api/v1/invites/:code/preview      # Preview invite details (public)
 ```
-DATABASE_URL=
-DATABASE_USERNAME=
-DATABASE_PASSWORD=
+
+**Accept Invite Request:**
+```json
+POST /api/v1/invites/accept
+{
+  "code": "A3FX9KL2MN8P"
+}
 ```
-
-The backend shall:
-
-*   connect to Neon PostgreSQL using the provided connection string
-*   run Flyway migrations on startup
-*   use connection pooling appropriate for serverless Neon DB
-*   apply all required indexes defined in section 6.17
-*   use relational constraints and foreign keys
-*   use status-based soft deletion where defined
 
 ---
 
-## 8.3 Cloudflare R2 Requirements
+### Workshops
 
-Environment variables:
+```http
+POST   /api/v1/workspaces/:id/workshops   # Create workshop
+GET    /api/v1/workspaces/:id/workshops   # List workshops
+GET    /api/v1/workshops/:id              # Get workshop details
+PATCH  /api/v1/workshops/:id              # Update workshop
+DELETE /api/v1/workshops/:id              # Delete workshop
 
+PATCH  /api/v1/workshops/:id/publish      # Publish workshop
+PATCH  /api/v1/workshops/:id/archive      # Archive workshop
+
+GET    /api/v1/workshops/:id/stats        # Workshop statistics
 ```
-R2_ACCOUNT_ID=
-R2_ACCESS_KEY_ID=
-R2_SECRET_ACCESS_KEY=
-R2_BUCKET_NAME=
-R2_PUBLIC_BASE_URL=
-```
-
-Use cases:
-
-*   certificate PDFs
-*   downloadable program resource files
-*   QR code images if stored as files
-
-Implementation notes:
-
-*   Use the AWS S3-compatible SDK to interact with R2.
-*   Generate presigned URLs for client-side uploads when needed.
-*   Store only object keys and public URLs in the database.
 
 ---
 
-## 8.4 Cloudinary Requirements
+### Enrollments
 
-Environment variables:
+```http
+GET    /api/v1/workshops/:id/enrollments  # List enrollments (admin/instructor)
+POST   /api/v1/workshops/:id/enrollments  # Manual enrollment
+DELETE /api/v1/workshops/:id/enrollments/:userId  # Remove enrollment
 
+GET    /api/v1/enrollments                # My enrollments
 ```
-CLOUDINARY_CLOUD_NAME=
-CLOUDINARY_API_KEY=
-CLOUDINARY_API_SECRET=
-```
-
-Use cases:
-
-*   organization logos
-*   program cover images
-*   certificate design assets
-*   optimized image delivery
 
 ---
 
-## 8.5 Application Environment Variables
+### Resources
 
-Complete consolidated list of environment variables:
+```http
+POST   /api/v1/workshops/:id/resources    # Add resource
+GET    /api/v1/workshops/:id/resources    # List resources
+GET    /api/v1/resources/:id              # Get resource
+PATCH  /api/v1/resources/:id              # Update resource
+DELETE /api/v1/resources/:id              # Delete resource
+
+POST   /api/v1/resources/upload-url       # Get upload URL for R2
+```
+
+**Upload Flow:**
+1. Client requests upload URL: `POST /api/v1/resources/upload-url`
+2. Backend returns presigned R2 URL
+3. Client uploads file directly to R2
+4. Client creates resource with returned URL
+
+---
+
+### Assessments
+
+```http
+POST   /api/v1/workshops/:id/assessments  # Create assessment
+GET    /api/v1/workshops/:id/assessments  # List assessments
+GET    /api/v1/assessments/:id            # Get assessment details
+PATCH  /api/v1/assessments/:id            # Update assessment
+DELETE /api/v1/assessments/:id            # Delete assessment
+
+PATCH  /api/v1/assessments/:id/publish    # Publish assessment
+PATCH  /api/v1/assessments/:id/archive    # Archive assessment
+
+GET    /api/v1/assessments/:id/stats      # Assessment statistics
+```
+
+---
+
+### Questions & Answers
+
+```http
+POST   /api/v1/assessments/:id/questions  # Add question
+PATCH  /api/v1/questions/:id              # Update question
+DELETE /api/v1/questions/:id              # Delete question
+
+POST   /api/v1/questions/:id/answers      # Add answer
+PATCH  /api/v1/answers/:id                # Update answer
+DELETE /api/v1/answers/:id                # Delete answer
+```
+
+**Batch Question Creation:**
+```json
+POST /api/v1/assessments/:id/questions/batch
+{
+  "questions": [
+    {
+      "text": "What is REST?",
+      "points": 1,
+      "answers": [
+        {"text": "Representational State Transfer", "isCorrect": true},
+        {"text": "Remote Execution State Transfer", "isCorrect": false},
+        {"text": "Resource Exchange State Transfer", "isCorrect": false}
+      ]
+    }
+  ]
+}
+```
+
+---
+
+### Submissions
+
+```http
+POST   /api/v1/assessments/:id/submissions        # Start new submission
+GET    /api/v1/assessments/:id/submissions        # List all submissions (admin)
+GET    /api/v1/submissions                        # My submissions
+GET    /api/v1/submissions/:id                    # Get submission details
+POST   /api/v1/submissions/:id/submit             # Submit for grading
+
+GET    /api/v1/submissions/:id/result             # Get graded result
+```
+
+**Start Submission:**
+```json
+POST /api/v1/assessments/:id/submissions
+{}
+
+Response:
+{
+  "success": true,
+  "data": {
+    "id": "...",
+    "attemptNumber": 1,
+    "status": "IN_PROGRESS",
+    "expiresAt": "2024-01-15T11:30:00Z"
+  }
+}
+```
+
+**Submit Answers:**
+```json
+POST /api/v1/submissions/:id/submit
+{
+  "responses": [
+    {"questionId": "...", "answerId": "..."},
+    {"questionId": "...", "answerId": "..."}
+  ]
+}
+
+Response:
+{
+  "success": true,
+  "data": {
+    "id": "...",
+    "status": "SUBMITTED",
+    "score": 8,
+    "maxScore": 10,
+    "percentage": 80.00,
+    "passed": true,
+    "certificate": {
+      "id": "...",
+      "certificateNumber": "CERT-2024-A3FX9KL2"
+    }
+  }
+}
+```
+
+---
+
+### Certificates
+
+```http
+GET    /api/v1/certificates                       # My certificates
+GET    /api/v1/workspaces/:id/certificates        # Workspace certificates (admin)
+GET    /api/v1/certificates/:id                   # Get certificate
+POST   /api/v1/certificates/:id/revoke            # Revoke certificate
+GET    /api/v1/certificates/:id/download          # Download PDF
+
+GET    /api/v1/public/verify/:code                # Public verification (no auth)
+```
+
+**Public Verification Response:**
+```json
+GET /api/v1/public/verify/VX8K2MN9PQR7Z
+
+{
+  "success": true,
+  "data": {
+    "valid": true,
+    "certificateNumber": "CERT-2024-A3FX9KL2",
+    "recipientName": "Ahmad Hassan",
+    "workshopTitle": "Introduction to REST APIs",
+    "workspaceName": "Computer Science Club",
+    "issuedAt": "2024-01-15T10:30:00Z",
+    "score": 85,
+    "status": "ACTIVE"
+  }
+}
+```
+
+---
+
+### Activity Logs
+
+```http
+GET    /api/v1/workspaces/:id/activities  # Workspace activity log
+```
+
+---
+
+## 7.6 Query Parameters
+
+### Pagination
 
 ```
+?page=0              # Page number (0-indexed)
+?size=20             # Items per page (max 100)
+?sort=createdAt      # Sort field
+?direction=desc      # Sort direction (asc/desc)
+```
+
+### Filtering
+
+```
+?status=PUBLISHED    # Filter by status
+?role=INSTRUCTOR     # Filter by role
+?search=python       # Text search
+```
+
+### Examples
+
+```http
+GET /api/v1/workspaces/123/workshops?status=PUBLISHED&page=0&size=10
+GET /api/v1/workspaces/123/members?role=INSTRUCTOR
+GET /api/v1/certificates?search=python
+```
+
+---
+
+# 8. Business Logic & Validation
+
+## 8.1 Workspace Rules
+
+**Creation:**
+- ✅ Any authenticated user can create a workspace
+- ✅ Creator automatically becomes ADMIN
+- ✅ `slug` must be unique, URL-safe, 3-50 characters
+
+**Access:**
+- ✅ Users can only access workspaces where they are members
+- ✅ Non-members get 404, not 403
+
+**Deletion:**
+- ✅ Only ADMIN can delete workspace
+- ✅ Cascades to all workshops, assessments, certificates
+- ⚠️ Warning: irreversible action
+
+---
+
+## 8.2 Member Rules
+
+**Adding:**
+- ✅ ADMIN and INSTRUCTOR can invite members
+- ✅ Invites can be for workspace or specific workshop
+- ✅ Duplicate membership returns 409
+
+**Roles:**
+- ✅ Only ADMIN can assign ADMIN or INSTRUCTOR roles
+- ✅ Cannot remove last ADMIN from workspace
+
+**Removing:**
+- ✅ ADMIN can remove any member
+- ✅ Members can leave workspace (except last ADMIN)
+
+---
+
+## 8.3 Workshop Rules
+
+**Publishing:**
+- ✅ Must have title and description
+- ✅ Can only publish if at least one resource or assessment exists
+
+**Archiving:**
+- ✅ Archived workshops cannot accept new enrollments
+- ✅ Existing enrollments remain valid
+- ✅ Assessments become read-only
+
+**Deletion:**
+- ⚠️ Only allowed if no certificates have been issued
+- ✅ Otherwise, must archive instead
+
+---
+
+## 8.4 Assessment Rules
+
+**Publishing:**
+Must pass all validations:
+- ✅ At least 3 questions
+- ✅ Each question has 2-6 answers
+- ✅ Each question has exactly one correct answer
+- ✅ `passingScore` is 1-100
+- ✅ `durationMinutes` is at least 5
+- ✅ `maxAttempts` is at least 1
+
+**Editing:**
+- ✅ Can edit freely in DRAFT status
+- ⚠️ Cannot edit questions/answers if submissions exist
+- ✅ Can edit metadata (title, passing score, etc.) anytime
+
+**Deletion:**
+- ✅ Can delete if no submissions exist
+- ⚠️ Cannot delete if submissions exist (must archive)
+
+---
+
+## 8.5 Submission Rules
+
+**Starting:**
+- ✅ Must be enrolled in workshop
+- ✅ Assessment must be PUBLISHED
+- ✅ Cannot exceed `maxAttempts`
+- ✅ Cannot have active IN_PROGRESS submission
+- ✅ System records `startedAt` and calculates `expiresAt`
+
+**Submitting:**
+- ✅ Must answer all questions
+- ✅ Cannot submit after `expiresAt`
+- ✅ Cannot submit already-submitted submission
+- ✅ System auto-grades immediately
+
+**Auto-grading:**
+```
+1. For each response:
+   - Check if selected answer is correct
+   - Award question.points if correct, else 0
+   
+2. Calculate totals:
+   - score = sum of points earned
+   - maxScore = sum of all question points
+   - percentage = (score / maxScore) × 100
+   - passed = percentage >= assessment.passingScore
+
+3. Update submission status to SUBMITTED
+
+4. If passed AND assessment.autoIssueCertificate:
+   - Auto-generate certificate
+   - Return certificate in response
+```
+
+---
+
+## 8.6 Certificate Rules
+
+**Issuance:**
+- ✅ Auto-issued when submission passes (if enabled)
+- ✅ Can be manually issued by ADMIN/INSTRUCTOR
+- ✅ One certificate per user per assessment
+- ✅ Duplicate issuance returns existing certificate (409)
+
+**Number Generation:**
+```
+Format: CERT-{YEAR}-{8_RANDOM}
+Example: CERT-2024-A3FX9KL2
+
+Algorithm:
+- YEAR = current year
+- RANDOM = 8 uppercase alphanumeric chars (SecureRandom)
+- Verify uniqueness before inserting
+```
+
+**Verification Code:**
+```
+Format: 32 uppercase alphanumeric
+Example: VX8K2MN9PQR7Z3A1B5C7D9E2F4G6H8J0
+
+- Generated using SecureRandom
+- Must be unique
+```
+
+**Revocation:**
+- ✅ Only ADMIN/INSTRUCTOR can revoke
+- ✅ Revoked certificates remain visible but marked as REVOKED
+- ✅ Public verification shows revocation status
+- ⚠️ Revocation is permanent
+
+---
+
+## 8.7 Invite Rules
+
+**Creation:**
+- ✅ Workspace invites grant membership with specified role
+- ✅ Workshop invites enroll user + grant workspace MEMBER role if needed
+- ✅ `maxUses = null` means unlimited
+- ✅ `expiresAt = null` means never expires
+
+**Acceptance:**
+```
+1. Validate invite code exists and is not disabled
+2. Check expiration: current_time < expiresAt
+3. Check usage: usesCount < maxUses (if maxUses not null)
+4. Check duplicate membership/enrollment (return 409 if exists)
+5. Atomic increment usesCount
+6. Create membership/enrollment
+7. Return success
+```
+
+**Concurrent Access:**
+- Use optimistic locking or database transaction to prevent `usesCount` exceeding `maxUses`
+
+---
+
+# 9. Security
+
+## 9.1 Authentication Flow
+
+```
+1. Frontend authenticates with Clerk
+2. Frontend receives JWT token
+3. Frontend sends token in Authorization header:
+   Authorization: Bearer <token>
+   
+4. Backend filter intercepts request:
+   a. Extract token from header
+   b. Fetch JWKS from Clerk (cached)
+   c. Validate token signature
+   d. Validate claims (exp, iss, nbf)
+   e. Extract clerk_id from sub claim
+   f. Look up user by clerk_id
+   g. If not found: auto-create from token claims
+   h. Load user into SecurityContext
+   
+5. Controller accesses current user via @AuthenticationPrincipal
+```
+
+---
+
+## 9.2 Webhook Security
+
+```
+POST /api/v1/webhooks/clerk
+
+Verification:
+1. Extract Svix-Signature header
+2. Verify signature using CLERK_WEBHOOK_SECRET
+3. If invalid: return 401
+4. If valid: process event
+
+Supported Events:
+- user.created  → Create local user
+- user.updated  → Update name, email, avatar
+- user.deleted  → Mark user as deleted (soft delete)
+```
+
+**Implementation:**
+```java
+@PostMapping("/webhooks/clerk")
+public ResponseEntity<?> handleClerkWebhook(
+    @RequestHeader("Svix-Signature") String signature,
+    @RequestBody String payload
+) {
+    if (!webhookService.verifySignature(payload, signature)) {
+        return ResponseEntity.status(401).build();
+    }
+    
+    webhookService.processEvent(payload);
+    return ResponseEntity.ok().build();
+}
+```
+
+---
+
+## 9.3 Authorization Checks
+
+### Workspace-Level
+
+```java
+public void checkWorkspaceAccess(UUID workspaceId, User user, Role... allowedRoles) {
+    Member member = memberRepository.findByWorkspaceAndUser(workspaceId, user.getId())
+        .orElseThrow(() -> new NotFoundException("Workspace not found"));
+    
+    if (!Arrays.asList(allowedRoles).contains(member.getRole())) {
+        throw new ForbiddenException("Insufficient permissions");
+    }
+}
+```
+
+**Usage:**
+```java
+// Only ADMIN can update workspace
+checkWorkspaceAccess(workspaceId, currentUser, Role.ADMIN);
+
+// ADMIN or INSTRUCTOR can create workshops
+checkWorkspaceAccess(workspaceId, currentUser, Role.ADMIN, Role.INSTRUCTOR);
+```
+
+### Workshop-Level
+
+```java
+public void checkWorkshopAccess(UUID workshopId, User user) {
+    Workshop workshop = workshopRepository.findById(workshopId)
+        .orElseThrow(() -> new NotFoundException("Workshop not found"));
+    
+    // Check if user is enrolled OR has workspace admin/instructor role
+    boolean isEnrolled = enrollmentRepository
+        .existsByWorkshopAndUser(workshopId, user.getId());
+    
+    boolean isWorkspaceStaff = memberRepository
+        .findByWorkspaceAndUser(workshop.getWorkspaceId(), user.getId())
+        .map(m -> m.getRole() == Role.ADMIN || m.getRole() == Role.INSTRUCTOR)
+        .orElse(false);
+    
+    if (!isEnrolled && !isWorkspaceStaff) {
+        throw new NotFoundException("Workshop not found");
+    }
+}
+```
+
+---
+
+## 9.4 Rate Limiting
+
+| Endpoint Pattern | Limit |
+|-----------------|-------|
+| `POST /api/v1/invites/accept` | 10/min per IP |
+| `POST /api/v1/assessments/*/submissions` | 5/min per user |
+| `POST /api/v1/submissions/*/submit` | 3/min per user |
+| `GET /api/v1/public/verify/*` | 60/min per IP |
+| All other authenticated endpoints | 300/min per user |
+
+**Implementation:** Use Spring filter with Redis or in-memory cache
+
+---
+
+## 9.5 Data Security
+
+**Sensitive Data Protection:**
+- ❌ Never log JWT tokens
+- ❌ Never expose Clerk secrets in responses
+- ❌ Never expose other users' emails unless ADMIN
+- ✅ Redact IP addresses in exported logs
+- ✅ Use HTTPS only in production
+- ✅ Validate all user input
+- ✅ Parameterize all SQL queries (JPA does this)
+
+**CORS Configuration:**
+```yaml
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+  allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
+  allowed-headers: Authorization,Content-Type
+  allow-credentials: true
+  max-age: 3600
+```
+
+---
+
+# 10. File Storage (Cloudflare R2)
+
+## 10.1 Upload Flow
+
+**Presigned URL Strategy:**
+
+```
+1. Client requests upload URL:
+   POST /api/v1/resources/upload-url
+   {
+     "fileName": "workshop-slides.pdf",
+     "contentType": "application/pdf",
+     "fileSize": 1048576
+   }
+
+2. Backend generates presigned R2 URL:
+   - Creates unique object key: "workshops/{workshopId}/resources/{uuid}-{fileName}"
+   - Generates presigned PUT URL (valid 15 minutes)
+   - Returns URL to client
+
+3. Client uploads file directly to R2 using presigned URL:
+   PUT https://skillmark-files.r2.cloudflarestorage.com/...
+   
+4. Client creates resource with returned public URL:
+   POST /api/v1/workshops/{id}/resources
+   {
+     "title": "Workshop Slides",
+     "type": "DOCUMENT",
+     "url": "https://files.skillmark.io/workshops/.../slides.pdf",
+     "storageKey": "workshops/.../slides.pdf"
+   }
+```
+
+**Benefits:**
+- ✅ Backend doesn't handle large files
+- ✅ Faster uploads (direct to R2)
+- ✅ Reduced server bandwidth
+- ✅ Secure (presigned URLs expire)
+
+---
+
+## 10.2 Storage Structure
+
+```
+Bucket: skillmark-files
+
+Structure:
+/workspaces/{workspaceId}/logo.{ext}
+/workshops/{workshopId}/cover.{ext}
+/workshops/{workshopId}/resources/{uuid}-{filename}
+/certificates/{certificateId}/certificate.pdf
+/certificates/{certificateId}/qr.png
+```
+
+---
+
+## 10.3 R2 Configuration
+
+```yaml
+r2:
+  account-id: ${R2_ACCOUNT_ID}
+  access-key-id: ${R2_ACCESS_KEY_ID}
+  secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  bucket-name: ${R2_BUCKET_NAME:skillmark-files}
+  endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+  public-url: ${R2_PUBLIC_URL:https://files.skillmark.io}
+```
+
+---
+
+## 10.4 Storage Service Interface
+
+```java
+public interface StorageService {
+    /**
+     * Generate presigned upload URL
+     */
+    PresignedUploadResponse generateUploadUrl(
+        String objectKey,
+        String contentType,
+        long contentLength,
+        int expirationMinutes
+    );
+    
+    /**
+     * Get public URL for object
+     */
+    String getPublicUrl(String objectKey);
+    
+    /**
+     * Delete object
+     */
+    void deleteObject(String objectKey);
+    
+    /**
+     * Upload bytes directly (for system-generated files like PDFs)
+     */
+    String uploadBytes(
+        String objectKey,
+        byte[] data,
+        String contentType
+    );
+}
+```
+
+---
+
+# 11. Certificate Generation
+
+## 11.1 Generation Flow
+
+```
+Trigger: Submission passes AND assessment.autoIssueCertificate = true
+
+1. Check duplicate certificate:
+   - Query: SELECT * FROM certificates 
+     WHERE assessment_id = ? AND user_id = ? AND status = 'ACTIVE'
+   - If exists: return existing certificate (or 409 if strict)
+
+2. Generate certificate number and verification code
+
+3. Snapshot data:
+   - recipientName = user.fullName
+   - workshopTitle = workshop.title
+   - workspaceName = workspace.name
+   - score = submission.percentage
+
+4. Create database record
+
+5. Generate PDF (async job or inline):
+   a. Render certificate template with data
+   b. Generate QR code with verification URL
+   c. Embed QR in PDF
+   d. Upload PDF to R2
+   e. Update certificate.pdfUrl and pdfStorageKey
+
+6. Return certificate to user
+```
+
+---
+
+## 11.2 PDF Template
+
+**Option 1: HTML to PDF (Recommended)**
+
+Use library like Flying Saucer or OpenPDF:
+
+```java
+String html = templateEngine.process("certificate", context);
+byte[] pdf = PdfGenerator.fromHtml(html);
+String pdfUrl = storageService.uploadBytes(
+    "certificates/" + certId + "/certificate.pdf",
+    pdf,
+    "application/pdf"
+);
+```
+
+**Template Variables:**
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        @page { size: A4 landscape; margin: 0; }
+        body { font-family: Arial; text-align: center; padding: 100px; }
+        .title { font-size: 48px; font-weight: bold; }
+        .recipient { font-size: 36px; margin: 50px 0; }
+    </style>
+</head>
+<body>
+    <div class="title">Certificate of Completion</div>
+    <div class="recipient">${recipientName}</div>
+    <p>Successfully completed</p>
+    <div class="workshop">${workshopTitle}</div>
+    <div class="score">Score: ${score}%</div>
+    <div class="qr"><img src="${qrCodeDataUrl}" /></div>
+    <div class="number">${certificateNumber}</div>
+</body>
+</html>
+```
+
+---
+
+## 11.3 QR Code Generation
+
+```java
+String verificationUrl = String.format(
+    "%s/verify/%s",
+    baseUrl,
+    certificate.getVerificationCode()
+);
+
+QRCodeWriter qrCodeWriter = new QRCodeWriter();
+BitMatrix bitMatrix = qrCodeWriter.encode(
+    verificationUrl,
+    BarcodeFormat.QR_CODE,
+    300,
+    300
+);
+
+ByteArrayOutputStream pngOutputStream = new ByteArrayOutputStream();
+MatrixToImageWriter.writeToStream(bitMatrix, "PNG", pngOutputStream);
+byte[] qrImageBytes = pngOutputStream.toByteArray();
+
+// Convert to data URL for embedding in PDF
+String qrDataUrl = "data:image/png;base64," + 
+    Base64.getEncoder().encodeToString(qrImageBytes);
+```
+
+---
+
+# 12. Analytics & Statistics
+
+## 12.1 Workspace Stats
+
+```http
+GET /api/v1/workspaces/:id/stats
+
+Response:
+{
+  "success": true,
+  "data": {
+    "membersCount": 45,
+    "workshopsCount": 8,
+    "activeWorkshopsCount": 5,
+    "assessmentsCount": 12,
+    "certificatesIssued": 127,
+    "totalEnrollments": 234,
+    "recentActivity": [...]
+  }
+}
+```
+
+**Queries:**
+```sql
+SELECT COUNT(*) FROM members WHERE workspace_id = ?;
+SELECT COUNT(*) FROM workshops WHERE workspace_id = ?;
+SELECT COUNT(*) FROM workshops WHERE workspace_id = ? AND status = 'PUBLISHED';
+SELECT COUNT(*) FROM certificates WHERE workspace_id = ?;
+```
+
+---
+
+## 12.2 Workshop Stats
+
+```http
+GET /api/v1/workshops/:id/stats
+
+Response:
+{
+  "success": true,
+  "data": {
+    "enrolledCount": 56,
+    "completedCount": 42,
+    "resourcesCount": 8,
+    "assessmentsCount": 3,
+    "averageScore": 78.5,
+    "passRate": 75.0,
+    "certificatesIssued": 42
+  }
+}
+```
+
+**Queries:**
+```sql
+SELECT COUNT(*) FROM enrollments WHERE workshop_id = ?;
+
+SELECT COUNT(*) FROM enrollments 
+WHERE workshop_id = ? AND completed_at IS NOT NULL;
+
+SELECT AVG(percentage), COUNT(*), 
+       SUM(CASE WHEN passed = TRUE THEN 1 ELSE 0 END) as passed_count
+FROM submissions s
+JOIN assessments a ON s.assessment_id = a.id
+WHERE a.workshop_id = ? AND s.status = 'SUBMITTED';
+```
+
+---
+
+## 12.3 Assessment Stats
+
+```http
+GET /api/v1/assessments/:id/stats
+
+Response:
+{
+  "success": true,
+  "data": {
+    "totalSubmissions": 56,
+    "averageScore": 82.3,
+    "highestScore": 100,
+    "lowestScore": 45,
+    "passedCount": 42,
+    "failedCount": 14,
+    "passRate": 75.0,
+    "averageAttempts": 1.2
+  }
+}
+```
+
+---
+
+# 13. Environment Configuration
+
+## 13.1 Required Environment Variables
+
+```bash
 # Application
-APP_BASE_URL=
-APP_CERTIFICATE_VERIFY_BASE_URL=
-
-# Authentication (Clerk)
-CLERK_SECRET_KEY=
-CLERK_ISSUER=
-CLERK_JWKS_URL=
-CLERK_WEBHOOK_SECRET=
+APP_ENV=production
+APP_BASE_URL=https://api.skillmark.io
+APP_VERIFY_BASE_URL=https://verify.skillmark.io
 
 # Database (Neon)
-DATABASE_URL=
-DATABASE_USERNAME=
-DATABASE_PASSWORD=
+DATABASE_URL=postgresql://user:pass@host/dbname
+DATABASE_POOL_SIZE=10
 
-# Cloudflare R2
-R2_ACCOUNT_ID=
-R2_ACCESS_KEY_ID=
-R2_SECRET_ACCESS_KEY=
-R2_BUCKET_NAME=
-R2_PUBLIC_BASE_URL=
+# Authentication (Clerk)
+CLERK_ISSUER=https://clerk.yourapp.com
+CLERK_JWKS_URL=https://clerk.yourapp.com/.well-known/jwks.json
+CLERK_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxx
 
-# Cloudinary
-CLOUDINARY_CLOUD_NAME=
-CLOUDINARY_API_KEY=
-CLOUDINARY_API_SECRET=
+# Storage (Cloudflare R2)
+R2_ACCOUNT_ID=your-account-id
+R2_ACCESS_KEY_ID=xxxxxxxxxxxxxx
+R2_SECRET_ACCESS_KEY=yyyyyyyyyyyyyyyy
+R2_BUCKET_NAME=skillmark-files
+R2_PUBLIC_URL=https://files.skillmark.io
+
+# CORS
+CORS_ALLOWED_ORIGINS=https://app.skillmark.io,http://localhost:3000
+
+# Optional
+SENTRY_DSN=https://xxx@sentry.io/xxx
+LOG_LEVEL=INFO
 ```
 
 ---
 
-## 8.6 File Storage Abstraction
+## 13.2 application.yml
 
-The backend shall use a storage abstraction layer:
-
-```
-StorageService (interface)
-  uploadFile(byte[] data, String key, String contentType): String
-  deleteFile(String key): void
-  getPublicUrl(String key): String
-
-R2StorageService implements StorageService
-CloudinaryMediaService implements StorageService
-```
-
-Controllers and business services shall not call vendor SDKs directly.
-
----
-
-## 8.7 CORS Configuration
-
-The backend shall configure CORS using environment-provided allowed origins.
-
-```
-Allowed origins:     configurable via APP_BASE_URL or dedicated CORS_ALLOWED_ORIGINS variable
-Allowed methods:     GET, POST, PUT, PATCH, DELETE, OPTIONS
-Allowed headers:     Authorization, Content-Type, Accept
-Exposed headers:     none
-Allow credentials:   true if session-based, false if JWT-only
-```
-
----
-
-## 8.8 Rate Limiting
-
-The backend shall enforce rate limiting on sensitive endpoints.
-
-| Endpoint | Limit |
-| --- | --- |
-| `POST /api/v1/invitations/{code}/join` | 10 requests/minute per user |
-| `POST /api/v1/quizzes/{quizId}/attempts` | 5 requests/minute per user |
-| `GET /api/v1/public/certificates/verify/{verificationCode}` | 30 requests/minute per IP |
-| General authenticated API | 200 requests/minute per user |
-
-Implementation: Spring-level filter or API gateway-level enforcement.
-
----
-
-## 8.9 Health Check Endpoints
-
-The backend shall expose Spring Boot Actuator health endpoints:
-
-```
-GET /actuator/health
-  → Returns application health status
-  → Used by deployment infrastructure for readiness checks
-  → No authentication required
-
-GET /actuator/info
-  → Returns application version and build info
-  → No authentication required
-```
-
-These endpoints shall be publicly accessible.
-
----
-
-# 9\. Non-Functional Requirements
-
-## 9.1 Security
-
-The system must:
-
-*   verify Clerk tokens on every protected request
-*   protect all private APIs from unauthenticated access
-*   enforce organization-scoped authorization on every organization action
-*   enforce program enrollment access on every program content action
-*   prevent cross-tenant data access
-*   avoid exposing provider secrets in API responses
-*   avoid logging raw tokens or secrets
-*   return HTTP 404 instead of HTTP 403 where resource existence should be hidden
-*   verify Clerk webhook signatures before processing
-
----
-
-## 9.2 Performance
-
-*   Common API responses shall not exceed 2 seconds under normal load.
-*   All list endpoints shall use pagination.
-*   All frequently queried fields shall have database indexes as defined in section 6.17.
-*   JWKS responses from Clerk shall be cached to reduce external calls.
-
----
-
-## 9.3 Availability
-
-The backend shall:
-
-*   support deployment to cloud environments
-*   expose health check endpoints at `/actuator/health`
-*   use connection pooling suitable for managed PostgreSQL
-
----
-
-## 9.4 Maintainability
-
-The system shall follow modular monolith architecture.
-
-Recommended modules:
-
-*   user
-*   organization
-*   membership
-*   program
-*   enrollment
-*   invitation
-*   resource
-*   quiz
-*   attempt
-*   certificate
-*   stats
-*   audit
-*   storage
-*   media
-*   security
-*   common
-*   config
-
-Each module shall have its own:
-
-*   controller
-*   service
-*   repository
-*   DTOs
-*   entity
-
----
-
-## 9.5 API Usability
-
-The API shall provide:
-
-*   consistent response wrappers (section 7.2)
-*   clear validation error messages
-*   pagination on all list endpoints (section 7.4)
-*   predictable naming conventions
-*   Swagger/OpenAPI documentation at `/swagger-ui.html`
-
----
-
-# 10\. System Architecture
-
-## 10.1 High-Level Architecture
-
-```
-Client (Frontend / API Consumer)
-        │
-        ▼
-Spring Security Filter (Clerk Token Verification)
-        │
-        ▼
-Controller Layer (REST API)
-        │
-        ▼
-Service Layer (Business Logic + Authorization)
-        │
-        ▼
-Repository Layer (Spring Data JPA)
-        │
-        ▼
-Neon PostgreSQL Database
-
-Service Layer also calls:
-  → StorageService → Cloudflare R2
-  → MediaService   → Cloudinary
-
-Clerk Webhooks:
-  → POST /api/v1/webhooks/clerk → UserSyncService
+```yaml
+spring:
+  application:
+    name: skillmark-api
+    
+  datasource:
+    url: ${DATABASE_URL}
+    hikari:
+      maximum-pool-size: ${DATABASE_POOL_SIZE:10}
+      minimum-idle: 2
+      
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    
+server:
+  port: 8080
+  error:
+    include-message: always
+    include-stacktrace: never
+    
+springdoc:
+  api-docs:
+    path: /api/v1/docs
+  swagger-ui:
+    path: /swagger-ui.html
+    
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
 ```
 
 ---
 
-## 10.2 Backend API Layer
+# 14. Testing Strategy
 
-Responsibilities:
-
-*   expose REST endpoints
-*   validate request DTOs using Jakarta Validation
-*   return standardized response wrappers
-*   delegate to service layer
-*   handle exceptions via global exception handler (`@ControllerAdvice`)
-
----
-
-## 10.3 Service Layer
-
-Responsibilities:
-
-*   enforce business rules
-*   enforce organization-scoped authorization
-*   enforce program enrollment access control
-*   manage transactions (`@Transactional`)
-*   coordinate repositories
-*   call storage and media services when needed
-*   emit audit log entries
-
----
-
-## 10.4 Repository Layer
-
-Responsibilities:
-
-*   database access via Spring Data JPA
-*   custom query methods where needed
-*   pagination support via `Pageable`
-*   soft delete filtering via `@Where` or query conditions
-
----
-
-## 10.5 Security Layer
-
-Responsibilities:
-
-*   Clerk token verification via custom `OncePerRequestFilter`
-*   current user resolution and injection into `SecurityContext`
-*   public/private endpoint separation via `SecurityFilterChain`
-*   Clerk webhook signature verification
-
----
-
-## 10.6 Storage Layer
-
-Responsibilities:
-
-*   abstract file upload and retrieval
-*   interact with Cloudflare R2 via S3-compatible SDK
-*   interact with Cloudinary via Cloudinary SDK
-*   hide provider-specific details from business services
-*   store object keys and public URLs in database
-
----
-
-# 11\. MVP Scope
-
-## 11.1 Included in MVP
-
-1.  Clerk authentication integration and token verification
-2.  Clerk webhook integration for user sync
-3.  Backend user profile management
-4.  Organizations and organization membership
-5.  Programs and workshops
-6.  Program enrollments
-7.  Invitation links
-8.  Program resources
-9.  Quizzes, questions, and options
-10.  Quiz attempts with timing enforcement
-11.  Automatic quiz scoring
-12.  AUTO and MANUAL certificate issuance
-13.  Certificate verification (public endpoint)
-14.  Statistics APIs
-15.  Audit logging
-16.  R2 and Cloudinary storage abstraction
-17.  Swagger/OpenAPI documentation
-18.  Health check endpoints
-
----
-
-## 11.2 Deferred to Later Phases
-
-*   full LMS course system
-*   lessons and assignments
-*   attendance tracking
-*   badges and leaderboards
-*   payments and billing
-*   multi-owner organizations
-*   advanced question bank
-*   question pools and randomization
-*   advanced analytics dashboard
-*   notifications
-*   chat and messaging
-*   mobile app
-*   microservices migration
-
----
-
-# 12\. Testing Requirements
-
-## 12.1 Test Database Strategy
+## 14.1 Test Pyramid
 
 ```
-Integration tests:
-  Use Testcontainers with a real PostgreSQL Docker image.
-  Run Flyway migrations against the test container.
-  Do not use H2 in-memory database.
-  H2 does not support all PostgreSQL-specific features used by Flyway migrations.
-
-Unit tests:
-  Mock repository and external service dependencies.
-  Do not require a running database.
+                    /\
+                   /  \
+                  / E2E \          ← 10% (Critical flows)
+                 /--------\
+                /          \
+               /Integration \      ← 30% (API + DB)
+              /--------------\
+             /                \
+            /   Unit Tests     \   ← 60% (Business logic)
+           /____________________\
 ```
 
 ---
 
-## 12.2 Minimum Test Coverage Targets
+## 14.2 Unit Tests
 
-| Layer | Minimum Coverage |
-| --- | --- |
-| Service layer | 80% line coverage |
-| Controller layer | Covered by integration tests |
-| Repository layer | Covered by integration tests |
-| Security layer | Dedicated security test suite |
-| Overall project | 70% minimum |
+**Focus:**
+- Business logic validation
+- Permission checks
+- Calculation algorithms (scoring, stats)
+- Code generation (certificate numbers, invite codes)
 
----
+**Example:**
+```java
+@Test
+void calculateScore_shouldReturnCorrectPercentage() {
+    var questions = List.of(
+        new Question(1, 10),  // 10 points
+        new Question(2, 5)    // 5 points
+    );
+    
+    var responses = List.of(
+        new Response(1, true, 10),   // correct
+        new Response(2, false, 0)    // incorrect
+    );
+    
+    var result = scoringService.calculate(questions, responses);
+    
+    assertEquals(10, result.getScore());
+    assertEquals(15, result.getMaxScore());
+    assertEquals(66.67, result.getPercentage(), 0.01);
+}
+```
 
-## 12.3 Unit Tests
-
-Unit tests shall cover:
-
-*   Clerk user sync logic
-*   organization authorization checks
-*   membership role rules
-*   program enrollment validation
-*   invitation code validation and expiry checks
-*   quiz publishing validation rules
-*   quiz scoring calculation
-*   certificate eligibility rules
-*   certificate number and verification code generation
-*   statistics calculation logic
-
----
-
-## 12.4 Integration Tests
-
-Integration tests shall cover:
-
-*   current user auto-creation on first request
-*   organization creation and owner membership creation
-*   program creation under organization
-*   invitation join flow end-to-end
-*   resource access control (enrolled vs unenrolled)
-*   quiz creation and publishing flow
-*   attempt start, submit, and scoring
-*   AUTO certificate issuance after passing attempt
-*   MANUAL certificate issuance by owner
-*   public certificate verification endpoint
-*   cross-organization access rejection
-*   duplicate enrollment rejection (HTTP 409)
-*   attempt submission after expiry rejection (HTTP 422)
+**Coverage Target:** 80% line coverage for service layer
 
 ---
 
-## 12.5 Security Tests
+## 14.3 Integration Tests
 
-Security tests shall verify:
+**Setup:**
+```java
+@SpringBootTest
+@Testcontainers
+class WorkshopIntegrationTest {
+    
+    @Container
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
+        .withDatabaseName("skillmark_test");
+    
+    @Autowired
+    private MockMvc mockMvc;
+    
+    @Test
+    void createWorkshop_shouldReturnCreated() throws Exception {
+        mockMvc.perform(post("/api/v1/workspaces/{id}/workshops", workspaceId)
+                .header("Authorization", "Bearer " + validToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "title": "Python Basics",
+                      "description": "Learn Python fundamentals"
+                    }
+                    """))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.data.id").exists());
+    }
+}
+```
 
-*   protected endpoints return HTTP 401 without token
-*   invalid or expired Clerk tokens return HTTP 401
-*   valid token but wrong organization returns HTTP 404
-*   participants cannot access owner-only endpoints (HTTP 403 or HTTP 404)
-*   owners cannot manage other owners' organizations (HTTP 404)
-*   unenrolled users cannot view program resources (HTTP 404)
-*   unauthenticated users cannot access audit logs (HTTP 401)
-*   participants cannot access audit logs (HTTP 403 or HTTP 404)
-*   sensitive data (tokens, secrets) is never exposed in API responses
-*   Clerk webhook endpoint rejects requests with invalid signatures (HTTP 401)
+**Coverage:**
+- All API endpoints
+- Auth/permission flows
+- Database constraints
+- Concurrent operations (invite acceptance, etc.)
 
 ---
 
-# 13\. Final Product Statement
+## 14.4 Security Tests
 
-Skillmark is a university-focused training, assessment, and certification backend platform that helps organizations manage workshops, enroll participants, publish resources, run quizzes, track results, and issue verifiable certificates.
+```java
+@Test
+void accessWorkspace_withoutToken_shouldReturn401() {
+    mockMvc.perform(get("/api/v1/workspaces/{id}", workspaceId))
+        .andExpect(status().isUnauthorized());
+}
 
-The system is built on:
+@Test
+void updateWorkspace_asMember_shouldReturn403() {
+    // Given: user is MEMBER, not ADMIN
+    mockMvc.perform(patch("/api/v1/workspaces/{id}", workspaceId)
+            .header("Authorization", "Bearer " + memberToken)
+            .content("{}"))
+        .andExpect(status().isForbidden());
+}
 
-*   **Spring Boot** for the backend API
-*   **Clerk** for authentication and user identity
-*   **Neon DB** for PostgreSQL data storage
-*   **Cloudflare R2** for file and object storage
-*   **Cloudinary** for image and media management
+@Test
+void accessOtherWorkspace_shouldReturn404() {
+    // User not a member: should return 404, not 403
+    mockMvc.perform(get("/api/v1/workspaces/{id}", otherWorkspaceId)
+            .header("Authorization", "Bearer " + validToken))
+        .andExpect(status().isNotFound());
+}
+```
 
-Skillmark is designed around a clean multi-tenant model where permissions are based entirely on organization memberships and program enrollments. Users do not have global roles. Every permission check is organization-scoped or program-scoped.
+---
 
-The platform is designed to be API-first, maintainable, secure, and extensible for future features such as courses, lessons, payments, and advanced analytics.
+# 15. Deployment
+
+## 15.1 Docker Support
+
+**Dockerfile:**
+```dockerfile
+FROM eclipse-temurin:17-jre-alpine
+
+WORKDIR /app
+
+COPY target/skillmark-api.jar app.jar
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=3s \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
+
+ENTRYPOINT ["java", "-jar", "app.jar"]
+```
+
+**docker-compose.yml (local dev):**
+```yaml
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: skillmark
+      POSTGRES_USER: skillmark
+      POSTGRES_PASSWORD: skillmark
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  api:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/skillmark
+      CLERK_ISSUER: ${CLERK_ISSUER}
+      CLERK_JWKS_URL: ${CLERK_JWKS_URL}
+      R2_ACCOUNT_ID: ${R2_ACCOUNT_ID}
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY}
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+```
+
+---
+
+## 15.2 Platform Deployment
+
+**Railway:**
+```yaml
+# railway.json
+{
+  "build": {
+    "builder": "DOCKERFILE"
+  },
+  "deploy": {
+    "healthcheckPath": "/actuator/health",
+    "restartPolicyType": "ON_FAILURE"
+  }
+}
+```
+
+**Render:**
+```yaml
+# render.yaml
+services:
+  - type: web
+    name: skillmark-api
+    env: java
+    buildCommand: ./mvnw clean package -DskipTests
+    startCommand: java -jar target/skillmark-api.jar
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: skillmark-db
+          property: connectionString
+```
+
+---
+
+# 16. Project Structure
+
+```
+skillmark-api/
+├── src/
+│   ├── main/
+│   │   ├── java/
+│   │   │   └── io/skillmark/
+│   │   │       ├── SkillmarkApplication.java
+│   │   │       │
+│   │   │       ├── auth/
+│   │   │       │   ├── ClerkTokenFilter.java
+│   │   │       │   ├── CurrentUser.java
+│   │   │       │   └── SecurityConfig.java
+│   │   │       │
+│   │   │       ├── user/
+│   │   │       │   ├── User.java
+│   │   │       │   ├── UserRepository.java
+│   │   │       │   ├── UserService.java
+│   │   │       │   └── UserController.java
+│   │   │       │
+│   │   │       ├── workspace/
+│   │   │       │   ├── Workspace.java
+│   │   │       │   ├── WorkspaceRepository.java
+│   │   │       │   ├── WorkspaceService.java
+│   │   │       │   ├── WorkspaceController.java
+│   │   │       │   ├── Member.java
+│   │   │       │   ├── MemberRepository.java
+│   │   │       │   └── Role.java
+│   │   │       │
+│   │   │       ├── workshop/
+│   │   │       │   ├── Workshop.java
+│   │   │       │   ├── WorkshopRepository.java
+│   │   │       │   ├── WorkshopService.java
+│   │   │       │   ├── WorkshopController.java
+│   │   │       │   ├── Enrollment.java
+│   │   │       │   └── EnrollmentRepository.java
+│   │   │       │
+│   │   │       ├── invite/
+│   │   │       │   ├── Invite.java
+│   │   │       │   ├── InviteRepository.java
+│   │   │       │   ├── InviteService.java
+│   │   │       │   └── InviteController.java
+│   │   │       │
+│   │   │       ├── resource/
+│   │   │       │   ├── Resource.java
+│   │   │       │   ├── ResourceRepository.java
+│   │   │       │   ├── ResourceService.java
+│   │   │       │   ├── ResourceController.java
+│   │   │       │   └── ResourceType.java
+│   │   │       │
+│   │   │       ├── assessment/
+│   │   │       │   ├── Assessment.java
+│   │   │       │   ├── AssessmentRepository.java
+│   │   │       │   ├── AssessmentService.java
+│   │   │       │   ├── AssessmentController.java
+│   │   │       │   ├── Question.java
+│   │   │       │   ├── QuestionRepository.java
+│   │   │       │   ├── Answer.java
+│   │   │       │   └── AnswerRepository.java
+│   │   │       │
+│   │   │       ├── submission/
+│   │   │       │   ├── Submission.java
+│   │   │       │   ├── SubmissionRepository.java
+│   │   │       │   ├── SubmissionService.java
+│   │   │       │   ├── SubmissionController.java
+│   │   │       │   ├── Response.java
+│   │   │       │   ├── ResponseRepository.java
+│   │   │       │   └── ScoringService.java
+│   │   │       │
+│   │   │       ├── certificate/
+│   │   │       │   ├── Certificate.java
+│   │   │       │   ├── CertificateRepository.java
+│   │   │       │   ├── CertificateService.java
+│   │   │       │   ├── CertificateController.java
+│   │   │       │   ├── PdfGenerator.java
+│   │   │       │   └── QrCodeGenerator.java
+│   │   │       │
+│   │   │       ├── storage/
+│   │   │       │   ├── StorageService.java
+│   │   │       │   ├── R2StorageService.java
+│   │   │       │   └── StorageController.java
+│   │   │       │
+│   │   │       ├── activity/
+│   │   │       │   ├── ActivityLog.java
+│   │   │       │   ├── ActivityLogRepository.java
+│   │   │       │   ├── ActivityLogService.java
+│   │   │       │   └── ActivityLogger.java (AOP aspect)
+│   │   │       │
+│   │   │       ├── common/
+│   │   │       │   ├── dto/
+│   │   │       │   │   ├── ApiResponse.java
+│   │   │       │   │   ├── ErrorResponse.java
+│   │   │       │   │   └── PageResponse.java
+│   │   │       │   ├── exception/
+│   │   │       │   │   ├── GlobalExceptionHandler.java
+│   │   │       │   │   ├── NotFoundException.java
+│   │   │       │   │   ├── ForbiddenException.java
+│   │   │       │   │   └── ValidationException.java
+│   │   │       │   └── util/
+│   │   │       │       ├── CodeGenerator.java
+│   │   │       │       └── SlugGenerator.java
+│   │   │       │
+│   │   │       └── webhook/
+│   │   │           ├── ClerkWebhookController.java
+│   │   │           └── WebhookService.java
+│   │   │
+│   │   └── resources/
+│   │       ├── application.yml
+│   │       ├── application-prod.yml
+│   │       ├── db/migration/
+│   │       │   ├── V1__create_users.sql
+│   │       │   ├── V2__create_workspaces.sql
+│   │       │   ├── V3__create_members.sql
+│   │       │   ├── V4__create_workshops.sql
+│   │       │   ├── V5__create_enrollments.sql
+│   │       │   ├── V6__create_invites.sql
+│   │       │   ├── V7__create_resources.sql
+│   │       │   ├── V8__create_assessments.sql
+│   │       │   ├── V9__create_questions.sql
+│   │       │   ├── V10__create_answers.sql
+│   │       │   ├── V11__create_submissions.sql
+│   │       │   ├── V12__create_responses.sql
+│   │       │   ├── V13__create_certificates.sql
+│   │       │   └── V14__create_activity_logs.sql
+│   │       └── templates/
+│   │           └── certificate.html
+│   │
+│   └── test/
+│       └── java/
+│           └── io/skillmark/
+│               ├── workspace/
+│               │   └── WorkspaceServiceTest.java
+│               ├── assessment/
+│               │   └── ScoringServiceTest.java
+│               └── integration/
+│                   ├── WorkshopApiTest.java
+│                   └── SubmissionApiTest.java
+│
+├── pom.xml
+├── Dockerfile
+├── docker-compose.yml
+├── .env.example
+└── README.md
+```
+
+---
+
+# 17. Migration Guide from V2
+
+If implementing from scratch, you can ignore this section. If migrating from the previous complex design:
+
+## Changes Summary
+
+| V2 Concept | V3 Concept | Reason |
+|------------|------------|---------|
+| Organization | Workspace | Modern terminology |
+| OrganizationMembership | Member | Simplified |
+| Program | Workshop | Clearer purpose |
+| ProgramEnrollment | Enrollment | Simplified |
+| InvitationLink | Invite | Shorter |
+| ProgramResource | Resource | Less verbose |
+| Quiz | Assessment | Professional term |
+| QuizAttempt | Submission | Clearer noun |
+| QuizAttemptAnswer | Response | Simpler |
+| AuditLog | ActivityLog | Less scary term |
+
+## Data Model Changes
+
+1. **Removed duplicate status fields**: `isPublished` removed, use `status` only
+2. **Simplified roles**: 3 roles instead of complex permission matrix
+3. **Flatter hierarchy**: Removed unnecessary nesting
+4. **Cleaner invite system**: Workshop invites are optional, workspace invites are primary
+
+## API Changes
+
+Old → New:
+
+```
+POST /api/v1/organizations → POST /api/v1/workspaces
+POST /api/v1/programs → POST /api/v1/workspaces/:id/workshops
+POST /api/v1/quizzes/:id/attempts → POST /api/v1/assessments/:id/submissions
+PATCH /api/v1/programs/:id/publish → PATCH /api/v1/workshops/:id/publish
+GET /api/v1/public/certificates/verify/:code → GET /api/v1/public/verify/:code
+```
+
+---
+
+# 18. Future Enhancements
+
+## Phase 2 (Post-MVP)
+
+- 🎯 **Question Bank**: Reusable question library
+- 🎲 **Question Randomization**: Shuffle questions per student
+- 🏆 **Badges & Achievements**: Gamification
+- 📧 **Email Notifications**: Enrollment, certificate issuance
+- 📊 **Advanced Analytics**: Completion rates, time tracking
+- 🎨 **Custom Certificate Templates**: Upload custom designs
+- 💬 **Discussion Boards**: Workshop Q&A
+
+## Phase 3 (Future)
+
+- 💰 **Payments**: Paid workshops via Stripe
+- 📱 **Mobile Apps**: iOS/Android
+- 🤖 **AI Features**: Auto-question generation
+- 🎥 **Video Hosting**: Built-in video platform
+- 🌐 **Multi-language**: i18n support
+- 📈 **Reporting Dashboard**: Visual analytics
+- 🔌 **Zapier Integration**: Automation workflows
+
+---
+
+# 19. Success Metrics
+
+## Technical Metrics
+
+- ✅ 80%+ test coverage
+- ✅ <100ms median API response time
+- ✅ 99.9% uptime
+- ✅ Zero SQL injection vulnerabilities
+- ✅ Zero authentication bypasses
+
+## Product Metrics
+
+- 📊 Number of workspaces created
+- 📊 Number of workshops published
+- 📊 Number of certificates issued
+- 📊 Average workshop completion rate
+- 📊 API adoption rate (requests/day)
+
+---
+
+# 20. Getting Started (Developer)
+
+## Prerequisites
+
+```bash
+- Java 17+
+- Maven 3.6+
+- Docker & Docker Compose
+- Clerk account (free tier)
+- Cloudflare account (free tier)
+```
+
+## Quick Start
+
+```bash
+# 1. Clone repository
+git clone https://github.com/yourorg/skillmark-api.git
+cd skillmark-api
+
+# 2. Copy environment template
+cp .env.example .env
+
+# 3. Start local database
+docker-compose up -d postgres
+
+# 4. Run migrations
+./mvnw flyway:migrate
+
+# 5. Start application
+./mvnw spring-boot:run
+
+# 6. Visit Swagger docs
+open http://localhost:8080/swagger-ui.html
+```
+
+## Environment Setup
+
+Edit `.env`:
+```bash
+CLERK_ISSUER=https://your-clerk-domain.clerk.accounts.dev
+CLERK_JWKS_URL=https://your-clerk-domain.clerk.accounts.dev/.well-known/jwks.json
+CLERK_WEBHOOK_SECRET=whsec_xxxxxxx
+
+R2_ACCOUNT_ID=your-r2-account-id
+R2_ACCESS_KEY_ID=xxxxxx
+R2_SECRET_ACCESS_KEY=yyyyyy
+R2_BUCKET_NAME=skillmark-dev
+```
+
+---
+
+# 21. Summary
+
+This redesigned **Skillmark V3** PRD delivers:
+
+✅ **Simpler architecture** — 11 entities vs 15+  
+✅ **Better API design** — RESTful, intuitive, consistent  
+✅ **Clearer permissions** — 3 roles instead of complex matrix  
+✅ **Modern stack** — Clerk + Neon + R2  
+✅ **Production ready** — Security, testing, deployment  
+✅ **Developer friendly** — Clear structure, good DX  
+
+**Core flows work out of the box:**
+1. Create workspace → auto-become admin
+2. Create workshop → publish
+3. Generate invite → share code
+4. Users join → get enrolled
+5. Add resources → students access
+6. Create assessment → students take
+7. Auto-grade → issue certificate
+8. Public verification → trust & verify
+
+**Next step**: Start implementation with `User` + `Workspace` + `Member` modules, then expand from there.
+
+---
+
+**Document Version:** 3.0  
+**Last Updated:** 2024  
+**Status:** ✅ Ready for Implementation

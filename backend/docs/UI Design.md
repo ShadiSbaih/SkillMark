@@ -1,1382 +1,1708 @@
-# Skillmark Frontend — UI Design Document
+# File Index
 
-## Angular Frontend Design Document — Version 1.0
+## Configuration Files
 
----
+1. `package.json` - NPM dependencies and scripts
+2. `tailwind.config.js` - Tailwind CSS configuration with custom theme
+3. `angular.json` - Angular CLI configuration
+4. `tsconfig.json` - TypeScript compiler configuration
+5. `src/environments/environment.ts` - Development environment variables
+6. `src/environments/environment.production.ts` - Production environment variables
 
-# 1. Introduction
+## Core Module Files
 
-## 1.1 Purpose
+7. `src/app/core/models/api-response.model.ts` - API response type definitions
+8. `src/app/core/services/api.service.ts` - HTTP API wrapper service
+9. `src/app/core/services/auth.service.ts` - Clerk authentication service
+10. `src/app/core/services/storage.service.ts` - LocalStorage wrapper service
+11. `src/app/core/services/toast.service.ts` - Toast notification service
+12. `src/app/core/interceptors/auth.interceptor.ts` - JWT token HTTP interceptor
+13. `src/app/core/interceptors/error.interceptor.ts` - Global error handler interceptor
+14. `src/app/core/guards/auth.guard.ts` - Route authentication guard
+15. `src/app/core/core.module.ts` - Core module declaration
 
-This document defines the UI design, layout structure, page inventory, component architecture, and user interaction flows for the **Skillmark Angular frontend**.
+## Shared UI Components
 
-The frontend consumes the Skillmark backend REST API and provides:
+16. `src/app/shared/components/ui/button/button.component.ts` - Reusable button component
+17. `src/app/shared/components/ui/button/button.component.html` - Button template
+18. `src/app/shared/components/ui/card/card.component.ts` - Card container component
+19. `src/app/shared/components/ui/card/card.component.html` - Card template
+20. `src/app/shared/components/ui/modal/modal.component.ts` - Modal dialog component
+21. `src/app/shared/components/ui/modal/modal.component.html` - Modal template
+22. `src/app/shared/shared.module.ts` - Shared module declaration
 
-- a dashboard for organization owners to manage their organizations, programs, quizzes, and certificates
-- a participant portal for enrolled users to view programs, take quizzes, and download certificates
-- a public certificate verification page accessible without login
+## Feature: Workspace
 
----
+23. `src/app/features/workspace/models/workspace.model.ts` - Workspace type definitions
+24. `src/app/features/workspace/services/workspace.service.ts` - Workspace API service
+25. `src/app/features/workspace/components/workspace-list/workspace-list.component.ts` - Workspace list page
+26. `src/app/features/workspace/components/workspace-list/workspace-list.component.html` - Workspace list template
+27. `src/app/features/workspace/workspace-routing.module.ts` - Workspace routing configuration
+28. `src/app/features/workspace/workspace.module.ts` - Workspace feature module
 
-## 1.2 Frontend Stack
+## Main App Files
 
-| Technology | Purpose |
-| --- | --- |
-| Angular 17+ | Frontend framework |
-| Angular Router | Client-side routing |
-| Angular Reactive Forms | Form management and validation |
-| Angular HTTP Client | API communication |
-| Clerk Angular SDK | Authentication and session management |
-| TailwindCSS | Utility-first styling |
-| Angular Material or PrimeNG | UI component library |
-| Chart.js or NgRx Charts | Statistics charts |
-| ngx-qrcode or similar | QR code display |
-| NgRx or Angular Signals | State management |
-
----
-
-## 1.3 Authentication Strategy
-
-The frontend uses **Clerk** for authentication.
-
-Clerk responsibilities:
-
-- sign up page
-- sign in page
-- password reset
-- email verification
-- session management
-- JWT token issuance
-
-Frontend responsibilities:
-
-- attach Clerk JWT token to every API request via HTTP interceptor
-- redirect unauthenticated users to Clerk sign-in
-- detect session expiry and re-authenticate
-- call backend user sync on first login
+29. `src/app/app-routing.module.ts` - Root routing configuration with lazy loading
+30. `src/app/app.module.ts` - Root module declaration
+31. `src/app/app.component.ts` - Root component
+32. `src/app/app.component.html` - Root component template
+33. `src/styles.css` - Global Tailwind CSS styles
 
 ---
 
-## 1.4 Design Principles
+# UI.md - Frontend UI Structure
 
-- Mobile-responsive layout
-- Clean and minimal university-style design
-- Role-aware navigation (owner sees management tools, participant sees learning tools)
-- Consistent loading states, error states, and empty states on all pages
-- Accessible (ARIA labels, keyboard navigation)
-- Paginated lists everywhere
-- Toast notifications for actions (success, error, warning)
+# Skillmark Frontend UI Documentation
+
+Version: 1.0  
+Last Updated: 2024  
+Framework: Angular 17 + Tailwind CSS
 
 ---
 
-# 2. Application Layout
+## Table of Contents
 
-## 2.1 Layout Zones
-
-The application has three main layout zones:
-
-```
-┌─────────────────────────────────────────────────┐
-│                   TOP NAV BAR                   │
-├──────────────┬──────────────────────────────────┤
-│              │                                  │
-│   SIDEBAR    │         MAIN CONTENT AREA        │
-│              │                                  │
-│              │                                  │
-│              │                                  │
-└──────────────┴──────────────────────────────────┘
-```
+1. [Layout Structure](#layout-structure)
+2. [Authentication Pages](#authentication-pages)
+3. [Dashboard Pages](#dashboard-pages)
+4. [Workspace Pages](#workspace-pages)
+5. [Workshop Pages](#workshop-pages)
+6. [Assessment Pages](#assessment-pages)
+7. [Submission Pages](#submission-pages)
+8. [Certificate Pages](#certificate-pages)
+9. [Public Pages](#public-pages)
+10. [Shared Components](#shared-components)
 
 ---
 
-## 2.2 Top Navigation Bar
+## Layout Structure
 
-Always visible after login.
+### Main Layout Component
 
-Contents:
+**Route:** Used by all authenticated pages  
+**Location:** `src/app/shared/components/layout/main-layout/main-layout.component.html`
 
+**Structure:**
 ```
-Left:
-  - Skillmark logo / brand name
-  - Current organization selector (dropdown if user belongs to multiple)
-
-Center:
-  - (empty or search bar in future)
-
-Right:
-  - Notification bell (future feature placeholder)
-  - User avatar and name
-  - Dropdown menu:
-      → View Profile
-      → Sign Out
-```
-
----
-
-## 2.3 Sidebar Navigation
-
-Visible after login on medium and large screens.
-
-On mobile: collapsible hamburger menu.
-
-Sidebar items depend on the current context:
-
-### Owner Sidebar
-
-```
-Dashboard
-─────────────────
-My Organizations
-  └── [Current Org Name]
-       ├── Overview
-       ├── Members
-       ├── Programs
-       └── Settings
-
-Programs (in current org)
-  └── [Program Name]
-       ├── Overview
-       ├── Enrollments
-       ├── Invitations
-       ├── Resources
-       ├── Quizzes
-       └── Statistics
-
-─────────────────
-Certificates
-Audit Logs
+┌────────────────────────────────────────┐
+│           Navbar (fixed top)           │
+├─────────┬──────────────────────────────┤
+│         │                              │
+│ Sidebar │   Main Content Area          │
+│ (fixed) │   (router-outlet)            │
+│         │                              │
+│         │                              │
+│         │                              │
+├─────────┴──────────────────────────────┤
+│           Footer (optional)            │
+└────────────────────────────────────────┘
 ```
 
-### Participant Sidebar
+**Components:**
+- Navbar (app-navbar)
+- Sidebar (app-sidebar)
+- Main content area with router outlet
+- Footer (app-footer)
 
-```
-Dashboard
-─────────────────
-My Programs
-  └── [Program Name]
-       ├── Resources
-       └── Quizzes
+**Navbar Contents:**
+- Logo (left)
+- Search bar (center) - for later phase
+- User profile dropdown (right)
+  - View Profile
+  - Settings
+  - Sign Out
 
-─────────────────
-My Certificates
-My Attempts
-```
+**Sidebar Contents:**
+- Dashboard link
+- My Workspaces link
+- My Workshops link
+- My Certificates link
+- Analytics (if admin/instructor)
 
 ---
 
-## 2.4 Main Content Area
+## Authentication Pages
 
-The main content area renders the active route.
+### Sign In Page
 
-It always has:
+**Route:** `/auth/sign-in`  
+**Location:** `src/app/features/auth/components/sign-in/sign-in.component.html`  
+**Layout:** Centered, no sidebar
 
-- page header (title + breadcrumb)
-- action buttons (top right of the page header)
-- content body
-- pagination controls at the bottom of lists
+**Structure:**
+- Full-screen centered card
+- Skillmark logo at top
+- Heading: "Sign in to your account"
+- Clerk sign-in component embedded
+- Link to sign up page at bottom
 
----
+**Components Used:**
+- app-card
+- Clerk SignIn component
 
-## 2.5 Public Layout (No Sidebar)
-
-Used for:
-
-- Certificate Verification page
-- Sign In / Sign Up pages (Clerk hosted or embedded)
-- 404 page
-- Landing page (optional)
-
-```
-┌─────────────────────────────────────────────────┐
-│              MINIMAL TOP BAR (logo only)        │
-├─────────────────────────────────────────────────┤
-│                                                 │
-│              CENTERED CONTENT CARD              │
-│                                                 │
-└─────────────────────────────────────────────────┘
-```
+**User Actions:**
+- Enter email and password (handled by Clerk)
+- Click "Sign In" (handled by Clerk)
+- Click "Forgot password?" (handled by Clerk)
+- Click "Don't have an account? Sign up"
 
 ---
 
-# 3. Page Inventory
+### Sign Up Page
 
-## 3.1 Public Pages
+**Route:** `/auth/sign-up`  
+**Location:** `src/app/features/auth/components/sign-up/sign-up.component.html`  
+**Layout:** Centered, no sidebar
 
-| Page | Route | Description |
-| --- | --- | --- |
-| Landing Page | `/` | Product intro, sign in / sign up CTA |
-| Sign In | `/sign-in` | Clerk sign in (embedded or hosted) |
-| Sign Up | `/sign-up` | Clerk sign up (embedded or hosted) |
-| Certificate Verification | `/verify/:verificationCode` | Public certificate lookup |
-| 404 Not Found | `/**` | Fallback not found page |
+**Structure:**
+- Full-screen centered card
+- Skillmark logo at top
+- Heading: "Create your account"
+- Clerk sign-up component embedded
+- Link to sign in page at bottom
 
----
+**Components Used:**
+- app-card
+- Clerk SignUp component
 
-## 3.2 Authenticated Pages (Common)
-
-| Page | Route | Description |
-| --- | --- | --- |
-| Dashboard | `/dashboard` | Role-aware landing after login |
-| User Profile | `/profile` | View and edit own profile |
-| My Enrollments | `/my-enrollments` | List of enrolled programs |
-| My Attempts | `/my-attempts` | List of own quiz attempts |
-| My Certificates | `/my-certificates` | List of own certificates |
-
----
-
-## 3.3 Organization Owner Pages
-
-| Page | Route | Description |
-| --- | --- | --- |
-| Create Organization | `/organizations/new` | Create a new organization |
-| Organization Overview | `/organizations/:orgId` | Organization dashboard |
-| Organization Members | `/organizations/:orgId/members` | Manage members |
-| Organization Settings | `/organizations/:orgId/settings` | Update organization details |
-| Organization Audit Logs | `/organizations/:orgId/audit-logs` | View audit history |
-| Organization Statistics | `/organizations/:orgId/stats` | View org-level stats |
+**User Actions:**
+- Enter email, password, name (handled by Clerk)
+- Click "Sign Up" (handled by Clerk)
+- Verify email (handled by Clerk)
+- Click "Already have an account? Sign in"
 
 ---
 
-## 3.4 Program Pages (Owner)
+## Dashboard Pages
 
-| Page | Route | Description |
-| --- | --- | --- |
-| Create Program | `/organizations/:orgId/programs/new` | Create new program |
-| Program Overview | `/programs/:programId` | Program dashboard |
-| Program Enrollments | `/programs/:programId/enrollments` | View and manage enrollments |
-| Program Invitations | `/programs/:programId/invitations` | Manage invitation links |
-| Program Resources | `/programs/:programId/resources` | Manage learning resources, including visibility toggles |
-| Program Quizzes | `/programs/:programId/quizzes` | List and manage quizzes, including visibility toggles |
-| Program Statistics | `/programs/:programId/stats` | Program-level stats |
-| Program Settings | `/programs/:programId/settings` | Update program details |
+### Dashboard Home
 
----
+**Route:** `/dashboard`  
+**Location:** `src/app/features/dashboard/components/dashboard-home/dashboard-home.component.html`  
+**Layout:** Main layout with sidebar
 
-## 3.5 Quiz Pages (Owner)
+**Structure:**
+- Page header
+  - Heading: "Dashboard"
+  - Subheading: "Welcome back, [User Name]"
+- Stats cards row (4 cards)
+  - Total Workspaces
+  - Active Workshops
+  - Certificates Earned
+  - Enrollments
+- Two-column layout below
+  - Left: Recent Workshops (list)
+  - Right: Recent Activity (timeline)
 
-| Page | Route | Description |
-| --- | --- | --- |
-| Create Quiz | `/programs/:programId/quizzes/new` | Create a new quiz |
-| Quiz Builder | `/quizzes/:quizId/builder` | Add questions and options |
-| Quiz Overview | `/quizzes/:quizId` | Quiz dashboard |
-| Quiz Attempts (Owner) | `/quizzes/:quizId/attempts` | View all attempts |
-| Quiz Statistics | `/quizzes/:quizId/stats` | Quiz-level stats |
-| Quiz Settings | `/quizzes/:quizId/settings` | Update quiz settings |
+**Components Used:**
+- app-card
+- app-stats-card (custom)
+- app-badge
+- app-empty-state (if no data)
 
----
-
-## 3.6 Certificate Pages (Owner)
-
-| Page | Route | Description |
-| --- | --- | --- |
-| Organization Certificates | `/organizations/:orgId/certificates` | All certificates in org |
+**User Actions:**
+- Click on workspace card → Navigate to workspace
+- Click on workshop card → Navigate to workshop
+- Click "View All Workspaces" button
 
 ---
 
-## 3.7 Participant Pages
+## Workspace Pages
 
-| Page | Route | Description |
-| --- | --- | --- |
-| Program View (Participant) | `/programs/:programId/learn` | Participant view of program |
-| Quiz View (Participant) | `/quizzes/:quizId/view` | View quiz before attempting |
-| Quiz Attempt | `/quizzes/:quizId/attempt` | Take the quiz |
-| Attempt Result | `/attempts/:attemptId/result` | View scored result |
-| Certificate View | `/certificates/:certificateId` | View certificate details |
+### Workspace List Page
 
----
+**Route:** `/workspaces`  
+**Location:** `src/app/features/workspace/components/workspace-list/workspace-list.component.html`  
+**Layout:** Main layout with sidebar
 
-# 4. Page Designs
+**Structure:**
+- Page header
+  - Left: Heading "My Workspaces" and description
+  - Right: "Create Workspace" button (primary)
+- Loading state: centered spinner
+- Empty state: 
+  - Illustration
+  - Message: "No workspaces yet"
+  - "Create Workspace" button
+- Grid layout (3 columns on desktop)
+  - Workspace cards
 
----
+**Workspace Card Contents:**
+- Workspace logo or initial
+- Workspace name
+- Role badge (ADMIN/INSTRUCTOR/MEMBER)
+- Description (2 lines max, truncated)
+- Footer stats:
+  - Members count
+  - Workshops count
 
-## 4.1 Landing Page
+**Components Used:**
+- app-button
+- app-card
+- app-badge
+- app-spinner (loading)
+- app-empty-state (no workspaces)
 
-**Route:** `/`
-
-**Purpose:** Introduce Skillmark and direct users to sign in or sign up.
-
-**Layout:** Centered, full-width public layout.
-
-**Sections:**
-
-```
-┌─────────────────────────────────────────────────┐
-│  Skillmark Logo                [Sign In] [Sign Up]│
-├─────────────────────────────────────────────────┤
-│                                                 │
-│     Hero Section                                │
-│     Headline: "Train. Assess. Certify."         │
-│     Subtext: One-line pitch                     │
-│     [Get Started] [Verify a Certificate]        │
-│                                                 │
-├─────────────────────────────────────────────────┤
-│     Features Section (3 columns)                │
-│     ┌──────────┐ ┌──────────┐ ┌──────────┐     │
-│     │ Manage   │ │  Run     │ │  Issue   │     │
-│     │ Programs │ │  Quizzes │ │  Certs   │     │
-│     └──────────┘ └──────────┘ └──────────┘     │
-├─────────────────────────────────────────────────┤
-│     Use Cases Section                           │
-│     University clubs, bootcamps, companies...   │
-├─────────────────────────────────────────────────┤
-│     Footer                                      │
-│     © Skillmark · Verify Certificate · Sign In  │
-└─────────────────────────────────────────────────┘
-```
+**User Actions:**
+- Click "Create Workspace" → Navigate to create page
+- Click workspace card → Navigate to workspace detail
 
 ---
 
-## 4.2 Certificate Verification Page
+### Create Workspace Page
 
-**Route:** `/verify/:verificationCode`
+**Route:** `/workspaces/create`  
+**Location:** `src/app/features/workspace/components/workspace-create/workspace-create.component.html`  
+**Layout:** Main layout with sidebar
 
-**Purpose:** Allow anyone to verify a certificate by entering or scanning a verification code.
+**Structure:**
+- Page header
+  - Heading: "Create Workspace"
+  - Breadcrumb: Workspaces > Create
+- Main card container
+  - Form section
+    - Workspace Name input (required)
+    - Slug input (auto-generated, editable)
+    - Description textarea (optional)
+    - Logo upload component (optional)
+  - Preview section (right side or below on mobile)
+    - Shows how workspace card will look
+  - Action buttons at bottom
+    - "Cancel" button (secondary, left)
+    - "Create Workspace" button (primary, right)
 
-**Layout:** Minimal public layout with centered card.
+**Components Used:**
+- app-card
+- app-input
+- app-textarea
+- app-file-upload
+- app-button
 
-**Sections:**
+**User Actions:**
+- Type workspace name → slug auto-generates
+- Edit slug manually
+- Type description
+- Upload logo image
+- Click "Create Workspace" → API call → Navigate to workspace detail
+- Click "Cancel" → Navigate back to workspace list
 
-```
-┌─────────────────────────────────────────────────┐
-│  Skillmark Logo                                 │
-├─────────────────────────────────────────────────┤
-│                                                 │
-│         Certificate Verification                │
-│                                                 │
-│    ┌─────────────────────────────────────┐      │
-│    │  Enter Verification Code            │      │
-│    │  [___________________________] [Go] │      │
-│    └─────────────────────────────────────┘      │
-│                                                 │
-│    ── OR ──                                     │
-│                                                 │
-│    If code is in URL, auto-load on page open    │
-│                                                 │
-│  ┌───────────────────────────────────────────┐  │
-│  │  ✅ Certificate Valid                     │  │
-│  │                                           │  │
-│  │  Participant:  Ahmad Al-Rashid            │  │
-│  │  Quiz:         Git Basics Final Quiz      │  │
-│  │  Program:      Git & GitHub Workshop      │  │
-│  │  Organization: Computer Science Club      │  │
-│  │  Issued:       January 15, 2024           │  │
-│  │  Status:       ACTIVE                     │  │
-│  │                                           │  │
-│  └───────────────────────────────────────────┘  │
-│                                                 │
-│  ❌ If revoked:                                 │
-│  ┌───────────────────────────────────────────┐  │
-│  │  ❌ Certificate Revoked                   │  │
-│  │  Revoked on: February 1, 2024             │  │
-│  │  Reason: Issued in error                  │  │
-│  └───────────────────────────────────────────┘  │
-│                                                 │
-│  ❓ If not found:                               │
-│  ┌───────────────────────────────────────────┐  │
-│  │  ❓ Certificate Not Found                 │  │
-│  │  No certificate matches this code.        │  │
-│  └───────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────┘
-```
-
-**Behavior:**
-
-- If the route has `:verificationCode`, auto-call verification API on load.
-- If no code in route, show input form.
-- Show loading spinner while API call is in progress.
-- No authentication required.
+**Validation:**
+- Name: required, 3-100 characters
+- Slug: required, 3-50 characters, lowercase, alphanumeric + hyphens
+- Description: max 1000 characters
+- Logo: max 2MB, image formats only
 
 ---
 
-## 4.3 Dashboard Page
+### Workspace Detail Page
 
-**Route:** `/dashboard`
+**Route:** `/workspaces/:id`  
+**Location:** `src/app/features/workspace/components/workspace-detail/workspace-detail.component.html`  
+**Layout:** Main layout with sidebar
 
-**Purpose:** Role-aware landing page after login.
+**Structure:**
+- Workspace header section
+  - Logo and name (large)
+  - Description
+  - Role badge
+  - Action buttons (right):
+    - "Settings" button (if ADMIN)
+    - "Invite Members" button (if ADMIN/INSTRUCTOR)
+- Tabs navigation
+  - Overview (default)
+  - Workshops
+  - Members
+  - Analytics (if ADMIN/INSTRUCTOR)
+- Tab content area (router-outlet for sub-routes)
 
-**Layout:** Sidebar + main content.
+**Overview Tab Contents:**
+- Stats row (4 cards):
+  - Total Members
+  - Total Workshops
+  - Active Workshops
+  - Certificates Issued
+- Recent workshops list
+- Recent members list
 
-### Owner Dashboard
+**Workshops Tab Contents:**
+- Header with "Create Workshop" button (if ADMIN/INSTRUCTOR)
+- Workshop grid (same as workshop list)
+- Empty state if no workshops
 
-```
-┌──────────────────────────────────────────────────┐
-│  Welcome back, Ahmad 👋                          │
-├──────────────────────────────────────────────────┤
-│                                                  │
-│  My Organizations              [+ New Org]       │
-│  ┌─────────────┐ ┌─────────────┐                 │
-│  │ CS Club     │ │ AI Workshop │                 │
-│  │ 3 programs  │ │ 1 program   │                 │
-│  │ 45 members  │ │ 12 members  │                 │
-│  │ [Open]      │ │ [Open]      │                 │
-│  └─────────────┘ └─────────────┘                 │
-│                                                  │
-│  Recent Activity                                 │
-│  ─────────────────────────────────────           │
-│  • Ahmad issued a certificate     2 min ago      │
-│  • Sara joined Git Workshop       1 hr ago       │
-│  • Quiz "Git Basics" published    3 hrs ago      │
-│                                                  │
-│  Quick Stats (for first org)                     │
-│  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐            │
-│  │  3   │ │  45  │ │  12  │ │  38  │            │
-│  │Progs │ │Membs │ │Quizs │ │Certs │            │
-│  └──────┘ └──────┘ └──────┘ └──────┘            │
-│                                                  │
-└──────────────────────────────────────────────────┘
-```
+**Members Tab Contents:**
+- Header with "Add Member" button (if ADMIN/INSTRUCTOR)
+- Members table:
+  - Avatar
+  - Name
+  - Email
+  - Role
+  - Joined date
+  - Actions (remove, change role - if ADMIN)
 
-### Participant Dashboard
+**Analytics Tab Contents:**
+- Charts and statistics
+- Enrollment trends
+- Completion rates
+- Certificate distribution
 
-```
-┌──────────────────────────────────────────────────┐
-│  Welcome back, Sara 👋                           │
-├──────────────────────────────────────────────────┤
-│                                                  │
-│  My Enrolled Programs                            │
-│  ┌──────────────────────────────────────────┐    │
-│  │ Git & GitHub Workshop                    │    │
-│  │ Computer Science Club                    │    │
-│  │ 3 resources · 1 quiz                     │    │
-│  │ [Continue Learning]                      │    │
-│  └──────────────────────────────────────────┘    │
-│                                                  │
-│  My Recent Certificates                          │
-│  ┌──────────────────────────────────────────┐    │
-│  │ 🏆 Git & GitHub Workshop Completion      │    │
-│  │ Issued: Jan 15, 2024                     │    │
-│  │ [View] [Download PDF]                    │    │
-│  └──────────────────────────────────────────┘    │
-│                                                  │
-│  My Recent Attempts                              │
-│  ┌──────────────────────────────────────────┐    │
-│  │ Git Basics Quiz · Score: 85% · ✅ Passed │    │
-│  │ Jan 15, 2024                             │    │
-│  └──────────────────────────────────────────┘    │
-│                                                  │
-└──────────────────────────────────────────────────┘
-```
+**Components Used:**
+- app-card
+- app-badge
+- app-button
+- app-tabs (custom)
+- app-stats-card
+- app-table (custom)
+
+**User Actions:**
+- Click "Settings" → Navigate to workspace edit
+- Click "Invite Members" → Open invite modal
+- Switch tabs → Change content
+- Click workshop card → Navigate to workshop detail
+- Click "Create Workshop" → Navigate to workshop create
 
 ---
 
-## 4.4 Organization Overview Page
+### Workspace Settings Page
 
-**Route:** `/organizations/:orgId`
+**Route:** `/workspaces/:id/edit`  
+**Location:** `src/app/features/workspace/components/workspace-edit/workspace-edit.component.html`  
+**Layout:** Main layout with sidebar
 
-**Layout:** Sidebar + main content.
+**Structure:**
+- Page header
+  - Heading: "Workspace Settings"
+  - Breadcrumb: Workspaces > [Workspace Name] > Settings
+- Settings card
+  - Form sections:
+    - General Information
+      - Name input
+      - Slug input
+      - Description textarea
+      - Logo upload
+    - Danger Zone (at bottom, red border)
+      - Delete workspace section
+      - Warning message
+      - "Delete Workspace" button (danger)
+  - Action buttons
+    - "Cancel" (secondary)
+    - "Save Changes" (primary)
 
-```
-┌──────────────────────────────────────────────────┐
-│  Computer Science Club              [Edit] [⚙️]  │
-│  Breadcrumb: My Organizations > CS Club          │
-├──────────────────────────────────────────────────┤
-│                                                  │
-│  ┌──────┐  ┌──────┐  ┌──────┐  ┌──────┐         │
-│  │  3   │  │  45  │  │  12  │  │  38  │         │
-│  │Progs │  │Membs │  │Quizs │  │Certs │         │
-│  └──────┘  └──────┘  └──────┘  └──────┘         │
-│                                                  │
-│  Programs                       [+ New Program]  │
-│  ┌──────────────────────────────────────────┐    │
-│  │ Git & GitHub Workshop  PUBLISHED         │    │
-│  │ 15 enrolled · Jan 10 – Jan 31            │    │
-│  │ [Manage]                                 │    │
-│  ├──────────────────────────────────────────┤    │
-│  │ Python Basics Workshop  DRAFT            │    │
-│  │ 0 enrolled · Feb 1 – Feb 28             │    │
-│  │ [Manage]                                 │    │
-│  └──────────────────────────────────────────┘    │
-│                                                  │
-│  Recent Members                  [View All]      │
-│  • Ahmad Al-Rashid (Owner)                       │
-│  • Sara Mohammed (Participant)                   │
-│  • Khalid Hassan (Participant)                   │
-│                                                  │
-└──────────────────────────────────────────────────┘
-```
+**Components Used:**
+- app-card
+- app-input
+- app-textarea
+- app-file-upload
+- app-button
+- app-confirmation-dialog
 
----
-
-## 4.5 Organization Members Page
-
-**Route:** `/organizations/:orgId/members`
-
-```
-┌──────────────────────────────────────────────────┐
-│  Members                              [+ Add]    │
-│  Breadcrumb: CS Club > Members                   │
-├──────────────────────────────────────────────────┤
-│  Search: [___________________]                   │
-│  Filter: [All Roles ▼]                           │
-├──────────────────────────────────────────────────┤
-│  Avatar  Name              Role         Actions  │
-│  ──────  ──────────────    ──────       ───────  │
-│  [A]     Ahmad Al-Rashid   OWNER        —        │
-│  [S]     Sara Mohammed     PARTICIPANT  [Remove] │
-│  [K]     Khalid Hassan     PARTICIPANT  [Remove] │
-├──────────────────────────────────────────────────┤
-│  « 1 2 3 »                                       │
-└──────────────────────────────────────────────────┘
-```
-
-**Add Member Modal:**
-
-```
-┌────────────────────────────────┐
-│  Add Member                 ✕ │
-├────────────────────────────────┤
-│  Search User by Email:         │
-│  [_________________________]   │
-│  [Search]                      │
-│                                │
-│  Found: Sara Mohammed          │
-│  [Add as Participant]          │
-└────────────────────────────────┘
-```
+**User Actions:**
+- Edit workspace details
+- Click "Save Changes" → API call → Show success toast → Navigate back
+- Click "Delete Workspace" → Show confirmation dialog → API call → Navigate to workspace list
+- Click "Cancel" → Navigate back
 
 ---
 
-## 4.6 Program Overview Page
+## Workshop Pages
 
-**Route:** `/programs/:programId`
+### Workshop List Page (within workspace)
 
-```
-┌──────────────────────────────────────────────────┐
-│  Git & GitHub Workshop              [Edit] [⚙️]  │
-│  CS Club > Programs > Git Workshop               │
-│  Status: PUBLISHED   Jan 10 – Jan 31             │
-├──────────────────────────────────────────────────┤
-│                                                  │
-│  ┌──────┐  ┌──────┐  ┌──────┐  ┌──────┐         │
-│  │  15  │  │  3   │  │  1   │  │  12  │         │
-│  │Enrol │  │Resrc │  │Quiz  │  │Certs │         │
-│  └──────┘  └──────┘  └──────┘  └──────┘         │
-│                                                  │
-│  Description:                                    │
-│  A hands-on workshop covering Git basics...      │
-│                                                  │
-│  Quick Actions:                                  │
-│  [Manage Enrollments]  [Manage Resources]        │
-│  [Manage Quizzes]      [View Statistics]         │
-│  [Manage Invitations]                            │
-│                                                  │
-│  [Archive Program]   [Delete Program]            │
-│                                                  │
-└──────────────────────────────────────────────────┘
-```
+**Route:** `/workspaces/:workspaceId/workshops`  
+**Location:** `src/app/features/workshop/components/workshop-list/workshop-list.component.html`  
+**Layout:** Main layout with sidebar
 
----
+**Structure:**
+- Page header
+  - Left: Heading "Workshops" and description
+  - Right: "Create Workshop" button (if ADMIN/INSTRUCTOR)
+- Filter/Sort bar
+  - Status filter dropdown (All, Published, Draft, Archived)
+  - Sort dropdown (Newest, Oldest, Name A-Z)
+  - Search input
+- Grid layout (3 columns)
+  - Workshop cards
 
-## 4.7 Program Enrollments Page
+**Workshop Card Contents:**
+- Cover image or placeholder
+- Status badge (Published/Draft/Archived)
+- Title
+- Description (2 lines, truncated)
+- Start date
+- Footer stats:
+  - Enrolled count
+  - Resources count
+  - Assessments count
+- Quick actions (if owner):
+  - Edit icon
+  - Archive icon
 
-**Route:** `/programs/:programId/enrollments`
+**Components Used:**
+- app-button
+- app-card
+- app-badge
+- app-dropdown
+- app-input (search)
+- app-empty-state
 
-```
-┌──────────────────────────────────────────────────┐
-│  Enrollments                    [+ Enroll User]  │
-│  CS Club > Git Workshop > Enrollments            │
-├──────────────────────────────────────────────────┤
-│  Search: [___________________]                   │
-├──────────────────────────────────────────────────┤
-│  Avatar  Name           Enrolled At    Actions   │
-│  ──────  ──────────     ───────────    ───────   │
-│  [S]     Sara Mohammed  Jan 10, 2024   [Remove]  │
-│  [K]     Khalid Hassan  Jan 11, 2024   [Remove]  │
-├──────────────────────────────────────────────────┤
-│  « 1 2 »                                         │
-└──────────────────────────────────────────────────┘
-```
-
----
-
-## 4.8 Program Invitations Page
-
-**Route:** `/programs/:programId/invitations`
-
-```
-┌──────────────────────────────────────────────────┐
-│  Invitation Links           [+ Create Invitation]│
-│  CS Club > Git Workshop > Invitations            │
-├──────────────────────────────────────────────────┤
-│  Code         Uses     Expires       Status      │
-│  ──────────   ──────   ───────────   ──────      │
-│  A3FX9KL2MN8P  5/50   Jan 31, 2024  ACTIVE      │
-│  [Copy Link]  [Disable]                          │
-│  ─────────────────────────────────────────────   │
-│  B7KP3NM4QR2S  0/20   Feb 15, 2024  ACTIVE      │
-│  [Copy Link]  [Disable]                          │
-└──────────────────────────────────────────────────┘
-```
-
-**Create Invitation Modal:**
-
-```
-┌────────────────────────────────┐
-│  Create Invitation Link      ✕ │
-├────────────────────────────────┤
-│  Description (optional):       │
-│  [_________________________]   │
-│                                │
-│  Max Uses (leave blank = ∞):   │
-│  [_________________________]   │
-│                                │
-│  Expires At (optional):        │
-│  [Date Picker_______________]  │
-│                                │
-│  [Cancel]  [Create]            │
-└────────────────────────────────┘
-```
+**User Actions:**
+- Click "Create Workshop" → Navigate to create page
+- Filter by status
+- Sort workshops
+- Search workshops
+- Click workshop card → Navigate to workshop detail
+- Click edit icon → Navigate to workshop edit
+- Click archive icon → Show confirmation → API call
 
 ---
 
-## 4.9 Program Resources Page
+### Create Workshop Page
 
-**Route:** `/programs/:programId/resources`
+**Route:** `/workspaces/:workspaceId/workshops/create`  
+**Location:** `src/app/features/workshop/components/workshop-create/workshop-create.component.html`  
+**Layout:** Main layout with sidebar
 
-```
-┌──────────────────────────────────────────────────┐
-│  Resources                    [+ Add Resource]   │
-│  CS Club > Git Workshop > Resources              │
-├──────────────────────────────────────────────────┤
-│                                                  │
-│  ┌──────────────────────────────────────────┐    │
-│  │ 📄 Git Slides                            │    │
-│  │ Type: LINK   Position: 1                 │    │
-│  │ https://slides.example.com/git           │    │
-│  │ [Edit]  [Delete]                         │    │
-│  ├──────────────────────────────────────────┤    │
-│  │ 📦 Workshop Notes PDF                    │    │
-│  │ Type: FILE   Provider: R2                │    │
-│  │ [Download]  [Edit]  [Delete]             │    │
-│  ├──────────────────────────────────────────┤    │
-│  │ 🖼️ Setup Screenshot                     │    │
-│  │ Type: IMAGE  Provider: Cloudinary        │    │
-│  │ [View]  [Edit]  [Delete]                 │    │
-│  └──────────────────────────────────────────┘    │
-│                                                  │
-└──────────────────────────────────────────────────┘
-```
+**Structure:**
+- Page header
+  - Heading: "Create Workshop"
+  - Breadcrumb
+- Stepper/Progress indicator
+  - Step 1: Basic Info (active)
+  - Step 2: Resources
+  - Step 3: Assessment
+  - Step 4: Publish
+- Form card (changes per step)
+  - Step 1 fields:
+    - Title input (required)
+    - Description textarea (required)
+    - Cover image upload (optional)
+    - Start date picker (optional)
+    - End date picker (optional)
+  - Navigation buttons
+    - "Cancel" (left)
+    - "Save as Draft" (secondary)
+    - "Next" (primary)
 
-**Add Resource Modal:**
+**Components Used:**
+- app-card
+- app-input
+- app-textarea
+- app-file-upload
+- app-button
+- app-stepper (custom)
+- Date picker component
 
-```
-┌────────────────────────────────────┐
-│  Add Resource                    ✕ │
-├────────────────────────────────────┤
-│  Title: [_______________________]  │
-│                                    │
-│  Type: [LINK ▼]                    │
-│     Options: LINK / FILE /         │
-│              IMAGE / VIDEO_LINK    │
-│                                    │
-│  If LINK or VIDEO_LINK:            │
-│  URL: [____________________]       │
-│                                    │
-│  If FILE:                          │
-│  [Upload File to R2 ⬆️]           │
-│                                    │
-│  If IMAGE:                         │
-│  [Upload Image to Cloudinary ⬆️]  │
-│                                    │
-│  Description (optional):           │
-│  [____________________________]    │
-│                                    │
-│  [Cancel]  [Save]                  │
-└────────────────────────────────────┘
-```
+**User Actions:**
+- Fill workshop details
+- Upload cover image
+- Select dates
+- Click "Next" → Move to resources step
+- Click "Save as Draft" → API call → Navigate to workshop detail
+- Click "Cancel" → Show confirmation if dirty → Navigate back
 
 ---
 
-## 4.10 Quiz Builder Page
+### Workshop Detail Page
 
-**Route:** `/quizzes/:quizId/builder`
+**Route:** `/workshops/:id`  
+**Location:** `src/app/features/workshop/components/workshop-detail/workshop-detail.component.html`  
+**Layout:** Main layout with sidebar
 
-**Purpose:** Owner adds and manages questions and options for a quiz.
+**Structure:**
+- Workshop hero section
+  - Cover image background (with overlay)
+  - Title (large, white text)
+  - Description
+  - Status badge
+  - Dates
+  - Enrolled badge ("You're enrolled" or "Enroll" button)
+  - Action buttons (if owner):
+    - Edit
+    - Publish/Archive
+    - Generate Invite
+- Tabs navigation
+  - Overview (default)
+  - Resources
+  - Assessments
+  - Participants (if owner)
+- Tab content area
 
-```
-┌──────────────────────────────────────────────────┐
-│  Quiz Builder: Git Basics Quiz    [Publish Quiz] │
-│  CS Club > Git Workshop > Quizzes > Builder      │
-│                                                  │
-│  Settings summary:                               │
-│  Passing Score: 70%  Duration: 30 min  Max: 3   │
-├──────────────────────────────────────────────────┤
-│                                                  │
-│  Questions                       [+ Add Question]│
-│                                                  │
-│  Q1. What does "git init" do?          [Edit][✕] │
-│  Type: SINGLE_CHOICE   Points: 1                 │
-│  ┌───────────────────────────────────────────┐   │
-│  │ ○ Creates a new branch                    │   │
-│  │ ● Initializes a new repository ✅         │   │
-│  │ ○ Clones a repository                     │   │
-│  │ ○ Deletes all commits                     │   │
-│  │                          [+ Add Option]   │   │
-│  └───────────────────────────────────────────┘   │
-│                                                  │
-│  Q2. What command stages all changes?  [Edit][✕] │
-│  Type: SINGLE_CHOICE   Points: 2                 │
-│  ┌───────────────────────────────────────────┐   │
-│  │ ○ git commit                              │   │
-│  │ ● git add .   ✅                          │   │
-│  │ ○ git push                                │   │
-│  │                          [+ Add Option]   │   │
-│  └───────────────────────────────────────────┘   │
-│                                                  │
-│  [+ Add Question]                                │
-│                                                  │
-│  Publish Readiness:                              │
-│  ✅ 2 questions added                            │
-│  ✅ All questions have correct answers           │
-│  ✅ Settings are valid                           │
-│  [Publish Quiz]                                  │
-│                                                  │
-└──────────────────────────────────────────────────┘
-```
+**Overview Tab:**
+- About section (full description)
+- Stats cards row
+- Upcoming assessments list
 
-**Add Question Modal:**
+**Resources Tab:**
+- Header with "Add Resource" button (if owner)
+- Resource list items:
+  - Icon (based on type: PDF, Link, Video, etc.)
+  - Title
+  - Description
+  - File size (if file)
+  - Download/View button
+  - Edit/Delete buttons (if owner)
+- Empty state if no resources
 
-```
-┌─────────────────────────────────────┐
-│  Add Question                     ✕ │
-├─────────────────────────────────────┤
-│  Question Text:                     │
-│  [__________________________________]│
-│                                     │
-│  Type: [SINGLE_CHOICE ▼]            │
-│                                     │
-│  Points: [1]                        │
-│                                     │
-│  Position: [auto]                   │
-│                                     │
-│  [Cancel]  [Add Question]           │
-└─────────────────────────────────────┘
-```
+**Assessments Tab:**
+- Assessment cards:
+  - Title
+  - Description
+  - Passing score badge
+  - Duration badge
+  - Status (Published/Draft)
+  - Your best score (if participant)
+  - Attempts used / max attempts
+  - "Start Assessment" button (if can attempt)
+  - "View Results" button (if completed)
+  - Edit button (if owner)
 
----
+**Participants Tab (owner only):**
+- Stats row
+- Participants table:
+  - Avatar
+  - Name
+  - Email
+  - Enrolled date
+  - Progress (assessments completed)
+  - Best score
+  - Certificate status
 
-## 4.11 Quiz Attempt Page (Participant)
+**Components Used:**
+- app-card
+- app-badge
+- app-button
+- app-tabs
+- app-table
+- app-stats-card
+- app-resource-item (custom)
+- app-assessment-card (custom)
 
-**Route:** `/quizzes/:quizId/attempt`
-
-**Purpose:** Participant takes the quiz.
-
-```
-┌──────────────────────────────────────────────────┐
-│  Git Basics Final Quiz                           │
-│  Time Remaining: 24:35 ⏱️                       │
-│  Question 2 of 5                                 │
-├──────────────────────────────────────────────────┤
-│                                                  │
-│  What command stages all changes?                │
-│                                                  │
-│  ○ git commit                                    │
-│  ○ git add .                                     │
-│  ○ git push                                      │
-│  ○ git clone                                     │
-│                                                  │
-├──────────────────────────────────────────────────┤
-│  [← Previous]          [Next →]                  │
-│                                                  │
-│  Question Navigator:                             │
-│  [1✓] [2 ] [3 ] [4 ] [5 ]                        │
-│                                                  │
-│  [Submit Quiz]                                   │
-└──────────────────────────────────────────────────┘
-```
-
-**Behaviors:**
-
-- Timer counts down from `durationMinutes`.
-- Timer reaching zero triggers automatic submission prompt.
-- Navigator shows answered vs unanswered questions.
-- Submit confirmation dialog before final submission.
-- Cannot go back after submission.
-
-**Submit Confirmation Dialog:**
-
-```
-┌──────────────────────────────────────┐
-│  Submit Quiz?                        │
-│                                      │
-│  You have answered 4 of 5 questions. │
-│  1 question is unanswered.           │
-│                                      │
-│  Are you sure you want to submit?    │
-│                                      │
-│  [Go Back]   [Submit]                │
-└──────────────────────────────────────┘
-```
+**User Actions:**
+- Click "Enroll" → Enroll in workshop
+- Click resource → Download/view
+- Click "Start Assessment" → Navigate to take assessment
+- Click "Add Resource" → Open create resource modal
+- Click "Generate Invite" → Open invite modal with code
 
 ---
 
-## 4.12 Attempt Result Page
+### Workshop Edit Page
 
-**Route:** `/attempts/:attemptId/result`
+**Route:** `/workshops/:id/edit`  
+**Location:** `src/app/features/workshop/components/workshop-edit/workshop-edit.component.html`  
+**Layout:** Main layout with sidebar
 
-```
-┌──────────────────────────────────────────────────┐
-│  Quiz Result: Git Basics Final Quiz              │
-│  Submitted: January 15, 2024 at 10:45 AM         │
-├──────────────────────────────────────────────────┤
-│                                                  │
-│           ✅ PASSED                              │
-│                                                  │
-│         Score: 85%                               │
-│         Points: 17 / 20                          │
-│         Attempt #: 1                             │
-│                                                  │
-│  ────────────────────────────────────────────    │
-│                                                  │
-│  🏆 Certificate Issued!                          │
-│  Git & GitHub Workshop Completion Certificate    │
-│  [View Certificate]  [Download PDF]              │
-│                                                  │
-│  ────────────────────────────────────────────    │
-│                                                  │
-│  Answer Review:                                  │
-│  Q1. What does "git init" do?                    │
-│  Your Answer: Initializes a new repository ✅    │
-│                                                  │
-│  Q2. What command stages all changes?            │
-│  Your Answer: git commit ❌                      │
-│  Correct Answer: git add .                       │
-│                                                  │
-│  [Back to Program]                               │
-│                                                  │
-└──────────────────────────────────────────────────┘
-```
+**Structure:**
+- Same as create workshop page but:
+  - Pre-filled with existing data
+  - Heading: "Edit Workshop"
+  - All steps accessible (no forced progression)
+  - Additional "Danger Zone" section for deletion
+
+**Components Used:**
+- Same as create workshop page
+
+**User Actions:**
+- Edit any workshop field
+- Click "Save Changes" → API call → Navigate back
+- Click "Delete Workshop" → Confirmation → API call → Navigate to workspace
 
 ---
 
-## 4.13 My Certificates Page
+## Assessment Pages
 
-**Route:** `/my-certificates`
+### Create Assessment Page
 
-```
-┌──────────────────────────────────────────────────┐
-│  My Certificates                                 │
-├──────────────────────────────────────────────────┤
-│                                                  │
-│  ┌──────────────────────────────────────────┐    │
-│  │ 🏆 Git & GitHub Workshop Certificate     │    │
-│  │ Organization: Computer Science Club      │    │
-│  │ Program:      Git & GitHub Workshop      │    │
-│  │ Quiz:         Git Basics Final Quiz      │    │
-│  │ Issued:       January 15, 2024           │    │
-│  │ Status:       ✅ ACTIVE                  │    │
-│  │ Cert #:       CERT-2024-AX93KL2P         │    │
-│  │                                          │    │
-│  │ [View] [Download PDF] [Verify Publicly]  │    │
-│  └──────────────────────────────────────────┘    │
-│                                                  │
-│  ┌──────────────────────────────────────────┐    │
-│  │ 🏆 Python Basics Certificate             │    │
-│  │ Status: ❌ REVOKED                       │    │
-│  │ Revoked: Feb 1, 2024                     │    │
-│  │ Reason: Issued in error                  │    │
-│  │ [View]                                   │    │
-│  └──────────────────────────────────────────┘    │
-│                                                  │
-└──────────────────────────────────────────────────┘
-```
+**Route:** `/workshops/:workshopId/assessments/create`  
+**Location:** `src/app/features/assessment/components/assessment-create/assessment-create.component.html`  
+**Layout:** Main layout with sidebar
 
----
+**Structure:**
+- Page header
+  - Heading: "Create Assessment"
+  - Breadcrumb
+- Progress stepper
+  - Step 1: Settings (active)
+  - Step 2: Questions
+  - Step 3: Review & Publish
+- Settings form (Step 1):
+  - Title input (required)
+  - Description textarea
+  - Instructions textarea (shown to students)
+  - Passing score input (1-100, required)
+  - Duration in minutes input (required)
+  - Max attempts input (required)
+  - Auto-issue certificate toggle (default: true)
+- Navigation buttons
+  - "Cancel"
+  - "Save Draft"
+  - "Next"
 
-## 4.14 Certificate Detail Page
+**Components Used:**
+- app-card
+- app-input
+- app-textarea
+- app-toggle
+- app-button
+- app-stepper
 
-**Route:** `/certificates/:certificateId`
-
-```
-┌──────────────────────────────────────────────────┐
-│  Certificate Detail                              │
-├──────────────────────────────────────────────────┤
-│                                                  │
-│  ┌────────────────────────────────────────────┐  │
-│  │                                            │  │
-│  │     🏆  CERTIFICATE OF COMPLETION          │  │
-│  │                                            │  │
-│  │     This certifies that                    │  │
-│  │     Ahmad Al-Rashid                        │  │
-│  │     has successfully completed             │  │
-│  │     Git Basics Final Quiz                  │  │
-│  │     in the program                         │  │
-│  │     Git & GitHub Workshop                  │  │
-│  │     offered by                             │  │
-│  │     Computer Science Club                  │  │
-│  │                                            │  │
-│  │     Issued: January 15, 2024               │  │
-│  │     Certificate #: CERT-2024-AX93KL2P      │  │
-│  │                                            │  │
-│  │     [QR Code Image]                        │  │
-│  │                                            │  │
-│  └────────────────────────────────────────────┘  │
-│                                                  │
-│  [Download PDF]  [Verify Publicly]  [Share Link] │
-│                                                  │
-└──────────────────────────────────────────────────┘
-```
+**User Actions:**
+- Fill assessment settings
+- Click "Next" → Move to questions step
+- Click "Save Draft" → API call → Navigate back
 
 ---
 
-## 4.15 Statistics Pages
+### Add Questions Page (Step 2)
 
-### Organization Statistics
+**Route:** Same component, step 2  
+**Location:** `src/app/features/assessment/components/assessment-create/assessment-create.component.html`
 
-**Route:** `/organizations/:orgId/stats`
+**Structure:**
+- Question list (left panel)
+  - Shows all added questions
+  - Drag to reorder (future)
+  - Click to edit
+  - Delete button per question
+- Question form (right panel)
+  - Question text input (required)
+  - Points input (default: 1)
+  - Explanation textarea (optional, shown after submission)
+  - Answer options section:
+    - Answer text inputs (min 2, max 6)
+    - Radio button to mark correct answer
+    - Add/remove answer buttons
+- Add Question button (bottom)
+- Or: Bulk import button (upload JSON)
+- Navigation buttons
+  - "Previous"
+  - "Save Draft"
+  - "Next"
 
-```
-┌──────────────────────────────────────────────────┐
-│  Organization Statistics: CS Club                │
-├──────────────────────────────────────────────────┤
-│                                                  │
-│  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐   │
-│  │  3   │ │  45  │ │  78  │ │  12  │ │  38  │   │
-│  │Progs │ │Membs │ │Enrol │ │Quiz  │ │Certs │   │
-│  └──────┘ └──────┘ └──────┘ └──────┘ └──────┘   │
-│                                                  │
-│  Average Score: 82%                              │
-│  Overall Pass Rate: 76%                          │
-│                                                  │
-│  [Bar Chart: Attempts per Quiz]                  │
-│  [Donut Chart: Pass vs Fail]                     │
-│  [Line Chart: Certificates over time]            │
-│                                                  │
-└──────────────────────────────────────────────────┘
-```
+**Components Used:**
+- app-card
+- app-input
+- app-textarea
+- app-button
+- app-question-form (custom)
+- app-answer-option (custom)
 
-### Quiz Statistics
-
-**Route:** `/quizzes/:quizId/stats`
-
-```
-┌──────────────────────────────────────────────────┐
-│  Quiz Statistics: Git Basics Final Quiz          │
-├──────────────────────────────────────────────────┤
-│                                                  │
-│  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐            │
-│  │  25  │ │  82% │ │  95% │ │  60% │            │
-│  │Atmpt │ │ Avg  │ │ High │ │ Low  │            │
-│  └──────┘ └──────┘ └──────┘ └──────┘            │
-│                                                  │
-│  Pass Count: 19    Fail Count: 6                 │
-│  Pass Rate: 76%                                  │
-│                                                  │
-│  [Donut Chart: Pass vs Fail]                     │
-│  [Histogram: Score Distribution]                 │
-│                                                  │
-└──────────────────────────────────────────────────┘
-```
+**User Actions:**
+- Type question text
+- Add answer options
+- Mark correct answer (exactly one)
+- Click "Add Question" → Validate → Add to list → Reset form
+- Click question in list → Load in form for editing
+- Delete question → Show confirmation → Remove from list
+- Click "Next" → Validate (min 3 questions) → Move to review
 
 ---
 
-## 4.16 Audit Logs Page
+### Review & Publish Page (Step 3)
 
-**Route:** `/organizations/:orgId/audit-logs`
+**Route:** Same component, step 3  
+**Location:** `src/app/features/assessment/components/assessment-create/assessment-create.component.html`
 
-```
-┌──────────────────────────────────────────────────┐
-│  Audit Logs: CS Club                             │
-├──────────────────────────────────────────────────┤
-│  Filter by Action: [All ▼]                       │
-│  Filter by Date:   [Date Range Picker]           │
-├──────────────────────────────────────────────────┤
-│  Time              Actor        Action           │
-│  ──────────────    ──────────   ──────────────   │
-│  Jan 15 10:45 AM   Ahmad        CERTIFICATE_ISSUED│
-│  Jan 15 10:30 AM   Sara         ATTEMPT_SUBMITTED │
-│  Jan 15 09:00 AM   Ahmad        QUIZ_PUBLISHED    │
-│  Jan 14 08:00 AM   Ahmad        PROGRAM_CREATED   │
-├──────────────────────────────────────────────────┤
-│  « 1 2 3 »                                       │
-└──────────────────────────────────────────────────┘
-```
+**Structure:**
+- Assessment summary card:
+  - Title
+  - Settings summary (passing score, duration, max attempts)
+  - Total questions count
+  - Total points
+  - Certificate auto-issue status
+- Questions preview (read-only):
+  - List of all questions with answers
+  - Correct answer highlighted (green)
+- Publish checklist:
+  - At least 3 questions ✓/✗
+  - All questions have 2+ answers ✓/✗
+  - All questions have exactly 1 correct answer ✓/✗
+  - Settings configured ✓/✗
+- Action buttons
+  - "Previous" (go back to edit)
+  - "Save as Draft"
+  - "Publish Assessment" (primary, enabled only if all checks pass)
 
----
+**Components Used:**
+- app-card
+- app-badge
+- app-button
+- app-checklist (custom)
 
-# 5. Component Architecture
-
-## 5.1 Shared Components
-
-| Component | Description |
-| --- | --- |
-| `AppNavbarComponent` | Top navigation bar |
-| `AppSidebarComponent` | Collapsible sidebar |
-| `PageHeaderComponent` | Page title + breadcrumb + action buttons |
-| `StatCardComponent` | Single stat display card |
-| `DataTableComponent` | Reusable paginated table |
-| `ConfirmDialogComponent` | Reusable confirmation modal |
-| `ToastComponent` | Success/error/warning toasts |
-| `LoadingSpinnerComponent` | Full-page and inline loading states |
-| `EmptyStateComponent` | Empty list placeholder with CTA |
-| `PaginationComponent` | Page navigation controls |
-| `StatusBadgeComponent` | Colored status badges (ACTIVE, REVOKED, etc.) |
-| `AvatarComponent` | User avatar with initials fallback |
-| `FileUploadComponent` | File upload with R2 presigned URL support |
-| `ImageUploadComponent` | Image upload with Cloudinary support |
+**User Actions:**
+- Review all details
+- Click "Previous" → Go back to edit questions
+- Click "Publish Assessment" → API call → Show success → Navigate to workshop
 
 ---
 
-## 5.2 Feature Module Structure
+### Assessment Edit Page
 
-```
-src/
-  app/
-    core/
-      interceptors/
-        auth.interceptor.ts       ← Attaches Clerk JWT to requests
-        error.interceptor.ts      ← Global HTTP error handling
-      guards/
-        auth.guard.ts             ← Requires Clerk session
-        owner.guard.ts            ← Requires OWNER role in org
-      services/
-        api.service.ts            ← Base HTTP service
-        auth.service.ts           ← Clerk session management
-        user.service.ts           ← Current user profile
+**Route:** `/assessments/:id/edit`  
+**Location:** `src/app/features/assessment/components/assessment-edit/assessment-edit.component.html`  
+**Layout:** Main layout with sidebar
 
-    shared/
-      components/                 ← Shared UI components
-      pipes/                      ← Date, status, truncate pipes
-      models/                     ← TypeScript interfaces for API models
+**Structure:**
+- Same as create assessment but:
+  - Pre-filled with existing data
+  - If assessment has submissions:
+    - Show warning banner: "This assessment has [X] submissions. You cannot edit questions."
+    - Disable question editing
+    - Allow only settings changes (title, description, passing score)
+  - If no submissions:
+    - Full editing allowed
 
-    features/
-      landing/                    ← Landing page module
-      auth/                       ← Sign in / sign up
-      dashboard/                  ← Dashboard module
-      profile/                    ← User profile
-      organizations/              ← Organization management
-      programs/                   ← Program management
-      enrollments/                ← Enrollment management
-      invitations/                ← Invitation links
-      resources/                  ← Program resources
-      quizzes/                    ← Quiz management and taking
-      attempts/                   ← Attempt history and results
-      certificates/               ← Certificate viewing
-      statistics/                 ← Charts and stats
-      audit-logs/                 ← Audit log viewer
-      verification/               ← Public certificate verification
-```
+**Components Used:**
+- Same as create assessment
+
+**User Actions:**
+- Edit settings
+- Edit questions (if no submissions)
+- Click "Save Changes" → API call → Navigate back
 
 ---
 
-## 5.3 Angular Services
+## Submission Pages
 
-| Service | Responsibilities |
-| --- | --- |
-| `AuthService` | Clerk sign in, sign out, session, current user |
-| `UserService` | Backend user profile, sync |
-| `OrganizationService` | CRUD for organizations, member management |
-| `ProgramService` | CRUD for programs, status changes |
-| `EnrollmentService` | Enrollment management |
-| `InvitationService` | Invitation creation, disable, join |
-| `ResourceService` | Resource CRUD, file/image upload |
-| `QuizService` | Quiz CRUD, publish, archive |
-| `QuestionService` | Question CRUD |
-| `OptionService` | Option CRUD |
-| `AttemptService` | Start attempt, submit, view results |
-| `CertificateService` | Issue, revoke, view certificates |
-| `VerificationService` | Public certificate verification |
-| `StatisticsService` | Fetch statistics data |
-| `AuditLogService` | Fetch audit logs |
-| `StorageService` | R2 presigned URLs, Cloudinary signatures |
-| `ToastService` | Global toast notification management |
+### Take Assessment Page
 
----
+**Route:** `/assessments/:id/take`  
+**Location:** `src/app/features/submission/components/take-assessment/take-assessment.component.html`  
+**Layout:** Fullscreen (no sidebar for focus)
 
-## 5.4 HTTP Interceptors
+**Structure:**
+- Pre-assessment screen (before starting):
+  - Assessment title
+  - Instructions (large, centered)
+  - Key information cards:
+    - Number of questions
+    - Duration
+    - Passing score
+    - Attempts remaining
+  - Action buttons:
+    - "Cancel" (go back)
+    - "Start Assessment" (primary, large)
+- Assessment in progress:
+  - Fixed header:
+    - Assessment title (left)
+    - Timer countdown (center, large, red when < 5 min)
+    - Progress indicator (right): "Question 5/10"
+  - Question panel (center, large):
+    - Question number badge
+    - Question text (large, bold)
+    - Points badge
+    - Answer options (radio buttons, large clickable areas)
+  - Navigation bar (bottom, sticky):
+    - "Previous" button (disabled on first question)
+    - Question number pills (1 2 3 4 5...) 
+      - Answered: filled circle
+      - Unanswered: empty circle
+      - Current: highlighted
+    - "Next" button (primary)
+    - "Submit Assessment" button (danger, shows on last question)
+  - Side panel (collapsible, right):
+    - Question navigator (list view)
+    - Flag question button (for review)
 
-### Auth Interceptor
+**Components Used:**
+- app-card
+- app-button
+- app-badge
+- app-timer (custom)
+- app-question-display (custom)
+- app-confirmation-dialog (for submit)
 
-```typescript
-// Attaches Clerk JWT token to every outgoing request
-// Reads token from Clerk session
-// Adds Authorization: Bearer <token> header
-```
+**User Actions:**
+- Click "Start Assessment" → API call (create submission) → Show questions
+- Select answer option → Mark question as answered
+- Click "Next" → Move to next question
+- Click "Previous" → Move to previous question
+- Click question number → Jump to that question
+- Click "Flag" → Mark for review (visual indicator)
+- Click "Submit Assessment" → Show confirmation dialog:
+  - "You have answered 9/10 questions"
+  - "Are you sure you want to submit?"
+  - "Cancel" / "Submit"
+- Confirm submit → API call → Navigate to results page
+- Timer expires → Auto-submit → Navigate to results
 
-### Error Interceptor
-
-```typescript
-// Handles HTTP error responses globally
-// 401 → redirect to sign-in
-// 403 → show forbidden toast
-// 404 → show not found page or toast
-// 422 → show business rule error toast
-// 500 → show generic error toast
-```
-
----
-
-## 5.5 Route Guards
-
-### AuthGuard
-
-```typescript
-// Checks if user has an active Clerk session
-// Redirects to /sign-in if not authenticated
-```
-
-### OwnerGuard
-
-```typescript
-// Checks if current user is OWNER of the organization in the route
-// Redirects to /dashboard if not owner
-```
-
----
-
-# 6. State Management
-
-## 6.1 Strategy
-
-For the MVP, use **Angular Signals** with service-level state.
-
-For complex state (quiz attempts, real-time timer), consider **NgRx**.
+**Auto-save:**
+- Save selected answers to localStorage every 10 seconds
+- On browser crash/refresh → Restore progress if submission not expired
 
 ---
 
-## 6.2 Key State Slices
+### Assessment Results Page
 
-| State | Location | Description |
-| --- | --- | --- |
-| Current user | `UserService` signal | Logged-in user profile |
-| Current organization | `OrganizationService` signal | Selected organization context |
-| Current program | `ProgramService` signal | Selected program context |
-| Active attempt | `AttemptService` signal | In-progress quiz attempt + timer |
-| Toast messages | `ToastService` signal | Active toast queue |
+**Route:** `/submissions/:id/result`  
+**Location:** `src/app/features/submission/components/submission-result/submission-result.component.html`  
+**Layout:** Main layout with sidebar
 
----
+**Structure:**
+- Result hero section (full width, colored background):
+  - If passed (green background):
+    - Large checkmark icon
+    - "Congratulations! You Passed"
+    - Score: 85%
+    - Certificate badge "Certificate Earned!"
+  - If failed (red background):
+    - X icon
+    - "Not Passed"
+    - Score: 60%
+    - "Passing score: 70%"
+    - Remaining attempts
+- Stats cards row:
+  - Score percentage
+  - Correct answers (8/10)
+  - Time taken
+  - Attempt number
+- Certificate card (if passed and issued):
+  - Certificate preview image
+  - Certificate number
+  - "View Certificate" button
+  - "Download PDF" button
+- Review answers section:
+  - List of all questions:
+    - Question text
+    - Your answer (highlighted green if correct, red if wrong)
+    - Correct answer (if wrong, shown in green)
+    - Explanation (if provided)
+    - Points earned / total
+- Action buttons (bottom):
+  - "Back to Workshop" (secondary)
+  - "Try Again" (primary, if attempts remaining)
 
-## 6.3 Quiz Attempt Timer
+**Components Used:**
+- app-card
+- app-badge
+- app-button
+- app-stats-card
+- app-review-answer (custom)
 
-The quiz attempt timer runs client-side:
-
-```typescript
-// On attempt start:
-// Store startedAt and expiresAt from API response
-// Calculate remaining seconds = expiresAt - now
-// Start countdown interval
-// At 0: show expired warning and submit or prompt user
-// Send submit request to backend
-// Backend validates expires_at server-side regardless of client timer
-```
-
----
-
-# 7. User Flows
-
-## 7.1 Owner: Create and Publish a Quiz
-
-```
-1. Navigate to Programs > Git Workshop > Quizzes
-2. Click [+ Create Quiz]
-3. Fill in title, passing score, duration, max attempts, certificate settings
-4. Click [Create Quiz]
-5. Redirected to Quiz Builder
-6. Click [+ Add Question]
-7. Fill in question text, type, points
-8. Click [Add Question]
-9. Click [+ Add Option] for each option
-10. Mark one option as correct
-11. Repeat for all questions
-12. Review publish readiness checklist
-13. Click [Publish Quiz]
-14. Confirmation toast: "Quiz published successfully"
-15. Quiz now visible to enrolled participants
-```
-
----
-
-## 7.2 Participant: Join and Complete a Quiz
-
-```
-1. Open invitation link
-2. If not logged in → redirected to Clerk sign-in
-3. After login → redirected to invitation join flow
-4. Click [Join Program]
-5. Enrollment created → redirected to program page
-6. View program resources
-7. Click on quiz → Quiz View page
-8. Click [Start Quiz]
-9. Answer each question
-10. Click [Submit Quiz]
-11. Confirm submission dialog
-12. Attempt submitted
-13. Redirected to Result page
-14. If passed → certificate auto-issued
-15. Click [View Certificate]
-16. Certificate detail page with PDF download and QR code
-```
+**User Actions:**
+- Scroll to review answers
+- Click "View Certificate" → Navigate to certificate detail
+- Click "Download PDF" → Download file
+- Click "Try Again" → Navigate back to take assessment
+- Click "Back to Workshop" → Navigate to workshop
 
 ---
 
-## 7.3 Visitor: Verify a Certificate
+### My Submissions Page
 
-```
-1. Open /verify/A3FX9KL2MN8PQR7Z
-2. Page auto-loads and calls verification API
-3. If found and ACTIVE → show green valid card
-4. If found and REVOKED → show red revoked card with reason
-5. If not found → show gray not found card
-6. No login required at any step
-```
+**Route:** `/submissions`  
+**Location:** `src/app/features/submission/components/submission-list/submission-list.component.html`  
+**Layout:** Main layout with sidebar
 
----
+**Structure:**
+- Page header:
+  - Heading: "My Assessment Submissions"
+  - Description: "View all your assessment attempts and results"
+- Filter bar:
+  - Status filter (All, Passed, Failed, In Progress)
+  - Workshop filter dropdown
+  - Date range picker
+- Submissions table:
+  - Columns:
+    - Assessment name
+    - Workshop name
+    - Attempt number
+    - Score
+    - Status badge (Passed/Failed/In Progress/Expired)
+    - Submitted date
+    - Actions (View Results)
+- Empty state if no submissions
 
-# 8. UI/UX Conventions
+**Components Used:**
+- app-card
+- app-table
+- app-badge
+- app-button
+- app-dropdown
+- app-empty-state
 
-## 8.1 Status Badge Colors
-
-| Status | Color |
-| --- | --- |
-| ACTIVE | Green |
-| PUBLISHED | Blue |
-| DRAFT | Gray |
-| ARCHIVED | Orange |
-| DELETED | Red |
-| REVOKED | Red |
-| IN\_PROGRESS | Yellow |
-| SUBMITTED | Blue |
-| EXPIRED | Orange |
-| COMPLETED | Green |
-| REMOVED | Gray |
-| DISABLED | Gray |
-
----
-
-## 8.2 Empty States
-
-Every list page must show an empty state when there is no data:
-
-```
-┌──────────────────────────────────────┐
-│                                      │
-│    📋 No programs yet                │
-│    Create your first program to      │
-│    get started.                      │
-│    [+ Create Program]                │
-│                                      │
-└──────────────────────────────────────┘
-```
+**User Actions:**
+- Filter submissions by status/workshop
+- Click "View Results" → Navigate to result page
+- Click submission row → Navigate to result page
 
 ---
 
-## 8.3 Loading States
+## Certificate Pages
 
-Every data-dependent component must show a loading state:
+### My Certificates Page
 
-- Skeleton loaders for list items
-- Spinner for single resource loads
-- Disabled buttons during form submission
+**Route:** `/certificates`  
+**Location:** `src/app/features/certificate/components/certificate-list/certificate-list.component.html`  
+**Layout:** Main layout with sidebar
+
+**Structure:**
+- Page header:
+  - Heading: "My Certificates"
+  - Description: "All certificates you've earned"
+  - Stats: "X certificates earned"
+- Filter/Sort bar:
+  - Status filter (All, Active, Revoked)
+  - Sort by (Newest, Oldest, Workshop A-Z)
+  - Search input
+- Grid layout (2 columns on desktop):
+  - Certificate cards
+
+**Certificate Card Contents:**
+- Certificate preview (thumbnail or styled card):
+  - Workshop title
+  - Workspace name
+  - Score badge
+  - Issue date
+  - Certificate number
+  - Status badge (Active/Revoked)
+  - QR code (small)
+- Action buttons:
+  - "View Details"
+  - "Download PDF"
+  - "Share" (copy link, LinkedIn, etc.)
+
+**Components Used:**
+- app-card
+- app-badge
+- app-button
+- app-dropdown
+- app-certificate-card (custom)
+- app-empty-state
+
+**User Actions:**
+- Search certificates
+- Filter by status
+- Sort certificates
+- Click "View Details" → Navigate to certificate detail
+- Click "Download PDF" → Download file
+- Click "Share" → Open share modal with options
 
 ---
 
-## 8.4 Toast Notifications
+### Certificate Detail Page
 
-| Trigger | Toast Type | Message Example |
-| --- | --- | --- |
-| Organization created | Success | "Organization created successfully" |
-| Quiz published | Success | "Quiz is now published" |
-| Certificate issued | Success | "Certificate issued to participant" |
-| Certificate revoked | Warning | "Certificate has been revoked" |
-| Validation error | Error | "Please fill in all required fields" |
-| Business rule error | Error | "Max attempts reached" |
-| Server error | Error | "Something went wrong. Please try again" |
-| Link copied | Info | "Invitation link copied to clipboard" |
+**Route:** `/certificates/:id`  
+**Location:** `src/app/features/certificate/components/certificate-detail/certificate-detail.component.html`  
+**Layout:** Main layout with sidebar
+
+**Structure:**
+- Certificate display section (large, centered):
+  - Full certificate preview or PDF embed
+  - If PDF not generated yet: placeholder with "Generating PDF..." message
+- Certificate information panel (right sidebar or below):
+  - Certificate number (large, monospace)
+  - Issue date
+  - Status badge (Active/Revoked)
+  - Recipient name
+  - Workshop title
+  - Workspace name
+  - Score achieved
+  - Verification code (with copy button)
+- QR code section:
+  - QR code image (large)
+  - "Scan to verify" text
+  - Verification URL (with copy button)
+- Action buttons:
+  - "Download PDF" (primary)
+  - "Share Certificate" (secondary)
+  - "Verify Certificate" (link to verification page)
+  - "Back to Certificates" (link)
+
+**Components Used:**
+- app-card
+- app-badge
+- app-button
+- QR code display component
+
+**User Actions:**
+- View certificate details
+- Click "Download PDF" → Download file
+- Click "Share" → Open share modal
+- Click verification URL → Copy to clipboard
+- Click "Verify Certificate" → Navigate to verification page with code
 
 ---
 
-## 8.5 Confirmation Dialogs
+### Certificate Verification Page (Public)
 
-Destructive actions must always show a confirmation dialog:
+**Route:** `/verify/:verificationCode`  
+**Location:** `src/app/features/certificate/components/certificate-verify/certificate-verify.component.html`  
+**Layout:** Minimal (no sidebar, simple header)
 
-- Delete organization
+**Structure:**
+- Skillmark logo header (minimal)
+- Verification result card (large, centered):
+  - If valid (green border):
+    - Large checkmark icon (green)
+    - "Certificate Verified" heading
+    - Certificate number
+    - Horizontal divider
+    - Recipient name
+    - Workshop title
+    - Issued by workspace name
+    - Score achieved
+    - Issue date
+    - Status: Active badge (green)
+    - Verified timestamp
+  - If revoked (red border):
+    - Warning icon (red)
+    - "Certificate Revoked" heading
+    - Certificate number
+    - Revoked date
+    - Revoke reason (if provided)
+    - Original issue details (grayed out)
+  - If invalid (gray border):
+    - X icon (gray)
+    - "Certificate Not Found" heading
+    - "Invalid verification code" message
+    - Warning: "This may be a fake certificate"
+- Alternative verification section (below):
+  - "Verify by certificate number" link
+  - Modal/form to enter certificate number
+
+**Components Used:**
+- app-card
+- app-badge
+- Minimal header component
+
+**User Actions:**
+- Scan QR code → Lands on this page with code in URL
+- View verification result
+- Copy certificate number
+- Click "Verify another certificate" → Show search form
+
+---
+
+### Share Certificate Modal
+
+**Component:** Modal overlay  
+**Location:** `src/app/features/certificate/components/share-certificate-modal/`
+
+**Structure:**
+- Modal header: "Share Certificate"
+- Share options (large buttons):
+  - Copy verification link (with icon)
+  - Share to LinkedIn (with LinkedIn icon)
+  - Share via email (with email icon)
+  - Download QR code (with download icon)
+- Preview section:
+  - Verification URL (read-only input with copy button)
+  - QR code image
+- Close button
+
+**Components Used:**
+- app-modal
+- app-button
+
+**User Actions:**
+- Click "Copy Link" → Copy to clipboard → Show toast
+- Click "LinkedIn" → Open LinkedIn share dialog
+- Click "Email" → Open email client with pre-filled message
+- Click "Download QR" → Download QR code image
+- Click close or backdrop → Close modal
+
+---
+
+## Public Pages
+
+### Join Workshop Page (Public with Auth)
+
+**Route:** `/join/:inviteCode`  
+**Location:** `src/app/features/invite/components/join-workshop/join-workshop.component.html`  
+**Layout:** Minimal (no sidebar)
+
+**Structure:**
+- If user not authenticated:
+  - Redirect to sign-in with returnUrl
+- If authenticated:
+  - Invite preview card (large, centered):
+    - Workspace logo
+    - Workspace name
+    - "You're invited to join" heading
+    - Workshop cover image
+    - Workshop title
+    - Workshop description
+    - Start/end dates
+    - Stats:
+      - Participants enrolled
+      - Resources count
+      - Assessments count
+    - Invite validity info:
+      - Expires in X days
+      - X/Y spots remaining (if limited)
+    - "Accept Invitation" button (primary, large)
+    - "Decline" button (secondary)
+- If invite invalid/expired:
+  - Error card:
+    - X icon
+    - "Invitation Invalid" or "Invitation Expired"
+    - Reason message
+    - "Contact organizer" suggestion
+
+**Components Used:**
+- app-card
+- app-badge
+- app-button
+
+**User Actions:**
+- Click "Accept Invitation" → API call → Show success → Navigate to workshop
+- Click "Decline" → Navigate to dashboard
+- If invite expired → Show contact info or error message
+
+---
+
+### Landing Page (Marketing - Future)
+
+**Route:** `/` (when not authenticated)  
+**Location:** `src/app/features/landing/components/landing-home/`  
+**Layout:** Custom landing page layout
+
+**Structure:**
+- Hero section:
+  - Headline
+  - Subheadline
+  - "Get Started" CTA button
+  - Hero image/illustration
+- Features section (3 columns):
+  - Feature cards with icons
+- How it works section (steps)
+- Testimonials section (future)
+- Footer with links
+
+**Note:** This is out of scope for MVP, would redirect to dashboard or sign-in
+
+---
+
+## Shared Components
+
+### Navbar Component
+
+**Location:** `src/app/shared/components/layout/navbar/navbar.component.html`
+
+**Structure:**
+- Container (full width, fixed top, white background, shadow)
+- Left section:
+  - Skillmark logo (clickable → home)
+  - Workspace selector dropdown (shows current workspace, if on workspace page)
+- Center section:
+  - Search bar (future feature, placeholder for now)
+- Right section:
+  - Notifications bell icon (future)
+  - User profile dropdown:
+    - Avatar image or initials
+    - User name
+    - Dropdown menu:
+      - View Profile
+      - Settings
+      - Help & Support (future)
+      - Divider
+      - Sign Out
+
+**Components Used:**
+- app-dropdown
+- app-button
+
+---
+
+### Sidebar Component
+
+**Location:** `src/app/shared/components/layout/sidebar/sidebar.component.html`
+
+**Structure:**
+- Navigation menu (vertical):
+  - Dashboard (icon + text, active state styling)
+  - My Workspaces (icon + text)
+  - My Workshops (icon + text)
+  - My Certificates (icon + text)
+  - Divider
+  - Analytics (icon + text, if ADMIN/INSTRUCTOR)
+  - Settings (icon + text)
+- Collapse/expand toggle (bottom)
+
+**Components Used:**
+- Router link directives with active class
+- Icons (Heroicons)
+
+**States:**
+- Expanded (default): shows icon + text
+- Collapsed: shows icon only
+
+---
+
+### Toast Component
+
+**Location:** `src/app/shared/components/ui/toast/toast.component.html`
+
+**Structure:**
+- Fixed position (top-right corner)
+- Stack of toast notifications
+- Each toast:
+  - Icon (success: checkmark, error: X, warning: !, info: i)
+  - Message text
+  - Close button (X)
+  - Auto-dismiss after duration
+  - Slide-in animation
+
+**Toast types:**
+- Success (green)
+- Error (red)
+- Warning (yellow)
+- Info (blue)
+
+**Components Used:**
+- Self-contained component
+- Uses ToastService for state management
+
+---
+
+### Pagination Component
+
+**Location:** `src/app/shared/components/ui/pagination/pagination.component.html`
+
+**Structure:**
+- Container (centered)
+- Previous button
+- Page number buttons (show max 7: 1 ... 4 5 6 ... 10)
+- Next button
+- Items per page selector (10, 20, 50, 100)
+- Results count text: "Showing 1-20 of 150 results"
+
+**Components Used:**
+- app-button
+
+**User Actions:**
+- Click page number → Emit page change event
+- Click Previous/Next → Navigate pages
+- Select items per page → Emit size change event
+
+---
+
+### Empty State Component
+
+**Location:** `src/app/shared/components/ui/empty-state/empty-state.component.html`
+
+**Structure:**
+- Container (centered, padding)
+- Illustration or icon (large, gray)
+- Heading text (large, bold)
+- Description text (smaller, gray)
+- Optional action button (primary)
+
+**Usage:**
+- No workspaces
+- No workshops
+- No certificates
+- No search results
+- No submissions
+
+**Components Used:**
+- app-button (optional)
+
+---
+
+### Loading Spinner Component
+
+**Location:** `src/app/shared/components/ui/spinner/spinner.component.html`
+
+**Structure:**
+- Spinning circle animation
+- Optional loading text below
+- Sizes: small, medium (default), large
+
+**Usage:**
+- Full-page loading (centered)
+- Inline loading (in buttons, cards)
+- Table loading
+
+---
+
+### Confirmation Dialog Component
+
+**Location:** `src/app/shared/components/ui/confirmation-dialog/confirmation-dialog.component.html`
+
+**Structure:**
+- Modal overlay
+- Dialog box (centered):
+  - Icon (warning triangle for destructive actions)
+  - Title (e.g., "Delete Workspace?")
+  - Message text
+  - Action buttons:
+    - Cancel (secondary)
+    - Confirm (primary or danger)
+
+**Usage:**
+- Delete workspace
+- Delete workshop
 - Remove member
-- Archive program
-- Archive quiz
+- Archive assessment
 - Revoke certificate
-- Remove enrollment
-- Disable invitation
+
+**Components Used:**
+- app-modal base
+- app-button
 
 ---
 
-## 8.6 Form Validation
+### Badge Component
 
-All forms must show:
+**Location:** `src/app/shared/components/ui/badge/badge.component.html`
 
-- inline field-level validation errors
-- required field indicators (`*`)
-- character counters for text fields with limits
-- disabled submit button when form is invalid
+**Structure:**
+- Small pill-shaped container
+- Text (uppercase, small font)
+- Colored background based on variant
 
----
+**Variants:**
+- Primary (blue)
+- Secondary (gray)
+- Success (green)
+- Warning (yellow)
+- Danger (red)
+- Info (light blue)
 
-## 8.7 Responsive Breakpoints
-
-| Breakpoint | Behavior |
-| --- | --- |
-| Mobile (< 768px) | Sidebar hidden, hamburger menu, single column |
-| Tablet (768–1024px) | Sidebar collapsible, two column grids |
-| Desktop (> 1024px) | Full sidebar, multi-column grids, full tables |
-
----
-
-# 9. Navigation and Routing Summary
-
-```
-/                                → Landing Page
-/sign-in                         → Clerk Sign In
-/sign-up                         → Clerk Sign Up
-/verify/:code                    → Public Certificate Verification
-
-/dashboard                       → Role-aware Dashboard
-/profile                         → User Profile
-
-/organizations/new               → Create Organization
-/organizations/:orgId            → Organization Overview
-/organizations/:orgId/members    → Members Management
-/organizations/:orgId/settings   → Organization Settings
-/organizations/:orgId/stats      → Organization Statistics
-/organizations/:orgId/audit-logs → Audit Logs
-/organizations/:orgId/certificates → Organization Certificates
-
-/organizations/:orgId/programs/new  → Create Program
-/programs/:programId             → Program Overview
-/programs/:programId/enrollments → Enrollments
-/programs/:programId/invitations → Invitations
-/programs/:programId/resources   → Resources
-/programs/:programId/quizzes     → Quizzes List
-/programs/:programId/stats       → Program Statistics
-/programs/:programId/settings    → Program Settings
-/programs/:programId/learn       → Participant View
-
-/programs/:programId/quizzes/new → Create Quiz
-/quizzes/:quizId                 → Quiz Overview
-/quizzes/:quizId/builder         → Quiz Builder (Owner)
-/quizzes/:quizId/view            → Quiz View (Participant)
-/quizzes/:quizId/attempt         → Take Quiz
-/quizzes/:quizId/attempts        → All Attempts (Owner)
-/quizzes/:quizId/stats           → Quiz Statistics
-/quizzes/:quizId/settings        → Quiz Settings
-
-/attempts/:attemptId/result      → Attempt Result
-
-/my-enrollments                  → My Enrolled Programs
-/my-attempts                     → My Quiz Attempts
-/my-certificates                 → My Certificates
-/certificates/:certificateId     → Certificate Detail
-```
+**Usage:**
+- User roles (ADMIN, INSTRUCTOR, MEMBER)
+- Status (Published, Draft, Archived)
+- Pass/Fail status
+- Certificate status (Active, Revoked)
 
 ---
 
-# 10. Final Notes
+### Stats Card Component
 
-The Skillmark Angular frontend is designed to:
+**Location:** `src/app/shared/components/dashboard/stats-card/stats-card.component.html`
 
-- consume the Skillmark REST API exclusively
-- use Clerk for all authentication flows
-- present different views based on organization role context
-- provide a clean owner management experience
-- provide a simple participant learning experience
-- allow public certificate verification without login
-- handle all API errors gracefully with user-friendly messages
-- scale with the backend as new features are added in later phases
+**Structure:**
+- Card container
+- Icon (top-left, colored circle background)
+- Label text (small, gray)
+- Value (large, bold number)
+- Optional trend indicator (↑ 12% from last month)
+- Optional link ("View all →")
+
+**Variants:**
+- Different icon and color per stat type
+- Workspace stats
+- Workshop stats
+- Certificate stats
+
+**Components Used:**
+- app-card base
+
+---
+
+### File Upload Component
+
+**Location:** `src/app/shared/components/forms/file-upload/file-upload.component.html`
+
+**Structure:**
+- Drag-and-drop area (dashed border):
+  - Upload icon
+  - "Drag and drop or click to browse" text
+  - File type and size restrictions text
+- Or:
+  - Hidden file input
+  - "Choose File" button
+- File preview (after selection):
+  - Thumbnail (if image)
+  - File name
+  - File size
+  - Remove button (X)
+- Upload progress bar (during upload)
+
+**Components Used:**
+- app-button
+
+**User Actions:**
+- Click area → Open file picker
+- Drag file → Highlight drop zone → Drop → Select file
+- Click remove → Clear selection
+- Auto-upload on selection or manual trigger
+
+---
+
+### Input Component
+
+**Location:** `src/app/shared/components/forms/input/input.component.html`
+
+**Structure:**
+- Label (if provided)
+- Input field
+- Helper text (if provided)
+- Error message (if validation fails)
+- Icon (optional, left or right)
+
+**Variants:**
+- Text input
+- Email input
+- Password input (with show/hide toggle)
+- Number input
+- URL input
+
+**States:**
+- Default
+- Focused (blue border)
+- Error (red border)
+- Disabled (gray background)
+
+**Components Used:**
+- app-validation-error (for error messages)
+
+---
+
+### Textarea Component
+
+**Location:** `src/app/shared/components/forms/textarea/textarea.component.html`
+
+**Structure:**
+- Same as input but:
+  - Multi-line text area
+  - Auto-resize option
+  - Character count (optional)
+
+---
+
+### Select/Dropdown Component
+
+**Location:** `src/app/shared/components/forms/select/select.component.html`
+
+**Structure:**
+- Label (if provided)
+- Select button (shows selected value or placeholder)
+- Dropdown menu (on click):
+  - Search input (if searchable)
+  - Option list (scrollable)
+  - Selected option highlighted
+- Error message (if validation fails)
+
+**Components Used:**
+- app-dropdown base
+
+---
+
+### Table Component (Custom)
+
+**Location:** `src/app/shared/components/ui/table/table.component.html`
+
+**Structure:**
+- Table container (responsive, scrollable on mobile)
+- Table header:
+  - Column headers (clickable for sorting)
+  - Sort indicators (↑↓)
+- Table body:
+  - Data rows
+  - Hover effect
+  - Click action (if provided)
+- Table footer:
+  - Pagination component
+- Loading overlay (if loading)
+- Empty state (if no data)
+
+**Components Used:**
+- app-pagination
+- app-spinner
+- app-empty-state
+
+---
+
+## Responsive Behavior
+
+### Desktop (>= 1024px)
+- Sidebar always visible (expanded)
+- Multi-column grids (3 columns for cards)
+- Tables show all columns
+- Modals: medium to large size
+
+### Tablet (768px - 1023px)
+- Sidebar collapsible (icon only when collapsed)
+- 2-column grids
+- Tables scroll horizontally if needed
+- Modals: medium size
+
+### Mobile (< 768px)
+- Sidebar hidden, accessible via hamburger menu
+- 1-column grids (stacked)
+- Cards full width
+- Tables convert to card view or scroll
+- Modals: full width with small padding
+- Bottom navigation (future enhancement)
+
+---
+
+## Color Coding Conventions
+
+### Status Colors
+- **Draft:** Gray background, dark gray text
+- **Published:** Green background, white text
+- **Archived:** Yellow background, dark text
+- **Active:** Green
+- **Revoked:** Red
+- **In Progress:** Blue
+- **Expired:** Orange
+
+### Role Colors
+- **ADMIN:** Purple badge
+- **INSTRUCTOR:** Blue badge
+- **MEMBER:** Gray badge
+
+### Result Colors
+- **Passed:** Green background, checkmark icon
+- **Failed:** Red background, X icon
+- **Pending:** Yellow background, clock icon
+
+---
+
+## Iconography
+
+**Icon Library:** Heroicons (https://heroicons.com/)
+
+**Common Icons:**
+- Dashboard: chart-bar
+- Workspaces: building-office
+- Workshops: academic-cap
+- Certificates: document-check
+- Settings: cog-6-tooth
+- Users: users
+- Add: plus
+- Edit: pencil
+- Delete: trash
+- Search: magnifying-glass
+- Filter: funnel
+- Sort: arrows-up-down
+- Download: arrow-down-tray
+- Upload: arrow-up-tray
+- Close: x-mark
+- Success: check-circle
+- Error: x-circle
+- Warning: exclamation-triangle
+- Info: information-circle
+
+---
+
+## Animation & Transitions
+
+### Page Transitions
+- Fade in on route change (300ms)
+
+### Component Animations
+- Modal: fade + slide up (200ms)
+- Toast: slide in from right (300ms)
+- Dropdown: fade + scale (150ms)
+- Tooltip: fade (100ms)
+
+### Hover States
+- Cards: lift shadow (200ms)
+- Buttons: darken background (150ms)
+- Links: color change (150ms)
+
+### Loading States
+- Spinner: rotate animation (continuous)
+- Skeleton screens: shimmer effect (1.5s loop)
+- Progress bar: smooth fill (ease-out)
+
+---
+
+## Accessibility Considerations
+
+### Keyboard Navigation
+- All interactive elements focusable
+- Visible focus indicators (blue outline)
+- Tab order follows logical flow
+- Escape key closes modals/dropdowns
+- Enter/Space activates buttons
+
+### Screen Reader Support
+- Semantic HTML (nav, main, article, etc.)
+- ARIA labels for icons
+- ARIA live regions for toasts
+- Alt text for images
+- Form labels properly associated
+
+### Color Contrast
+- All text meets WCAG AA standards
+- Error states use icon + color
+- Links distinguishable without color alone
+
+---
+
+## Error States
+
+### Form Validation Errors
+- Inline error messages below fields
+- Red border on invalid fields
+- Error icon next to message
+- Focus on first error field
+
+### API Errors
+- Toast notification for global errors
+- Inline error message in component
+- Retry button if applicable
+- Contact support link for critical errors
+
+### Network Errors
+- "No internet connection" banner (top)
+- Offline mode message
+- Retry button
+- Auto-retry on reconnection
+
+### 404 Not Found
+- Full page with:
+  - Large 404 text
+  - "Page not found" message
+  - "Back to dashboard" button
+  - Helpful links
+
+### 403 Forbidden
+- Full page with:
+  - Lock icon
+  - "Access denied" message
+  - Explanation
+  - "Back" button
+
+---
+
+## Loading States
+
+### Page Load
+- Full page spinner (centered)
+- Or skeleton screens for cards/tables
+
+### Component Load
+- Skeleton cards
+- Spinner in button during submit
+- Disabled form during submit
+- Progress bar for file uploads
+
+### Infinite Scroll
+- Spinner at bottom of list
+- "Loading more..." text
+
+---
+
+## Form Patterns
+
+### Standard Form Layout
+- Vertical stack
+- Labels above fields
+- Helper text below fields (gray, small)
+- Error messages below fields (red)
+- Required field indicator (*)
+- Action buttons at bottom (right-aligned)
+
+### Multi-step Forms
+- Progress stepper at top
+- Current step highlighted
+- Completed steps: checkmark
+- Future steps: grayed out
+- Back/Next navigation
+- Save draft option on each step
+
+### Inline Editing
+- Click to edit (pencil icon)
+- Convert to input field
+- Save/Cancel buttons appear
+- Click outside to cancel (optional)
+
+---
+
+This UI documentation provides a complete reference for implementing all frontend pages and components in the Skillmark application using Angular and Tailwind CSS.

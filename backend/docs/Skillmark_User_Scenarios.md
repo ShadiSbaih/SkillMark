@@ -1,3464 +1,3566 @@
-# Skillmark User Scenarios
+# Skillmark User Scenarios — Detailed
 
-## Full User Scenario Coverage — Version 2.0
-
-This document describes the complete user scenarios for the expanded **Skillmark** platform.
-
-Skillmark is a university-focused training, assessment, and certification backend platform.
-
-It supports:
-
-- Clerk authentication and webhook sync
-- organizations and organization memberships
-- programs and workshops
-- program enrollments
-- invitation links
-- program resources
-- quizzes, questions, and options
-- quiz attempts with timing enforcement
-- automatic scoring
-- certificates with AUTO and MANUAL issuance
-- public certificate verification
-- statistics
-- audit logs
-- Cloudflare R2 file storage
-- Cloudinary image and media management
+## Document Information
+**Version:** 1.0  
+**Purpose:** Comprehensive user scenarios covering all major user journeys  
+**Audience:** Developers, Product Managers, QA Engineers, UX Designers
 
 ---
 
-# 1. User Types
+# Table of Contents
 
-Skillmark has four main user types:
+1. [Scenario Overview](#scenario-overview)
+2. [Persona Definitions](#persona-definitions)
+3. [Core User Journeys](#core-user-journeys)
+4. [Detailed Scenarios](#detailed-scenarios)
+5. [Edge Cases & Variations](#edge-cases--variations)
+6. [API Request/Response Examples](#api-requestresponse-examples)
 
-1. Unauthenticated Visitor
-2. Authenticated User
-3. Organization Owner
-4. Program Participant
+---
 
-Important rule:
+# 1. Scenario Overview
 
-A user does **not** have a global business role.
+## 1.1 Scenario Categories
 
-Wrong:
+| Category | Scenarios | Coverage |
+|----------|-----------|----------|
+| **Onboarding** | 3 scenarios | First-time user experience |
+| **Workshop Management** | 5 scenarios | Creation, publishing, enrollment |
+| **Assessment & Grading** | 4 scenarios | Quiz taking, submission, grading |
+| **Certification** | 3 scenarios | Issuance, download, verification |
+| **Administration** | 4 scenarios | Member management, analytics |
+| **Edge Cases** | 6 scenarios | Error handling, conflicts |
 
-```text
-users.role = OWNER
-users.role = PARTICIPANT
+**Total Scenarios:** 25 detailed user journeys
+
+---
+
+# 2. Persona Definitions
+
+## 2.1 Sarah Chen — Student Club President
+
+```yaml
+Name: Sarah Chen
+Age: 21
+Role: Computer Science Club President
+Education: 3rd year Computer Science student
+Tech Savvy: High
+Goals:
+  - Organize monthly technical workshops
+  - Track member participation
+  - Issue certificates to boost resumes
+  - Grow club membership
+Pain Points:
+  - Manual attendance tracking
+  - No proof of workshop completion
+  - Hard to measure engagement
+Tools Currently Used:
+  - Google Forms for registration
+  - Excel for tracking
+  - WhatsApp for communication
 ```
 
-Correct:
+## 2.2 Dr. Ahmad Hassan — University Instructor
 
-```text
-organization_memberships.role
-program_enrollments.status
+```yaml
+Name: Dr. Ahmad Hassan
+Age: 38
+Role: Senior Lecturer, Department of Software Engineering
+Education: PhD in Computer Science
+Tech Savvy: Medium
+Goals:
+  - Run professional training programs
+  - Assess student knowledge
+  - Provide verifiable certificates
+  - Track student progress
+Pain Points:
+  - Time-consuming manual grading
+  - Students lose certificates
+  - Hard to verify completion
+  - Limited analytics
+Tools Currently Used:
+  - Moodle (finds it complex)
+  - Email for communication
+  - PDF certificates
 ```
 
-A user can be:
-
-- OWNER in one organization
-- PARTICIPANT in another organization
-- enrolled in multiple programs
-- not enrolled in other programs
-
----
-
-# 2. Scenario Format
-
-Each scenario includes:
-
-- Actor
-- Goal
-- Preconditions
-- Main Flow
-- Business Rules
-- Alternative / Error Flows
-- Expected Result
-
----
-
-# 3. Visitor Scenarios
-
----
-
-## SC-001: Visitor Verifies a Certificate Publicly
-
-### Actor
-
-Unauthenticated Visitor
-
-### Goal
-
-Verify whether a certificate is valid using a verification code.
-
-### Preconditions
-
-- Certificate exists in the system.
-- Visitor has a certificate verification code.
-
-### Main Flow
-
-1. Visitor opens public certificate verification page.
-2. Visitor enters verification code.
-3. Frontend calls:
-   ```
-   GET /api/v1/public/certificates/verify/{verificationCode}
-   ```
-4. Backend searches certificate by verification code.
-5. Backend returns safe public certificate data.
-
-### Business Rules
-
-- No authentication is required.
-- The response must not expose sensitive user data such as internal user IDs or emails.
-- The response must include:
-  - certificateStatus
-  - participantNameSnapshot
-  - quizTitleSnapshot
-  - programTitleSnapshot
-  - organizationNameSnapshot
-  - issuedAt
-  - isRevoked
-  - revokedAt (if revoked)
-  - revokeReason (if revoked)
-
-### Alternative / Error Flows
-
-- Verification code does not exist: return HTTP 404.
-- Certificate is REVOKED: return certificate data with `isRevoked = true` and revocation details.
-
-### Expected Result
-
-Visitor can confirm whether the certificate is valid, revoked, or not found.
-
----
-
-## SC-002: Visitor Tries to Access Private Endpoint
-
-### Actor
-
-Unauthenticated Visitor
-
-### Goal
-
-Access a private program, resource, or quiz endpoint without authentication.
-
-### Preconditions
-
-- Visitor is not logged in.
-- Target endpoint requires authentication.
-
-### Main Flow
-
-1. Visitor sends request to a private endpoint.
-2. Spring Security filter checks for Authorization header.
-3. Authorization header is missing or token is absent.
-4. Backend rejects the request.
-
-### Business Rules
-
-- All private endpoints require a valid Clerk JWT token in the Authorization header.
-- The public certificate verification endpoint does not require authentication.
-
-### Expected Result
-
-System returns HTTP 401 Unauthorized.
-
----
-
-## SC-003: Visitor Opens Invitation Link Without Login
-
-### Actor
-
-Unauthenticated Visitor
-
-### Goal
-
-Join a program through an invitation link without being logged in.
-
-### Preconditions
-
-- A valid invitation link exists.
-- Visitor is not authenticated.
-
-### Main Flow
-
-1. Visitor opens the invitation link in a browser.
-2. Frontend detects the user is not logged in.
-3. Frontend redirects user to Clerk sign-in or sign-up page.
-4. After successful Clerk authentication, user is returned to the invitation flow.
-5. Frontend calls:
-   ```
-   POST /api/v1/invitations/{code}/join
-   ```
-6. Backend validates invitation and creates enrollment.
-
-### Business Rules
-
-- Joining a program requires a valid Clerk session.
-- Invitation validation happens only after the user is authenticated.
-- The invitation code must still be valid at the time of the join request.
-
-### Expected Result
-
-Visitor is redirected to authenticate before being allowed to join the program.
-
----
-
-# 4. Authentication and User Sync Scenarios
-
----
-
-## SC-004: User First Login and Backend Profile Auto-Creation
-
-### Actor
-
-Authenticated User
-
-### Goal
-
-Automatically create a local backend user profile on first authenticated API request.
-
-### Preconditions
-
-- User has successfully authenticated via Clerk.
-- User does not yet exist in the local `users` table.
-
-### Main Flow
-
-1. User logs in through Clerk.
-2. Frontend includes Clerk JWT token in the Authorization header.
-3. Backend Spring Security filter intercepts the request.
-4. Backend verifies the JWT token using Clerk JWKS endpoint.
-5. Backend extracts `clerkUserId` from the token `sub` claim.
-6. Backend queries local `users` table by `clerk_user_id`.
-7. Local user not found.
-8. Backend creates local user record from token claims:
-   - `clerk_user_id` from `sub`
-   - `name` from token claims
-   - `email` from token claims
-   - `avatar_url` from token claims if available
-   - `status = ACTIVE`
-9. Backend stores resolved user in Spring SecurityContext.
-10. Request proceeds to the controller.
-
-### Business Rules
-
-- `clerk_user_id` must be unique in the local users table.
-- Backend must never store passwords.
-- Clerk is the source of truth for authentication identity.
-- The local users table is used only for domain relationships.
-- Auto-creation must be idempotent.
-
-### Alternative / Error Flows
-
-- Invalid or expired Clerk token: return HTTP 401.
-- Clerk token missing required claims: log error and return HTTP 401.
-
-### Expected Result
-
-Local user profile is created automatically on first authenticated request.
-
----
-
-## SC-005: Clerk Webhook Creates User on Registration
-
-### Actor
-
-Clerk (System)
-
-### Goal
-
-Proactively create a local user record when a user registers via Clerk.
-
-### Preconditions
-
-- Clerk webhook is configured with `CLERK_WEBHOOK_SECRET`.
-- Clerk sends `user.created` event.
-
-### Main Flow
-
-1. User registers through Clerk.
-2. Clerk sends `user.created` webhook event to:
-   ```
-   POST /api/v1/webhooks/clerk
-   ```
-3. Backend verifies webhook signature using `CLERK_WEBHOOK_SECRET`.
-4. Backend parses the event payload.
-5. Backend checks if user already exists by `clerk_user_id`.
-6. If not found: backend creates local user record.
-7. If found: backend skips creation (idempotent).
-
-### Business Rules
-
-- Webhook signature must be verified before processing.
-- Requests with invalid or missing signatures must return HTTP 401.
-- Webhook processing must be idempotent.
-- Duplicate events must not create duplicate users.
-
-### Expected Result
-
-Local user record exists before the user makes their first API request.
-
----
-
-## SC-006: Clerk Webhook Updates User Profile
-
-### Actor
-
-Clerk (System)
-
-### Goal
-
-Sync user profile changes when a user updates their Clerk account.
-
-### Preconditions
-
-- Clerk webhook is configured.
-- Clerk sends `user.updated` event.
-- Local user exists.
-
-### Main Flow
-
-1. User updates their name, email, or avatar in Clerk.
-2. Clerk sends `user.updated` webhook event.
-3. Backend verifies webhook signature.
-4. Backend finds local user by `clerk_user_id`.
-5. Backend updates:
-   - `name`
-   - `email`
-   - `avatar_url`
-   - `updated_at`
-
-### Business Rules
-
-- Certificate snapshots are NOT updated when a user renames themselves.
-- Snapshots were captured at issuance time and remain as-is.
-
-### Expected Result
-
-Local user profile reflects the latest Clerk account data.
-
----
-
-## SC-007: Clerk Webhook Deactivates Deleted User
-
-### Actor
-
-Clerk (System)
-
-### Goal
-
-Deactivate local user when their Clerk account is deleted.
-
-### Preconditions
-
-- Clerk webhook is configured.
-- Clerk sends `user.deleted` event.
-- Local user exists.
-
-### Main Flow
-
-1. User is deleted from Clerk.
-2. Clerk sends `user.deleted` webhook event.
-3. Backend verifies webhook signature.
-4. Backend finds local user by `clerk_user_id`.
-5. Backend sets user `status = DELETED`.
-6. Backend does not hard delete the user record.
-7. Historical data (attempts, certificates, enrollments) is preserved.
-
-### Business Rules
-
-- Soft delete only.
-- Historical records must be preserved.
-- Deleted user can no longer authenticate.
-
-### Expected Result
-
-Local user is deactivated without losing historical data.
-
----
-
-## SC-008: Authenticated User Views Own Profile
-
-### Actor
-
-Authenticated User
-
-### Goal
-
-View own local backend profile.
-
-### Preconditions
-
-- User has a valid Clerk token.
-- Local user profile exists.
-
-### Main Flow
-
-1. User sends request:
-   ```
-   GET /api/v1/users/me
-   ```
-2. Backend verifies Clerk token.
-3. Backend resolves local user from SecurityContext.
-4. Backend returns user profile response.
-
-### Business Rules
-
-- Response must not expose sensitive internal data.
-- User can only view their own profile.
-
-### Expected Result
-
-User receives their own profile data.
-
----
-
-# 5. Organization Scenarios
-
----
-
-## SC-009: Authenticated User Creates Organization
-
-### Actor
-
-Authenticated User
-
-### Goal
-
-Create a new organization and become its owner.
-
-### Preconditions
-
-- User is authenticated.
-- Local user profile exists.
-
-### Main Flow
-
-1. User sends request:
-   ```
-   POST /api/v1/organizations
-   ```
-   with organization data (name, description, etc.).
-2. Backend validates organization data.
-3. Within a single transaction:
-   - Backend creates organization record with `owner_id = currentUserId`.
-   - Backend creates organization membership:
-     - `role = OWNER`
-     - `status = ACTIVE`
-     - `joined_at = now`
-4. Backend writes audit log entry: `ORGANIZATION_CREATED`.
-5. Backend returns organization response with HTTP 201.
-
-### Business Rules
-
-- Any authenticated user can create an organization.
-- Organization creation and owner membership must happen in one transaction.
-- Creator automatically becomes the organization owner.
-
-### Alternative / Error Flows
-
-- Missing or invalid organization name: return HTTP 400 with field-level error.
-- Transaction failure: roll back both records and return HTTP 500.
-
-### Expected Result
-
-Organization is created and current user is set as owner.
-
----
-
-## SC-010: Owner Views Accessible Organizations
-
-### Actor
-
-Authenticated User
-
-### Goal
-
-View all organizations they own or belong to.
-
-### Preconditions
-
-- User is authenticated.
-- User has one or more active organization memberships.
-
-### Main Flow
-
-1. User sends request:
-   ```
-   GET /api/v1/organizations
-   ```
-2. Backend resolves current user.
-3. Backend queries active organization memberships for current user.
-4. Backend returns accessible organizations with pagination.
-
-### Business Rules
-
-- User must not see organizations they have no membership in.
-- Soft deleted organizations must be excluded.
-- Response must be paginated.
-
-### Expected Result
-
-User receives only organizations they can access.
-
----
-
-## SC-011: Owner Views Organization Details
-
-### Actor
-
-Organization Owner or Organization Member
-
-### Goal
-
-View details of a specific organization.
-
-### Preconditions
-
-- Organization exists.
-- User is an active member or owner.
-
-### Main Flow
-
-1. User sends request:
-   ```
-   GET /api/v1/organizations/{organizationId}
-   ```
-2. Backend verifies current user is an active member.
-3. Backend returns organization details.
-
-### Business Rules
-
-- Unrelated users receive HTTP 404, not HTTP 403, to prevent leaking organization existence.
-
-### Expected Result
-
-User receives organization details.
-
----
-
-## SC-012: Owner Updates Organization
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Update owned organization details.
-
-### Preconditions
-
-- User is authenticated.
-- User has OWNER role in the organization.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   PUT /api/v1/organizations/{organizationId}
-   ```
-2. Backend calls `ensureOrganizationOwner(organizationId)`.
-3. Backend validates update request.
-4. Backend updates organization fields.
-5. Backend writes audit log entry: `ORGANIZATION_UPDATED`.
-6. Backend returns updated organization.
-
-### Business Rules
-
-- Only the organization owner can update.
-- Updating the organization name does not affect existing certificate snapshots.
-
-### Alternative / Error Flows
-
-- Participant tries to update: return HTTP 403.
-- Unrelated user tries to update: return HTTP 404.
-
-### Expected Result
-
-Organization details are updated successfully.
-
----
-
-## SC-013: Owner Soft Deletes Organization
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Disable or delete organization while preserving historical data.
-
-### Preconditions
-
-- User is owner.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   DELETE /api/v1/organizations/{organizationId}
-   ```
-2. Backend calls `ensureOrganizationOwner(organizationId)`.
-3. Backend sets `status = DELETED` and `deleted_at = now`.
-4. Backend writes audit log entry: `ORGANIZATION_DELETED`.
-5. Backend returns HTTP 204.
-
-### Business Rules
-
-- Soft delete only, no hard delete.
-- Child records (programs, enrollments, certificates, attempts) are preserved.
-- Soft deleted organizations are excluded from all list responses.
-- Soft deleted organizations cannot be restored in the MVP.
-
-### Expected Result
-
-Organization is soft deleted and historical data is preserved.
-
----
-
-## SC-014: Owner Adds Organization Member
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Add a user as a PARTICIPANT member of the organization.
-
-### Preconditions
-
-- Owner is authenticated.
-- Target user exists in the local users table.
-- Target user is not already an active member.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   POST /api/v1/organizations/{organizationId}/members
-   ```
-   with `userId` in the body.
-2. Backend calls `ensureOrganizationOwner(organizationId)`.
-3. Backend checks target user exists in local users table.
-4. Backend checks no active membership exists for that user in that organization.
-5. Backend creates membership:
-   - `role = PARTICIPANT`
-   - `status = ACTIVE`
-   - `invited_by = currentUserId`
-   - `joined_at = now`
-6. Backend writes audit log entry: `MEMBER_ADDED`.
-7. Backend returns membership response with HTTP 201.
-
-### Business Rules
-
-- Only owner can add members.
-- Duplicate active membership must return HTTP 409.
-- MVP supports OWNER and PARTICIPANT roles only.
-- Target user must exist in the local backend users table.
-
-### Alternative / Error Flows
-
-- Target user not found locally: return HTTP 404.
-- Duplicate active membership: return HTTP 409.
-- Non-owner tries to add member: return HTTP 403.
-
-### Expected Result
-
-Target user becomes an organization participant.
-
----
-
-## SC-015: Owner Lists Organization Members
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-View all members of an owned organization.
-
-### Preconditions
-
-- User owns the organization.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   GET /api/v1/organizations/{organizationId}/members
-   ```
-2. Backend calls `ensureOrganizationOwner(organizationId)`.
-3. Backend returns paginated membership list.
-
-### Business Rules
-
-- Only owner can list all members.
-- Removed members should be excluded from the default response.
-
-### Expected Result
-
-Owner sees a paginated list of organization members.
-
----
-
-## SC-016: Owner Removes Organization Member
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Remove a participant from the organization.
-
-### Preconditions
-
-- Owner is authenticated.
-- Target user is an active organization member.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   DELETE /api/v1/organizations/{organizationId}/members/{userId}
-   ```
-2. Backend calls `ensureOrganizationOwner(organizationId)`.
-3. Backend finds active membership for target user.
-4. Backend sets membership:
-   - `status = REMOVED`
-   - `removed_by = currentUserId`
-   - `removed_at = now`
-5. Backend writes audit log entry: `MEMBER_REMOVED`.
-6. Backend returns HTTP 204.
-
-### Business Rules
-
-- Removed members immediately lose access to protected organization data.
-- Historical attempts and certificates are preserved.
-- Soft removal only, no hard delete.
-- The owner cannot remove themselves using this endpoint in the MVP.
-
-### Alternative / Error Flows
-
-- Target user is not a member: return HTTP 404.
-- Non-owner tries to remove: return HTTP 403.
-
-### Expected Result
-
-Member loses organization access and historical data is preserved.
-
----
-
-# 6. Program Scenarios
-
----
-
-## SC-017: Owner Creates Program
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Create a training program or workshop inside an organization.
-
-### Preconditions
-
-- User owns the organization.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   POST /api/v1/organizations/{organizationId}/programs
-   ```
-2. Backend calls `ensureOrganizationOwner(organizationId)`.
-3. Backend validates program data.
-4. Backend creates program with:
-   - `status = DRAFT`
-   - `is_published = false` as a compatibility mirror of `status`
-5. Backend writes audit log entry: `PROGRAM_CREATED`.
-6. Backend returns program response with HTTP 201.
-
-### Business Rules
-
-- Only organization owner can create programs.
-- Program belongs to exactly one organization.
-- Draft programs are visible to owners only.
-
-### Expected Result
-
-Program is created as a draft.
-
----
-
-## SC-018: Owner Updates Program
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Update program details.
-
-### Preconditions
-
-- Program exists.
-- User owns the program's organization.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   PUT /api/v1/programs/{programId}
-   ```
-2. Backend calls `ensureProgramOwner(programId)`.
-3. Backend validates the update request.
-4. Backend updates program fields.
-5. Backend writes audit log entry: `PROGRAM_UPDATED`.
-6. Backend returns updated program.
-
-### Business Rules
-
-- Only owner can update.
-- Archived or soft deleted programs may have restricted updates.
-
-### Expected Result
-
-Program details are updated.
-
----
-
-## SC-019: Owner Publishes Program
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Make a program visible and active for enrolled participants.
-
-### Preconditions
-
-- Program exists.
-- Program status is DRAFT.
-- User owns the program's organization.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   PATCH /api/v1/programs/{programId}/status
-   Body: { "status": "PUBLISHED" }
-   ```
-2. Backend calls `ensureProgramOwner(programId)`.
-3. Backend validates required program fields are complete.
-4. Backend sets:
-   - `status = PUBLISHED`
-   - `is_published = true` derived from `status`
-5. Backend writes audit log entry: `PROGRAM_PUBLISHED`.
-6. Backend returns updated program.
-
-### Business Rules
-
-- Only owner can publish.
-- Published programs are accessible to enrolled participants.
-- Program `status` is the source of truth; `is_published` must only mirror `status = PUBLISHED`.
-
-### Expected Result
-
-Program becomes published and accessible.
-
----
-
-## SC-020: Owner Archives Program
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Archive a completed or inactive program.
-
-### Preconditions
-
-- Program exists.
-- User owns the program's organization.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   PATCH /api/v1/programs/{programId}/status
-   Body: { "status": "ARCHIVED" }
-   ```
-2. Backend calls `ensureProgramOwner(programId)`.
-3. Backend sets `status = ARCHIVED`.
-4. Backend writes audit log entry: `PROGRAM_ARCHIVED`.
-5. Backend returns updated program.
-
-### Business Rules
-
-- Archived programs do not accept new enrollments.
-- No new quiz attempts are allowed in archived programs.
-- Historical data (enrollments, resources, attempts, certificates) is preserved.
-
-### Expected Result
-
-Program is archived and preserved safely.
-
----
-
-## SC-021: Participant Views Enrolled Programs
-
-### Actor
-
-Program Participant
-
-### Goal
-
-View programs they are enrolled in.
-
-### Preconditions
-
-- User is authenticated.
-- User has active program enrollments.
-
-### Main Flow
-
-1. User sends request:
-   ```
-   GET /api/v1/enrollments/me
-   ```
-2. Backend resolves current user.
-3. Backend queries active program enrollments for current user.
-4. Backend returns enrolled programs with pagination.
-
-### Business Rules
-
-- User sees only their own enrollments.
-- Removed enrollments are excluded from the default response.
-
-### Expected Result
-
-User sees a list of their enrolled programs.
-
----
-
-# 7. Enrollment Scenarios
-
----
-
-## SC-022: Owner Manually Enrolls a User
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Enroll a user directly into a program without an invitation link.
-
-### Preconditions
-
-- Owner is authenticated.
-- Target user exists in local users table.
-- Program exists under owned organization.
-- No active enrollment exists for that user.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   POST /api/v1/programs/{programId}/enrollments
-   Body: { "userId": "..." }
-   ```
-2. Backend calls `ensureProgramOwner(programId)`.
-3. Backend checks target user exists locally.
-4. Backend checks no active enrollment exists.
-5. Backend creates enrollment:
-   - `status = ACTIVE`
-   - `enrolled_at = now`
-6. Backend adds user as PARTICIPANT organization member if not already a member.
-7. Backend writes audit log entry: `USER_ENROLLED`.
-8. Backend returns enrollment response with HTTP 201.
-
-### Business Rules
-
-- Only owner can manually enroll users.
-- Duplicate active enrollment returns HTTP 409.
-- Enrollment and membership creation must be transactional.
-
-### Alternative / Error Flows
-
-- Target user not found: return HTTP 404.
-- Duplicate enrollment: return HTTP 409.
-- Program is archived: return HTTP 422.
-
-### Expected Result
-
-Target user is enrolled in the program.
-
----
-
-## SC-023: Owner Views Program Enrollments
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-View all enrollments for a specific program.
-
-### Preconditions
-
-- Program exists under owned organization.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   GET /api/v1/programs/{programId}/enrollments
-   ```
-2. Backend calls `ensureProgramOwner(programId)`.
-3. Backend returns paginated enrollment list.
-
-### Expected Result
-
-Owner sees a list of enrolled participants.
-
----
-
-## SC-024: Owner Removes a Program Enrollment
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Remove a participant's enrollment from a program.
-
-### Preconditions
-
-- Enrollment exists.
-- User owns the program's organization.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   DELETE /api/v1/programs/{programId}/enrollments/{userId}
-   ```
-2. Backend calls `ensureProgramOwner(programId)`.
-3. Backend finds active enrollment for target user.
-4. Backend sets:
-   - `status = REMOVED`
-   - `removed_at = now`
-5. Backend writes audit log entry: `ENROLLMENT_REMOVED`.
-6. Backend returns HTTP 204.
-
-### Business Rules
-
-- Removed participant loses access to program resources and quizzes.
-- Historical attempts and certificates are preserved.
-
-### Expected Result
-
-Participant loses program access and historical data is preserved.
-
----
-
-# 8. Invitation Link Scenarios
-
----
-
-## SC-025: Owner Creates Invitation Link
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Create a shareable invitation link for a program.
-
-### Preconditions
-
-- Program exists under owned organization.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   POST /api/v1/programs/{programId}/invitations
-   ```
-   with optional fields:
-   - `description`
-   - `maxUses`
-   - `expiresAt`
-2. Backend calls `ensureProgramOwner(programId)`.
-3. Backend generates a unique 12-character uppercase alphanumeric code using SecureRandom.
-4. Backend verifies code uniqueness in the database.
-5. Backend creates invitation link:
-   - `status = ACTIVE`
-   - `used_count = 0`
-   - `created_by = currentUserId`
-   - `created_at = now`
-6. Backend writes audit log entry: `INVITATION_CREATED`.
-7. Backend returns invitation with code and HTTP 201.
-
-### Business Rules
-
-- Only owner can create invitation links.
-- Code must be unique across all invitation links.
-- `maxUses = null` means unlimited uses.
-- `expiresAt = null` means no expiry.
-
-### Expected Result
-
-Owner can share the invitation code with participants.
-
----
-
-## SC-026: User Joins Program by Invitation Code
-
-### Actor
-
-Authenticated User
-
-### Goal
-
-Join a program using a valid invitation code.
-
-### Preconditions
-
-- User is authenticated.
-- Invitation link exists with status ACTIVE.
-- Invitation is not expired.
-- Usage limit is not exceeded.
-
-### Main Flow
-
-1. User sends request:
-   ```
-   POST /api/v1/invitations/{code}/join
-   ```
-2. Backend verifies Clerk token and resolves current user.
-3. Backend finds invitation by code (case-insensitive lookup).
-4. Backend validates invitation:
-   - `status = ACTIVE`
-   - `expires_at` is null or in the future
-   - `max_uses` is null or `used_count < max_uses`
-5. Backend checks program `status = PUBLISHED` and `deleted_at` is null.
-6. Backend checks no active enrollment exists for current user in program.
-7. Within a single transaction with row-level locking, optimistic locking, or an atomic conditional update:
-   - Backend checks and increments `used_count` atomically.
-   - Backend creates program enrollment with `status = ACTIVE`.
-   - Backend adds user as PARTICIPANT organization member if not already a member.
-8. Backend writes audit log entry: `USER_JOINED_BY_INVITATION`.
-9. Backend returns enrollment response with HTTP 201.
-
-### Business Rules
-
-- User must be authenticated.
-- Expired invitations must be rejected with HTTP 422.
-- Disabled invitations must be rejected with HTTP 422.
-- Max uses must be enforced before creating enrollment.
-- Concurrent joins must never allow `used_count` to exceed `max_uses`.
-- Duplicate active enrollment must be rejected with HTTP 409.
-- The entire join operation must be transactional.
-
-### Alternative / Error Flows
-
-- Invitation not found: return HTTP 404.
-- Invitation is DISABLED: return HTTP 422 with message.
-- Invitation is expired: return HTTP 422 with message.
-- Max uses reached: return HTTP 422 with message.
-- Already enrolled: return HTTP 409 with message.
-- Program is archived: return HTTP 422 with message.
-
-### Expected Result
-
-User becomes actively enrolled in the program.
-
----
-
-## SC-027: Owner Disables Invitation Link
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Prevent an invitation link from being used further.
-
-### Preconditions
-
-- Invitation exists.
-- User owns the invitation's organization.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   PATCH /api/v1/invitations/{invitationId}/status
-   Body: { "status": "DISABLED" }
-   ```
-2. Backend calls `ensureInvitationOwner(invitationId)`.
-3. Backend sets:
-   - `status = DISABLED`
-   - `disabled_at = now`
-4. Backend writes audit log entry: `INVITATION_DISABLED`.
-5. Backend returns updated invitation.
-
-### Business Rules
-
-- Disabled invitations cannot be used.
-- Existing enrollments created before disabling remain active.
-
-### Expected Result
-
-Invitation link becomes unusable for new joins.
-
----
-
-## SC-028: Owner Lists Invitation Links
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-View all invitation links for a program.
-
-### Preconditions
-
-- Program exists under owned organization.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   GET /api/v1/programs/{programId}/invitations
-   ```
-2. Backend calls `ensureProgramOwner(programId)`.
-3. Backend returns paginated invitation list.
-
-### Expected Result
-
-Owner sees all invitation links with their usage stats.
-
----
-
-# 9. Resource Scenarios
-
----
-
-## SC-029: Owner Adds External Link Resource
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Add a learning resource as an external URL link.
-
-### Preconditions
-
-- Program exists under owned organization.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   POST /api/v1/programs/{programId}/resources
-   ```
-   with body:
-   - `title`
-   - `description`
-   - `type = LINK`
-   - `url`
-2. Backend calls `ensureProgramOwner(programId)`.
-3. Backend validates URL format.
-4. Backend creates resource:
-   - `type = LINK`
-   - `storage_provider = EXTERNAL`
-   - `status = ACTIVE`
-5. Backend writes audit log entry: `RESOURCE_CREATED`.
-6. Backend returns resource with HTTP 201.
-
-### Business Rules
-
-- Only owner can create resources.
-- LINK resources store only an external URL.
-- No R2 or Cloudinary upload is required.
-
-### Expected Result
-
-External link resource is available to enrolled participants.
-
----
-
-## SC-030: Owner Adds File Resource Using Cloudflare R2
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Add a downloadable file resource stored in Cloudflare R2.
-
-### Preconditions
-
-- Program exists under owned organization.
-- R2 storage is configured.
-
-### Main Flow
-
-**Option A: Backend upload**
-
-1. Owner sends file to backend upload endpoint.
-2. Backend calls `ensureProgramOwner(programId)`.
-3. Backend calls `R2StorageService.uploadFile(...)`.
-4. R2 returns `objectKey` and public URL.
-5. Backend creates resource:
-   - `type = FILE`
-   - `storage_provider = R2`
-   - `object_key`
-   - `url`
-6. Backend writes audit log entry: `RESOURCE_CREATED`.
-
-**Option B: Presigned URL upload**
-
-1. Owner requests presigned upload URL:
-   ```
-   POST /api/v1/files/r2/upload-url
-   ```
-2. Backend calls `ensureProgramOwner(programId)`.
-3. Backend generates presigned R2 URL.
-4. Owner uploads file directly to R2 using presigned URL.
-5. Owner confirms upload by creating resource with returned `objectKey`.
-
-### Business Rules
-
-- Storage logic must be inside `R2StorageService`.
-- Controllers must not call R2 SDK directly.
-- Database stores metadata only, not raw file bytes.
-- If R2 upload fails, no resource record is created.
-
-### Alternative / Error Flows
-
-- R2 upload fails: return HTTP 500 storage error and do not create resource record.
-
-### Expected Result
-
-File resource is stored in R2 and linked to the program.
-
----
-
-## SC-031: Owner Adds Image Resource Using Cloudinary
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Add an image resource stored in Cloudinary.
-
-### Preconditions
-
-- Program exists under owned organization.
-- Cloudinary is configured.
-
-### Main Flow
-
-1. Owner sends image or requests signed Cloudinary upload:
-   ```
-   POST /api/v1/media/cloudinary/signature
-   ```
-2. Backend calls `ensureProgramOwner(programId)`.
-3. Owner uploads image directly to Cloudinary using the signature.
-4. Owner creates resource with returned Cloudinary URL and public ID:
-   ```
-   POST /api/v1/programs/{programId}/resources
-   ```
-   with body:
-   - `type = IMAGE`
-   - `storage_provider = CLOUDINARY`
-   - `url`
-   - `object_key` (Cloudinary public ID)
-5. Backend writes audit log entry: `RESOURCE_CREATED`.
-
-### Business Rules
-
-- Cloudinary is preferred for image assets.
-- R2 is preferred for PDFs and binary files.
-- Store Cloudinary URL and public ID in the database.
-
-### Alternative / Error Flows
-
-- Cloudinary upload fails: return media upload error and do not update resource URL.
-
-### Expected Result
-
-Image resource is added to the program with Cloudinary delivery URL.
-
----
-
-## SC-032: Participant Views Program Resources
-
-### Actor
-
-Program Participant
-
-### Goal
-
-Access learning resources for an enrolled program.
-
-### Preconditions
-
-- User is authenticated.
-- User has an active enrollment in the program.
-- Resources exist.
-
-### Main Flow
-
-1. User sends request:
-   ```
-   GET /api/v1/programs/{programId}/resources
-   ```
-2. Backend calls `ensureProgramEnrollment(programId, currentUserId)` or `ensureProgramOwner(programId)`.
-3. Backend returns active resources ordered by `position`.
-
-### Business Rules
-
-- Unenrolled users receive HTTP 404.
-- Archived resources are not returned to participants.
-- Resources with `visibleToParticipants = false` are not returned to participants.
-- Owners can view all resources regardless of status.
-
-### Expected Result
-
-Participant can access program learning materials.
-
----
-
-## SC-033: Owner Updates Resource
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Update details of an existing resource.
-
-### Preconditions
-
-- Resource exists under owned program.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   PUT /api/v1/resources/{resourceId}
-   ```
-2. Backend calls `ensureResourceOwner(resourceId)`.
-3. Backend validates update.
-4. Backend updates resource fields.
-5. Backend writes audit log entry: `RESOURCE_UPDATED`.
-6. Backend returns updated resource.
-
-### Expected Result
-
-Resource details are updated.
-
----
-
-## SC-034: Owner Hides or Archives Resource
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Hide a resource from participants without deleting it, or archive it when it is no longer needed.
-
-### Preconditions
-
-- Resource exists under owned program.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   PATCH /api/v1/resources/{resourceId}/visibility
-   Body: { "visibleToParticipants": false }
-   ```
-2. Backend calls `ensureResourceOwner(resourceId)`.
-3. Backend sets `visibleToParticipants = false`.
-4. Backend writes audit log entry: `RESOURCE_UPDATED`.
-5. Backend returns updated resource.
-
-Optional archival flow:
-
-1. Owner sends request:
-   ```
-   DELETE /api/v1/resources/{resourceId}
-   ```
-2. Backend sets `status = ARCHIVED`.
-3. Backend writes audit log entry: `RESOURCE_ARCHIVED`.
-4. Backend returns HTTP 204.
-
-### Business Rules
-
-- Prefer soft deletion (set status) for archival.
-- Do not delete R2 or Cloudinary files unless explicitly required.
-
-### Expected Result
-
-Resource is hidden from participants or archived, depending on the chosen action.
-
----
-
-# 10. Quiz Management Scenarios
-
----
-
-## SC-035: Owner Creates Quiz
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Create a quiz inside a program.
-
-### Preconditions
-
-- Program exists under owned organization.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   POST /api/v1/programs/{programId}/quizzes
-   ```
-   with body:
-   - `title`
-   - `description`
-   - `passingScore` (1–100)
-   - `durationMinutes` (minimum 1)
-   - `maxAttempts` (minimum 1)
-   - `certificateEnabled`
-   - `certificateIssueMode` (AUTO, MANUAL, or NONE)
-2. Backend calls `ensureProgramOwner(programId)`.
-3. Backend validates quiz settings.
-4. Backend creates quiz:
-   - `status = DRAFT`
-   - `is_published = false` as a compatibility mirror of `status`
-5. Backend writes audit log entry: `QUIZ_CREATED`.
-6. Backend returns quiz with HTTP 201.
-
-### Business Rules
-
-- Only owner can create quizzes.
-- `passingScore` must be between 1 and 100.
-- `maxAttempts` must be at least 1.
-- `durationMinutes` must be at least 1.
-- Quiz `status` is the source of truth; `is_published` must only mirror `status = PUBLISHED`.
-
-### Expected Result
-
-Quiz is created as a draft.
-
----
-
-## SC-036: Owner Adds Question to Quiz
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Add a question to a quiz.
-
-### Preconditions
-
-- Quiz exists under owned program.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   POST /api/v1/quizzes/{quizId}/questions
-   ```
-   with body:
-   - `text`
-   - `type` (SINGLE\_CHOICE)
-   - `points` (positive integer)
-   - `position`
-2. Backend calls `ensureQuizOwner(quizId)`.
-3. Backend validates question data.
-4. Backend creates question.
-5. Backend returns question with HTTP 201.
-
-### Business Rules
-
-- MVP supports SINGLE\_CHOICE only.
-- Points must be a positive integer.
-- Questions can be added only while the quiz has no submitted attempts.
-
-### Expected Result
-
-Question is added to the quiz.
-
----
-
-## SC-037: Owner Adds Options to Question
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Add answer options to a quiz question.
-
-### Preconditions
-
-- Question exists under owned quiz.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   POST /api/v1/questions/{questionId}/options
-   ```
-   with body:
-   - `text`
-   - `isCorrect`
-   - `position`
-2. Backend calls `ensureQuizOwner` for the parent quiz.
-3. Backend validates option data.
-4. Backend creates option.
-5. Backend returns option with HTTP 201.
-
-### Business Rules
-
-- A SINGLE\_CHOICE question must have exactly one `isCorrect = true` option at publish time.
-- The system validates the correct-option count during quiz publishing, not necessarily at option creation time.
-- Minimum two options per question are required before publishing.
-- Options can be added only while the quiz has no submitted attempts.
-
-### Expected Result
-
-Options are added to the question.
-
----
-
-## SC-038: Owner Updates Question
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Update an existing quiz question.
-
-### Preconditions
-
-- Question exists under owned quiz.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   PUT /api/v1/questions/{questionId}
-   ```
-2. Backend calls `ensureQuizOwner` for the parent quiz.
-3. Backend rejects the update with HTTP 422 if the quiz has submitted attempts.
-4. Backend validates and updates question if no submitted attempts exist.
-5. Backend returns updated question.
-
-### Expected Result
-
-Question is updated.
-
----
-
-## SC-039: Owner Deletes Question
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Remove a question from a quiz.
-
-### Preconditions
-
-- Question exists under owned quiz.
-- Quiz has no submitted attempts.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   DELETE /api/v1/questions/{questionId}
-   ```
-2. Backend calls `ensureQuizOwner` for the parent quiz.
-3. Backend rejects deletion with HTTP 422 if the quiz has submitted attempts.
-4. Backend deletes the question and its associated options only if no submitted attempts exist.
-5. Backend returns HTTP 204.
-
-### Business Rules
-
-- Questions/options referenced by submitted attempt answers must not be physically deleted.
-- Future versioning or archiving may allow safe edits after attempts, but the MVP rejects destructive changes.
-
-### Expected Result
-
-Question and its options are removed only when historical submitted attempts are not affected.
-
----
-
-## SC-040: Owner Updates Option
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Update an answer option.
-
-### Preconditions
-
-- Option exists under owned quiz question.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   PUT /api/v1/options/{optionId}
-   ```
-2. Backend calls `ensureQuizOwner` for the parent quiz.
-3. Backend rejects the update with HTTP 422 if the quiz has submitted attempts.
-4. Backend validates and updates option if no submitted attempts exist.
-5. Backend returns updated option.
-
-### Expected Result
-
-Option is updated.
-
----
-
-## SC-041: Owner Deletes Option
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Remove an answer option from a question.
-
-### Preconditions
-
-- Option exists under owned quiz question.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   DELETE /api/v1/options/{optionId}
-   ```
-2. Backend calls `ensureQuizOwner` for the parent quiz.
-3. Backend rejects deletion with HTTP 422 if the quiz has submitted attempts.
-4. Backend deletes the option only if no submitted attempts exist.
-5. Backend returns HTTP 204.
-
-### Business Rules
-
-- Deleting the only correct option from a question invalidates the question for publishing.
-- System enforces correct-option rules at publish time.
-- Options referenced by submitted attempt answers must not be physically deleted.
-
-### Expected Result
-
-Option is removed from the question.
-
----
-
-## SC-042: Owner Publishes Quiz
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Make a quiz available to enrolled participants.
-
-### Preconditions
-
-- Quiz exists under owned program.
-- Quiz is in DRAFT status.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   PATCH /api/v1/quizzes/{quizId}/status
-   Body: { "status": "PUBLISHED" }
-   ```
-2. Backend calls `ensureQuizOwner(quizId)`.
-3. Backend performs publish validation:
-   - Quiz has at least one question.
-   - Every question has at least two options.
-   - Every SINGLE\_CHOICE question has exactly one `isCorrect = true` option.
-   - `passingScore` is between 1 and 100.
-   - `maxAttempts` is at least 1.
-   - `durationMinutes` is at least 1.
-4. If validation passes:
-   - Backend sets `status = PUBLISHED`, `is_published = true`.
-   - Backend writes audit log entry: `QUIZ_PUBLISHED`.
-5. Backend returns updated quiz.
-
-### Business Rules
-
-- Invalid quizzes cannot be published.
-- All validation must pass before status is changed.
-
-### Alternative / Error Flows
-
-- No questions: return HTTP 422 with message `Quiz must have at least one question`.
-- SINGLE\_CHOICE question missing correct option: return HTTP 422 with message.
-- SINGLE\_CHOICE question has multiple correct options: return HTTP 422 with message.
-- Question has fewer than two options: return HTTP 422 with message.
-
-### Expected Result
-
-Quiz becomes available to enrolled participants.
-
----
-
-## SC-043: Owner Hides or Archives Quiz
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Hide a quiz from participants or archive it to stop new attempts.
-
-### Preconditions
-
-- Quiz exists under owned program.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   PATCH /api/v1/quizzes/{quizId}/visibility
-   Body: { "visibleToParticipants": false }
-   ```
-2. Backend calls `ensureQuizOwner(quizId)`.
-3. Backend sets `visibleToParticipants = false`.
-4. Backend writes audit log entry: `QUIZ_UPDATED`.
-5. Backend returns updated quiz.
-
-Optional archival flow:
-
-1. Owner sends request:
-   ```
-   PATCH /api/v1/quizzes/{quizId}/status
-   Body: { "status": "ARCHIVED" }
-   ```
-2. Backend sets `status = ARCHIVED`.
-3. Backend writes audit log entry: `QUIZ_ARCHIVED`.
-4. Backend returns updated quiz.
-
-### Business Rules
-
-- Hidden quizzes do not appear in participant lists or direct access.
-- Archived quizzes do not accept new attempts.
-- Historical attempts and certificates remain consistent.
-- Certificates issued before archiving remain valid unless separately revoked.
-
-### Expected Result
-
-Quiz is hidden from participants or archived, depending on the chosen action.
-
----
-
-# 11. Quiz Attempt Scenarios
-
----
-
-## SC-044: Participant Views Published Quizzes
-
-### Actor
-
-Program Participant
-
-### Goal
-
-View available quizzes inside an enrolled program.
-
-### Preconditions
-
-- User has an active enrollment in the program.
-- Program has published quizzes.
-
-### Main Flow
-
-1. User sends request:
-   ```
-   GET /api/v1/programs/{programId}/quizzes
-   ```
-2. Backend calls `ensureProgramEnrollment(programId, currentUserId)` or `ensureProgramOwner`.
-3. Backend returns published quizzes that are visible to participants only.
-4. Owners see all quizzes regardless of status.
-
-### Business Rules
-
-- Participants cannot view DRAFT or ARCHIVED quizzes.
-- Participants cannot view quizzes hidden by the owner.
-
-### Expected Result
-
-Participant sees available published quizzes.
-
----
-
-## SC-045: Participant Starts Quiz Attempt
-
-### Actor
-
-Program Participant
-
-### Goal
-
-Start a new quiz attempt.
-
-### Preconditions
-
-- User has an active enrollment in the program.
-- Quiz is PUBLISHED.
-- Quiz is visible to participants.
-- User has not exceeded `maxAttempts`.
-- No IN\_PROGRESS attempt exists for this user and quiz.
-
-### Main Flow
-
-1. User sends request:
-   ```
-   POST /api/v1/quizzes/{quizId}/attempts
-   ```
-2. Backend checks:
-   - Quiz exists and `status = PUBLISHED`.
-   - Quiz is visible to participants.
-   - User has an active enrollment in the quiz's program.
-   - Count of user's attempts for this quiz is less than `quiz.maxAttempts`.
-   - No existing IN\_PROGRESS attempt for this user and quiz.
-3. Backend creates attempt:
-   - `status = IN_PROGRESS`
-   - `started_at = now`
-   - `expires_at = now + quiz.durationMinutes`
-   - `attempt_number = count_of_previous_attempts + 1`
-4. Backend returns attempt response with HTTP 201.
-
-### Business Rules
-
-- Unenrolled users receive HTTP 403.
-- Quiz not published: return HTTP 404 or HTTP 422.
-- Max attempts exceeded: return HTTP 422.
-- Attempt timing is enforced server-side.
-
-### Alternative / Error Flows
-
-- Max attempts reached: return HTTP 422 with message.
-- Quiz not published: return HTTP 404.
-- User not enrolled: return HTTP 403.
-- IN\_PROGRESS attempt already exists: return HTTP 409.
-
-### Expected Result
-
-Attempt is created and timing starts.
-
----
-
-## SC-046: Participant Submits Quiz Attempt
-
-### Actor
-
-Program Participant
-
-### Goal
-
-Submit answers for an in-progress quiz attempt.
-
-### Preconditions
-
-- Attempt exists and belongs to current user.
-- Attempt status is IN\_PROGRESS.
-- Current time is before `attempt.expires_at`.
-
-### Main Flow
-
-1. User sends request:
-   ```
-   POST /api/v1/quiz-attempts/{attemptId}/submit
-   ```
-   with body:
-   ```json
-   {
-     "answers": [
-       { "questionId": "...", "selectedOptionId": "..." },
-       { "questionId": "...", "selectedOptionId": "..." }
-     ]
-   }
-   ```
-2. Backend calls `ensureAttemptOwner(attemptId)`.
-3. Backend checks attempt status is IN\_PROGRESS.
-4. Backend checks `current time <= attempt.expires_at`.
-5. Backend validates:
-   - Each `questionId` belongs to the quiz.
-   - Each `selectedOptionId` belongs to the corresponding question.
-   - No duplicate `questionId` in answers.
-6. Backend calculates score:
-   - For each answer, check if `selectedOptionId.is_correct = true`.
-   - Sum earned points.
-   - Calculate `score_percentage = (earned_points / total_points) * 100`.
-   - Set `is_passed = score_percentage >= quiz.passing_score`.
-7. Backend saves attempt answers.
-8. Backend updates attempt:
-   - `status = SUBMITTED`
-   - `submitted_at = now`
-   - `total_points`
-   - `earned_points`
-   - `score_percentage`
-   - `is_passed`
-9. Backend writes audit log entry: `ATTEMPT_SUBMITTED`.
-10. If `is_passed = true` and `quiz.certificate_issue_mode = AUTO`:
-    - Backend triggers AUTO certificate issuance flow (SC-047).
-11. Backend returns attempt result response.
-
-### Business Rules
-
-- Backend calculates all scores. Client score values are ignored.
-- User cannot submit another user's attempt (HTTP 403).
-- Already submitted attempt returns HTTP 409.
-- Submission after `expires_at` returns HTTP 422.
-- Invalid question or option combinations return HTTP 422.
-
-### Alternative / Error Flows
-
-- Attempt already submitted: return HTTP 409.
-- Current time exceeds `expires_at`: return HTTP 422 with message.
-- Question does not belong to quiz: return HTTP 422.
-- Option does not belong to question: return HTTP 422.
-- Attempt belongs to another user: return HTTP 403.
-
-### Expected Result
-
-Attempt is submitted and scored. Certificate may be automatically issued.
-
----
-
-## SC-047: System AUTO-Issues Certificate After Passing Attempt
-
-### Actor
-
-System
-
-### Goal
-
-Automatically issue a certificate after a passing attempt when `certificateIssueMode = AUTO`.
-
-### Preconditions
-
-- Attempt was submitted successfully.
-- `is_passed = true`.
-- `quiz.certificate_enabled = true`.
-- `quiz.certificate_issue_mode = AUTO`.
-
-### Main Flow
-
-1. Attempt submission flow completes (SC-046).
-2. Backend checks certificate eligibility:
-   - User has an active enrollment in the program.
-   - Attempt is SUBMITTED and `is_passed = true`.
-   - No ACTIVE certificate exists for this user and quiz.
-3. Backend generates:
-   - `certificate_number` in format `CERT-{YEAR}-{8_ALPHANUMERIC}`.
-   - `verification_code` as 16-character uppercase alphanumeric using SecureRandom.
-4. Backend captures snapshots at issuance time:
-   - `participant_name_snapshot = user.name`
-   - `quiz_title_snapshot = quiz.title`
-   - `program_title_snapshot = program.title`
-   - `organization_name_snapshot = organization.name`
-5. Backend creates certificate record with `status = ACTIVE`.
-6. Backend writes audit log entry: `CERTIFICATE_ISSUED`.
-7. Attempt submission response includes certificate reference.
-
-### Business Rules
-
-- If certificate issuance fails: log the error, return attempt result without certificate reference, do NOT roll back the attempt submission.
-- Duplicate ACTIVE certificate for same user and quiz returns HTTP 409.
-
-### Expected Result
-
-Certificate is issued automatically and included in the attempt response.
-
----
-
-## SC-048: Participant Views Own Attempts
-
-### Actor
-
-Program Participant
-
-### Goal
-
-View own quiz attempt history.
-
-### Preconditions
-
-- User is authenticated.
-- User has submitted at least one attempt.
-
-### Main Flow
-
-1. User sends request:
-   ```
-   GET /api/v1/quiz-attempts/me
-   ```
-2. Backend resolves current user.
-3. Backend returns paginated attempts where `user_id = currentUserId`.
-
-### Business Rules
-
-- User sees only their own attempts.
-- Owners can view all attempts via the quiz-scoped endpoint.
-
-### Expected Result
-
-Participant sees their own quiz attempt history and scores.
-
----
-
-## SC-049: Owner Views All Quiz Attempts
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-View all attempts for a quiz in an owned program.
-
-### Preconditions
-
-- Quiz exists under owned organization.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   GET /api/v1/quizzes/{quizId}/attempts
-   ```
-2. Backend calls `ensureQuizOwner(quizId)`.
-3. Backend returns paginated attempts for the quiz.
-
-### Expected Result
-
-Owner sees all attempts with scores for the quiz.
-
----
-
-# 12. Certificate Scenarios
-
----
-
-## SC-050: Owner Manually Issues Certificate
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Issue a certificate manually for a passing attempt.
-
-### Preconditions
-
-- `quiz.certificate_issue_mode = MANUAL`.
-- Attempt exists, is SUBMITTED, and `is_passed = true`.
-- User owns the quiz's organization.
-- No active certificate exists for this user and quiz.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   POST /api/v1/quiz-attempts/{attemptId}/certificate
-   ```
-2. Backend calls `ensureQuizOwner` for the attempt's quiz.
-3. Backend validates eligibility:
-   - Attempt is SUBMITTED.
-   - `is_passed = true`.
-   - No ACTIVE certificate for this user and quiz.
-4. Backend generates certificate number and verification code.
-5. Backend captures name snapshots.
-6. Backend creates certificate with `status = ACTIVE`.
-7. Backend writes audit log entry: `CERTIFICATE_ISSUED`.
-8. Backend returns certificate with HTTP 201.
-
-### Business Rules
-
-- Failed attempts are not eligible (HTTP 422).
-- Duplicate active certificate returns HTTP 409.
-- Only owner can manually issue certificates.
-
-### Expected Result
-
-Certificate is issued manually by the owner.
-
----
-
-## SC-051: Participant Views Own Certificates
-
-### Actor
-
-Program Participant
-
-### Goal
-
-View certificates issued to them.
-
-### Preconditions
-
-- User has at least one certificate.
-
-### Main Flow
-
-1. User sends request:
-   ```
-   GET /api/v1/certificates/me
-   ```
-2. Backend resolves current user.
-3. Backend returns paginated certificates where `user_id = currentUserId`.
-
-### Business Rules
-
-- Response may include `pdf_url` and `qr_code_url` if available.
-
-### Expected Result
-
-Participant sees their own certificates.
-
----
-
-## SC-052: Owner Views Organization Certificates
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-View all certificates issued under owned organization.
-
-### Preconditions
-
-- User owns the organization.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   GET /api/v1/certificates/organization/{organizationId}
-   ```
-2. Backend calls `ensureOrganizationOwner(organizationId)`.
-3. Backend returns paginated certificates for the organization.
-
-### Expected Result
-
-Owner sees all certificates issued under their organization.
-
----
-
-## SC-053: Owner Revokes Certificate
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Revoke a certificate while preserving its history.
-
-### Preconditions
-
-- Certificate exists under owned organization.
-- Certificate status is ACTIVE.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   POST /api/v1/certificates/{certificateId}/revoke
-   ```
-   with body:
-   - `revokeReason`
-2. Backend calls `ensureCertificateAccessible(certificateId)` and checks ownership.
-3. Backend sets:
-   - `status = REVOKED`
-   - `revoked_at = now`
-   - `revoke_reason`
-4. Backend writes audit log entry: `CERTIFICATE_REVOKED`.
-5. Backend returns updated certificate.
-
-### Business Rules
-
-- Certificate is never deleted.
-- Revoked certificate remains verifiable as REVOKED.
-- Only owner can revoke certificates in their organization.
-
-### Expected Result
-
-Certificate is revoked and publicly verifiable as revoked.
-
----
-
-## SC-054: Visitor Verifies a Revoked Certificate
-
-### Actor
-
-Unauthenticated Visitor
-
-### Goal
-
-Verify a certificate that has been revoked.
-
-### Preconditions
-
-- Certificate exists with `status = REVOKED`.
-
-### Main Flow
-
-1. Visitor sends request:
-   ```
-   GET /api/v1/public/certificates/verify/{verificationCode}
-   ```
-2. Backend finds certificate by verification code.
-3. Backend returns safe public data with `isRevoked = true`.
-
-### Business Rules
-
-- Response clearly indicates revoked status.
-- `revokedAt` and `revokeReason` are included in the response.
-- Sensitive user data is not exposed.
-
-### Expected Result
-
-Visitor sees that the certificate is revoked.
-
----
-
-## SC-055: System Stores Certificate PDF in Cloudflare R2
-
-### Actor
-
-System
-
-### Goal
-
-Store a generated certificate PDF and update the certificate record.
-
-### Preconditions
-
-- Certificate exists.
-- PDF generation is enabled.
-- R2 is configured.
-
-### Main Flow
-
-1. System generates certificate PDF.
-2. System calls `R2StorageService.uploadFile(...)`.
-3. R2 returns `objectKey` and public URL.
-4. Backend updates certificate:
-   - `pdf_url`
-   - `pdf_object_key`
-
-### Business Rules
-
-- R2 is the preferred storage for certificate PDFs.
-- Database stores metadata only.
-- PDF generation may be deferred in the first MVP.
-
-### Expected Result
-
-Certificate has a downloadable PDF reference.
-
----
-
-## SC-056: System Stores QR Code for Certificate
-
-### Actor
-
-System
-
-### Goal
-
-Generate and store a QR code for certificate public verification.
-
-### Preconditions
-
-- Certificate exists with a valid verification code.
-
-### Main Flow
-
-1. System generates QR code image encoding:
-   ```
-   https://{APP_CERTIFICATE_VERIFY_BASE_URL}/verify/{verificationCode}
-   ```
-2. System uploads QR image to R2 or Cloudinary.
-3. Backend updates certificate:
-   - `qr_code_url`
-   - `qr_code_object_key`
-
-### Business Rules
-
-- QR code must point to the public verification URL.
-- Database stores metadata only.
-
-### Expected Result
-
-Certificate has a QR code reference for public scanning.
-
----
-
-# 13. Statistics Scenarios
-
----
-
-## SC-057: Owner Views Organization Statistics
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-View a high-level performance overview of the organization.
-
-### Preconditions
-
-- User owns the organization.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   GET /api/v1/organizations/{organizationId}/stats
-   ```
-2. Backend calls `ensureOrganizationOwner(organizationId)`.
-3. Backend calculates and returns:
-   - total programs
-   - total members
-   - total enrolled participants
-   - total quizzes
-   - total attempts
-   - total certificates issued
-   - average score across all quizzes
-   - overall pass rate
-
-### Business Rules
-
-- Only owner can view organization statistics.
-- Statistics are scoped to the organization.
-
-### Expected Result
-
-Owner sees the organization performance overview.
-
----
-
-## SC-058: Owner Views Program Statistics
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-View statistics for a specific program.
-
-### Preconditions
-
-- Program exists under owned organization.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   GET /api/v1/programs/{programId}/stats
-   ```
-2. Backend calls `ensureProgramOwner(programId)`.
-3. Backend calculates and returns:
-   - total enrollments
-   - active enrollments
-   - resources count
-   - quizzes count
-   - total attempts
-   - passed attempts count
-   - certificates issued count
-   - average score
-
-### Expected Result
-
-Owner sees program-level statistics.
-
----
-
-## SC-059: Owner Views Quiz Statistics
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-View analytics for a specific quiz.
-
-### Preconditions
-
-- Quiz exists under owned program.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   GET /api/v1/quizzes/{quizId}/stats
-   ```
-2. Backend calls `ensureQuizOwner(quizId)`.
-3. Backend calculates and returns:
-   - total attempts
-   - submitted attempts
-   - average score
-   - highest score
-   - lowest score
-   - pass count
-   - fail count
-   - pass rate percentage
-
-### Expected Result
-
-Owner sees quiz-level analytics.
-
----
-
-# 14. Audit Log Scenarios
-
----
-
-## SC-060: System Records Audit Log for Business Action
-
-### Actor
-
-System
-
-### Goal
-
-Track important business and security actions for traceability.
-
-### Preconditions
-
-- A sensitive or important business action has just succeeded.
-
-### Main Flow
-
-1. Business action completes successfully.
-2. Backend creates audit log record:
-   - `actor_user_id = currentUserId`
-   - `organization_id` (if action is organization-scoped)
-   - `action` (e.g., `CERTIFICATE_ISSUED`)
-   - `entity_type` (e.g., `Certificate`)
-   - `entity_id`
-   - `ip_address` from request
-   - `user_agent` from request headers
-   - `metadata` as JSONB for additional context
-   - `created_at = now`
-
-### Business Rules
-
-Audit logs must be created for the following actions:
-
-```text
-ORGANIZATION_CREATED
-ORGANIZATION_UPDATED
-ORGANIZATION_DELETED
-MEMBER_ADDED
-MEMBER_REMOVED
-PROGRAM_CREATED
-PROGRAM_UPDATED
-PROGRAM_PUBLISHED
-PROGRAM_ARCHIVED
-INVITATION_CREATED
-INVITATION_DISABLED
-USER_JOINED_BY_INVITATION
-USER_ENROLLED
-ENROLLMENT_REMOVED
-RESOURCE_CREATED
-RESOURCE_UPDATED
-RESOURCE_ARCHIVED
-QUIZ_CREATED
-QUIZ_UPDATED
-QUIZ_PUBLISHED
-QUIZ_ARCHIVED
-ATTEMPT_STARTED
-ATTEMPT_SUBMITTED
-CERTIFICATE_ISSUED
-CERTIFICATE_REVOKED
+## 2.3 Layla Ibrahim — Training Coordinator
+
+```yaml
+Name: Layla Ibrahim
+Age: 29
+Role: Training & Development Coordinator
+Organization: Tech Startup HR Department
+Education: MBA
+Tech Savvy: Medium
+Goals:
+  - Manage employee onboarding
+  - Track training completion
+  - Ensure compliance certifications
+  - Report to management
+Pain Points:
+  - Multiple disconnected systems
+  - Manual certificate tracking
+  - No audit trail
+  - Expensive LMS platforms
 ```
 
-Audit metadata must never include:
-- Raw Clerk tokens
-- API secrets or keys
-- Passwords or sensitive credentials
-
-Audit logs are append-only and are never soft deleted or hard deleted.
-
-### Expected Result
-
-All important platform actions are traceable through audit logs.
-
----
-
-## SC-061: Owner Views Organization Audit Logs
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Review audit history for an owned organization.
-
-### Preconditions
-
-- User owns the organization.
-
-### Main Flow
-
-1. Owner sends request:
-   ```
-   GET /api/v1/organizations/{organizationId}/audit-logs
-   ```
-2. Backend calls `ensureOrganizationOwner(organizationId)`.
-3. Backend returns paginated audit logs for the organization.
-
-### Business Rules
-
-- Only owner can read audit logs for their organization.
-- Unauthenticated users receive HTTP 401.
-- Non-owner members receive HTTP 403 or HTTP 404.
-- Audit logs are read-only.
-
-### Expected Result
-
-Owner sees a paginated history of actions taken in their organization.
-
----
-
-# 15. Security and Authorization Scenarios
-
----
-
-## SC-062: Invalid Clerk Token Is Rejected
-
-### Actor
-
-Unauthenticated or Invalid User
-
-### Goal
-
-Access a protected endpoint with a missing, expired, or malformed Clerk token.
-
-### Preconditions
-
-- Token is missing, expired, malformed, or has an invalid signature.
-
-### Main Flow
-
-1. User sends request to a protected endpoint.
-2. Spring Security filter attempts to verify the Clerk JWT.
-3. Verification fails (invalid signature, expired, missing header).
-4. Backend rejects the request before reaching any controller.
-
-### Business Rules
-
-- All protected endpoints require a valid Clerk JWT.
-- The public certificate verification endpoint does not require authentication.
-- Clerk webhook endpoint uses signature verification, not user JWT.
-
-### Expected Result
-
-System returns HTTP 401 Unauthorized.
-
----
-
-## SC-063: Clerk Webhook With Invalid Signature Is Rejected
-
-### Actor
-
-Unknown External Caller
-
-### Goal
-
-Send a request to the Clerk webhook endpoint with an invalid or missing signature.
-
-### Preconditions
-
-- `CLERK_WEBHOOK_SECRET` is configured.
-- Caller does not provide a valid Clerk webhook signature.
-
-### Main Flow
-
-1. Caller sends POST request to:
-   ```
-   POST /api/v1/webhooks/clerk
-   ```
-2. Backend reads the `Svix-Signature` header.
-3. Backend verifies signature against `CLERK_WEBHOOK_SECRET`.
-4. Signature is missing or invalid.
-5. Backend rejects request without processing the payload.
-
-### Expected Result
-
-System returns HTTP 401 and does not process the payload.
-
----
-
-## SC-064: Participant Tries to Perform Owner-Only Action
-
-### Actor
-
-Organization Participant
-
-### Goal
-
-Perform an owner-only action such as creating a program, publishing a quiz, or issuing a certificate.
-
-### Preconditions
-
-- User is authenticated.
-- User has PARTICIPANT role in the organization.
-
-### Main Flow
-
-1. Participant sends owner-only request.
-2. Backend calls `ensureOrganizationOwner(organizationId)`.
-3. Check fails because user is PARTICIPANT, not OWNER.
-4. Backend rejects request.
-
-### Business Rules
-
-- All owner-only endpoints must use authorization guard methods.
-- Participants receive HTTP 403 for clearly owner-only actions.
-- For resource existence that should be hidden, return HTTP 404.
-
-### Expected Result
-
-System returns HTTP 403 Forbidden or HTTP 404.
-
----
-
-## SC-065: Unenrolled User Tries to Access Program Resources
-
-### Actor
-
-Authenticated User
-
-### Goal
-
-View resources for a program they are not enrolled in.
-
-### Preconditions
-
-- User is authenticated.
-- User is not enrolled in the program.
-- User is not the program's organization owner.
-
-### Main Flow
-
-1. User sends request:
-   ```
-   GET /api/v1/programs/{programId}/resources
-   ```
-2. Backend checks program enrollment and organization ownership.
-3. Both checks fail.
-4. Backend rejects request.
-
-### Business Rules
-
-- Program resources are private to enrolled participants and organization owners.
-- Unenrolled users receive HTTP 404.
-
-### Expected Result
-
-System returns HTTP 404.
-
----
-
-## SC-066: User Tries to Submit Another User's Attempt
-
-### Actor
-
-Authenticated User
-
-### Goal
-
-Submit an attempt that belongs to another user.
-
-### Preconditions
-
-- Attempt exists.
-- Attempt belongs to a different user.
-
-### Main Flow
-
-1. User sends submit request for the attempt ID.
-2. Backend calls `ensureAttemptOwner(attemptId)`.
-3. Check fails because `attempt.user_id != currentUserId`.
-4. Backend rejects request.
-
-### Business Rules
-
-- Attempts can only be submitted by their owner.
-- Owners cannot submit on behalf of participants in the MVP.
-
-### Expected Result
-
-System returns HTTP 403 Forbidden.
-
----
-
-## SC-067: Owner Tries to Access Another Organization's Data
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Access owner-only data of an organization they do not own.
-
-### Preconditions
-
-- User owns Organization A.
-- User does not own or belong to Organization B.
-
-### Main Flow
-
-1. User sends owner-only request for Organization B.
-2. Backend calls `ensureOrganizationOwner(organizationB.id)`.
-3. Check fails because user is not the owner of Organization B.
-4. Backend rejects request.
-
-### Business Rules
-
-- Organization ownership is always scoped.
-- Owning one organization does not grant access to others.
-- Return HTTP 404 to avoid leaking the existence of Organization B.
-
-### Expected Result
-
-System returns HTTP 404.
-
----
-
-# 16. Storage Scenarios
-
----
-
-## SC-068: Owner Uploads Organization Logo to Cloudinary
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Upload or update the organization logo.
-
-### Preconditions
-
-- User owns the organization.
-- Cloudinary is configured.
-
-### Main Flow
-
-1. Owner requests a signed Cloudinary upload signature:
-   ```
-   POST /api/v1/media/cloudinary/signature
-   ```
-2. Backend calls `ensureOrganizationOwner(organizationId)`.
-3. Backend generates Cloudinary upload signature.
-4. Owner uploads image directly to Cloudinary.
-5. Owner updates organization with returned URL:
-   ```
-   PUT /api/v1/organizations/{organizationId}
-   Body: { "logoUrl": "https://res.cloudinary.com/..." }
-   ```
-6. Backend writes audit log entry: `ORGANIZATION_UPDATED`.
-
-### Business Rules
-
-- Store Cloudinary URL in the database.
-- Do not store raw image bytes in the database.
-
-### Expected Result
-
-Organization logo is updated with Cloudinary-hosted image.
-
----
-
-## SC-069: Owner Uploads Program Cover Image to Cloudinary
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Upload a cover image for a program.
-
-### Preconditions
-
-- Program exists under owned organization.
-- Cloudinary is configured.
-
-### Main Flow
-
-1. Owner uploads cover image through Cloudinary signed upload.
-2. Backend checks program ownership.
-3. Backend updates `cover_image_url` on program.
-4. Backend writes audit log entry: `PROGRAM_UPDATED`.
-
-### Business Rules
-
-- Only owner can update the program cover image.
-- Cloudinary handles optimization and CDN delivery.
-
-### Expected Result
-
-Program cover image is updated.
-
----
-
-## SC-070: Owner Uploads PDF Resource to R2
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Upload a PDF workshop resource to Cloudflare R2.
-
-### Preconditions
-
-- Program exists under owned organization.
-- R2 is configured.
-
-### Main Flow
-
-1. Owner requests presigned R2 upload URL:
-   ```
-   POST /api/v1/files/r2/upload-url
-   ```
-2. Backend calls `ensureProgramOwner(programId)`.
-3. Backend generates presigned R2 upload URL.
-4. Owner uploads PDF directly to R2.
-5. Owner creates resource:
-   ```
-   POST /api/v1/programs/{programId}/resources
-   Body: {
-     "type": "FILE",
-     "storageProvider": "R2",
-     "objectKey": "...",
-     "url": "...",
-     "title": "Workshop Slides"
-   }
-   ```
-6. Backend writes audit log entry: `RESOURCE_CREATED`.
-
-### Business Rules
-
-- R2 is preferred for binary files and PDFs.
-- Database stores file metadata only.
-- If R2 upload fails, no resource record is created.
-
-### Expected Result
-
-PDF resource is stored in R2 and available to enrolled participants.
-
----
-
-# 17. Edge Case Scenarios
-
----
-
-## SC-071: Invitation Used After Expiration
-
-### Actor
-
-Authenticated User
-
-### Goal
-
-Join a program using an expired invitation code.
-
-### Expected Result
-
-System returns HTTP 422 with message indicating the invitation has expired.
-
----
-
-## SC-072: Invitation Used After Max Uses Reached
-
-### Actor
-
-Authenticated User
-
-### Goal
-
-Join a program using an invitation that has reached its maximum use count.
-
-### Expected Result
-
-System returns HTTP 422 with message indicating the invitation usage limit has been reached.
-
----
-
-## SC-073: User Already Enrolled Uses Invitation Again
-
-### Actor
-
-Program Participant
-
-### Goal
-
-Attempt to join the same program a second time using an invitation link.
-
-### Expected Result
-
-System returns HTTP 409 Conflict. Existing enrollment is preserved.
-
----
-
-## SC-074: Participant Exceeds Max Quiz Attempts
-
-### Actor
-
-Program Participant
-
-### Goal
-
-Start another quiz attempt after reaching the `maxAttempts` limit.
-
-### Expected Result
-
-System returns HTTP 422 with message indicating the maximum number of attempts has been reached.
-
----
-
-## SC-075: Quiz Is Archived Before Attempt Is Started
-
-### Actor
-
-Program Participant
-
-### Goal
-
-Start an attempt for a quiz that has been archived.
-
-### Expected Result
-
-System returns HTTP 422. Archived quizzes do not accept new attempts.
-
----
-
-## SC-076: Quiz Is Archived After Attempt Is Already Started
-
-### Actor
-
-Program Participant
-
-### Goal
-
-Submit an attempt that was started before the quiz was archived.
-
-### MVP Policy
-
-Allow submission for already-started (IN\_PROGRESS) attempts even if the quiz is now ARCHIVED.
-
-Do not allow new attempts to be started on ARCHIVED quizzes.
-
-### Expected Result
-
-Submission is accepted because the attempt was started before archiving. Score is calculated normally.
-
----
-
-## SC-077: Attempt Submitted After Time Expires
-
-### Actor
-
-Program Participant
-
-### Goal
-
-Submit a quiz attempt after `attempt.expires_at` has passed.
-
-### Expected Result
-
-System returns HTTP 422 with message indicating the attempt time limit has expired.
-
----
-
-## SC-078: Organization Name Changed After Certificates Issued
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Rename the organization after certificates have been issued.
-
-### Expected Result
-
-Existing certificates retain the `organization_name_snapshot` captured at issuance time. The public verification response continues to show the original organization name.
-
----
-
-## SC-079: User Changes Name After Certificate Is Issued
-
-### Actor
-
-Certificate Owner
-
-### Goal
-
-Update their Clerk profile name after receiving a certificate.
-
-### Expected Result
-
-Existing certificates retain the `participant_name_snapshot` captured at issuance time. Public verification continues to show the original name.
-
----
-
-## SC-080: Verification Code Collision During Certificate Generation
-
-### Actor
-
-System
-
-### Goal
-
-Generate a unique verification code when a collision occurs.
-
-### Main Flow
-
-1. System generates a 16-character verification code using SecureRandom.
-2. System checks uniqueness in the `certificates` table.
-3. If a collision is detected, system regenerates and checks again.
-4. If unique: proceed with certificate creation.
-5. If repeated collisions occur: log error and return HTTP 500.
-
-### Expected Result
-
-Certificate is generated with a unique verification code, or the system fails safely with an error.
-
----
-
-## SC-081: R2 Upload Fails During Resource Creation
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Upload a file resource when R2 is unavailable.
-
-### Expected Result
-
-System returns HTTP 500 storage error. No resource record is created in the database. The operation is rolled back.
-
----
-
-## SC-082: Cloudinary Upload Fails During Image Resource Creation
-
-### Actor
-
-Organization Owner
-
-### Goal
-
-Upload an image resource when Cloudinary is unavailable.
-
-### Expected Result
-
-System returns a media upload error. No resource record is created with an invalid or empty URL.
-
----
-
-## SC-083: AUTO Certificate Issuance Fails After Passing Attempt
-
-### Actor
-
-System
-
-### Goal
-
-Handle AUTO certificate issuance failure gracefully.
-
-### Preconditions
-
-- Attempt submission succeeds.
-- `is_passed = true`.
-- `certificateIssueMode = AUTO`.
-- Certificate creation fails due to an internal error.
-
-### Expected Result
-
-- The attempt submission is NOT rolled back.
-- The attempt result is returned to the user.
-- Certificate reference is omitted from the response.
-- Error is logged for investigation.
-- Owner can manually issue the certificate afterward.
-
----
-
-# 18. Full Happy Path Scenario
-
----
-
-## SC-084: Complete Workshop Flow From Creation to Certificate Verification
-
-### Actor
-
-Organization Owner and Program Participant
-
-### Goal
-
-Run a complete workshop lifecycle and issue a publicly verifiable certificate.
-
-### Preconditions
-
-- Owner and participant have Clerk accounts.
-- Backend is running with Neon DB, R2, and Cloudinary configured.
-
-### Main Flow
-
-```text
-1.  Owner logs in through Clerk.
-2.  Clerk webhook fires user.created → local owner profile created.
-3.  Owner creates organization.
-    → Organization created, owner membership created in one transaction.
-    → Audit log: ORGANIZATION_CREATED.
-
-4.  Owner creates program under organization.
-    → Program created with status = DRAFT.
-    → Audit log: PROGRAM_CREATED.
-
-5.  Owner publishes program.
-    → Status = PUBLISHED.
-    → Audit log: PROGRAM_PUBLISHED.
-
-6.  Owner creates invitation link with maxUses = 50, expiresAt = 30 days from now.
-    → 12-char uppercase code generated.
-    → Audit log: INVITATION_CREATED.
-
-7.  Owner uploads program cover image to Cloudinary.
-    → cover_image_url updated on program.
-
-8.  Owner adds external link resource (Git slides URL).
-    → Resource created with type = LINK.
-    → Audit log: RESOURCE_CREATED.
-
-9.  Owner uploads PDF resource to R2 (workshop notes PDF).
-    → Presigned URL generated.
-    → PDF uploaded to R2.
-    → Resource created with type = FILE, storage_provider = R2.
-    → Audit log: RESOURCE_CREATED.
-
-10. Owner creates quiz inside program.
-    → Quiz created with status = DRAFT.
-    → Audit log: QUIZ_CREATED.
-
-11. Owner adds 5 questions.
-12. Owner adds options to each question (4 options per question, 1 correct each).
-
-13. Owner publishes quiz.
-    → Publish validation passes.
-    → Status = PUBLISHED.
-    → Audit log: QUIZ_PUBLISHED.
-
-14. Participant opens invitation link.
-    → Participant is not logged in.
-    → Frontend redirects to Clerk sign-in.
-    → Participant registers via Clerk.
-    → Clerk webhook fires user.created → local participant profile created.
-
-15. Participant joins program using invitation code.
-    → Invitation validated (ACTIVE, not expired, max_uses not reached).
-    → Enrollment created with status = ACTIVE.
-    → used_count incremented to 1.
-    → Participant added as PARTICIPANT organization member.
-    → Audit log: USER_JOINED_BY_INVITATION.
-
-16. Participant views program resources.
-    → Enrollment verified.
-    → Resources returned: Git slides link + PDF file.
-
-17. Participant views published quiz.
-    → Enrollment verified.
-    → Quiz returned.
-
-18. Participant starts quiz attempt.
-    → attempt_number = 1.
-    → started_at = now.
-    → expires_at = now + quiz.duration_minutes.
-    → Status = IN_PROGRESS.
-
-19. Participant submits answers before expires_at.
-    → All answers validated.
-    → Scores calculated.
-    → is_passed = true.
-    → Status = SUBMITTED.
-    → Audit log: ATTEMPT_SUBMITTED.
-
-20. System auto-issues certificate.
-    → Eligibility verified.
-    → certificate_number = CERT-2024-AX93KL2P (generated).
-    → verification_code = A3FX9KL2MN8PQR7Z (generated).
-    → Snapshots captured.
-    → Certificate created with status = ACTIVE.
-    → Audit log: CERTIFICATE_ISSUED.
-
-21. Optional: System generates QR code → stored in R2.
-    Optional: System generates PDF → stored in R2.
-
-22. Participant views own certificates.
-    → Certificate returned with pdf_url, qr_code_url.
-
-23. Visitor scans QR code or enters verification code.
-    → GET /api/v1/public/certificates/verify/A3FX9KL2MN8PQR7Z
-    → Certificate found, status = ACTIVE.
-    → Public safe data returned.
-
-24. Owner views organization statistics.
-    → 1 program, 1 member, 1 enrolled, 1 quiz, 1 attempt, 1 certificate.
+## 2.4 Omar Ali — Workshop Participant
+
+```yaml
+Name: Omar Ali
+Age: 20
+Role: Computer Engineering Student
+Education: 2nd year undergraduate
+Tech Savvy: Medium-High
+Goals:
+  - Learn new technical skills
+  - Earn certificates for resume
+  - Build portfolio
+  - Network with peers
+Pain Points:
+  - Loses track of enrolled workshops
+  - Certificates get lost
+  - Unclear assessment criteria
+  - No central place for achievements
 ```
 
-### Expected Result
+## 2.5 Fatima Noor — HR Recruiter
 
-Full workshop lifecycle is completed. Certificate is publicly verifiable.
-
----
-
-# 19. Authorization Guard Methods
-
-The backend shall include an `AuthorizationService` with the following guard methods:
-
-| Method | Description |
-| --- | --- |
-| `ensureOrganizationOwner(organizationId)` | Verify current user is OWNER of the organization |
-| `ensureOrganizationMember(organizationId)` | Verify current user is an active member |
-| `ensureProgramOwner(programId)` | Verify current user owns the program's organization |
-| `ensureProgramEnrollment(programId, userId)` | Verify user has an active enrollment in the program |
-| `ensureInvitationOwner(invitationId)` | Verify current user owns the invitation's organization |
-| `ensureResourceOwner(resourceId)` | Verify current user owns the resource's program organization |
-| `ensureQuizOwner(quizId)` | Verify current user owns the quiz's program organization |
-| `ensureQuizAccessible(quizId)` | Verify current user can access quiz (enrolled or owner) |
-| `ensureAttemptOwner(attemptId)` | Verify current user owns the attempt |
-| `ensureCertificateAccessible(certificateId)` | Verify current user can access the certificate |
-
-All guard methods shall:
-
-- Throw a specific exception if the check fails.
-- Be handled by a global exception handler (`@ControllerAdvice`).
-- Return HTTP 403 or HTTP 404 depending on the security policy for that resource.
-
----
-
-# 20. Final Rules
-
-```text
-1.  Authentication comes from Clerk.
-    The backend verifies Clerk JWT tokens on every protected request.
-
-2.  User sync happens via Clerk webhooks and auto-creation on first request.
-    Both strategies complement each other.
-
-3.  Organization permissions come from organization_memberships.role.
-    There are no global user roles on the users table.
-
-4.  Program access comes from program_enrollments.
-    A user must have an ACTIVE enrollment to access resources, quizzes, and attempts.
-
-5.  All primary keys are UUIDs.
-    This is safe for public APIs and prevents enumeration attacks.
-
-6.  Scores are calculated entirely by the backend on submission.
-    Clients never send or control score values.
-
-7.  Certificate snapshots capture names at issuance time.
-    Future renames do not affect existing certificate data.
-
-8.  AUTO certificate issuance failures do not roll back the attempt submission.
-    The attempt result is returned regardless of certificate issuance success.
-
-9.  Audit logs are append-only.
-    They are never updated, soft deleted, or hard deleted.
-
-10. Soft deleted records are excluded from all API responses and permission checks.
-    Children of soft deleted parents are preserved for historical integrity.
-
-11. Files are stored in Cloudflare R2.
-    Images and media are stored in Cloudinary.
-    The database stores metadata only: url, storage_provider, object_key.
-
-12. Public certificate verification requires no authentication.
-    It exposes only safe snapshot data and status information.
+```yaml
+Name: Fatima Noor
+Age: 32
+Role: Technical Recruiter
+Organization: Software Company
+Tech Savvy: Medium
+Goals:
+  - Verify candidate credentials
+  - Check training authenticity
+  - Reduce hiring fraud
+Pain Points:
+  - Fake certificates
+  - Time-consuming verification
+  - Candidates claim unverifiable skills
 ```
+
+---
+
+# 3. Core User Journeys
+
+## 3.1 Journey Map — Workshop Organizer
+
+```
+┌─────────────┐
+│   Sign Up   │ → Clerk authentication
+└──────┬──────┘
+       │
+       ▼
+┌─────────────────┐
+│ Create Workspace│ → Becomes ADMIN automatically
+└──────┬──────────┘
+       │
+       ▼
+┌─────────────────┐
+│ Create Workshop │ → Draft status
+└──────┬──────────┘
+       │
+       ▼
+┌─────────────────┐
+│  Add Resources  │ → Upload files, add links
+└──────┬──────────┘
+       │
+       ▼
+┌──────────────────┐
+│Create Assessment │ → Add questions
+└──────┬───────────┘
+       │
+       ▼
+┌─────────────────┐
+│Publish Workshop │ → Live for enrollment
+└──────┬──────────┘
+       │
+       ▼
+┌─────────────────┐
+│Generate Invite  │ → Share code with students
+└──────┬──────────┘
+       │
+       ▼
+┌─────────────────┐
+│ Monitor Progress│ → View stats, issue certificates
+└─────────────────┘
+```
+
+## 3.2 Journey Map — Workshop Participant
+
+```
+┌─────────────┐
+│   Sign Up   │ → Clerk authentication
+└──────┬──────┘
+       │
+       ▼
+┌─────────────────┐
+│  Use Invite Code│ → Join workspace + workshop
+└──────┬──────────┘
+       │
+       ▼
+┌─────────────────┐
+│ Browse Resources│ → Download materials, watch videos
+└──────┬──────────┘
+       │
+       ▼
+┌─────────────────┐
+│ Take Assessment │ → Complete quiz
+└──────┬──────────┘
+       │
+       ▼
+┌─────────────────┐
+│  Get Results    │ → See score, pass/fail
+└──────┬──────────┘
+       │
+       ▼ (if passed)
+┌─────────────────┐
+│Get Certificate  │ → Download PDF, verify QR
+└──────┬──────────┘
+       │
+       ▼
+┌─────────────────┐
+│Share/Verify     │ → Add to LinkedIn, share with employers
+└─────────────────┘
+```
+
+---
+
+# 4. Detailed Scenarios
+
+---
+
+## SCENARIO 1: First-Time Workspace Creation
+
+### 👤 Actor
+**Sarah Chen** — Student Club President
+
+### 🎯 Goal
+Create a new workspace for the Computer Science Club to manage workshops
+
+### 📋 Preconditions
+- Sarah has created a Clerk account
+- Sarah is logged in to the frontend application
+- No existing workspaces created by Sarah
+
+### 📝 Detailed Steps
+
+#### Step 1: Navigate to Create Workspace
+```
+User Action:
+  - Sarah clicks "Create Workspace" button on dashboard
+  
+System Response:
+  - Display workspace creation form
+  - Show fields: name, slug, description, logo (optional)
+  - Slug auto-generates from name in real-time
+```
+
+#### Step 2: Fill Workspace Details
+```
+User Input:
+  name: "Computer Science Club"
+  slug: "cs-club" (auto-generated, editable)
+  description: "Official CS Club at University of Technology. 
+                We organize weekly workshops on programming, 
+                web development, and emerging technologies."
+  logo: [uploads cs-club-logo.png]
+
+Validation:
+  - Name: 3-100 characters ✓
+  - Slug: 3-50 characters, lowercase, alphanumeric + hyphens ✓
+  - Slug uniqueness: Check via API ✓
+  - Description: max 1000 characters ✓
+  - Logo: max 2MB, image formats only ✓
+```
+
+#### Step 3: Upload Logo
+```
+Frontend Action:
+  POST /api/v1/resources/upload-url
+  Body: {
+    "fileName": "cs-club-logo.png",
+    "contentType": "image/png",
+    "fileSize": 145678
+  }
+
+Backend Response:
+  {
+    "success": true,
+    "data": {
+      "uploadUrl": "https://skillmark-files.r2.cloudflarestorage.com/...",
+      "publicUrl": "https://files.skillmark.io/workspaces/temp/cs-club-logo.png",
+      "expiresIn": 900
+    }
+  }
+
+Frontend Action:
+  PUT [uploadUrl]
+  Body: [binary file data]
+  Headers: Content-Type: image/png
+
+R2 Response:
+  200 OK
+```
+
+#### Step 4: Submit Workspace Creation
+```
+Frontend Action:
+  POST /api/v1/workspaces
+  Body: {
+    "name": "Computer Science Club",
+    "slug": "cs-club",
+    "description": "Official CS Club at...",
+    "logoUrl": "https://files.skillmark.io/workspaces/temp/cs-club-logo.png"
+  }
+  Headers:
+    Authorization: Bearer eyJhbGciOiJSUzI1NiIs...
+
+Backend Processing:
+  1. Verify Clerk token ✓
+  2. Extract user from token (clerk_id: user_2a3b4c5d)
+  3. Look up local user → User{id: 123e4567-e89b-12d3-a456-426614174000}
+  4. Validate slug uniqueness ✓
+  5. Create workspace record
+  6. Create member record with role=ADMIN
+  7. Log activity
+
+Backend Response:
+  201 Created
+  {
+    "success": true,
+    "data": {
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Computer Science Club",
+      "slug": "cs-club",
+      "description": "Official CS Club at...",
+      "logoUrl": "https://files.skillmark.io/workspaces/cs-club/logo.png",
+      "createdAt": "2024-01-15T10:30:00Z",
+      "role": "ADMIN",
+      "membersCount": 1
+    },
+    "timestamp": "2024-01-15T10:30:00Z"
+  }
+```
+
+#### Step 5: Redirect to Workspace Dashboard
+```
+System Action:
+  - Store workspace ID in local state
+  - Redirect to /workspaces/a1b2c3d4-e5f6-7890-abcd-ef1234567890
+  - Display success message: "Workspace created successfully!"
+  - Show onboarding tour: "Next: Create your first workshop"
+```
+
+### ✅ Success Criteria
+- [x] Workspace created in database
+- [x] Sarah is ADMIN member
+- [x] Logo uploaded to R2
+- [x] Activity log created: "workspace.created"
+- [x] Sarah redirected to workspace dashboard
+- [x] Workspace appears in Sarah's workspace list
+
+### 🔄 Alternative Flows
+
+#### 4.1a: Slug Already Exists
+```
+User Input: slug = "cs-club"
+System Check: Workspace with slug "cs-club" exists
+
+Response: 409 Conflict
+{
+  "success": false,
+  "error": {
+    "code": "DUPLICATE_SLUG",
+    "message": "Workspace with this slug already exists",
+    "details": [{
+      "field": "slug",
+      "message": "cs-club is already taken. Try cs-club-uot or cs-club-2024"
+    }]
+  }
+}
+
+User Action: Changes slug to "cs-club-uot"
+System: Validates and proceeds
+```
+
+#### 4.1b: Logo Upload Fails
+```
+Scenario: R2 upload fails (network error)
+
+System Action:
+  - Display error: "Image upload failed. Please try again."
+  - Allow retry without losing form data
+  - Alternative: Proceed without logo (optional field)
+  
+User Action:
+  - Clicks "Retry Upload" → Success
+  - OR clicks "Skip Logo" → Proceed without logo
+```
+
+#### 4.1c: User Token Expired During Form Fill
+```
+Scenario: User spent 10 minutes on form, token expired
+
+Frontend Detection:
+  - POST /api/v1/workspaces returns 401
+  
+Frontend Action:
+  - Save form data to localStorage
+  - Redirect to Clerk login
+  - After login, restore form data
+  - Submit workspace creation
+```
+
+### 📊 Expected Database State After Scenario
+
+**workspaces table:**
+```sql
+INSERT INTO workspaces VALUES (
+  'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+  'Computer Science Club',
+  'cs-club',
+  'Official CS Club at...',
+  'https://files.skillmark.io/workspaces/cs-club/logo.png',
+  '123e4567-e89b-12d3-a456-426614174000', -- created_by (Sarah's user ID)
+  '2024-01-15 10:30:00',
+  '2024-01-15 10:30:00'
+);
+```
+
+**members table:**
+```sql
+INSERT INTO members VALUES (
+  'b2c3d4e5-f6g7-8901-bcde-f12345678901',
+  'a1b2c3d4-e5f6-7890-abcd-ef1234567890', -- workspace_id
+  '123e4567-e89b-12d3-a456-426614174000', -- user_id (Sarah)
+  'ADMIN',
+  '2024-01-15 10:30:00'
+);
+```
+
+**activity_logs table:**
+```sql
+INSERT INTO activity_logs VALUES (
+  'c3d4e5f6-g7h8-9012-cdef-123456789012',
+  'a1b2c3d4-e5f6-7890-abcd-ef1234567890', -- workspace_id
+  '123e4567-e89b-12d3-a456-426614174000', -- user_id
+  'workspace.created',
+  'Workspace',
+  'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+  '{"name":"Computer Science Club","slug":"cs-club"}',
+  '192.168.1.100',
+  'Mozilla/5.0...',
+  '2024-01-15 10:30:00'
+);
+```
+
+---
+
+## SCENARIO 2: Creating and Publishing a Workshop
+
+### 👤 Actor
+**Sarah Chen** — Workspace Admin
+
+### 🎯 Goal
+Create a workshop on "Introduction to Git & GitHub" and publish it for enrollment
+
+### 📋 Preconditions
+- Sarah has workspace "Computer Science Club" (from Scenario 1)
+- Sarah is logged in and viewing workspace dashboard
+- Sarah is ADMIN of the workspace
+
+### 📝 Detailed Steps
+
+#### Step 1: Initiate Workshop Creation
+```
+User Action:
+  - Sarah navigates to Workshops tab
+  - Clicks "Create Workshop" button
+
+System Response:
+  GET /api/v1/workspaces/a1b2c3d4-e5f6-7890-abcd-ef1234567890/workshops
+  Response: { "data": [], "pagination": {...} } // Empty, first workshop
+  
+  - Display workshop creation form
+  - Status defaults to DRAFT
+```
+
+#### Step 2: Fill Workshop Details
+```
+User Input:
+  title: "Introduction to Git & GitHub"
+  description: "Learn version control basics, GitHub workflow, 
+                and collaborative development practices. 
+                Perfect for beginners!"
+  coverImage: [uploads workshop-cover.jpg]
+  startsAt: "2024-02-01T14:00:00Z"
+  endsAt: "2024-02-01T17:00:00Z"
+```
+
+#### Step 3: Upload Cover Image
+```
+Frontend Action:
+  POST /api/v1/resources/upload-url
+  Body: {
+    "fileName": "git-workshop-cover.jpg",
+    "contentType": "image/jpeg",
+    "fileSize": 234567
+  }
+
+Backend Response:
+  {
+    "success": true,
+    "data": {
+      "uploadUrl": "https://skillmark-files.r2.cloudflarestorage.com/temp/xyz...",
+      "publicUrl": "https://files.skillmark.io/workshops/temp/git-workshop-cover.jpg",
+      "expiresIn": 900
+    }
+  }
+
+Frontend uploads image to R2 → Success
+```
+
+#### Step 4: Create Workshop (Draft)
+```
+Frontend Action:
+  POST /api/v1/workspaces/a1b2c3d4-e5f6-7890-abcd-ef1234567890/workshops
+  Body: {
+    "title": "Introduction to Git & GitHub",
+    "description": "Learn version control basics...",
+    "coverImageUrl": "https://files.skillmark.io/workshops/temp/git-workshop-cover.jpg",
+    "startsAt": "2024-02-01T14:00:00Z",
+    "endsAt": "2024-02-01T17:00:00Z"
+  }
+
+Backend Processing:
+  1. Verify user is ADMIN or INSTRUCTOR of workspace ✓
+  2. Validate dates (endsAt > startsAt) ✓
+  3. Create workshop with status=DRAFT
+  4. Move cover image from temp to permanent location
+  5. Log activity
+
+Backend Response:
+  201 Created
+  {
+    "success": true,
+    "data": {
+      "id": "w1w2w3w4-w5w6-w7w8-w9w0-w1w2w3w4w5w6",
+      "workspaceId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "title": "Introduction to Git & GitHub",
+      "description": "Learn version control basics...",
+      "coverImageUrl": "https://files.skillmark.io/workshops/w1w2w3w4/cover.jpg",
+      "status": "DRAFT",
+      "startsAt": "2024-02-01T14:00:00Z",
+      "endsAt": "2024-02-01T17:00:00Z",
+      "createdAt": "2024-01-15T11:00:00Z",
+      "enrolledCount": 0,
+      "resourcesCount": 0,
+      "assessmentsCount": 0
+    }
+  }
+```
+
+#### Step 5: Add Learning Resources
+```
+Sarah adds 3 resources:
+
+Resource 1 (Link):
+  POST /api/v1/workshops/w1w2w3w4-w5w6-w7w8-w9w0-w1w2w3w4w5w6/resources
+  Body: {
+    "title": "Git Official Documentation",
+    "type": "LINK",
+    "url": "https://git-scm.com/doc",
+    "description": "Official Git documentation",
+    "position": 0
+  }
+  Response: 201 Created
+
+Resource 2 (PDF):
+  1. Request upload URL
+  2. Upload PDF to R2: "git-cheatsheet.pdf"
+  3. Create resource:
+     POST /api/v1/workshops/w1w2w3w4.../resources
+     Body: {
+       "title": "Git Commands Cheat Sheet",
+       "type": "DOCUMENT",
+       "url": "https://files.skillmark.io/workshops/w1w2w3w4/resources/cheatsheet.pdf",
+       "storageKey": "workshops/w1w2w3w4/resources/abc123-cheatsheet.pdf",
+       "position": 1
+     }
+
+Resource 3 (Video):
+  POST /api/v1/workshops/w1w2w3w4.../resources
+  Body: {
+    "title": "Git Basics Tutorial",
+    "type": "VIDEO",
+    "url": "https://youtube.com/watch?v=abc123",
+    "position": 2
+  }
+```
+
+#### Step 6: Verify Publishing Requirements
+```
+Sarah clicks "Publish Workshop"
+
+Frontend Pre-check:
+  GET /api/v1/workshops/w1w2w3w4-w5w6-w7w8-w9w0-w1w2w3w4w5w6
+
+Backend Response:
+  {
+    "data": {
+      "id": "w1w2w3w4...",
+      "status": "DRAFT",
+      "resourcesCount": 3,
+      "assessmentsCount": 0,
+      "canPublish": false,
+      "publishRequirements": {
+        "hasTitle": true,
+        "hasDescription": true,
+        "hasResources": true,
+        "hasAssessment": false ← blocking
+      }
+    }
+  }
+
+Frontend displays:
+  ⚠️ "Cannot publish: Workshop needs at least one assessment"
+  [Create Assessment] button highlighted
+```
+
+#### Step 7: Create Assessment (will be detailed in Scenario 3)
+```
+Sarah creates a 10-question quiz (see Scenario 3)
+Assessment ID: "a1a2a3a4-a5a6-a7a8-a9a0-a1a2a3a4a5a6"
+Status: PUBLISHED
+```
+
+#### Step 8: Publish Workshop
+```
+Frontend Action:
+  PATCH /api/v1/workshops/w1w2w3w4-w5w6-w7w8-w9w0-w1w2w3w4w5w6/publish
+  Body: {} // No body needed, action is in URL
+
+Backend Processing:
+  1. Verify user permissions (ADMIN or INSTRUCTOR) ✓
+  2. Check workshop has resources ✓
+  3. Check workshop has at least one assessment ✓
+  4. Check assessment is published ✓
+  5. Update workshop.status = 'PUBLISHED'
+  6. Log activity
+
+Backend Response:
+  200 OK
+  {
+    "success": true,
+    "data": {
+      "id": "w1w2w3w4...",
+      "status": "PUBLISHED",
+      "publishedAt": "2024-01-15T11:30:00Z"
+    },
+    "message": "Workshop published successfully"
+  }
+```
+
+#### Step 9: Generate Invite Link
+```
+Sarah clicks "Generate Invite Code"
+
+Frontend Action:
+  POST /api/v1/workspaces/a1b2c3d4.../invites
+  Body: {
+    "workshopId": "w1w2w3w4-w5w6-w7w8-w9w0-w1w2w3w4w5w6",
+    "role": "MEMBER",
+    "maxUses": 50,
+    "expiresAt": "2024-02-01T23:59:59Z"
+  }
+
+Backend Processing:
+  1. Generate unique 12-char code: "GIT2024WK1AB"
+  2. Verify uniqueness
+  3. Create invite record
+
+Backend Response:
+  201 Created
+  {
+    "success": true,
+    "data": {
+      "id": "i1i2i3i4-i5i6-i7i8-i9i0-i1i2i3i4i5i6",
+      "code": "GIT2024WK1AB",
+      "workshopId": "w1w2w3w4...",
+      "maxUses": 50,
+      "usesCount": 0,
+      "expiresAt": "2024-02-01T23:59:59Z",
+      "inviteUrl": "https://app.skillmark.io/join/GIT2024WK1AB"
+    }
+  }
+```
+
+#### Step 10: Share Invite
+```
+Frontend displays shareable card:
+
+┌─────────────────────────────────────────┐
+│  📚 Join Workshop                       │
+│                                         │
+│  Introduction to Git & GitHub           │
+│  Computer Science Club                  │
+│                                         │
+│  Code: GIT2024WK1AB                     │
+│                                         │
+│  🔗 https://app.skillmark.io/join/      │
+│      GIT2024WK1AB                       │
+│                                         │
+│  [Copy Link] [Share via WhatsApp]       │
+│  [Share via Email]                      │
+└─────────────────────────────────────────┘
+
+Sarah copies link and posts to club WhatsApp group
+```
+
+### ✅ Success Criteria
+- [x] Workshop created in DRAFT status
+- [x] 3 resources added
+- [x] Workshop published after adding assessment
+- [x] Invite code generated and shareable
+- [x] Workshop appears in public workspace workshop list
+- [x] Activity logs created for all actions
+
+### 🔄 Alternative Flows
+
+#### 2.1a: Try to Publish Without Assessment
+```
+User attempts to publish
+
+Response: 422 Unprocessable Entity
+{
+  "success": false,
+  "error": {
+    "code": "PUBLISH_REQUIREMENTS_NOT_MET",
+    "message": "Workshop cannot be published",
+    "details": [
+      {
+        "requirement": "hasAssessment",
+        "message": "Workshop must have at least one published assessment"
+      }
+    ]
+  }
+}
+```
+
+#### 2.1b: Workshop Date Validation
+```
+User sets endsAt before startsAt
+
+Response: 400 Bad Request
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid workshop dates",
+    "details": [
+      {
+        "field": "endsAt",
+        "message": "End date must be after start date"
+      }
+    ]
+  }
+}
+```
+
+---
+
+## SCENARIO 3: Participant Joins Workshop Using Invite
+
+### 👤 Actor
+**Omar Ali** — Student
+
+### 🎯 Goal
+Join the "Introduction to Git & GitHub" workshop using invite code
+
+### 📋 Preconditions
+- Omar has created Clerk account and logged in
+- Sarah has published workshop and generated invite code "GIT2024WK1AB"
+- Omar received invite link via WhatsApp
+
+### 📝 Detailed Steps
+
+#### Step 1: Click Invite Link
+```
+User Action:
+  - Omar clicks https://app.skillmark.io/join/GIT2024WK1AB
+  
+Frontend Action:
+  - Extract code from URL: "GIT2024WK1AB"
+  - Check if user is authenticated
+  - If not, redirect to Clerk sign-in with returnTo parameter
+  - If yes, fetch invite preview
+```
+
+#### Step 2: Preview Invite (Before Accepting)
+```
+Frontend Action:
+  GET /api/v1/invites/GIT2024WK1AB/preview
+  Headers: Authorization: Bearer [Omar's token]
+
+Backend Response:
+  200 OK
+  {
+    "success": true,
+    "data": {
+      "valid": true,
+      "workspace": {
+        "name": "Computer Science Club",
+        "logoUrl": "https://files.skillmark.io/workspaces/cs-club/logo.png"
+      },
+      "workshop": {
+        "title": "Introduction to Git & GitHub",
+        "description": "Learn version control basics...",
+        "coverImageUrl": "https://files.skillmark.io/workshops/w1w2w3w4/cover.jpg",
+        "startsAt": "2024-02-01T14:00:00Z",
+        "endsAt": "2024-02-01T17:00:00Z"
+      },
+      "invite": {
+        "expiresAt": "2024-02-01T23:59:59Z",
+        "maxUses": 50,
+        "usesCount": 12,
+        "remainingUses": 38
+      }
+    }
+  }
+```
+
+#### Step 3: Display Preview Page
+```
+Frontend displays:
+
+┌─────────────────────────────────────────────┐
+│                                             │
+│  [CS Club Logo]                             │
+│  Computer Science Club                      │
+│                                             │
+│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
+│                                             │
+│  📚 You're invited to join                  │
+│                                             │
+│  Introduction to Git & GitHub               │
+│                                             │
+│  Learn version control basics, GitHub       │
+│  workflow, and collaborative development... │
+│                                             │
+│  📅 Feb 1, 2024 • 2:00 PM - 5:00 PM        │
+│  👥 12 participants enrolled                │
+│  ⏰ Invite expires in 15 days               │
+│                                             │
+│  [ Accept Invitation ]                      │
+│                                             │
+└─────────────────────────────────────────────┘
+```
+
+#### Step 4: Accept Invitation
+```
+User Action:
+  - Omar clicks "Accept Invitation"
+
+Frontend Action:
+  POST /api/v1/invites/accept
+  Body: {
+    "code": "GIT2024WK1AB"
+  }
+  Headers: Authorization: Bearer [Omar's token]
+
+Backend Processing:
+  1. Verify token → User ID: "omar123..."
+  2. Find invite by code ✓
+  3. Validate invite:
+     - Status is active ✓
+     - Not expired (current_time < expiresAt) ✓
+     - Usage not exceeded (usesCount < maxUses) ✓
+  4. Check duplicate enrollment:
+     SELECT * FROM enrollments 
+     WHERE workshop_id = ? AND user_id = ?
+     Result: None ✓
+  5. Begin transaction:
+     a. Check workspace membership:
+        SELECT * FROM members 
+        WHERE workspace_id = ? AND user_id = ?
+        Result: None
+     b. Create workspace membership:
+        INSERT INTO members (workspace_id, user_id, role)
+        VALUES (?, ?, 'MEMBER')
+     c. Create workshop enrollment:
+        INSERT INTO enrollments (workshop_id, user_id)
+        VALUES (?, ?)
+     d. Increment invite usage (with lock):
+        UPDATE invites 
+        SET uses_count = uses_count + 1 
+        WHERE id = ? AND uses_count < max_uses
+  6. Commit transaction
+  7. Log activity
+
+Backend Response:
+  201 Created
+  {
+    "success": true,
+    "data": {
+      "workspace": {
+        "id": "a1b2c3d4...",
+        "name": "Computer Science Club",
+        "role": "MEMBER"
+      },
+      "workshop": {
+        "id": "w1w2w3w4...",
+        "title": "Introduction to Git & GitHub",
+        "enrolledAt": "2024-01-16T09:15:00Z"
+      },
+      "enrollment": {
+        "id": "e1e2e3e4-e5e6-e7e8-e9e0-e1e2e3e4e5e6",
+        "status": "ACTIVE"
+      }
+    },
+    "message": "Successfully joined workshop!"
+  }
+```
+
+#### Step 5: Redirect to Workshop Page
+```
+Frontend Action:
+  - Store enrollment in local state
+  - Redirect to /workshops/w1w2w3w4-w5w6-w7w8-w9w0-w1w2w3w4w5w6
+  - Display success toast: "Welcome! You've joined Introduction to Git & GitHub"
+```
+
+#### Step 6: View Workshop Dashboard
+```
+Frontend loads workshop page:
+
+GET /api/v1/workshops/w1w2w3w4-w5w6-w7w8-w9w0-w1w2w3w4w5w6
+Headers: Authorization: Bearer [Omar's token]
+
+Backend Response:
+  200 OK
+  {
+    "success": true,
+    "data": {
+      "id": "w1w2w3w4...",
+      "title": "Introduction to Git & GitHub",
+      "description": "Learn version control basics...",
+      "coverImageUrl": "https://files.skillmark.io/workshops/w1w2w3w4/cover.jpg",
+      "status": "PUBLISHED",
+      "startsAt": "2024-02-01T14:00:00Z",
+      "endsAt": "2024-02-01T17:00:00Z",
+      "enrolledCount": 13,
+      "resourcesCount": 3,
+      "assessmentsCount": 1,
+      "userEnrolled": true,
+      "userRole": "MEMBER" // in workspace
+    }
+  }
+```
+
+#### Step 7: Browse Resources
+```
+GET /api/v1/workshops/w1w2w3w4.../resources
+
+Backend checks:
+  1. User is enrolled ✓
+  2. Filter resources by isVisible = true
+
+Response: 200 OK
+{
+  "success": true,
+  "data": [
+    {
+      "id": "r1r2r3r4...",
+      "title": "Git Official Documentation",
+      "type": "LINK",
+      "url": "https://git-scm.com/doc",
+      "position": 0
+    },
+    {
+      "id": "r2r3r4r5...",
+      "title": "Git Commands Cheat Sheet",
+      "type": "DOCUMENT",
+      "url": "https://files.skillmark.io/workshops/w1w2w3w4/resources/cheatsheet.pdf",
+      "fileSize": 524288,
+      "mimeType": "application/pdf",
+      "position": 1
+    },
+    {
+      "id": "r3r4r5r6...",
+      "title": "Git Basics Tutorial",
+      "type": "VIDEO",
+      "url": "https://youtube.com/watch?v=abc123",
+      "position": 2
+    }
+  ]
+}
+
+Omar downloads the PDF and watches the video
+```
+
+### ✅ Success Criteria
+- [x] Omar created as workspace member with MEMBER role
+- [x] Omar enrolled in workshop
+- [x] Invite usage count incremented (12 → 13)
+- [x] Omar can access workshop resources
+- [x] Activity log created
+- [x] Email notification sent (if implemented)
+
+### 🔄 Alternative Flows
+
+#### 3.1a: Invite Code Expired
+```
+Scenario: Omar tries to use expired invite
+
+GET /api/v1/invites/EXPIRED123/preview
+
+Response: 410 Gone
+{
+  "success": false,
+  "error": {
+    "code": "INVITE_EXPIRED",
+    "message": "This invitation has expired",
+    "details": [{
+      "expiresAt": "2024-01-10T23:59:59Z",
+      "expiredDays": 5
+    }]
+  }
+}
+
+Frontend displays:
+  ⚠️ "This invitation expired 5 days ago. 
+      Please contact the organizer for a new invite."
+```
+
+#### 3.1b: Invite Usage Limit Reached
+```
+Scenario: 50th person already used the invite
+
+POST /api/v1/invites/accept
+Body: {"code": "GIT2024WK1AB"}
+
+Response: 422 Unprocessable Entity
+{
+  "success": false,
+  "error": {
+    "code": "INVITE_LIMIT_REACHED",
+    "message": "This invitation has reached its usage limit",
+    "details": [{
+      "maxUses": 50,
+      "usesCount": 50
+    }]
+  }
+}
+```
+
+#### 3.1c: Already Enrolled
+```
+Scenario: Omar clicks invite link again
+
+POST /api/v1/invites/accept
+Body: {"code": "GIT2024WK1AB"}
+
+Response: 409 Conflict
+{
+  "success": false,
+  "error": {
+    "code": "ALREADY_ENROLLED",
+    "message": "You are already enrolled in this workshop",
+    "details": [{
+      "enrolledAt": "2024-01-16T09:15:00Z",
+      "workshopUrl": "/workshops/w1w2w3w4..."
+    }]
+  }
+}
+
+Frontend displays:
+  "You're already enrolled! Redirecting to workshop..."
+  [Auto-redirect after 2 seconds]
+```
+
+#### 3.1d: Concurrent Enrollment (Race Condition)
+```
+Scenario: Exactly at max_uses limit, 2 users click simultaneously
+
+User A: POST /api/v1/invites/accept at T+0ms
+User B: POST /api/v1/invites/accept at T+5ms
+
+Backend handling:
+  Transaction A:
+    1. SELECT uses_count FROM invites WHERE id = ? FOR UPDATE
+       → uses_count = 49
+    2. Check: 49 < 50 ✓
+    3. UPDATE invites SET uses_count = 50
+    4. Create enrollment
+    5. COMMIT
+    
+  Transaction B (waiting on row lock):
+    1. SELECT uses_count FROM invites WHERE id = ? FOR UPDATE
+       → uses_count = 50 (after A commits)
+    2. Check: 50 < 50 ✗
+    3. ROLLBACK
+    4. Return 422 Unprocessable Entity
+
+Result: Only User A succeeds ✓
+```
+
+---
+
+## SCENARIO 4: Creating and Publishing an Assessment
+
+### 👤 Actor
+**Sarah Chen** — Workshop Creator
+
+### 🎯 Goal
+Create a 10-question assessment for the Git workshop
+
+### 📋 Preconditions
+- Workshop "Introduction to Git & GitHub" exists
+- Sarah is ADMIN of workspace
+- Workshop is in DRAFT status (assessment needed for publishing)
+
+### 📝 Detailed Steps
+
+#### Step 1: Start Assessment Creation
+```
+User Action:
+  - Sarah navigates to workshop page
+  - Clicks "Assessments" tab
+  - Clicks "Create Assessment"
+
+System displays form with fields:
+  - Title
+  - Description
+  - Instructions
+  - Passing score (1-100)
+  - Duration (minutes)
+  - Max attempts
+  - Auto-issue certificate (toggle)
+```
+
+#### Step 2: Fill Assessment Details
+```
+User Input:
+  title: "Git Fundamentals Quiz"
+  description: "Test your understanding of Git basics and GitHub workflow"
+  instructions: "- Read each question carefully
+                 - You have 30 minutes to complete
+                 - You can attempt up to 3 times
+                 - Passing score is 70%
+                 - Good luck!"
+  passingScore: 70
+  durationMinutes: 30
+  maxAttempts: 3
+  autoIssueCertificate: true
+```
+
+#### Step 3: Create Assessment
+```
+POST /api/v1/workshops/w1w2w3w4.../assessments
+Body: {
+  "title": "Git Fundamentals Quiz",
+  "description": "Test your understanding...",
+  "instructions": "- Read each question carefully...",
+  "passingScore": 70,
+  "durationMinutes": 30,
+  "maxAttempts": 3,
+  "autoIssueCertificate": true
+}
+
+Backend Processing:
+  1. Verify user has ADMIN or INSTRUCTOR role ✓
+  2. Validate passing score (1-100) ✓
+  3. Validate duration (min 5 minutes) ✓
+  4. Validate max attempts (min 1) ✓
+  5. Create assessment with status=DRAFT
+
+Response: 201 Created
+{
+  "success": true,
+  "data": {
+    "id": "a1a2a3a4-a5a6-a7a8-a9a0-a1a2a3a4a5a6",
+    "workshopId": "w1w2w3w4...",
+    "title": "Git Fundamentals Quiz",
+    "status": "DRAFT",
+    "passingScore": 70,
+    "durationMinutes": 30,
+    "maxAttempts": 3,
+    "autoIssueCertificate": true,
+    "questionsCount": 0,
+    "createdAt": "2024-01-15T12:00:00Z"
+  }
+}
+```
+
+#### Step 4: Add Questions (Batch)
+```
+Sarah uses batch question creation for efficiency:
+
+POST /api/v1/assessments/a1a2a3a4.../questions/batch
+Body: {
+  "questions": [
+    {
+      "text": "What does Git stand for?",
+      "explanation": "Git is named after the British slang word 'git'",
+      "points": 1,
+      "position": 0,
+      "answers": [
+        {"text": "Global Information Tracker", "isCorrect": false, "position": 0},
+        {"text": "It's just a name, not an acronym", "isCorrect": true, "position": 1},
+        {"text": "General Integration Tool", "isCorrect": false, "position": 2},
+        {"text": "Graphics Interface Terminal", "isCorrect": false, "position": 3}
+      ]
+    },
+    {
+      "text": "Which command initializes a new Git repository?",
+      "points": 1,
+      "position": 1,
+      "answers": [
+        {"text": "git start", "isCorrect": false, "position": 0},
+        {"text": "git init", "isCorrect": true, "position": 1},
+        {"text": "git create", "isCorrect": false, "position": 2},
+        {"text": "git new", "isCorrect": false, "position": 3}
+      ]
+    },
+    {
+      "text": "What is a commit in Git?",
+      "points": 1,
+      "position": 2,
+      "answers": [
+        {"text": "A snapshot of your repository at a specific point", "isCorrect": true, "position": 0},
+        {"text": "A branch in the repository", "isCorrect": false, "position": 1},
+        {"text": "A remote server connection", "isCorrect": false, "position": 2},
+        {"text": "A merge conflict", "isCorrect": false, "position": 3}
+      ]
+    },
+    {
+      "text": "Which command shows the current status of your repository?",
+      "points": 1,
+      "position": 3,
+      "answers": [
+        {"text": "git state", "isCorrect": false, "position": 0},
+        {"text": "git status", "isCorrect": true, "position": 1},
+        {"text": "git info", "isCorrect": false, "position": 2},
+        {"text": "git check", "isCorrect": false, "position": 3}
+      ]
+    },
+    {
+      "text": "What does 'git clone' do?",
+      "points": 1,
+      "position": 4,
+      "answers": [
+        {"text": "Creates a copy of a remote repository", "isCorrect": true, "position": 0},
+        {"text": "Duplicates a commit", "isCorrect": false, "position": 1},
+        {"text": "Copies a branch", "isCorrect": false, "position": 2},
+        {"text": "Clones your SSH keys", "isCorrect": false, "position": 3}
+      ]
+    },
+    {
+      "text": "Which command stages changes for commit?",
+      "points": 1,
+      "position": 5,
+      "answers": [
+        {"text": "git stage", "isCorrect": false, "position": 0},
+        {"text": "git prepare", "isCorrect": false, "position": 1},
+        {"text": "git add", "isCorrect": true, "position": 2},
+        {"text": "git commit", "isCorrect": false, "position": 3}
+      ]
+    },
+    {
+      "text": "What is a branch in Git?",
+      "points": 1,
+      "position": 6,
+      "answers": [
+        {"text": "A parallel version of the repository", "isCorrect": true, "position": 0},
+        {"text": "A type of commit", "isCorrect": false, "position": 1},
+        {"text": "A remote server", "isCorrect": false, "position": 2},
+        {"text": "A file in the repository", "isCorrect": false, "position": 3}
+      ]
+    },
+    {
+      "text": "Which command pushes changes to a remote repository?",
+      "points": 1,
+      "position": 7,
+      "answers": [
+        {"text": "git send", "isCorrect": false, "position": 0},
+        {"text": "git upload", "isCorrect": false, "position": 1},
+        {"text": "git push", "isCorrect": true, "position": 2},
+        {"text": "git sync", "isCorrect": false, "position": 3}
+      ]
+    },
+    {
+      "text": "What does 'git pull' do?",
+      "points": 1,
+      "position": 8,
+      "answers": [
+        {"text": "Downloads and merges remote changes", "isCorrect": true, "position": 0},
+        {"text": "Removes files from staging", "isCorrect": false, "position": 1},
+        {"text": "Deletes a branch", "isCorrect": false, "position": 2},
+        {"text": "Creates a new commit", "isCorrect": false, "position": 3}
+      ]
+    },
+    {
+      "text": "What is GitHub?",
+      "points": 1,
+      "position": 9,
+      "answers": [
+        {"text": "A Git command-line tool", "isCorrect": false, "position": 0},
+        {"text": "A web-based Git repository hosting service", "isCorrect": true, "position": 1},
+        {"text": "A programming language", "isCorrect": false, "position": 2},
+        {"text": "A type of database", "isCorrect": false, "position": 3}
+      ]
+    }
+  ]
+}
+
+Backend Processing:
+  1. Verify assessment ownership ✓
+  2. Validate each question:
+     - Has text ✓
+     - Has 2-6 answers ✓
+     - Has exactly one correct answer ✓
+     - Points > 0 ✓
+  3. Begin transaction
+  4. Insert all questions
+  5. Insert all answers
+  6. Commit transaction
+
+Response: 201 Created
+{
+  "success": true,
+  "data": {
+    "questionsCreated": 10,
+    "answersCreated": 40,
+    "totalPoints": 10
+  },
+  "message": "Successfully created 10 questions"
+}
+```
+
+#### Step 5: Review Assessment
+```
+GET /api/v1/assessments/a1a2a3a4.../questions
+
+Response:
+{
+  "success": true,
+  "data": [
+    {
+      "id": "q1q2q3q4...",
+      "text": "What does Git stand for?",
+      "explanation": "Git is named after the British slang word 'git'",
+      "points": 1,
+      "position": 0,
+      "answers": [
+        {"id": "ans1...", "text": "Global Information Tracker", "position": 0},
+        {"id": "ans2...", "text": "It's just a name, not an acronym", "position": 1},
+        {"id": "ans3...", "text": "General Integration Tool", "position": 2},
+        {"id": "ans4...", "text": "Graphics Interface Terminal", "position": 3}
+      ]
+    },
+    // ... 9 more questions
+  ]
+}
+
+Note: isCorrect field is NOT included in response (security)
+```
+
+#### Step 6: Publish Assessment
+```
+Sarah clicks "Publish Assessment"
+
+Frontend Action:
+  PATCH /api/v1/assessments/a1a2a3a4.../publish
+
+Backend Validation:
+  1. Verify user has ADMIN/INSTRUCTOR role ✓
+  2. Count questions: SELECT COUNT(*) FROM questions WHERE assessment_id = ?
+     Result: 10 ✓ (minimum 3 required)
+  3. Validate each question has 2-6 answers ✓
+  4. Validate each question has exactly 1 correct answer ✓
+  5. Update status to PUBLISHED
+
+Response: 200 OK
+{
+  "success": true,
+  "data": {
+    "id": "a1a2a3a4...",
+    "status": "PUBLISHED",
+    "publishedAt": "2024-01-15T12:30:00Z",
+    "questionsCount": 10,
+    "totalPoints": 10,
+    "isLive": true
+  },
+  "message": "Assessment published successfully"
+}
+```
+
+### ✅ Success Criteria
+- [x] Assessment created with correct settings
+- [x] 10 questions created with 4 answers each
+- [x] Each question has exactly one correct answer
+- [x] Assessment published successfully
+- [x] Assessment now visible to enrolled participants
+- [x] Workshop can now be published (requirement met)
+
+### 🔄 Alternative Flows
+
+#### 4.1a: Try to Publish with Insufficient Questions
+```
+Scenario: Assessment has only 2 questions
+
+PATCH /api/v1/assessments/a1a2a3a4.../publish
+
+Response: 422 Unprocessable Entity
+{
+  "success": false,
+  "error": {
+    "code": "INSUFFICIENT_QUESTIONS",
+    "message": "Cannot publish assessment",
+    "details": [{
+      "requirement": "minQuestions",
+      "expected": 3,
+      "actual": 2,
+      "message": "Assessment must have at least 3 questions"
+    }]
+  }
+}
+```
+
+#### 4.1b: Question Missing Correct Answer
+```
+Scenario: Question has no correct answer
+
+POST /api/v1/assessments/a1a2a3a4.../questions/batch
+
+Backend validates:
+  Question 5: all answers have isCorrect = false
+
+Response: 400 Bad Request
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid question configuration",
+    "details": [{
+      "field": "questions[5].answers",
+      "message": "Question must have exactly one correct answer"
+    }]
+  }
+}
+```
+
+#### 4.1c: Try to Edit Published Assessment with Submissions
+```
+Scenario: 15 students have already taken the assessment
+
+PATCH /api/v1/questions/q1q2q3q4...
+Body: {"text": "Updated question text"}
+
+Backend checks:
+  SELECT COUNT(*) FROM submissions WHERE assessment_id = ?
+  Result: 15
+
+Response: 422 Unprocessable Entity
+{
+  "success": false,
+  "error": {
+    "code": "ASSESSMENT_HAS_SUBMISSIONS",
+    "message": "Cannot modify published assessment with submissions",
+    "details": [{
+      "submissionsCount": 15,
+      "suggestion": "Archive this assessment and create a new version"
+    }]
+  }
+}
+```
+
+---
+
+## SCENARIO 5: Taking an Assessment
+
+### 👤 Actor
+**Omar Ali** — Student
+
+### 🎯 Goal
+Complete the "Git Fundamentals Quiz" and pass with score ≥ 70%
+
+### 📋 Preconditions
+- Omar is enrolled in workshop
+- Assessment is published
+- Omar has not exceeded max attempts (3)
+- Omar has no active (IN_PROGRESS) submission
+
+### 📝 Detailed Steps
+
+#### Step 1: View Available Assessments
+```
+Omar navigates to workshop → Assessments tab
+
+GET /api/v1/workshops/w1w2w3w4.../assessments
+Headers: Authorization: Bearer [Omar's token]
+
+Backend checks:
+  1. User is enrolled in workshop ✓
+  2. Filter: status = 'PUBLISHED'
+
+Response: 200 OK
+{
+  "success": true,
+  "data": [
+    {
+      "id": "a1a2a3a4-a5a6-a7a8-a9a0-a1a2a3a4a5a6",
+      "title": "Git Fundamentals Quiz",
+      "description": "Test your understanding...",
+      "instructions": "- Read each question carefully...",
+      "passingScore": 70,
+      "durationMinutes": 30,
+      "maxAttempts": 3,
+      "questionsCount": 10,
+      "totalPoints": 10,
+      "userAttempts": 0,
+      "remainingAttempts": 3,
+      "bestScore": null,
+      "canAttempt": true
+    }
+  ]
+}
+```
+
+#### Step 2: Start Assessment
+```
+Omar clicks "Start Assessment"
+
+Frontend displays pre-assessment screen:
+┌─────────────────────────────────────────┐
+│  Git Fundamentals Quiz                  │
+│                                         │
+│  Instructions:                          │
+│  - Read each question carefully         │
+│  - You have 30 minutes to complete      │
+│  - You can attempt up to 3 times        │
+│  - Passing score is 70%                 │
+│  - Good luck!                           │
+│                                         │
+│  📊 10 questions • 10 points total      │
+│  ⏱️ 30 minutes duration                 │
+│  🎯 70% passing score                   │
+│  🔄 3 attempts allowed                  │
+│                                         │
+│  [ Cancel ]    [ Start Assessment ]     │
+└─────────────────────────────────────────┘
+
+Omar clicks "Start Assessment"
+
+POST /api/v1/assessments/a1a2a3a4.../submissions
+
+Backend Processing:
+  1. Verify user is enrolled ✓
+  2. Check assessment is published ✓
+  3. Count existing attempts:
+     SELECT COUNT(*) FROM submissions 
+     WHERE assessment_id = ? AND user_id = ?
+     Result: 0 ✓
+  4. Check max attempts: 0 < 3 ✓
+  5. Check for active submission:
+     SELECT * FROM submissions 
+     WHERE assessment_id = ? AND user_id = ? AND status = 'IN_PROGRESS'
+     Result: None ✓
+  6. Calculate expiry:
+     expiresAt = NOW() + 30 minutes = 2024-01-16 10:45:00
+  7. Create submission:
+     attempt_number = 1
+     status = 'IN_PROGRESS'
+     started_at = 2024-01-16 10:15:00
+     expires_at = 2024-01-16 10:45:00
+
+Response: 201 Created
+{
+  "success": true,
+  "data": {
+    "id": "s1s2s3s4-s5s6-s7s8-s9s0-s1s2s3s4s5s6",
+    "assessmentId": "a1a2a3a4...",
+    "attemptNumber": 1,
+    "status": "IN_PROGRESS",
+    "startedAt": "2024-01-16T10:15:00Z",
+    "expiresAt": "2024-01-16T10:45:00Z",
+    "timeRemaining": 1800 // seconds
+  }
+}
+```
+
+#### Step 3: Load Questions
+```
+GET /api/v1/assessments/a1a2a3a4.../questions
+Headers: Authorization: Bearer [Omar's token]
+
+Backend checks:
+  - User is enrolled ✓
+  - Assessment is published ✓
+  - Exclude isCorrect field from responses (security)
+
+Response: 200 OK
+{
+  "success": true,
+  "data": [
+    {
+      "id": "q1q2q3q4...",
+      "text": "What does Git stand for?",
+      "points": 1,
+      "position": 0,
+      "answers": [
+        {"id": "a1a1a1a1...", "text": "Global Information Tracker", "position": 0},
+        {"id": "a2a2a2a2...", "text": "It's just a name, not an acronym", "position": 1},
+        {"id": "a3a3a3a3...", "text": "General Integration Tool", "position": 2},
+        {"id": "a4a4a4a4...", "text": "Graphics Interface Terminal", "position": 3}
+      ]
+    },
+    // ... 9 more questions (isCorrect NOT included)
+  ]
+}
+```
+
+#### Step 4: Answer Questions
+```
+Frontend displays quiz interface with timer:
+
+┌─────────────────────────────────────────┐
+│  Git Fundamentals Quiz                  │
+│  ⏱️ Time Remaining: 29:45               │
+│  Progress: 1/10                         │
+│                                         │
+│  Question 1 of 10 (1 point)             │
+│                                         │
+│  What does Git stand for?               │
+│                                         │
+│  ○ Global Information Tracker           │
+│  ○ It's just a name, not an acronym     │
+│  ○ General Integration Tool             │
+│  ○ Graphics Interface Terminal          │
+│                                         │
+│  [ Previous ]  [ Next ]  [ Submit ]     │
+└─────────────────────────────────────────┘
+
+Omar selects answers for all 10 questions:
+  Q1: a2a2a2a2... (correct)
+  Q2: a2a2a2a2... (correct) 
+  Q3: a1a1a1a1... (correct)
+  Q4: a2a2a2a2... (correct)
+  Q5: a1a1a1a1... (correct)
+  Q6: a3a3a3a3... (correct)
+  Q7: a1a1a1a1... (correct)
+  Q8: a1a1a1a1... (incorrect - selected "git send" instead of "git push")
+  Q9: a1a1a1a1... (correct)
+  Q10: a2a2a2a2... (correct)
+
+Frontend stores selections in local state (not sent to backend yet)
+```
+
+#### Step 5: Submit Assessment
+```
+Omar clicks "Submit Assessment"
+
+Frontend shows confirmation:
+┌─────────────────────────────────────────┐
+│  Submit Assessment?                     │
+│                                         │
+│  You've answered 10/10 questions        │
+│  Time remaining: 12:23                  │
+│                                         │
+│  Once submitted, you cannot change      │
+│  your answers.                          │
+│                                         │
+│  [ Cancel ]    [ Submit ]               │
+└─────────────────────────────────────────┘
+
+Omar confirms
+
+POST /api/v1/submissions/s1s2s3s4.../submit
+Body: {
+  "responses": [
+    {"questionId": "q1q2q3q4...", "answerId": "a2a2a2a2..."},
+    {"questionId": "q2q3q4q5...", "answerId": "a2a2a2a2..."},
+    {"questionId": "q3q4q5q6...", "answerId": "a1a1a1a1..."},
+    {"questionId": "q4q5q6q7...", "answerId": "a2a2a2a2..."},
+    {"questionId": "q5q6q7q8...", "answerId": "a1a1a1a1..."},
+    {"questionId": "q6q7q8q9...", "answerId": "a3a3a3a3..."},
+    {"questionId": "q7q8q9q0...", "answerId": "a1a1a1a1..."},
+    {"questionId": "q8q9q0q1...", "answerId": "a1a1a1a1..."},
+    {"questionId": "q9q0q1q2...", "answerId": "a1a1a1a1..."},
+    {"questionId": "q0q1q2q3...", "answerId": "a2a2a2a2..."}
+  ]
+}
+
+Backend Processing:
+  1. Verify submission ownership ✓
+  2. Check submission status = IN_PROGRESS ✓
+  3. Check not expired: NOW() < expires_at ✓
+  4. Validate all questions answered:
+     - Expected: 10 questions
+     - Received: 10 responses ✓
+  5. Validate no duplicate responses ✓
+  6. Begin transaction
+  7. For each response, grade and store:
+     
+     Response 1:
+       questionId: q1q2q3q4...
+       answerId: a2a2a2a2...
+       Look up correct answer for question q1q2q3q4...
+         → correct answer: a2a2a2a2... ✓
+       isCorrect: true
+       pointsEarned: 1
+       
+     Response 2:
+       questionId: q2q3q4q5...
+       answerId: a2a2a2a2...
+       Correct answer: a2a2a2a2... ✓
+       isCorrect: true
+       pointsEarned: 1
+     
+     ... (continue for all responses)
+     
+     Response 8:
+       questionId: q8q9q0q1...
+       answerId: a1a1a1a1... (user selected "git send")
+       Correct answer: a3a3a3a3... (should be "git push") ✗
+       isCorrect: false
+       pointsEarned: 0
+     
+     ... (continue)
+     
+  8. Insert all responses into responses table
+  
+  9. Calculate final score:
+     totalPoints = SUM(questions.points) = 10
+     earnedPoints = SUM(responses.pointsEarned) = 9
+     percentage = (9 / 10) × 100 = 90.00
+     passed = 90.00 >= 70 = TRUE ✓
+     
+  10. Update submission:
+      status = 'SUBMITTED'
+      submitted_at = NOW()
+      score = 9
+      max_score = 10
+      percentage = 90.00
+      passed = TRUE
+      
+  11. Check auto-certificate eligibility:
+      assessment.autoIssueCertificate = TRUE ✓
+      submission.passed = TRUE ✓
+      
+      Check for existing certificate:
+        SELECT * FROM certificates 
+        WHERE assessment_id = ? AND user_id = ? AND status = 'ACTIVE'
+        Result: None ✓
+      
+      Issue certificate:
+        certificate_number = generate() → "CERT-2024-A7B9C2D1"
+        verification_code = generate() → "VX8K2MN9PQR7Z3A1B5C7D9E2F4G6H8J0"
+        
+        Snapshot data:
+          recipientName = "Omar Ali"
+          workshopTitle = "Introduction to Git & GitHub"
+          workspaceName = "Computer Science Club"
+          score = 90
+        
+        INSERT INTO certificates (...)
+        
+        certificateId = "c1c2c3c4-c5c6-c7c8-c9c0-c1c2c3c4c5c6"
+      
+  12. Update enrollment:
+      UPDATE enrollments 
+      SET completed_at = NOW() 
+      WHERE workshop_id = ? AND user_id = ?
+      
+  13. Log activities:
+      - assessment.submitted
+      - certificate.issued
+      
+  14. Commit transaction
+
+Response: 200 OK
+{
+  "success": true,
+  "data": {
+    "submission": {
+      "id": "s1s2s3s4...",
+      "status": "SUBMITTED",
+      "attemptNumber": 1,
+      "score": 9,
+      "maxScore": 10,
+      "percentage": 90.00,
+      "passed": true,
+      "submittedAt": "2024-01-16T10:27:15Z"
+    },
+    "certificate": {
+      "id": "c1c2c3c4-c5c6-c7c8-c9c0-c1c2c3c4c5c6",
+      "certificateNumber": "CERT-2024-A7B9C2D1",
+      "issuedAt": "2024-01-16T10:27:15Z",
+      "pdfUrl": null, // PDF generation happens async
+      "verificationUrl": "https://verify.skillmark.io/VX8K2MN9PQR7Z3A1B5C7D9E2F4G6H8J0"
+    }
+  },
+  "message": "Congratulations! You passed with 90%"
+}
+```
+
+#### Step 6: View Results
+```
+Frontend displays results screen:
+
+┌─────────────────────────────────────────┐
+│  🎉 Assessment Complete!                │
+│                                         │
+│  Git Fundamentals Quiz                  │
+│                                         │
+│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
+│                                         │
+│  Your Score: 90%                        │
+│  Status: PASSED ✅                      │
+│                                         │
+│  Correct Answers: 9/10                  │
+│  Points Earned: 9/10                    │
+│  Time Taken: 12 minutes                 │
+│                                         │
+│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
+│                                         │
+│  🏆 Certificate Earned!                 │
+│  CERT-2024-A7B9C2D1                     │
+│                                         │
+│  [ View Certificate ]                   │
+│  [ Review Answers ]                     │
+│  [ Back to Workshop ]                   │
+└─────────────────────────────────────────┘
+```
+
+#### Step 7: Review Incorrect Answers
+```
+Omar clicks "Review Answers"
+
+GET /api/v1/submissions/s1s2s3s4.../result
+
+Backend checks:
+  - Submission belongs to user ✓
+  - Submission is submitted ✓
+
+Response: 200 OK
+{
+  "success": true,
+  "data": {
+    "submission": {
+      "id": "s1s2s3s4...",
+      "score": 9,
+      "maxScore": 10,
+      "percentage": 90.00,
+      "passed": true
+    },
+    "responses": [
+      {
+        "question": {
+          "id": "q1q2q3q4...",
+          "text": "What does Git stand for?",
+          "explanation": "Git is named after the British slang word 'git'",
+          "points": 1
+        },
+        "selectedAnswer": {
+          "id": "a2a2a2a2...",
+          "text": "It's just a name, not an acronym"
+        },
+        "correctAnswer": {
+          "id": "a2a2a2a2...",
+          "text": "It's just a name, not an acronym"
+        },
+        "isCorrect": true,
+        "pointsEarned": 1
+      },
+      // ... 7 more correct answers
+      {
+        "question": {
+          "id": "q8q9q0q1...",
+          "text": "Which command pushes changes to a remote repository?",
+          "points": 1
+        },
+        "selectedAnswer": {
+          "id": "a1a1a1a1...",
+          "text": "git send"
+        },
+        "correctAnswer": {
+          "id": "a3a3a3a3...",
+          "text": "git push"
+        },
+        "isCorrect": false,
+        "pointsEarned": 0
+      },
+      // ... 1 more correct answer
+    ]
+  }
+}
+
+Frontend highlights incorrect answer in red, correct answer in green
+```
+
+### ✅ Success Criteria
+- [x] Submission created and started
+- [x] Questions loaded without revealing correct answers
+- [x] All answers submitted before expiry
+- [x] Automatic grading completed correctly
+- [x] Score calculated: 9/10 = 90%
+- [x] Pass status determined: 90% >= 70% = PASSED
+- [x] Certificate auto-issued
+- [x] Enrollment marked as completed
+- [x] Omar can review answers with explanations
+
+### 🔄 Alternative Flows
+
+#### 5.1a: Submission Expires Before Submitting
+```
+Scenario: Omar starts at 10:15, timer runs out at 10:45, 
+          but Omar tries to submit at 10:46
+
+POST /api/v1/submissions/s1s2s3s4.../submit
+Body: {"responses": [...]}
+
+Backend checks:
+  NOW() = 2024-01-16 10:46:00
+  submission.expiresAt = 2024-01-16 10:45:00
+  NOW() > expiresAt ✗
+
+Backend automatically updates:
+  UPDATE submissions 
+  SET status = 'EXPIRED' 
+  WHERE id = ? AND NOW() > expires_at
+
+Response: 422 Unprocessable Entity
+{
+  "success": false,
+  "error": {
+    "code": "SUBMISSION_EXPIRED",
+    "message": "Time limit exceeded. Submission has been marked as expired.",
+    "details": [{
+      "expiresAt": "2024-01-16T10:45:00Z",
+      "attemptNumber": 1,
+      "remainingAttempts": 2
+    }]
+  }
+}
+
+Frontend displays:
+  "⏰ Time's up! You can try again. You have 2 attempts remaining."
+  [ Try Again ]
+```
+
+#### 5.1b: Failed Assessment (Score < 70%)
+```
+Scenario: Omar scores 6/10 = 60%
+
+Grading result:
+  percentage = 60.00
+  passed = 60.00 >= 70 = FALSE
+
+Response: 200 OK
+{
+  "success": true,
+  "data": {
+    "submission": {
+      "id": "s1s2s3s4...",
+      "status": "SUBMITTED",
+      "attemptNumber": 1,
+      "score": 6,
+      "maxScore": 10,
+      "percentage": 60.00,
+      "passed": false
+    },
+    "certificate": null // Not issued
+  },
+  "message": "You scored 60%. Passing score is 70%. You have 2 attempts remaining."
+}
+
+Frontend displays:
+  "❌ Not Passed - 60%
+   You need 70% to pass.
+   [ Try Again ] (2 attempts left)"
+```
+
+#### 5.1c: Maximum Attempts Reached
+```
+Scenario: Omar failed 3 times
+
+Attempt 4 start request:
+POST /api/v1/assessments/a1a2a3a4.../submissions
+
+Backend checks:
+  SELECT COUNT(*) FROM submissions WHERE assessment_id = ? AND user_id = ?
+  Result: 3
+  
+  3 >= maxAttempts (3) ✗
+
+Response: 422 Unprocessable Entity
+{
+  "success": false,
+  "error": {
+    "code": "MAX_ATTEMPTS_REACHED",
+    "message": "You have used all 3 attempts for this assessment",
+    "details": [{
+      "attempts": [
+        {"attemptNumber": 1, "score": 60, "passed": false},
+        {"attemptNumber": 2, "score": 65, "passed": false},
+        {"attemptNumber": 3, "score": 68, "passed": false}
+      ],
+      "bestScore": 68,
+      "contactMessage": "Please contact the instructor for assistance"
+    }]
+  }
+}
+```
+
+#### 5.1d: Active Submission Exists
+```
+Scenario: Omar started assessment but didn't submit, then tries to start again
+
+POST /api/v1/assessments/a1a2a3a4.../submissions
+
+Backend checks:
+  SELECT * FROM submissions 
+  WHERE assessment_id = ? AND user_id = ? AND status = 'IN_PROGRESS'
+  Result: Found submission from 10 minutes ago
+
+Response: 409 Conflict
+{
+  "success": false,
+  "error": {
+    "code": "ACTIVE_SUBMISSION_EXISTS",
+    "message": "You have an active submission in progress",
+    "details": [{
+      "submissionId": "s1s2s3s4...",
+      "startedAt": "2024-01-16T10:15:00Z",
+      "expiresAt": "2024-01-16T10:45:00Z",
+      "timeRemaining": 1200
+    }]
+  }
+}
+
+Frontend displays:
+  "You have an active submission
+   Time remaining: 20:00
+   [ Continue Submission ]"
+```
+
+---
+
+## SCENARIO 6: Public Certificate Verification
+
+### 👤 Actor
+**Fatima Noor** — HR Recruiter (Not authenticated)
+
+### 🎯 Goal
+Verify a certificate that a job applicant included in their resume
+
+### 📋 Preconditions
+- Candidate submitted resume with certificate number or QR code
+- Certificate exists and is ACTIVE (not revoked)
+- Verification endpoint is public (no authentication required)
+
+### 📝 Detailed Steps
+
+#### Step 1: Scan QR Code
+```
+Scenario: Fatima receives PDF certificate with QR code
+
+QR Code contains URL:
+https://verify.skillmark.io/VX8K2MN9PQR7Z3A1B5C7D9E2F4G6H8J0
+
+Fatima scans with phone → Redirects to verification page
+```
+
+#### Step 2: Load Verification Page
+```
+Frontend loads:
+https://verify.skillmark.io/VX8K2MN9PQR7Z3A1B5C7D9E2F4G6H8J0
+
+Frontend extracts verification code and calls API:
+
+GET /api/v1/public/verify/VX8K2MN9PQR7Z3A1B5C7D9E2F4G6H8J0
+Headers: None (public endpoint)
+
+Backend Processing:
+  1. No authentication check (public)
+  2. Look up certificate by verification_code
+  3. Return sanitized public data (no sensitive info)
+
+Response: 200 OK
+{
+  "success": true,
+  "data": {
+    "valid": true,
+    "certificateNumber": "CERT-2024-A7B9C2D1",
+    "recipientName": "Omar Ali",
+    "workshopTitle": "Introduction to Git & GitHub",
+    "workspaceName": "Computer Science Club",
+    "score": 90,
+    "issuedAt": "2024-01-16T10:27:15Z",
+    "status": "ACTIVE",
+    "verifiedAt": "2024-01-20T14:30:00Z"
+  }
+}
+```
+
+#### Step 3: Display Verification Result
+```
+Frontend displays:
+
+┌─────────────────────────────────────────┐
+│  ✅ Certificate Verified                │
+│                                         │
+│  Certificate Number:                    │
+│  CERT-2024-A7B9C2D1                     │
+│                                         │
+│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
+│                                         │
+│  Recipient: Omar Ali                    │
+│                                         │
+│  Workshop:                              │
+│  Introduction to Git & GitHub           │
+│                                         │
+│  Issued by:                             │
+│  Computer Science Club                  │
+│                                         │
+│  Score: 90%                             │
+│                                         │
+│  Issued: January 16, 2024               │
+│                                         │
+│  Status: Active ✅                      │
+│                                         │
+│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
+│                                         │
+│  Verified on: January 20, 2024          │
+│                                         │
+└─────────────────────────────────────────┘
+
+Fatima confirms the certificate is legitimate
+```
+
+### ✅ Success Criteria
+- [x] Public endpoint accessible without authentication
+- [x] Verification code validated
+- [x] Certificate details returned
+- [x] No sensitive data exposed (emails, user IDs, etc.)
+- [x] Verification timestamp recorded
+- [x] Clear visual indication of validity
+
+### 🔄 Alternative Flows
+
+#### 6.1a: Invalid Verification Code
+```
+GET /api/v1/public/verify/INVALID123ABC
+
+Backend: Code not found in database
+
+Response: 404 Not Found
+{
+  "success": false,
+  "error": {
+    "code": "CERTIFICATE_NOT_FOUND",
+    "message": "Certificate not found",
+    "details": [{
+      "reason": "Invalid verification code"
+    }]
+  }
+}
+
+Frontend displays:
+┌─────────────────────────────────────────┐
+│  ❌ Certificate Not Found               │
+│                                         │
+│  The verification code you entered      │
+│  is invalid or does not exist.          │
+│                                         │
+│  Please check:                          │
+│  • Code is entered correctly            │
+│  • QR code is not damaged               │
+│  • Certificate is genuine               │
+│                                         │
+│  ⚠️ Warning: This may be a fake         │
+│     certificate                         │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+#### 6.1b: Revoked Certificate
+```
+Scenario: Certificate was revoked for fraud
+
+GET /api/v1/public/verify/VX8K2MN9PQR7Z3A1B5C7D9E2F4G6H8J0
+
+Response: 200 OK
+{
+  "success": true,
+  "data": {
+    "valid": false,
+    "certificateNumber": "CERT-2024-A7B9C2D1",
+    "recipientName": "Omar Ali",
+    "workshopTitle": "Introduction to Git & GitHub",
+    "workspaceName": "Computer Science Club",
+    "score": 90,
+    "issuedAt": "2024-01-16T10:27:15Z",
+    "status": "REVOKED",
+    "revokedAt": "2024-01-18T16:00:00Z",
+    "revokeReason": "Violation of academic integrity policy",
+    "verifiedAt": "2024-01-20T14:30:00Z"
+  }
+}
+
+Frontend displays:
+┌─────────────────────────────────────────┐
+│  ⛔ Certificate Revoked                 │
+│                                         │
+│  CERT-2024-A7B9C2D1                     │
+│                                         │
+│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
+│                                         │
+│  This certificate has been revoked      │
+│  and is no longer valid.                │
+│                                         │
+│  Recipient: Omar Ali                    │
+│  Workshop: Introduction to Git & GitHub │
+│                                         │
+│  Revoked: January 18, 2024              │
+│  Reason: Violation of academic          │
+│          integrity policy               │
+│                                         │
+│  ⚠️ This certificate is NOT valid       │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+#### 6.1c: Verification by Certificate Number
+```
+Scenario: Fatima doesn't have QR code, only certificate number
+
+Frontend provides search form:
+┌─────────────────────────────────────────┐
+│  Verify Certificate                     │
+│                                         │
+│  Enter certificate number:              │
+│  [ CERT-2024-A7B9C2D1          ]        │
+│                                         │
+│  [ Verify ]                             │
+└─────────────────────────────────────────┘
+
+Alternative endpoint:
+GET /api/v1/public/certificates/CERT-2024-A7B9C2D1
+
+Backend looks up by certificate_number instead of verification_code
+Returns same response format as verification code lookup
+```
+
+---
+
+## SCENARIO 7: Instructor Views Analytics
+
+### 👤 Actor
+**Sarah Chen** — Workspace Admin
+
+### 🎯 Goal
+Review workshop performance and participant progress
+
+### 📋 Preconditions
+- Workshop has been running for 2 weeks
+- 45 participants enrolled
+- 32 completed the assessment
+- 28 passed and received certificates
+
+### 📝 Detailed Steps
+
+#### Step 1: View Workspace Statistics
+```
+Sarah navigates to Workspace Dashboard → Analytics
+
+GET /api/v1/workspaces/a1b2c3d4.../stats
+Headers: Authorization: Bearer [Sarah's token]
+
+Backend Processing:
+  1. Verify user is ADMIN or INSTRUCTOR ✓
+  2. Calculate metrics:
+  
+  SELECT COUNT(*) FROM members WHERE workspace_id = ?
+  → 45 members
+  
+  SELECT COUNT(*) FROM workshops WHERE workspace_id = ?
+  → 3 workshops
+  
+  SELECT COUNT(*) FROM workshops WHERE workspace_id = ? AND status = 'PUBLISHED'
+  → 2 active workshops
+  
+  SELECT COUNT(*) FROM certificates WHERE workspace_id = ?
+  → 28 certificates issued
+  
+  SELECT COUNT(*) FROM enrollments e
+  JOIN workshops w ON e.workshop_id = w.id
+  WHERE w.workspace_id = ?
+  → 67 total enrollments
+
+Response: 200 OK
+{
+  "success": true,
+  "data": {
+    "membersCount": 45,
+    "workshopsCount": 3,
+    "activeWorkshopsCount": 2,
+    "totalEnrollments": 67,
+    "certificatesIssued": 28,
+    "assessmentsCount": 4,
+    "totalSubmissions": 52
+  }
+}
+```
+
+#### Step 2: View Workshop-Specific Stats
+```
+Sarah clicks on "Introduction to Git & GitHub" workshop
+
+GET /api/v1/workshops/w1w2w3w4.../stats
+
+Backend Processing:
+  Enrollments:
+    SELECT COUNT(*) FROM enrollments WHERE workshop_id = ?
+    → 45 enrolled
+    
+    SELECT COUNT(*) FROM enrollments 
+    WHERE workshop_id = ? AND completed_at IS NOT NULL
+    → 32 completed
+  
+  Assessment Performance:
+    SELECT 
+      AVG(percentage) as avg_score,
+      MIN(percentage) as lowest_score,
+      MAX(percentage) as highest_score,
+      COUNT(*) as total_submissions,
+      SUM(CASE WHEN passed = TRUE THEN 1 ELSE 0 END) as passed_count
+    FROM submissions s
+    JOIN assessments a ON s.assessment_id = a.id
+    WHERE a.workshop_id = ? AND s.status = 'SUBMITTED'
+    
+    Result:
+      avg_score: 78.5
+      lowest_score: 45.0
+      highest_score: 100.0
+      total_submissions: 32
+      passed_count: 28
+  
+  Certificates:
+    SELECT COUNT(*) FROM certificates WHERE workshop_id = ?
+    → 28
+
+Response: 200 OK
+{
+  "success": true,
+  "data": {
+    "enrolledCount": 45,
+    "completedCount": 32,
+    "completionRate": 71.1,
+    "resourcesCount": 3,
+    "assessmentsCount": 1,
+    "submissions": {
+      "total": 32,
+      "passed": 28,
+      "failed": 4,
+      "passRate": 87.5,
+      "averageScore": 78.5,
+      "highestScore": 100.0,
+      "lowestScore": 45.0
+    },
+    "certificates": {
+      "issued": 28,
+      "active": 28,
+      "revoked": 0
+    },
+    "timeline": {
+      "startedAt": "2024-02-01T14:00:00Z",
+      "endedAt": "2024-02-01T17:00:00Z",
+      "durationDays": 1
+    }
+  }
+}
+```
+
+#### Step 3: View Assessment Details
+```
+Sarah clicks "Git Fundamentals Quiz"
+
+GET /api/v1/assessments/a1a2a3a4.../stats
+
+Backend Processing:
+  Attempt Distribution:
+    SELECT 
+      attempt_number,
+      COUNT(*) as count
+    FROM submissions
+    WHERE assessment_id = ?
+    GROUP BY attempt_number
+    
+    Result:
+      Attempt 1: 30 submissions
+      Attempt 2: 7 submissions
+      Attempt 3: 2 submissions
+  
+  Score Distribution:
+    SELECT 
+      FLOOR(percentage / 10) * 10 as score_range,
+      COUNT(*) as count
+    FROM submissions
+    WHERE assessment_id = ? AND status = 'SUBMITTED'
+    GROUP BY score_range
+    ORDER BY score_range
+    
+    Result:
+      40-49%: 2 students
+      50-59%: 1 student
+      60-69%: 1 student
+      70-79%: 8 students
+      80-89%: 12 students
+      90-100%: 8 students
+
+Response: 200 OK
+{
+  "success": true,
+  "data": {
+    "totalSubmissions": 39,
+    "uniqueParticipants": 32,
+    "averageScore": 78.5,
+    "medianScore": 80.0,
+    "highestScore": 100.0,
+    "lowestScore": 45.0,
+    "passedCount": 28,
+    "failedCount": 4,
+    "expiredCount": 0,
+    "passRate": 87.5,
+    "attemptDistribution": [
+      {"attemptNumber": 1, "count": 30},
+      {"attemptNumber": 2, "count": 7},
+      {"attemptNumber": 3, "count": 2}
+    ],
+    "scoreDistribution": [
+      {"range": "40-49%", "count": 2},
+      {"range": "50-59%", "count": 1},
+      {"range": "60-69%", "count": 1},
+      {"range": "70-79%", "count": 8},
+      {"range": "80-89%", "count": 12},
+      {"range": "90-100%", "count": 8}
+    ],
+    "averageAttempts": 1.2,
+    "firstAttemptPassRate": 83.3
+  }
+}
+```
+
+#### Step 4: View Participant List
+```
+Sarah navigates to Participants tab
+
+GET /api/v1/workshops/w1w2w3w4.../enrollments?page=0&size=20&sort=enrolledAt
+
+Backend checks:
+  - User is ADMIN or INSTRUCTOR ✓
+
+Response: 200 OK
+{
+  "success": true,
+  "data": [
+    {
+      "enrollment": {
+        "id": "e1e2e3e4...",
+        "enrolledAt": "2024-01-16T09:15:00Z",
+        "completedAt": "2024-01-16T10:27:15Z",
+        "status": "ACTIVE"
+      },
+      "user": {
+        "id": "omar123...",
+        "name": "Omar Ali",
+        "email": "omar.ali@university.edu",
+        "avatarUrl": "https://..."
+      },
+      "progress": {
+        "resourcesViewed": 3,
+        "assessmentsTaken": 1,
+        "bestScore": 90.0,
+        "attempts": 1,
+        "passed": true,
+        "certificateIssued": true
+      }
+    },
+    {
+      "enrollment": {
+        "id": "e2e3e4e5...",
+        "enrolledAt": "2024-01-16T09:20:00Z",
+        "completedAt": null,
+        "status": "ACTIVE"
+      },
+      "user": {
+        "id": "user456...",
+        "name": "Layla Ibrahim",
+        "email": "layla@university.edu"
+      },
+      "progress": {
+        "resourcesViewed": 2,
+        "assessmentsTaken": 0,
+        "bestScore": null,
+        "attempts": 0,
+        "passed": false,
+        "certificateIssued": false
+      }
+    }
+    // ... 18 more enrollments
+  ],
+  "pagination": {
+    "page": 0,
+    "size": 20,
+    "totalElements": 45,
+    "totalPages": 3,
+    "hasNext": true
+  }
+}
+```
+
+#### Step 5: Export Analytics Report
+```
+Sarah clicks "Export Report"
+
+GET /api/v1/workshops/w1w2w3w4.../report?format=csv
+Headers: Authorization: Bearer [Sarah's token]
+
+Backend generates CSV:
+
+Name,Email,Enrolled Date,Score,Attempts,Status,Certificate
+Omar Ali,omar.ali@university.edu,2024-01-16,90%,1,Passed,CERT-2024-A7B9C2D1
+Layla Ibrahim,layla@university.edu,2024-01-16,—,0,In Progress,—
+...
+
+Response: 200 OK
+Content-Type: text/csv
+Content-Disposition: attachment; filename="git-workshop-report-2024-01-20.csv"
+
+[CSV data]
+```
+
+### ✅ Success Criteria
+- [x] Sarah can view workspace-level metrics
+- [x] Sarah can view workshop-specific stats
+- [x] Sarah can view assessment performance
+- [x] Sarah can see participant progress
+- [x] Sarah can export reports
+- [x] All calculations are accurate
+- [x] Only authorized users can access
+
+---
+
+## SCENARIO 8: Revoking a Certificate
+
+### 👤 Actor
+**Sarah Chen** — Workspace Admin
+
+### 🎯 Goal
+Revoke a certificate due to academic integrity violation
+
+### 📋 Preconditions
+- Certificate was issued to participant
+- Evidence of cheating/plagiarism found
+- Sarah is ADMIN of workspace
+
+### 📝 Detailed Steps
+
+#### Step 1: Find Certificate
+```
+Sarah navigates to Workspace → Certificates → Search
+
+GET /api/v1/workspaces/a1b2c3d4.../certificates?search=Omar
+
+Response: 200 OK
+{
+  "success": true,
+  "data": [
+    {
+      "id": "c1c2c3c4-c5c6-c7c8-c9c0-c1c2c3c4c5c6",
+      "certificateNumber": "CERT-2024-A7B9C2D1",
+      "recipientName": "Omar Ali",
+      "workshopTitle": "Introduction to Git & GitHub",
+      "score": 90,
+      "status": "ACTIVE",
+      "issuedAt": "2024-01-16T10:27:15Z"
+    }
+  ]
+}
+```
+
+#### Step 2: View Certificate Details
+```
+Sarah clicks certificate
+
+GET /api/v1/certificates/c1c2c3c4-c5c6-c7c8-c9c0-c1c2c3c4c5c6
+
+Response: 200 OK
+{
+  "success": true,
+  "data": {
+    "id": "c1c2c3c4...",
+    "certificateNumber": "CERT-2024-A7B9C2D1",
+    "verificationCode": "VX8K2MN9PQR7Z3A1B5C7D9E2F4G6H8J0",
+    "recipientName": "Omar Ali",
+    "workshopTitle": "Introduction to Git & GitHub",
+    "workspaceName": "Computer Science Club",
+    "score": 90,
+    "status": "ACTIVE",
+    "issuedAt": "2024-01-16T10:27:15Z",
+    "issuedBy": {
+      "name": "System",
+      "automated": true
+    },
+    "submission": {
+      "id": "s1s2s3s4...",
+      "attemptNumber": 1,
+      "submittedAt": "2024-01-16T10:27:15Z"
+    }
+  }
+}
+```
+
+#### Step 3: Revoke Certificate
+```
+Sarah clicks "Revoke Certificate"
+
+Frontend shows confirmation modal:
+┌─────────────────────────────────────────┐
+│  Revoke Certificate?                    │
+│                                         │
+│  CERT-2024-A7B9C2D1                     │
+│  Recipient: Omar Ali                    │
+│                                         │
+│  This action cannot be undone.          │
+│  The certificate will be marked as      │
+│  revoked and will fail verification.    │
+│                                         │
+│  Reason for revocation (required):      │
+│  [____________________________]         │
+│                                         │
+│  [ Cancel ]    [ Revoke Certificate ]   │
+└─────────────────────────────────────────┘
+
+Sarah enters reason: "Violation of academic integrity policy - evidence of answer sharing"
+
+POST /api/v1/certificates/c1c2c3c4.../revoke
+Body: {
+  "reason": "Violation of academic integrity policy - evidence of answer sharing"
+}
+Headers: Authorization: Bearer [Sarah's token]
+
+Backend Processing:
+  1. Verify certificate ownership:
+     - Check certificate.workspace_id matches user's workspace ✓
+     - Check user has ADMIN or INSTRUCTOR role ✓
+  2. Check certificate is not already revoked:
+     - status != 'REVOKED' ✓
+  3. Validate reason is provided ✓
+  4. Update certificate:
+     UPDATE certificates
+     SET 
+       status = 'REVOKED',
+       revoked_at = NOW(),
+       revoke_reason = ?
+     WHERE id = ?
+  5. Log activity:
+     INSERT INTO activity_logs (...)
+     VALUES (..., 'certificate.revoked', ...)
+
+Response: 200 OK
+{
+  "success": true,
+  "data": {
+    "id": "c1c2c3c4...",
+    "status": "REVOKED",
+    "revokedAt": "2024-01-18T16:00:00Z",
+    "revokeReason": "Violation of academic integrity policy - evidence of answer sharing"
+  },
+  "message": "Certificate revoked successfully"
+}
+```
+
+#### Step 4: Verify Revocation
+```
+Anyone verifying this certificate now sees:
+
+GET /api/v1/public/verify/VX8K2MN9PQR7Z3A1B5C7D9E2F4G6H8J0
+
+Response: 200 OK
+{
+  "success": true,
+  "data": {
+    "valid": false,
+    "status": "REVOKED",
+    "certificateNumber": "CERT-2024-A7B9C2D1",
+    "recipientName": "Omar Ali",
+    "workshopTitle": "Introduction to Git & GitHub",
+    "workspaceName": "Computer Science Club",
+    "issuedAt": "2024-01-16T10:27:15Z",
+    "revokedAt": "2024-01-18T16:00:00Z",
+    "revokeReason": "Violation of academic integrity policy"
+  }
+}
+
+Note: Full detailed reason is visible (consider privacy implications)
+```
+
+### ✅ Success Criteria
+- [x] Certificate status updated to REVOKED
+- [x] Revocation timestamp recorded
+- [x] Reason stored and visible
+- [x] Public verification reflects revoked status
+- [x] Activity log created
+- [x] Revocation is permanent (cannot be undone)
+
+---
+
+## SCENARIO 9: Adding a Co-Instructor
+
+### 👤 Actor
+**Sarah Chen** — Workspace Admin
+
+### 🎯 Goal
+Add Dr. Ahmad Hassan as an instructor to help manage workshops
+
+### 📝 Detailed Steps
+
+#### Step 1: Invite by Email
+```
+Sarah navigates to Workspace → Members → Add Member
+
+POST /api/v1/workspaces/a1b2c3d4.../members
+Body: {
+  "email": "ahmad.hassan@university.edu",
+  "role": "INSTRUCTOR"
+}
+
+Backend Processing:
+  1. Verify Sarah is ADMIN ✓
+  2. Look up user by email:
+     SELECT * FROM users WHERE email = ?
+     
+     Case A: User exists
+       - Add membership with role INSTRUCTOR
+       
+     Case B: User doesn't exist
+       - Create invite link
+       - Send email invitation (if email service configured)
+
+Response (Case A - User Exists): 201 Created
+{
+  "success": true,
+  "data": {
+    "member": {
+      "id": "m5m6m7m8...",
+      "userId": "ahmad789...",
+      "name": "Dr. Ahmad Hassan",
+      "email": "ahmad.hassan@university.edu",
+      "role": "INSTRUCTOR",
+      "joinedAt": "2024-01-20T15:00:00Z"
+    }
+  },
+  "message": "Member added successfully"
+}
+```
+
+#### Step 2: New Instructor Accesses Workspace
+```
+Dr. Ahmad logs in and navigates to My Workspaces
+
+GET /api/v1/workspaces
+
+Response includes:
+{
+  "success": true,
+  "data": [
+    {
+      "id": "a1b2c3d4...",
+      "name": "Computer Science Club",
+      "slug": "cs-club",
+      "role": "INSTRUCTOR", ← Can create workshops, assessments
+      "membersCount": 46,
+      "workshopsCount": 3
+    }
+  ]
+}
+
+Dr. Ahmad can now:
+  ✓ Create workshops
+  ✓ Create assessments
+  ✓ Issue certificates
+  ✓ View analytics
+  ✓ Invite members
+  
+  ✗ Cannot delete workspace
+  ✗ Cannot remove/change admin
+```
+
+### ✅ Success Criteria
+- [x] Instructor added with correct role
+- [x] Instructor has appropriate permissions
+- [x] Workspace visible in instructor's workspace list
+
+---
+
+## SCENARIO 10: Handling Concurrent Invite Acceptance
+
+### 👤 Actors
+**User A** and **User B** — Two students clicking invite simultaneously
+
+### 🎯 Goal
+Ensure exactly 50 students can join when max_uses = 50
+
+### 📝 Detailed Steps
+
+```
+Initial State:
+  invite.max_uses = 50
+  invite.uses_count = 49
+
+At T+0ms:
+  User A: POST /api/v1/invites/accept {"code": "GIT2024WK1AB"}
+  User B: POST /api/v1/invites/accept {"code": "GIT2024WK1AB"}
+
+Backend Processing (Transaction A):
+  1. BEGIN TRANSACTION
+  2. SELECT * FROM invites WHERE code = ? FOR UPDATE
+     → Acquires row lock
+     → uses_count = 49
+  3. Check: 49 < 50 ✓
+  4. Create enrollment
+  5. UPDATE invites SET uses_count = 50 WHERE id = ?
+  6. COMMIT
+  → User A succeeds ✓
+
+Backend Processing (Transaction B, waiting on lock):
+  1. BEGIN TRANSACTION
+  2. SELECT * FROM invites WHERE code = ? FOR UPDATE
+     → Waits for Transaction A to complete...
+     → Transaction A commits, lock released
+     → uses_count = 50
+  3. Check: 50 < 50 ✗
+  4. ROLLBACK
+  
+Response to User B: 422 Unprocessable Entity
+{
+  "success": false,
+  "error": {
+    "code": "INVITE_LIMIT_REACHED",
+    "message": "This invitation has reached its usage limit"
+  }
+}
+
+Result:
+  ✓ Exactly 50 users enrolled (not 51)
+  ✓ No race condition
+  ✓ Database integrity maintained
+```
+
+### ✅ Success Criteria
+- [x] Only one user succeeds when at limit
+- [x] No duplicate enrollments
+- [x] uses_count never exceeds max_uses
+- [x] Clear error message for rejected user
+
+---
+
+# 5. Edge Cases & Variations
+
+## 5.1 Workshop Lifecycle Edge Cases
+
+### 5.1.1 Publishing Draft Workshop Without Resources
+```
+Scenario: Organizer tries to publish empty workshop
+
+PATCH /api/v1/workshops/w1w2w3w4.../publish
+
+Backend Check:
+  SELECT COUNT(*) FROM resources WHERE workshop_id = ?
+  → 0 resources
+  
+  SELECT COUNT(*) FROM assessments WHERE workshop_id = ?
+  → 0 assessments
+
+Response: 422 Unprocessable Entity
+{
+  "success": false,
+  "error": {
+    "code": "PUBLISH_REQUIREMENTS_NOT_MET",
+    "message": "Workshop must have at least one resource or assessment"
+  }
+}
+```
+
+### 5.1.2 Archiving Workshop with Active Enrollments
+```
+Scenario: 45 active participants, Sarah archives workshop
+
+PATCH /api/v1/workshops/w1w2w3w4.../archive
+
+Backend:
+  - Sets status = 'ARCHIVED'
+  - Preserves all enrollments
+  - Prevents new enrollments
+  - Assessments become read-only
+  - Certificates remain valid
+
+Response: 200 OK
+{
+  "success": true,
+  "data": {
+    "status": "ARCHIVED",
+    "archivedAt": "2024-02-15T10:00:00Z",
+    "activeEnrollments": 45,
+    "certificatesIssued": 28
+  },
+  "message": "Workshop archived. Existing participants retain access."
+}
+```
+
+### 5.1.3 Attempting to Enroll in Archived Workshop
+```
+Scenario: New user tries to join archived workshop
+
+POST /api/v1/invites/accept
+Body: {"code": "ARCHIVED123"}
+
+Backend Check:
+  Workshop status = 'ARCHIVED'
+
+Response: 422 Unprocessable Entity
+{
+  "success": false,
+  "error": {
+    "code": "WORKSHOP_ARCHIVED",
+    "message": "This workshop has been archived and is no longer accepting enrollments"
+  }
+}
+```
+
+---
+
+## 5.2 Assessment Timing Edge Cases
+
+### 5.2.1 Browser Crash During Assessment
+```
+Scenario: Omar's browser crashes at 15 minutes into 30-minute assessment
+
+Recovery Flow:
+  1. Omar reopens browser, logs back in
+  2. Frontend checks for active submission:
+  
+     GET /api/v1/assessments/a1a2a3a4.../submissions
+     Filter: status = 'IN_PROGRESS' AND user = current_user
+     
+     Response: {
+       "data": [{
+         "id": "s1s2s3s4...",
+         "startedAt": "2024-01-16T10:15:00Z",
+         "expiresAt": "2024-01-16T10:45:00Z",
+         "timeRemaining": 900 // 15 minutes left
+       }]
+     }
+  
+  3. Frontend displays:
+     "You have an active assessment in progress.
+      Time remaining: 15:00
+      [ Resume Assessment ]"
+  
+  4. Omar clicks Resume
+  5. Questions load (answers may be lost if not auto-saved)
+  6. Timer continues from remaining time
+```
+
+### 5.2.2 Network Failure During Submission
+```
+Scenario: Network drops exactly when Omar clicks Submit
+
+Frontend Implementation:
+  1. Store answers in localStorage before submitting
+  2. POST /api/v1/submissions/s1s2s3s4.../submit
+  3. Network timeout after 30 seconds
+  4. Frontend retries with exponential backoff
+  5. If still fails:
+     - Display: "Submission failed. Retrying..."
+     - Keep answers in localStorage
+     - Retry every 10 seconds
+  6. Once network recovers, submission succeeds
+  7. Clear localStorage after 200 OK
+
+Edge Case: Submission expires during network outage
+  - Backend returns 422 Submission Expired
+  - Frontend displays: "Time expired during network issue. 
+                        Your attempt has been marked expired."
+```
+
+### 5.2.3 Clock Skew Between Client and Server
+```
+Scenario: User's clock is 5 minutes ahead
+
+Problem: Frontend timer shows 0:00 but backend still has 5 minutes
+
+Solution:
+  - Backend is source of truth for expiration
+  - Frontend syncs time from server on start:
+    
+    Response to start submission:
+    {
+      "expiresAt": "2024-01-16T10:45:00Z",
+      "serverTime": "2024-01-16T10:15:00Z",
+      "durationSeconds": 1800
+    }
+  
+  - Frontend calculates offset:
+    offset = serverTime - clientTime
+  
+  - Frontend adjusts timer using offset
+```
+
+---
+
+## 5.3 Certificate Generation Edge Cases
+
+### 5.3.1 PDF Generation Failure
+```
+Scenario: R2 upload fails during certificate generation
+
+Backend Implementation:
+  try {
+    // Generate PDF
+    byte[] pdfBytes = generatePdf(certificate);
+    
+    // Upload to R2
+    String pdfUrl = storageService.uploadBytes(
+      "certificates/" + certId + "/certificate.pdf",
+      pdfBytes,
+      "application/pdf"
+    );
+    
+    // Update certificate
+    certificate.setPdfUrl(pdfUrl);
+    certificateRepository.save(certificate);
+    
+  } catch (StorageException e) {
+    // Log error but don't fail certificate issuance
+    log.error("PDF upload failed for certificate {}", certId, e);
+    
+    // Certificate record exists, PDF can be regenerated later
+    // Mark for retry
+    certificate.setPdfGenerationStatus("FAILED");
+    certificateRepository.save(certificate);
+  }
+
+Response to user:
+{
+  "success": true,
+  "data": {
+    "certificate": {
+      "id": "c1c2c3c4...",
+      "certificateNumber": "CERT-2024-A7B9C2D1",
+      "pdfUrl": null,
+      "pdfStatus": "GENERATING",
+      "message": "Certificate issued. PDF will be available shortly."
+    }
+  }
+}
+
+Background Job:
+  - Retry PDF generation every 5 minutes
+  - Max 3 retries
+  - If still fails, send alert to admin
+```
+
+### 5.3.2 Duplicate Certificate Prevention
+```
+Scenario: Network retry causes duplicate certificate issuance attempt
+
+Backend Implementation:
+  @Transactional
+  public Certificate issueCertificate(UUID assessmentId, UUID userId) {
+    // Check for existing certificate
+    Optional<Certificate> existing = certificateRepository
+      .findByAssessmentAndUserAndStatus(assessmentId, userId, "ACTIVE");
+    
+    if (existing.isPresent()) {
+      // Return existing instead of creating duplicate
+      log.info("Certificate already exists for user {} assessment {}", 
+               userId, assessmentId);
+      return existing.get();
+    }
+    
+    // Create new certificate
+    Certificate cert = new Certificate();
+    cert.setCertificateNumber(generateUniqueCertNumber());
+    cert.setVerificationCode(generateUniqueVerificationCode());
+    // ... set other fields
+    
+    return certificateRepository.save(cert);
+  }
+
+Result: Idempotent operation, safe to retry
+```
+
+---
+
+## 5.4 Permission and Access Edge Cases
+
+### 5.4.1 User Removed During Active Session
+```
+Scenario: Sarah removes Omar from workspace while Omar is taking assessment
+
+Sequence:
+  T+0:   Omar starts assessment
+  T+10:  Sarah removes Omar from workspace
+  T+15:  Omar tries to submit
+
+Omar's submission request:
+  POST /api/v1/submissions/s1s2s3s4.../submit
+
+Backend checks (in order):
+  1. Get submission ✓
+  2. Verify submission belongs to requesting user ✓
+  3. Check enrollment exists:
+     SELECT * FROM enrollments WHERE workshop_id = ? AND user_id = ?
+     Result: None (was deleted)
+  4. Return 403 Forbidden
+
+Response: 403 Forbidden
+{
+  "success": false,
+  "error": {
+    "code": "ACCESS_DENIED",
+    "message": "You no longer have access to this workshop"
+  }
+}
+
+Best Practice:
+  - Don't hard-delete enrollments
+  - Soft-delete or mark as REMOVED
+  - Allow submission if started before removal
+```
+
+### 5.4.2 Role Changed During Session
+```
+Scenario: Sarah demotes Dr. Ahmad from INSTRUCTOR to MEMBER
+
+Impact:
+  - Dr. Ahmad's current session still has INSTRUCTOR token
+  - Token doesn't refresh until expiry (e.g., 1 hour)
+
+Mitigation Options:
+
+Option A (Simple - JWT expiry):
+  - Dr. Ahmad keeps INSTRUCTOR permissions until token expires
+  - New token on refresh will have MEMBER role
+  - Acceptable for most use cases
+
+Option B (Real-time - Database check):
+  - Every protected endpoint checks current role from database
+  - Slower but real-time enforcement
+  
+  @PreAuthorize("@authService.hasRole(#workspaceId, 'INSTRUCTOR')")
+  public void createWorkshop(UUID workspaceId, ...) {
+    // Real-time role check
+  }
+
+Implementation (Option A recommended for MVP):
+  - Token expires after 1 hour
+  - Role changes take effect on next login
+  - For critical actions (delete workspace), force DB check
+```
+
+### 5.4.3 Workspace Deleted During Active Workshop
+```
+Scenario: ADMIN deletes workspace with active workshops
+
+DELETE /api/v1/workspaces/a1b2c3d4...
+
+Backend Implementation:
+  @Transactional
+  public void deleteWorkspace(UUID workspaceId) {
+    // Check for active workshops with enrollments
+    long activeEnrollments = workshopRepository
+      .countActiveEnrollmentsByWorkspace(workspaceId);
+    
+    if (activeEnrollments > 0) {
+      throw new ValidationException(
+        "Cannot delete workspace with active enrollments. " +
+        "Archive workshops first."
+      );
+    }
+    
+    // Soft delete workspace
+    workspace.setDeletedAt(Instant.now());
+    workspaceRepository.save(workspace);
+    
+    // Cascade soft-delete to workshops
+    workshopRepository.softDeleteByWorkspace(workspaceId);
+  }
+
+Alternative: Prevent deletion, require archival
+  "This workspace has 45 active participants across 3 workshops. 
+   You must archive all workshops before deletion."
+```
+
+---
+
+## 5.5 Data Integrity Edge Cases
+
+### 5.5.1 Question Deleted After Submissions Exist
+```
+Scenario: ADMIN tries to delete question with 50 submissions
+
+DELETE /api/v1/questions/q1q2q3q4...
+
+Backend Check:
+  1. Get question
+  2. Count submissions using this question:
+     SELECT COUNT(DISTINCT s.id) 
+     FROM submissions s
+     JOIN responses r ON s.id = r.submission_id
+     WHERE r.question_id = ?
+     
+     Result: 50 submissions
+  
+  3. Reject deletion
+
+Response: 422 Unprocessable Entity
+{
+  "success": false,
+  "error": {
+    "code": "QUESTION_HAS_RESPONSES",
+    "message": "Cannot delete question that has been answered",
+    "details": [{
+      "responsesCount": 50,
+      "suggestion": "Archive the entire assessment instead"
+    }]
+  }
+}
+```
+
+### 5.5.2 Answer Correctness Changed After Grading
+```
+Scenario: ADMIN accidentally changes wrong answer to correct
+
+Prevention:
+  - Lock questions/answers once assessment is published
+  - Require unpublishing to edit (clears submissions)
+  - OR create versioned questions/answers
+
+Implementation:
+  PATCH /api/v1/answers/a1a1a1a1...
+  Body: {"isCorrect": true}
+
+  Backend Check:
+    1. Get answer
+    2. Get question → Get assessment
+    3. Check assessment status:
+       IF status = 'PUBLISHED' AND submission_count > 0
+       THEN reject
+
+  Response: 422 Unprocessable Entity
+  {
+    "error": {
+      "code": "CANNOT_MODIFY_GRADED_CONTENT",
+      "message": "Cannot modify answers after students have submitted"
+    }
+  }
+```
+
+---
+
+# 6. API Request/Response Examples
+
+## 6.1 Complete Workshop Creation Flow
+
+```http
+### Step 1: Create Workspace
+POST /api/v1/workspaces
+Authorization: Bearer eyJhbGciOiJSUzI1NiIs...
+Content-Type: application/json
+
+{
+  "name": "AI Research Lab",
+  "slug": "ai-lab",
+  "description": "University AI and Machine Learning Research Lab",
+  "logoUrl": "https://files.skillmark.io/logos/ai-lab.png"
+}
+
+HTTP/1.1 201 Created
+{
+  "success": true,
+  "data": {
+    "id": "ws-123...",
+    "name": "AI Research Lab",
+    "slug": "ai-lab",
+    "role": "ADMIN"
+  }
+}
+
+### Step 2: Create Workshop
+POST /api/v1/workspaces/ws-123.../workshops
+Authorization: Bearer eyJhbGciOiJSUzI1NiIs...
+Content-Type: application/json
+
+{
+  "title": "Neural Networks Fundamentals",
+  "description": "Introduction to neural networks and deep learning",
+  "startsAt": "2024-03-01T09:00:00Z",
+  "endsAt": "2024-03-01T17:00:00Z"
+}
+
+HTTP/1.1 201 Created
+{
+  "success": true,
+  "data": {
+    "id": "wk-456...",
+    "title": "Neural Networks Fundamentals",
+    "status": "DRAFT"
+  }
+}
+
+### Step 3: Add Resource
+POST /api/v1/workshops/wk-456.../resources
+Authorization: Bearer eyJhbGciOiJSUzI1NiIs...
+Content-Type: application/json
+
+{
+  "title": "Deep Learning Textbook",
+  "type": "DOCUMENT",
+  "url": "https://files.skillmark.io/workshops/wk-456/textbook.pdf",
+  "position": 0
+}
+
+HTTP/1.1 201 Created
+
+### Step 4: Create Assessment
+POST /api/v1/workshops/wk-456.../assessments
+Authorization: Bearer eyJhbGciOiJSUzI1NiIs...
+Content-Type: application/json
+
+{
+  "title": "Neural Networks Quiz",
+  "passingScore": 75,
+  "durationMinutes": 45,
+  "maxAttempts": 2,
+  "autoIssueCertificate": true
+}
+
+HTTP/1.1 201 Created
+{
+  "success": true,
+  "data": {
+    "id": "as-789...",
+    "status": "DRAFT"
+  }
+}
+
+### Step 5: Add Questions (Batch)
+POST /api/v1/assessments/as-789.../questions/batch
+Authorization: Bearer eyJhbGciOiJSUzI1NiIs...
+Content-Type: application/json
+
+{
+  "questions": [
+    {
+      "text": "What is a perceptron?",
+      "points": 1,
+      "position": 0,
+      "answers": [
+        {"text": "The simplest type of artificial neuron", "isCorrect": true, "position": 0},
+        {"text": "A type of activation function", "isCorrect": false, "position": 1},
+        {"text": "A loss function", "isCorrect": false, "position": 2}
+      ]
+    }
+  ]
+}
+
+HTTP/1.1 201 Created
+
+### Step 6: Publish Assessment
+PATCH /api/v1/assessments/as-789.../publish
+Authorization: Bearer eyJhbGciOiJSUzI1NiIs...
+
+HTTP/1.1 200 OK
+{
+  "success": true,
+  "data": {
+    "status": "PUBLISHED"
+  }
+}
+
+### Step 7: Publish Workshop
+PATCH /api/v1/workshops/wk-456.../publish
+Authorization: Bearer eyJhbGciOiJSUzI1NiIs...
+
+HTTP/1.1 200 OK
+
+### Step 8: Create Invite
+POST /api/v1/workspaces/ws-123.../invites
+Authorization: Bearer eyJhbGciOiJSUzI1NiIs...
+Content-Type: application/json
+
+{
+  "workshopId": "wk-456...",
+  "role": "MEMBER",
+  "maxUses": 30,
+  "expiresAt": "2024-03-01T23:59:59Z"
+}
+
+HTTP/1.1 201 Created
+{
+  "success": true,
+  "data": {
+    "code": "NEURAL2024AI",
+    "inviteUrl": "https://app.skillmark.io/join/NEURAL2024AI"
+  }
+}
+```
+
+---
+
+## 6.2 Complete Assessment Taking Flow
+
+```http
+### Step 1: Preview Invite
+GET /api/v1/invites/NEURAL2024AI/preview
+
+HTTP/1.1 200 OK
+{
+  "success": true,
+  "data": {
+    "valid": true,
+    "workshop": {
+      "title": "Neural Networks Fundamentals",
+      "description": "..."
+    },
+    "workspace": {
+      "name": "AI Research Lab"
+    }
+  }
+}
+
+### Step 2: Accept Invite
+POST /api/v1/invites/accept
+Authorization: Bearer eyJhbGciOiJSUzI1NiIs...
+Content-Type: application/json
+
+{
+  "code": "NEURAL2024AI"
+}
+
+HTTP/1.1 201 Created
+{
+  "success": true,
+  "message": "Successfully joined workshop!"
+}
+
+### Step 3: View Assessments
+GET /api/v1/workshops/wk-456.../assessments
+Authorization: Bearer eyJhbGciOiJSUzI1NiIs...
+
+HTTP/1.1 200 OK
+{
+  "success": true,
+  "data": [
+    {
+      "id": "as-789...",
+      "title": "Neural Networks Quiz",
+      "passingScore": 75,
+      "durationMinutes": 45,
+      "userAttempts": 0,
+      "remainingAttempts": 2,
+      "canAttempt": true
+    }
+  ]
+}
+
+### Step 4: Start Submission
+POST /api/v1/assessments/as-789.../submissions
+Authorization: Bearer eyJhbGciOiJSUzI1NiIs...
+
+HTTP/1.1 201 Created
+{
+  "success": true,
+  "data": {
+    "id": "sub-101...",
+    "attemptNumber": 1,
+    "status": "IN_PROGRESS",
+    "expiresAt": "2024-01-20T16:00:00Z"
+  }
+}
+
+### Step 5: Load Questions
+GET /api/v1/assessments/as-789.../questions
+Authorization: Bearer eyJhbGciOiJSUzI1NiIs...
+
+HTTP/1.1 200 OK
+{
+  "success": true,
+  "data": [
+    {
+      "id": "q-201...",
+      "text": "What is a perceptron?",
+      "points": 1,
+      "answers": [
+        {"id": "ans-301...", "text": "The simplest type of artificial neuron"},
+        {"id": "ans-302...", "text": "A type of activation function"},
+        {"id": "ans-303...", "text": "A loss function"}
+      ]
+    }
+  ]
+}
+
+### Step 6: Submit Answers
+POST /api/v1/submissions/sub-101.../submit
+Authorization: Bearer eyJhbGciOiJSUzI1NiIs...
+Content-Type: application/json
+
+{
+  "responses": [
+    {"questionId": "q-201...", "answerId": "ans-301..."}
+  ]
+}
+
+HTTP/1.1 200 OK
+{
+  "success": true,
+  "data": {
+    "submission": {
+      "status": "SUBMITTED",
+      "score": 8,
+      "maxScore": 10,
+      "percentage": 80.0,
+      "passed": true
+    },
+    "certificate": {
+      "certificateNumber": "CERT-2024-B3X7Y9Z2",
+      "verificationUrl": "https://verify.skillmark.io/ABC..."
+    }
+  },
+  "message": "Congratulations! You passed with 80%"
+}
+```
+
+---
+
+This comprehensive user scenario document provides:
+- ✅ 10 detailed primary scenarios
+- ✅ 10+ edge case scenarios
+- ✅ Realistic persona-based narratives
+- ✅ Complete API request/response examples
+- ✅ Error handling and recovery flows
+- ✅ Concurrent operation handling
+- ✅ Data integrity scenarios
+- ✅ Security and permission edge cases
+
+**Total coverage: 25+ scenarios spanning all major platform features**
