@@ -16,7 +16,13 @@ If you only want the exact commands, use these.
 .\gradlew.bat bootRun --args="--spring.profiles.active=local"
 ```
 
-#### Run the project with PostgreSQL
+#### Run the project with local PostgreSQL (local-postgres profile)
+
+```powershell
+.\gradlew.bat bootRun --args="--spring.profiles.active=local-postgres"
+```
+
+#### Run the project with PostgreSQL (Environment Variables)
 
 ```powershell
 $env:DATABASE_URL="jdbc:postgresql://localhost:5432/Skillmark"
@@ -51,6 +57,10 @@ $env:JWT_EXPIRATION="86400000"
 .\gradlew.bat bootRun --args="--server.port=8081 --spring.profiles.active=local"
 ```
 
+```powershell
+.\gradlew.bat bootRun --args="--server.port=8081 --spring.profiles.active=local-postgres"
+```
+
 ### Open in browser after startup
 
 - Swagger UI: `http://localhost:8080/swagger-ui.html`
@@ -81,7 +91,7 @@ You do not need to install Gradle separately because the project includes the Gr
 
 ## Project Modes
 
-The project currently supports two useful local run modes:
+The project currently supports three useful local run modes:
 
 1. `default`
 Uses PostgreSQL, Flyway, and `spring.jpa.hibernate.ddl-auto=validate`.
@@ -89,14 +99,18 @@ Uses PostgreSQL, Flyway, and `spring.jpa.hibernate.ddl-auto=validate`.
 2. `local`
 Uses in-memory H2, disables Flyway, and is best for quick local startup without external database setup.
 
+3. `local-postgres`
+Uses local PostgreSQL with Flyway enabled, and validates schema with Hibernate. Best for development that requires PostgreSQL-specific features.
+
 ## Important Config Files
 
 - Main runtime config: `src/main/resources/application.properties`
-- Local dev config: `src/main/resources/application-local.properties`
+- Local dev config (H2): `src/main/resources/application-local.properties`
+- Local dev config (PostgreSQL): `src/main/resources/application-local-postgres.properties`
 - Test config: `src/test/resources/application-test.properties`
 - Build config: `build.gradle`
 
-## Option 1: Fastest Local Start
+## Option 1: Fastest Local Start (H2)
 
 Use this when you just want the API running quickly for development or Swagger browsing.
 
@@ -120,9 +134,40 @@ Use this when you just want the API running quickly for development or Swagger b
 - OpenAPI JSON: `http://localhost:8080/v3/api-docs`
 - Health endpoint: `http://localhost:8080/actuator/health`
 
-## Option 2: Run With PostgreSQL
+## Option 2: Run With Local PostgreSQL (local-postgres profile)
 
-Use this when you want to run closer to production behavior.
+Use this when you want to run with PostgreSQL locally without setting environment variables.
+
+### Prerequisites
+
+- PostgreSQL running on localhost:5432
+- Database named `skillmark` created
+- User `postgres` with password `postgres` (or update the config file)
+
+### Windows PowerShell
+
+```powershell
+.\gradlew.bat bootRun --args="--spring.profiles.active=local-postgres"
+```
+
+### What this does
+
+- Starts the app with the `local-postgres` profile
+- Uses local PostgreSQL database
+- Runs Flyway migrations
+- Validates schema with Hibernate
+- Runs on port `8080` unless changed
+
+### URLs
+
+- API base: `http://localhost:8080/api/v1`
+- Swagger UI: `http://localhost:8080/swagger-ui.html`
+- OpenAPI JSON: `http://localhost:8080/v3/api-docs`
+- Health endpoint: `http://localhost:8080/actuator/health`
+
+## Option 3: Run With PostgreSQL (Environment Variables)
+
+Use this when you want to run closer to production behavior with custom database settings.
 
 ### Step 1: Create a PostgreSQL database
 
