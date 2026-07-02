@@ -1,27 +1,63 @@
-<section class="page">
-  <header class="page-heading">
-    <div>
-      <p class="breadcrumb">Certificates</p>
-      <h1>Certificates</h1>
-      <p>Browse issued certificates, status, verification codes, and public verification pages.</p>
-    </div>
-  </header>
+<app-page-header title="My Certificates" subtitle="Browse your issued certificates, status, and verification details." />
 
-  <div class="certificate-grid">
-    @for (certificate of certificates; track certificate.id) {
-      <article class="certificate-tile" [class.revoked]="certificate.status === 'REVOKED'">
-        <span class="status" [class.status-active]="certificate.status === 'ACTIVE'" [class.status-revoked]="certificate.status === 'REVOKED'">{{ certificate.status }}</span>
-        <h2>{{ certificate.recipientName }}</h2>
-        <p>{{ certificate.programTitle }} / {{ certificate.quizTitle }}</p>
-        <dl class="detail-grid single">
-          <div><dt>Issued</dt><dd>{{ certificate.issuedAt }}</dd></div>
-          <div><dt>Code</dt><dd>{{ certificate.verificationCode }}</dd></div>
-        </dl>
-        <div class="button-row">
-          <a class="button button-secondary" [routerLink]="['/certificates', certificate.id]">Details</a>
-          <a class="button button-primary" [routerLink]="['/verify', certificate.verificationCode]">Verify</a>
+@if (query.isPending()) {
+  <app-loading-state message="Loading certificates..." />
+} @else if (query.isError()) {
+  <app-error-state [message]="query.error()?.message ?? 'Failed to load certificates'" (retry)="query.refetch()" />
+} @else if (data()?.items?.length === 0) {
+  <app-card>
+    <app-empty-state
+      title="No certificates"
+      description="You have not received any certificates yet."
+    />
+  </app-card>
+} @else {
+  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    @for (certificate of data()?.items; track certificate.id) {
+      <app-card>
+        <div class="flex items-start justify-between">
+          <div>
+            <p class="text-xs font-medium text-[#64748d]">{{ certificate.certificateNumber }}</p>
+            <h3 class="mt-1 text-lg font-semibold text-[#0d253d]">{{ certificate.title }}</h3>
+          </div>
+          <app-badge [variant]="statusVariant(certificate.status)">{{ certificate.status }}</app-badge>
         </div>
-      </article>
+
+        <div class="mt-4 space-y-1 text-sm text-[#64748d]">
+          <p><span class="font-medium text-[#0d253d]">Quiz:</span> {{ certificate.quizTitleSnapshot }}</p>
+          <p><span class="font-medium text-[#0d253d]">Program:</span> {{ certificate.programTitleSnapshot }}</p>
+          <p><span class="font-medium text-[#0d253d]">Organization:</span> {{ certificate.organizationNameSnapshot }}</p>
+        </div>
+
+        <div class="mt-4 flex items-center justify-between">
+          <p class="text-xs text-[#64748d]">Issued {{ certificate.issuedAt | date:'mediumDate' }}</p>
+          <app-button variant="secondary" size="sm" (clicked)="router.navigate(['/certificates', certificate.id])">
+            View
+          </app-button>
+        </div>
+      </app-card>
     }
   </div>
-</section>
+
+  @if (totalPages() > 1) {
+    <div class="mt-6 flex items-center justify-between">
+      <app-button
+        variant="secondary"
+        size="sm"
+        [disabled]="!hasPrevious()"
+        (clicked)="goToPrevious()"
+      >
+        Previous
+      </app-button>
+      <span class="text-sm text-[#64748d]">Page {{ page() + 1 }} of {{ totalPages() }}</span>
+      <app-button
+        variant="secondary"
+        size="sm"
+        [disabled]="!hasNext()"
+        (clicked)="goToNext()"
+      >
+        Next
+      </app-button>
+    </div>
+  }
+}

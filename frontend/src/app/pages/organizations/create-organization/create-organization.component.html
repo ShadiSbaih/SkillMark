@@ -1,0 +1,38 @@
+<app-page-header title="Create organization" subtitle="Start a new learning organization."></app-page-header>
+
+<app-card>
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
+    <div>
+      <label for="name" class="block text-sm font-medium text-[#0d253d]">Name</label>
+      <input
+        id="name"
+        type="text"
+        formControlName="name"
+        class="mt-1 block w-full rounded-md border border-[#a8c3de] bg-[#f6f9fc] px-3 py-2 text-sm text-[#0d253d] placeholder-[#64748d] focus:border-[#533afd] focus:outline-none focus:ring-1 focus:ring-[#533afd]"
+        placeholder="e.g. Engineering Onboarding"
+      />
+      @if (form.get('name')?.invalid && form.get('name')?.touched) {
+        <p class="mt-1 text-sm text-red-600">Name is required and must be 100 characters or less.</p>
+      }
+    </div>
+
+    <div>
+      <label for="description" class="block text-sm font-medium text-[#0d253d]">Description</label>
+      <textarea
+        id="description"
+        formControlName="description"
+        rows="4"
+        class="mt-1 block w-full rounded-md border border-[#a8c3de] bg-[#f6f9fc] px-3 py-2 text-sm text-[#0d253d] placeholder-[#64748d] focus:border-[#533afd] focus:outline-none focus:ring-1 focus:ring-[#533afd]"
+        placeholder="What is this organization for?"
+      ></textarea>
+      @if (form.get('description')?.invalid && form.get('description')?.touched) {
+        <p class="mt-1 text-sm text-red-600">Description must be 500 characters or less.</p>
+      }
+    </div>
+
+    <div class="flex justify-end gap-3">
+      <app-button type="button" variant="ghost" (clicked)="router.navigate(['/organizations'])">Cancel</app-button>
+      <app-button type="submit" [loading]="mutation.isPending()">Create organization</app-button>
+    </div>
+  </form>
+</app-card>

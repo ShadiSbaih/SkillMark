@@ -1,8 +1,10 @@
 import { Routes } from '@angular/router';
+import { authGuard } from './core/auth/auth.guard';
 import { DashboardLayoutComponent } from './core/layout/dashboard-layout/dashboard-layout.component';
 import { PublicLayoutComponent } from './core/layout/public-layout/public-layout.component';
 import { AttemptResultComponent } from './pages/attempt-result/attempt-result.component';
 import { AuditLogsComponent } from './pages/audit-logs/audit-logs.component';
+import { JoinComponent } from './pages/join/join.component';
 import { CertificateDetailComponent } from './pages/certificate-detail/certificate-detail.component';
 import { DashboardComponent } from './pages/dashboard/dashboard.component';
 import { LandingComponent } from './pages/landing/landing.component';
@@ -36,14 +38,34 @@ export const routes: Routes = [
     children: [
       { path: 'dashboard', component: DashboardComponent },
       { path: 'profile', component: DashboardComponent },
-      { path: 'organizations/new', component: OrganizationsComponent },
-      { path: 'organizations/:orgId', component: OrganizationsComponent },
-      { path: 'organizations/:orgId/members', component: OrganizationMembersComponent },
-      { path: 'organizations/:orgId/settings', component: OrganizationsComponent },
-      { path: 'organizations/:orgId/stats', component: OrganizationStatsComponent },
-      { path: 'organizations/:orgId/audit-logs', component: AuditLogsComponent },
-      { path: 'organizations/:orgId/certificates', component: MyCertificatesComponent },
-      { path: 'organizations/:orgId/programs/new', component: ProgramOverviewComponent },
+      { path: 'join/:code', component: JoinComponent },
+      {
+        path: 'organizations',
+        canActivate: [authGuard],
+        children: [
+          { path: '', component: OrganizationsComponent },
+          {
+            path: 'new',
+            loadComponent: () =>
+              import('./pages/organizations/create-organization/create-organization.component').then(
+                (m) => m.CreateOrganizationComponent
+              ),
+          },
+          { path: ':orgId', component: OrganizationsComponent },
+          { path: ':orgId/members', component: OrganizationMembersComponent },
+          { path: ':orgId/settings', component: OrganizationsComponent },
+          { path: ':orgId/stats', component: OrganizationStatsComponent },
+          { path: ':orgId/audit-logs', component: AuditLogsComponent },
+          { path: ':orgId/certificates', component: MyCertificatesComponent },
+          {
+            path: ':orgId/programs/new',
+            loadComponent: () =>
+              import('./pages/programs/create-program/create-program.component').then(
+                (m) => m.CreateProgramComponent
+              ),
+          },
+        ],
+      },
       { path: 'programs/:programId', component: ProgramOverviewComponent },
       { path: 'programs/:programId/enrollments', component: ProgramEnrollmentsComponent },
       { path: 'programs/:programId/invitations', component: ProgramInvitationsComponent },

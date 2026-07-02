@@ -1,29 +1,57 @@
-import { Component } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Component, inject, signal } from '@angular/core';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { ClerkService, ClerkUserButtonComponent } from 'ngx-clerk';
+
+interface NavLink {
+  label: string;
+  route: string;
+  roles: ('owner' | 'participant')[];
+}
 
 @Component({
   selector: 'app-dashboard-layout',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, ClerkUserButtonComponent],
   templateUrl: './dashboard-layout.component.html',
-  styleUrl: './dashboard-layout.component.scss',
 })
 export class DashboardLayoutComponent {
-  readonly ownerLinks = [
-    { label: 'Dashboard', route: '/dashboard' },
-    { label: 'Organizations', route: '/organizations/org-cs' },
-    { label: 'Members', route: '/organizations/org-cs/members' },
-    { label: 'Programs', route: '/programs/program-git' },
-    { label: 'Resources', route: '/programs/program-git/resources' },
-    { label: 'Quizzes', route: '/programs/program-git/quizzes' },
-    { label: 'Certificates', route: '/organizations/org-cs/certificates' },
-    { label: 'Audit Logs', route: '/organizations/org-cs/audit-logs' },
+  private readonly router = inject(Router);
+  readonly clerk = inject(ClerkService);
+
+  readonly mobileOpen = signal(false);
+
+  readonly organizations = signal([
+    { id: 'org-cs', name: 'CS Club' },
+    { id: 'org-data', name: 'Data Guild' },
+  ]);
+  readonly selectedOrganizationId = signal<string | null>(null);
+
+  readonly navLinks: NavLink[] = [
+    { label: 'Dashboard', route: '/dashboard', roles: ['owner', 'participant'] },
+    { label: 'Organizations', route: '/organizations', roles: ['owner'] },
+    { label: 'Programs', route: '/programs', roles: ['owner'] },
+    { label: 'My Programs', route: '/my-programs', roles: ['participant'] },
+    { label: 'My Attempts', route: '/my-attempts', roles: ['participant'] },
+    { label: 'My Certificates', route: '/my-certificates', roles: ['participant', 'owner'] },
   ];
 
-  readonly participantLinks = [
-    { label: 'My Programs', route: '/programs/program-git/learn' },
-    { label: 'Quiz Attempt', route: '/quizzes/quiz-git-final/attempt' },
-    { label: 'My Attempts', route: '/my-attempts' },
-    { label: 'My Certificates', route: '/my-certificates' },
-  ];
+  readonly ownerLinks = this.navLinks.filter((link) => link.roles.includes('owner'));
+  readonly participantLinks = this.navLinks.filter((link) => link.roles.includes('participant'));
+
+  toggleMobile(): void {
+    this.mobileOpen.update((open) => !open);
+  }
+
+  closeMobile(): void {
+    this.mobileOpen.set(false);
+  }
+
+  onOrganizationChange(event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    const id = select.value;
+    this.selectedOrganizationId.set(id);
+    if (id) {
+      void this.router.navigate(['/organizations', id]);
+    }
+  }
 }

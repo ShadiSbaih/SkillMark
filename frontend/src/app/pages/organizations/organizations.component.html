@@ -1,63 +1,125 @@
-<section class="page">
-  <header class="page-heading">
-    <div>
-      <p class="breadcrumb">Home / Organizations / CS Club</p>
-      <h1>Organization overview</h1>
-      <p>Manage organization details, programs, members, audit history, and certificate inventory.</p>
+@if (!isOverview()) {
+  <!-- list view -->
+  <app-page-header title="Organizations" subtitle="Manage your learning organizations." [hasActions]="true">
+    <ng-container actions>
+      <app-button (clicked)="router.navigate(['/organizations/new'])">Create organization</app-button>
+    </ng-container>
+  </app-page-header>
+
+  @if (listQuery.isPending()) {
+    <app-loading-state message="Loading organizations..." />
+  } @else if (listQuery.isError()) {
+    <app-error-state [message]="listQuery.error()?.message ?? 'Failed to load organizations'" (retry)="listQuery.refetch()" />
+  } @else if (listQuery.data()?.items?.length === 0) {
+    <app-card>
+      <app-empty-state
+        title="No organizations"
+        description="You have not created any organizations yet."
+        actionLabel="Create organization"
+        (action)="router.navigate(['/organizations/new'])"
+      />
+    </app-card>
+  } @else {
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      @for (org of listQuery.data()?.items; track org.id) {
+        <app-card>
+          <div class="flex items-start justify-between">
+            <div>
+              <h3 class="text-lg font-semibold text-[#0d253d]">{{ org.name }}</h3>
+              @if (org.description) {
+                <p class="mt-1 line-clamp-2 text-sm text-[#64748d]">{{ org.description }}</p>
+              }
+              <div class="mt-3">
+                <app-badge [variant]="org.status === 'ACTIVE' ? 'success' : 'default'">{{ org.status }}</app-badge>
+              </div>
+            </div>
+          </div>
+          <div class="mt-4 flex justify-end">
+            <app-button variant="secondary" size="sm" (clicked)="router.navigate(['/organizations', org.id])">
+              View
+            </app-button>
+          </div>
+        </app-card>
+      }
     </div>
-    <a class="button button-primary" routerLink="/organizations/new">New organization</a>
-  </header>
+  }
+} @else {
+  <!-- overview view -->
+  @if (organizationQuery.isPending()) {
+    <app-loading-state message="Loading organization..." />
+  } @else if (organizationQuery.isError()) {
+    <app-error-state [message]="organizationQuery.error()?.message ?? 'Failed to load organization'" (retry)="organizationQuery.refetch()" />
+  } @else {
+    @let org = organizationQuery.data();
+    <app-page-header [title]="org?.name ?? 'Organization'" [subtitle]="org?.description ?? 'Overview'" [hasActions]="true">
+      <ng-container actions>
+        <app-button variant="secondary" (clicked)="router.navigate(['/organizations'])">Back</app-button>
+        <app-button (clicked)="router.navigate(['/organizations', orgId(), 'programs', 'new'])">New program</app-button>
+      </ng-container>
+    </app-page-header>
 
-  <div class="two-column wide-left">
-    <article class="panel">
-      <div class="panel-header">
-        <h2>CS Club</h2>
-        <span class="status status-active">ACTIVE</span>
-      </div>
-      <p class="muted">Practical software workshops, assessments, and verified achievements.</p>
-      <div class="metric-grid compact">
-        <article class="metric-card"><span>Programs</span><strong>4</strong></article>
-        <article class="metric-card"><span>Members</span><strong>146</strong></article>
-        <article class="metric-card"><span>Certificates</span><strong>89</strong></article>
-      </div>
-    </article>
-
-    <form class="panel form-panel">
-      <h2>Organization settings</h2>
-      <label>
-        <span>Name *</span>
-        <input [(ngModel)]="organizationName" name="organizationName" required maxlength="80" />
-        <small>{{ organizationName.length }}/80</small>
-      </label>
-      <label>
-        <span>Description</span>
-        <textarea [(ngModel)]="description" name="description" rows="4" maxlength="240"></textarea>
-        <small>{{ description.length }}/240</small>
-      </label>
-      <button class="button button-primary" type="button">Save changes</button>
-    </form>
-  </div>
-
-  <article class="panel">
-    <div class="panel-header">
-      <h2>Programs in this organization</h2>
-      <a routerLink="/organizations/org-cs/programs/new">Create program</a>
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <app-card>
+        <p class="text-sm text-[#64748d]">Status</p>
+        <div class="mt-2">
+          <app-badge [variant]="org?.status === 'ACTIVE' ? 'success' : 'default'">{{ org?.status }}</app-badge>
+        </div>
+      </app-card>
+      <app-card>
+        <p class="text-sm text-[#64748d]">Programs</p>
+        <p class="mt-2 text-2xl font-semibold text-[#0d253d]">0</p>
+      </app-card>
+      <app-card>
+        <p class="text-sm text-[#64748d]">Members</p>
+        <p class="mt-2 text-2xl font-semibold text-[#0d253d]">1</p>
+      </app-card>
+      <app-card>
+        <p class="text-sm text-[#64748d]">Created</p>
+        <p class="mt-2 text-sm font-medium text-[#0d253d]">{{ org?.createdAt | date:'mediumDate' }}</p>
+      </app-card>
     </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Program</th><th>Status</th><th>Enrollments</th><th>Quizzes</th><th>Dates</th></tr></thead>
-        <tbody>
-          @for (program of programs; track program.id) {
-            <tr>
-              <td><a [routerLink]="['/programs', program.id]">{{ program.title }}</a></td>
-              <td><span class="status" [class.status-published]="program.status === 'PUBLISHED'" [class.status-draft]="program.status === 'DRAFT'">{{ program.status }}</span></td>
-              <td class="numeric">{{ program.enrollments }}</td>
-              <td class="numeric">{{ program.quizzes }}</td>
-              <td>{{ program.startDate }} - {{ program.endDate }}</td>
-            </tr>
+
+    <div class="mt-8">
+      <h2 class="mb-4 text-lg font-semibold text-[#0d253d]">Recent programs</h2>
+
+      @if (programsQuery.isPending()) {
+        <app-loading-state message="Loading programs..." />
+      } @else if (programsQuery.isError()) {
+        <app-error-state [message]="programsQuery.error()?.message ?? 'Failed to load programs'" (retry)="programsQuery.refetch()" />
+      } @else if (programsQuery.data()?.items?.length === 0) {
+        <app-card>
+          <app-empty-state
+            title="No programs yet"
+            description="Create your first program to start building quizzes and inviting participants."
+            actionLabel="Create program"
+            (action)="router.navigate(['/organizations', orgId(), 'programs', 'new'])"
+          />
+        </app-card>
+      } @else {
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          @for (program of programsQuery.data()?.items; track program.id) {
+            <app-card>
+              <div class="flex items-start justify-between">
+                <div>
+                  <h3 class="text-lg font-semibold text-[#0d253d]">{{ program.title }}</h3>
+                  @if (program.description) {
+                    <p class="mt-1 line-clamp-2 text-sm text-[#64748d]">{{ program.description }}</p>
+                  }
+                  <div class="mt-3">
+                    <app-badge [variant]="program.status === 'PUBLISHED' ? 'success' : 'default'">{{ program.status }}</app-badge>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-4 flex items-center justify-between">
+                <p class="text-xs text-[#64748d]">Created {{ program.createdAt | date:'mediumDate' }}</p>
+                <app-button variant="secondary" size="sm" (clicked)="router.navigate(['/programs', program.id])">
+                  View
+                </app-button>
+              </div>
+            </app-card>
           }
-        </tbody>
-      </table>
+        </div>
+      }
     </div>
-  </article>
-</section>
+  }
+}

@@ -1,52 +1,115 @@
-<section class="page">
-  <header class="page-heading">
-    <div>
-      <p class="breadcrumb">Programs / {{ program.title }}</p>
-      <h1>{{ program.title }}</h1>
-      <p>{{ program.description }}</p>
-    </div>
-    <div class="button-row">
-      <a class="button button-secondary" routerLink="/programs/program-git/resources">Resources</a>
-      <a class="button button-primary" routerLink="/quizzes/quiz-git-final/attempt">Start quiz</a>
-    </div>
-  </header>
+@if (programQuery.isPending()) {
+  <app-loading-state message="Loading program..." />
+} @else if (programQuery.isError()) {
+  <app-error-state
+    [message]="programQuery.error()?.message ?? 'Failed to load program'"
+    (retry)="programQuery.refetch()"
+  />
+} @else {
+  @let program = programQuery.data();
 
-  <div class="metric-grid">
-    <article class="metric-card"><span>Enrollments</span><strong>{{ stats.totalEnrollments }}</strong></article>
-    <article class="metric-card"><span>Resources</span><strong>{{ stats.resourcesCount }}</strong></article>
-    <article class="metric-card"><span>Quizzes</span><strong>{{ stats.quizzesCount }}</strong></article>
-    <article class="metric-card"><span>Certificates</span><strong>{{ stats.certificatesIssued }}</strong></article>
+  <app-page-header
+    [title]="program?.title ?? 'Program'"
+    [subtitle]="program?.description ?? 'Overview'"
+    [hasActions]="true"
+  >
+    <ng-container actions>
+      <app-button variant="secondary" (clicked)="goBack()">Back</app-button>
+      <app-button
+        [disabled]="!canPublish()"
+        [loading]="programsService.publishMutation.isPending()"
+        (clicked)="publish()"
+      >
+        Publish
+      </app-button>
+      <app-button
+        variant="danger"
+        [disabled]="!canArchive()"
+        [loading]="programsService.archiveMutation.isPending()"
+        (clicked)="archive()"
+      >
+        Archive
+      </app-button>
+    </ng-container>
+  </app-page-header>
+
+  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <app-card>
+      <p class="text-sm text-[#64748d]">Status</p>
+      <div class="mt-2">
+        <app-badge [variant]="badgeVariant()">{{ program?.status }}</app-badge>
+      </div>
+    </app-card>
+
+    <app-card>
+      <p class="text-sm text-[#64748d]">Quizzes</p>
+      <p class="mt-2 text-2xl font-semibold text-[#0d253d]">{{ quizzesQuery.data()?.totalElements ?? 0 }}</p>
+    </app-card>
+
+    <app-card>
+      <p class="text-sm text-[#64748d]">Enrollments</p>
+      <p class="mt-2 text-2xl font-semibold text-[#0d253d]">0</p>
+    </app-card>
+
+    <app-card>
+      <p class="text-sm text-[#64748d]">Created</p>
+      <p class="mt-2 text-sm font-medium text-[#0d253d]">{{ program?.createdAt | date:'mediumDate' }}</p>
+    </app-card>
   </div>
 
-  <div class="two-column">
-    <article class="panel">
-      <div class="panel-header"><h2>Learning resources</h2><a routerLink="/programs/program-git/resources">Manage</a></div>
-      <div class="stack">
-        @for (resource of resources; track resource.id) {
-          <div class="list-row">
-            <div><strong>{{ resource.title }}</strong><span>{{ resource.description }}</span></div>
-            <span class="status" [class.status-active]="resource.visibleToParticipants" [class.status-draft]="!resource.visibleToParticipants">
-              {{ resource.visibleToParticipants ? 'VISIBLE' : 'HIDDEN' }}
-            </span>
-          </div>
+  <div class="mt-8">
+    <div class="mb-4 flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-[#0d253d]">Quizzes</h2>
+      <app-button
+        size="sm"
+        (clicked)="router.navigate(['/programs', programId(), 'quizzes', 'new'])"
+      >
+        New quiz
+      </app-button>
+    </div>
+
+    @if (quizzesQuery.isPending()) {
+      <app-loading-state message="Loading quizzes..." />
+    } @else if (quizzesQuery.isError()) {
+      <app-error-state
+        [message]="quizzesQuery.error()?.message ?? 'Failed to load quizzes'"
+        (retry)="quizzesQuery.refetch()"
+      />
+    } @else if (quizzesQuery.data()?.items?.length === 0) {
+      <app-card>
+        <app-empty-state
+          title="No quizzes yet"
+          description="Create your first quiz to start assessing participants."
+          actionLabel="Create quiz"
+          (action)="router.navigate(['/programs', programId(), 'quizzes', 'new'])"
+        />
+      </app-card>
+    } @else {
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        @for (quiz of quizzesQuery.data()?.items; track quiz.id) {
+          <app-card>
+            <div class="flex items-start justify-between">
+              <div>
+                <h3 class="text-lg font-semibold text-[#0d253d]">{{ quiz.title }}</h3>
+                @if (quiz.description) {
+                  <p class="mt-1 line-clamp-2 text-sm text-[#64748d]">{{ quiz.description }}</p>
+                }
+                <div class="mt-3">
+                  <app-badge [variant]="quiz.status === 'PUBLISHED' ? 'success' : quiz.status === 'ARCHIVED' ? 'danger' : 'warning'">
+                    {{ quiz.status }}
+                  </app-badge>
+                </div>
+              </div>
+            </div>
+            <div class="mt-4 flex items-center justify-between">
+              <p class="text-xs text-[#64748d]">{{ quiz.questions?.length ?? 0 }} questions</p>
+              <app-button variant="secondary" size="sm" (clicked)="router.navigate(['/quizzes', quiz.id, 'builder'])">
+                Build
+              </app-button>
+            </div>
+          </app-card>
         }
       </div>
-    </article>
-
-    <article class="panel">
-      <div class="panel-header"><h2>Quizzes</h2><a routerLink="/programs/program-git/quizzes">Builder</a></div>
-      @for (quiz of quizzes; track quiz.id) {
-        <div class="quiz-summary">
-          <span class="status status-published">{{ quiz.status }}</span>
-          <h3>{{ quiz.title }}</h3>
-          <p>{{ quiz.description }}</p>
-          <dl class="detail-grid">
-            <div><dt>Passing score</dt><dd>{{ quiz.passingScore }}%</dd></div>
-            <div><dt>Duration</dt><dd>{{ quiz.durationMinutes }} min</dd></div>
-            <div><dt>Max attempts</dt><dd>{{ quiz.maxAttempts }}</dd></div>
-          </dl>
-        </div>
-      }
-    </article>
+    }
   </div>
-</section>
+}

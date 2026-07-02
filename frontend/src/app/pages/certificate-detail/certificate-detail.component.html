@@ -1,37 +1,71 @@
-<section class="page">
-  <header class="page-heading">
-    <div>
-      <p class="breadcrumb">Certificates / {{ certificate.id }}</p>
-      <h1>Certificate detail</h1>
-      <p>Download, verify, or revoke a certificate record.</p>
-    </div>
-    <div class="button-row">
-      <button class="button button-secondary" type="button">Download PDF</button>
-      <a class="button button-primary" [routerLink]="['/verify', certificate.verificationCode]">Verify publicly</a>
-    </div>
-  </header>
+@if (query.isPending()) {
+  <app-loading-state message="Loading certificate..." />
+} @else if (query.isError()) {
+  <app-error-state [message]="query.error()?.message ?? 'Failed to load certificate'" (retry)="query.refetch()" />
+} @else {
+  @let cert = certificate();
 
-  <article class="certificate-display">
-    <div class="certificate-border">
-      <p class="eyebrow">{{ certificate.organizationName }}</p>
-      <h2>Certificate of Completion</h2>
-      <p>This certifies that</p>
-      <h3>{{ certificate.recipientName }}</h3>
-      <p>completed {{ certificate.programTitle }} and passed {{ certificate.quizTitle }}.</p>
-      <div class="certificate-footer">
-        <span>Issued {{ certificate.issuedAt }}</span>
-        <span>{{ certificate.verificationCode }}</span>
+  <app-page-header
+    [title]="cert?.title ?? 'Certificate detail'"
+    subtitle="View certificate details and public verification options."
+    [hasActions]="true"
+  >
+    <ng-container actions>
+      <app-button variant="secondary" (clicked)="router.navigate(['/my-certificates'])">
+        Back to My Certificates
+      </app-button>
+      @if (cert?.verificationCode) {
+        <app-button (clicked)="router.navigate(['/verify', cert!.verificationCode])">
+          Verify publicly
+        </app-button>
+      }
+    </ng-container>
+  </app-page-header>
+
+  @if (cert) {
+    <app-card>
+      <div class="grid gap-6 lg:grid-cols-2">
+        <div>
+          <p class="text-sm text-[#64748d]">Certificate number</p>
+          <p class="mt-1 text-lg font-semibold text-[#0d253d]">{{ cert.certificateNumber }}</p>
+        </div>
+        <div>
+          <p class="text-sm text-[#64748d]">Status</p>
+          <div class="mt-1">
+            <app-badge [variant]="statusVariant(cert.status)">{{ cert.status }}</app-badge>
+          </div>
+        </div>
+        <div>
+          <p class="text-sm text-[#64748d]">Verification code</p>
+          <p class="mt-1 font-medium text-[#0d253d]">{{ cert.verificationCode }}</p>
+        </div>
+        <div>
+          <p class="text-sm text-[#64748d]">Participant</p>
+          <p class="mt-1 font-medium text-[#0d253d]">{{ cert.participantNameSnapshot }}</p>
+        </div>
+        <div>
+          <p class="text-sm text-[#64748d]">Quiz</p>
+          <p class="mt-1 font-medium text-[#0d253d]">{{ cert.quizTitleSnapshot }}</p>
+        </div>
+        <div>
+          <p class="text-sm text-[#64748d]">Program</p>
+          <p class="mt-1 font-medium text-[#0d253d]">{{ cert.programTitleSnapshot }}</p>
+        </div>
+        <div>
+          <p class="text-sm text-[#64748d]">Organization</p>
+          <p class="mt-1 font-medium text-[#0d253d]">{{ cert.organizationNameSnapshot }}</p>
+        </div>
+        <div>
+          <p class="text-sm text-[#64748d]">Issued at</p>
+          <p class="mt-1 font-medium text-[#0d253d]">{{ cert.issuedAt | date:'medium' }}</p>
+        </div>
+        @if (cert.revokedAt) {
+          <div class="lg:col-span-2">
+            <p class="text-sm text-[#64748d]">Revoked at</p>
+            <p class="mt-1 font-medium text-red-600">{{ cert.revokedAt | date:'medium' }}</p>
+          </div>
+        }
       </div>
-    </div>
-    <aside>
-      <span class="status status-active">{{ certificate.status }}</span>
-      <dl class="detail-grid single">
-        <div><dt>Recipient</dt><dd>{{ certificate.recipientName }}</dd></div>
-        <div><dt>Program</dt><dd>{{ certificate.programTitle }}</dd></div>
-        <div><dt>Quiz</dt><dd>{{ certificate.quizTitle }}</dd></div>
-        <div><dt>Organization</dt><dd>{{ certificate.organizationName }}</dd></div>
-      </dl>
-      <button class="ghost-button danger" type="button">Revoke certificate</button>
-    </aside>
-  </article>
-</section>
+    </app-card>
+  }
+}

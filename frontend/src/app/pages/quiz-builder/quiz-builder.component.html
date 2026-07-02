@@ -1,58 +1,306 @@
-<section class="page">
-  <header class="page-heading">
-    <div>
-      <p class="breadcrumb">Programs / Git Foundations / Quizzes / Builder</p>
-      <h1>Quiz builder</h1>
-      <p>Create questions and options, confirm publish readiness, and control participant visibility.</p>
-    </div>
-    <div class="button-row">
-      <button class="button button-secondary" type="button">Save draft</button>
-      <button class="button button-primary" type="button">Publish quiz</button>
-    </div>
-  </header>
+@if (quizQuery.isPending()) {
+  <app-loading-state message="Loading quiz..." />
+} @else if (quizQuery.isError()) {
+  <app-error-state
+    [message]="quizQuery.error()?.message ?? 'Failed to load quiz'"
+    (retry)="quizQuery.refetch()"
+  />
+} @else {
+  @let quiz = quizQuery.data();
+  @let onLoad = onQuizLoaded(quiz!);
 
-  <div class="two-column wide-left">
-    <article class="panel form-panel">
-      <h2>Quiz settings</h2>
-      <label><span>Title *</span><input [(ngModel)]="title" name="title" required maxlength="120" /></label>
-      <div class="form-grid">
-        <label><span>Passing score</span><input type="number" [value]="quiz.passingScore" /></label>
-        <label><span>Duration</span><input type="number" [value]="quiz.durationMinutes" /></label>
-        <label><span>Max attempts</span><input type="number" [value]="quiz.maxAttempts" /></label>
-      </div>
-      <label><span>Certificate issue mode</span><select><option>{{ quiz.certificateIssueMode }}</option><option>MANUAL</option><option>NONE</option></select></label>
-    </article>
+  <app-page-header
+    [title]="quiz?.title ?? 'Quiz builder'"
+    [subtitle]="quiz?.description ?? 'Create questions and options, then publish'"
+    [hasActions]="true"
+  >
+    <ng-container actions>
+      <app-button variant="secondary" (clicked)="goBack()">Back</app-button>
+      <app-button
+        [disabled]="!canPublish()"
+        [loading]="quizzesService.publishMutation.isPending()"
+        (clicked)="publish()"
+      >
+        Publish
+      </app-button>
+    </ng-container>
+  </app-page-header>
 
-    <article class="panel">
-      <div class="panel-header"><h2>Publish checklist</h2><span class="status status-published">{{ quiz.status }}</span></div>
-      <ul class="check-list">
-        <li>Quiz has a title and description</li>
-        <li>At least one question has options</li>
-        <li>Each question has a correct answer</li>
-        <li>Passing score and duration are set</li>
-      </ul>
-    </article>
-  </div>
-
-  <div class="stack">
-    @for (question of quiz.questions; track question.id) {
-      <article class="panel question-card">
-        <div class="panel-header">
-          <h2>{{ question.text }}</h2>
-          <span class="numeric">{{ question.points }} pts</span>
-        </div>
-        <div class="option-grid">
-          @for (option of question.options; track option.id) {
-            <label class="option-card">
-              <input type="radio" [checked]="option.isCorrect" />
-              <span>{{ option.text }}</span>
-              @if (option.isCorrect) {
-                <em class="status status-active">Correct</em>
-              }
-            </label>
-          }
-        </div>
-      </article>
+  <div class="mb-6 flex items-center gap-3">
+    <app-badge [variant]="badgeVariant()">{{ quiz?.status }}</app-badge>
+    @if (isPublished()) {
+      <span class="text-sm text-[#64748d]">This quiz is published and cannot be edited.</span>
     }
   </div>
-</section>
+
+  <div class="grid gap-6 lg:grid-cols-3">
+    <div class="lg:col-span-2 space-y-6">
+      <app-card>
+        <h2 class="mb-4 text-lg font-semibold text-[#0d253d]">Quiz settings</h2>
+        <div class="space-y-4">
+          <label class="block">
+            <span class="mb-1 block text-sm font-medium text-[#0d253d]">Title *</span>
+            <input
+              class="w-full rounded-lg border border-[#cbd5e1] px-3 py-2 text-sm focus:border-[#00c4cc] focus:outline-none"
+              [(ngModel)]="draft().title"
+              name="title"
+              maxlength="120"
+              [disabled]="isPublished()"
+            />
+          </label>
+
+          <label class="block">
+            <span class="mb-1 block text-sm font-medium text-[#0d253d]">Description</span>
+            <textarea
+              class="w-full rounded-lg border border-[#cbd5e1] px-3 py-2 text-sm focus:border-[#00c4cc] focus:outline-none"
+              [(ngModel)]="draft().description"
+              name="description"
+              rows="3"
+              [disabled]="isPublished()"
+            ></textarea>
+          </label>
+
+          <div class="grid gap-4 sm:grid-cols-3">
+            <label class="block">
+              <span class="mb-1 block text-sm font-medium text-[#0d253d]">Passing score *</span>
+              <input
+                type="number"
+                class="w-full rounded-lg border border-[#cbd5e1] px-3 py-2 text-sm focus:border-[#00c4cc] focus:outline-none"
+                [(ngModel)]="draft().passingScore"
+                name="passingScore"
+                min="0"
+                max="100"
+                [disabled]="isPublished()"
+              />
+            </label>
+
+            <label class="block">
+              <span class="mb-1 block text-sm font-medium text-[#0d253d]">Duration (min) *</span>
+              <input
+                type="number"
+                class="w-full rounded-lg border border-[#cbd5e1] px-3 py-2 text-sm focus:border-[#00c4cc] focus:outline-none"
+                [(ngModel)]="draft().durationMinutes"
+                name="durationMinutes"
+                min="1"
+                [disabled]="isPublished()"
+              />
+            </label>
+
+            <label class="block">
+              <span class="mb-1 block text-sm font-medium text-[#0d253d]">Max attempts *</span>
+              <input
+                type="number"
+                class="w-full rounded-lg border border-[#cbd5e1] px-3 py-2 text-sm focus:border-[#00c4cc] focus:outline-none"
+                [(ngModel)]="draft().maxAttempts"
+                name="maxAttempts"
+                min="1"
+                [disabled]="isPublished()"
+              />
+            </label>
+          </div>
+
+          <div class="grid gap-4 sm:grid-cols-2">
+            <label class="flex items-center gap-2">
+              <input
+                type="checkbox"
+                [(ngModel)]="draft().certificateEnabled"
+                name="certificateEnabled"
+                [disabled]="isPublished()"
+              />
+              <span class="text-sm text-[#0d253d]">Issue certificates</span>
+            </label>
+
+            <label class="block">
+              <span class="mb-1 block text-sm font-medium text-[#0d253d]">Certificate mode</span>
+              <select
+                class="w-full rounded-lg border border-[#cbd5e1] px-3 py-2 text-sm focus:border-[#00c4cc] focus:outline-none"
+                [(ngModel)]="draft().certificateIssueMode"
+                name="certificateIssueMode"
+                [disabled]="isPublished()"
+              >
+                <option value="AUTO">Auto</option>
+                <option value="MANUAL">Manual</option>
+                <option value="NONE">None</option>
+              </select>
+            </label>
+          </div>
+
+          @if (saveError()) {
+            <p class="text-sm text-red-600">{{ saveError() }}</p>
+          }
+
+          <div class="flex flex-col justify-end gap-2 sm:flex-row">
+            <app-button
+              class="w-full sm:w-auto"
+              [loading]="isSaving()"
+              [disabled]="isPublished()"
+              (clicked)="saveSettings()"
+            >
+              Save settings
+            </app-button>
+          </div>
+        </div>
+      </app-card>
+
+      <app-card>
+        <div class="mb-4 flex items-center justify-between">
+          <h2 class="text-lg font-semibold text-[#0d253d]">Questions</h2>
+          <app-button size="sm" [disabled]="isPublished()" (clicked)="openAddQuestion()">
+            Add question
+          </app-button>
+        </div>
+
+        @if (draftQuestions().length === 0) {
+          <app-empty-state
+            title="No questions yet"
+            description="Add questions and options to build your quiz."
+            [actionLabel]="isPublished() ? undefined : 'Add question'"
+            (action)="openAddQuestion()"
+          />
+        } @else {
+          <div class="space-y-4">
+            @for (question of draftQuestions(); track $index; let i = $index) {
+              <div class="rounded-lg border border-[#e2e8f0] p-4">
+                <div class="mb-3 flex flex-col items-start justify-between gap-3 sm:flex-row">
+                  <div class="min-w-0">
+                    <p class="font-medium text-[#0d253d]">{{ i + 1 }}. {{ question.text }}</p>
+                    <p class="text-xs text-[#64748d]">{{ question.points }} pts</p>
+                  </div>
+                  <div class="flex w-full flex-wrap gap-2 sm:w-auto">
+                    <app-button class="w-full sm:w-auto" variant="secondary" size="sm" [disabled]="isPublished()" (clicked)="openEditQuestion(i)">
+                      Edit
+                    </app-button>
+                    <app-button class="w-full sm:w-auto" variant="danger" size="sm" [disabled]="isPublished()" (clicked)="deleteQuestion(i)">
+                      Delete
+                    </app-button>
+                  </div>
+                </div>
+                <div class="grid gap-2 sm:grid-cols-2">
+                  @for (option of question.options; track $index) {
+                    <div
+                      class="flex items-center gap-2 rounded-md border px-3 py-2 text-sm"
+                      [class.border-[#00c4cc]]="option.isCorrect"
+                      [class.bg-[#f0fdfa]]="option.isCorrect"
+                      [class.border-[#e2e8f0]]="!option.isCorrect"
+                    >
+                      <span
+                        class="h-2 w-2 rounded-full"
+                        [class.bg-[#00c4cc]]="option.isCorrect"
+                        [class.bg-[#cbd5e1]]="!option.isCorrect"
+                      ></span>
+                      <span class="text-[#0d253d]">{{ option.text }}</span>
+                      @if (option.isCorrect) {
+                        <span class="ml-auto text-xs font-medium text-[#00c4cc]">Correct</span>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </app-card>
+    </div>
+
+    <div class="space-y-6">
+      <app-card>
+        <h2 class="mb-4 text-lg font-semibold text-[#0d253d]">Publish checklist</h2>
+        <ul class="space-y-2 text-sm">
+          <li class="flex items-center gap-2" [class.text-[#22c55e]]="publishChecklist().hasTitle" [class.text-[#64748d]]="!publishChecklist().hasTitle">
+            <span>{{ publishChecklist().hasTitle ? '✓' : '○' }}</span>
+            <span>Quiz has a title</span>
+          </li>
+          <li class="flex items-center gap-2" [class.text-[#22c55e]]="publishChecklist().hasDescription" [class.text-[#64748d]]="!publishChecklist().hasDescription">
+            <span>{{ publishChecklist().hasDescription ? '✓' : '○' }}</span>
+            <span>Quiz has a description</span>
+          </li>
+          <li class="flex items-center gap-2" [class.text-[#22c55e]]="publishChecklist().hasQuestions" [class.text-[#64748d]]="!publishChecklist().hasQuestions">
+            <span>{{ publishChecklist().hasQuestions ? '✓' : '○' }}</span>
+            <span>At least one question</span>
+          </li>
+          <li class="flex items-center gap-2" [class.text-[#22c55e]]="publishChecklist().allQuestionsHaveOptions" [class.text-[#64748d]]="!publishChecklist().allQuestionsHaveOptions">
+            <span>{{ publishChecklist().allQuestionsHaveOptions ? '✓' : '○' }}</span>
+            <span>Every question has options</span>
+          </li>
+          <li class="flex items-center gap-2" [class.text-[#22c55e]]="publishChecklist().allQuestionsHaveCorrectAnswer" [class.text-[#64748d]]="!publishChecklist().allQuestionsHaveCorrectAnswer">
+            <span>{{ publishChecklist().allQuestionsHaveCorrectAnswer ? '✓' : '○' }}</span>
+            <span>Every question has a correct answer</span>
+          </li>
+          <li class="flex items-center gap-2" [class.text-[#22c55e]]="publishChecklist().passingScoreSet" [class.text-[#64748d]]="!publishChecklist().passingScoreSet">
+            <span>{{ publishChecklist().passingScoreSet ? '✓' : '○' }}</span>
+            <span>Passing score is set</span>
+          </li>
+          <li class="flex items-center gap-2" [class.text-[#22c55e]]="publishChecklist().durationSet" [class.text-[#64748d]]="!publishChecklist().durationSet">
+            <span>{{ publishChecklist().durationSet ? '✓' : '○' }}</span>
+            <span>Duration is set</span>
+          </li>
+        </ul>
+      </app-card>
+    </div>
+  </div>
+
+  <app-modal
+    [open]="showQuestionModal()"
+    [title]="(editingQuestionIndex() !== null ? 'Edit' : 'Add') + ' question'"
+    (close)="closeQuestionModal()"
+  >
+    <div class="space-y-4">
+      <label class="block">
+        <span class="mb-1 block text-sm font-medium text-[#0d253d]">Question text *</span>
+        <input
+          class="w-full rounded-lg border border-[#cbd5e1] px-3 py-2 text-sm focus:border-[#00c4cc] focus:outline-none"
+          [(ngModel)]="questionDraft().text"
+          name="questionText"
+        />
+      </label>
+
+      <label class="block">
+        <span class="mb-1 block text-sm font-medium text-[#0d253d]">Points *</span>
+        <input
+          type="number"
+          class="w-full rounded-lg border border-[#cbd5e1] px-3 py-2 text-sm focus:border-[#00c4cc] focus:outline-none"
+          [(ngModel)]="questionDraft().points"
+          name="questionPoints"
+          min="1"
+        />
+      </label>
+
+      <div>
+        <div class="mb-2 flex items-center justify-between">
+          <span class="text-sm font-medium text-[#0d253d]">Options *</span>
+          <app-button size="sm" (clicked)="addOption()">Add option</app-button>
+        </div>
+        <div class="space-y-2">
+          @for (option of questionDraft().options; track $index; let oi = $index) {
+            <div class="flex items-center gap-2">
+              <input
+                type="radio"
+                name="correctOption"
+                [checked]="option.isCorrect"
+                (change)="setCorrectOption(oi)"
+              />
+              <input
+                class="flex-1 rounded-lg border border-[#cbd5e1] px-3 py-2 text-sm focus:border-[#00c4cc] focus:outline-none"
+                [(ngModel)]="option.text"
+                [name]="'optionText' + oi"
+                placeholder="Option text"
+              />
+              <app-button variant="danger" size="sm" (clicked)="removeOption(oi)">Remove</app-button>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="flex flex-col justify-end gap-2 sm:flex-row">
+        <app-button class="w-full sm:w-auto" variant="secondary" (clicked)="closeQuestionModal()">Cancel</app-button>
+        <app-button
+          class="w-full sm:w-auto"
+          [loading]="quizzesService.addQuestionMutation.isPending() || quizzesService.updateQuestionMutation.isPending()"
+          (clicked)="saveQuestion()"
+        >
+          Save
+        </app-button>
+      </div>
+    </div>
+  </app-modal>
+}
