@@ -23,12 +23,20 @@
         Publish
       </app-button>
       <app-button
-        variant="danger"
+        variant="secondary"
         [disabled]="!canArchive()"
         [loading]="programsService.archiveMutation.isPending()"
         (clicked)="archive()"
       >
         Archive
+      </app-button>
+      <app-button
+        variant="danger"
+        [disabled]="!canDelete()"
+        [loading]="programsService.deleteMutation.isPending()"
+        (clicked)="deleteProgram()"
+      >
+        Delete
       </app-button>
     </ng-container>
   </app-page-header>
@@ -42,18 +50,68 @@
     </app-card>
 
     <app-card>
-      <p class="text-sm text-[#64748d]">Quizzes</p>
-      <p class="mt-2 text-2xl font-semibold text-[#0d253d]">{{ quizzesQuery.data()?.totalElements ?? 0 }}</p>
-    </app-card>
-
-    <app-card>
       <p class="text-sm text-[#64748d]">Enrollments</p>
-      <p class="mt-2 text-2xl font-semibold text-[#0d253d]">0</p>
+      <p class="mt-2 text-2xl font-semibold text-[#0d253d]">{{ statsQuery.data()?.enrollmentCount ?? 0 }}</p>
     </app-card>
 
     <app-card>
-      <p class="text-sm text-[#64748d]">Created</p>
-      <p class="mt-2 text-sm font-medium text-[#0d253d]">{{ program?.createdAt | date:'mediumDate' }}</p>
+      <p class="text-sm text-[#64748d]">Resources</p>
+      <p class="mt-2 text-2xl font-semibold text-[#0d253d]">{{ statsQuery.data()?.resourceCount ?? 0 }}</p>
+    </app-card>
+
+    <app-card>
+      <p class="text-sm text-[#64748d]">Quizzes</p>
+      <p class="mt-2 text-2xl font-semibold text-[#0d253d]">{{ statsQuery.data()?.quizCount ?? 0 }}</p>
+    </app-card>
+  </div>
+
+  <div class="mt-8 grid gap-6 lg:grid-cols-3">
+    <app-card class="lg:col-span-2">
+      <h2 class="mb-3 text-lg font-semibold text-[#0d253d]">Description</h2>
+      @if (program?.description) {
+        <p class="text-sm leading-relaxed text-[#64748d]">{{ program?.description }}</p>
+      } @else {
+        <p class="text-sm italic text-[#64748d]">No description provided.</p>
+      }
+
+      <div class="mt-6 grid gap-4 sm:grid-cols-2">
+        <div>
+          <p class="text-xs font-medium uppercase text-[#64748d]">Start date</p>
+          <p class="mt-1 text-sm font-medium text-[#0d253d]">
+            {{ program?.startDate ? (program!.startDate | date:'mediumDate') : 'Not set' }}
+          </p>
+        </div>
+        <div>
+          <p class="text-xs font-medium uppercase text-[#64748d]">End date</p>
+          <p class="mt-1 text-sm font-medium text-[#0d253d]">
+            {{ program?.endDate ? (program!.endDate | date:'mediumDate') : 'Not set' }}
+          </p>
+        </div>
+      </div>
+    </app-card>
+
+    <app-card>
+      <h2 class="mb-3 text-lg font-semibold text-[#0d253d]">Quick Actions</h2>
+      <div class="grid gap-3">
+        <app-button variant="secondary" size="sm" (clicked)="navigate(['enrollments'])">
+          Manage Enrollments
+        </app-button>
+        <app-button variant="secondary" size="sm" (clicked)="navigate(['invitations'])">
+          Manage Invitations
+        </app-button>
+        <app-button variant="secondary" size="sm" (clicked)="navigate(['resources'])">
+          Manage Resources
+        </app-button>
+        <app-button variant="secondary" size="sm" (clicked)="navigate(['quizzes'])">
+          Manage Quizzes
+        </app-button>
+        <app-button variant="secondary" size="sm" (clicked)="navigate(['stats'])">
+          View Statistics
+        </app-button>
+        <app-button variant="secondary" size="sm" (clicked)="navigate(['settings'])">
+          Settings
+        </app-button>
+      </div>
     </app-card>
   </div>
 

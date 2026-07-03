@@ -66,6 +66,22 @@
           </div>
         }
       </div>
+
+      @if (cert.qrCodeUrl) {
+        <div class="mt-8 flex flex-col items-center">
+          <p class="text-sm text-[#64748d]">Scan to verify</p>
+          <img
+            [src]="cert.qrCodeUrl"
+            alt="Certificate verification QR code"
+            class="mt-3 h-40 w-40 rounded-lg border border-[#e3e8ee]"
+          />
+        </div>
+      }
+
+      <div class="mt-8 flex flex-wrap gap-3">
+        <app-button (clicked)="openPdf(cert.pdfUrl)">Download PDF</app-button>
+        <app-button variant="secondary" (clicked)="share()">Share link</app-button>
+      </div>
     </app-card>
   }
 }

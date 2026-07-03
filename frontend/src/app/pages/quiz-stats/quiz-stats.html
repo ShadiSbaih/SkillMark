@@ -1,1 +1,75 @@
-<p>quiz-stats works!</p>
+@if (statsQuery.isPending()) {
+  <app-loading-state message="Loading quiz statistics..." />
+} @else if (statsQuery.isError()) {
+  <app-error-state
+    [message]="statsQuery.error()?.message ?? 'Failed to load quiz statistics.'"
+    (retry)="statsQuery.refetch()"
+  />
+} @else {
+  @let stats = statsQuery.data();
+
+  @if (!stats) {
+    <app-empty-state title="No statistics available" description="Statistics will appear after participants attempt this quiz." />
+  } @else {
+    <app-page-header
+      [title]="'Quiz statistics'"
+      subtitle="Attempts, scores, and pass rate for this quiz."
+    />
+
+    <div class="metric-grid compact mb-6">
+      <div class="metric-card">
+        <span>Attempts</span>
+        <strong>{{ stats.attemptCount }}</strong>
+      </div>
+      <div class="metric-card">
+        <span>Average score</span>
+        <strong>{{ stats.averageScore | number: '1.0-1' }}%</strong>
+      </div>
+      <div class="metric-card">
+        <span>Highest score</span>
+        <strong>{{ stats.highestScore | number: '1.0-1' }}%</strong>
+      </div>
+      <div class="metric-card">
+        <span>Lowest score</span>
+        <strong>{{ stats.lowestScore | number: '1.0-1' }}%</strong>
+      </div>
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-2">
+      <app-card>
+        <h2 class="mb-4 text-lg font-semibold">Pass / fail</h2>
+        <div class="donut" [style]="donutStyle()">
+          <span>{{ stats.passRate | number: '1.0-0' }}%</span>
+        </div>
+        <div class="mt-6 grid grid-cols-2 gap-4 text-center text-sm">
+          <div>
+            <p class="text-2xl font-light text-[var(--success)]">{{ stats.passCount }}</p>
+            <p class="muted">Passed</p>
+          </div>
+          <div>
+            <p class="text-2xl font-light text-[var(--danger)]">{{ stats.failCount }}</p>
+            <p class="muted">Failed</p>
+          </div>
+        </div>
+      </app-card>
+
+      <app-card>
+        <h2 class="mb-4 text-lg font-semibold">Score summary</h2>
+        <dl class="detail-grid single">
+          <div>
+            <dt>Pass count</dt>
+            <dd>{{ stats.passCount }}</dd>
+          </div>
+          <div>
+            <dt>Fail count</dt>
+            <dd>{{ stats.failCount }}</dd>
+          </div>
+          <div>
+            <dt>Pass rate</dt>
+            <dd>{{ stats.passRate | number: '1.1-1' }}%</dd>
+          </div>
+        </dl>
+      </app-card>
+    </div>
+  }
+}

@@ -31,9 +31,16 @@
 
         <div class="mt-4 flex items-center justify-between">
           <p class="text-xs text-[#64748d]">Issued {{ certificate.issuedAt | date:'mediumDate' }}</p>
-          <app-button variant="secondary" size="sm" (clicked)="router.navigate(['/certificates', certificate.id])">
-            View
-          </app-button>
+          <div class="flex items-center gap-2">
+            <app-button variant="secondary" size="sm" (clicked)="router.navigate(['/certificates', certificate.id])">
+              View
+            </app-button>
+            @if (certificate.pdfUrl) {
+              <app-button size="sm" (clicked)="openPdf(certificate.pdfUrl)">
+                Download
+              </app-button>
+            }
+          </div>
         </div>
       </app-card>
     }

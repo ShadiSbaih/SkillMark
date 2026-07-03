@@ -1,42 +1,189 @@
 <section class="page">
-  <header class="page-heading">
-    <div>
-      <p class="breadcrumb">Organizations / CS Club / Members</p>
-      <h1>Members</h1>
-      <p>Add owners and participants, review membership status, and remove inactive users.</p>
-    </div>
-    <button class="button button-primary" type="button">Add member</button>
-  </header>
+  <p class="breadcrumb">Organization / Members</p>
+  <app-page-header
+    title="Members"
+    subtitle="Add owners and participants, review membership status, and remove inactive users."
+    [hasActions]="true"
+  >
+    <ng-container actions>
+      <app-button (clicked)="openAddModal()">Add member</app-button>
+    </ng-container>
+  </app-page-header>
 
-  <div class="panel filter-bar">
-    <label>
-      <span>Role</span>
-      <select><option>All roles</option><option>OWNER</option><option>PARTICIPANT</option></select>
-    </label>
-    <label>
-      <span>Status</span>
-      <select><option>All statuses</option><option>ACTIVE</option><option>REMOVED</option></select>
-    </label>
-  </div>
+  <app-card class="mb-6 block">
+    <form [formGroup]="filterForm" class="filter-bar">
+      <label>
+        <span>Search</span>
+        <input formControlName="search" type="text" placeholder="Name or email" />
+      </label>
+      <label>
+        <span>Role</span>
+        <select formControlName="role">
+          <option value="ALL">All roles</option>
+          <option value="OWNER">Owner</option>
+          <option value="PARTICIPANT">Participant</option>
+        </select>
+      </label>
+    </form>
+  </app-card>
 
-  <article class="panel">
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th></th></tr></thead>
-        <tbody>
-          @for (member of members; track member.email) {
-            <tr>
-              <td>{{ member.name }}</td>
-              <td>{{ member.email }}</td>
-              <td>{{ member.role }}</td>
-              <td><span class="status" [class.status-active]="member.status === 'ACTIVE'" [class.status-removed]="member.status === 'REMOVED'">{{ member.status }}</span></td>
-              <td>{{ member.joined }}</td>
-              <td><button class="ghost-button" type="button">Remove</button></td>
-            </tr>
+  @switch (membershipsQuery.status()) {
+    @case ('pending') {
+      <app-loading-state message="Loading members..." />
+    }
+    @case ('error') {
+      <app-error-state
+        [message]="membershipsQuery.error()?.message ?? 'Failed to load members'"
+        (retry)="membershipsQuery.refetch()"
+      />
+    }
+    @default {
+      @if (filteredMemberships().length === 0) {
+        <app-card>
+          <app-empty-state
+            title="No members found"
+            description="Try adjusting your filters or add a new member."
+            actionLabel="Add member"
+            (action)="openAddModal()"
+          />
+        </app-card>
+      } @else {
+        <app-card>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>Joined</th>
+                  <th class="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (member of filteredMemberships(); track member.id) {
+                  <tr>
+                    <td>{{ member.userName }}</td>
+                    <td>{{ member.userEmail }}</td>
+                    <td>
+                      <app-badge [variant]="roleVariant(member.role)">
+                        {{ member.role }}
+                      </app-badge>
+                    </td>
+                    <td>
+                      <app-badge [variant]="statusVariant(member.status)">
+                        {{ member.status }}
+                      </app-badge>
+                    </td>
+                    <td>{{ member.joinedAt ?? member.createdAt | date: 'mediumDate' }}</td>
+                    <td class="text-right">
+                      @if (member.status !== 'REMOVED') {
+                        <app-button
+                          variant="danger"
+                          size="sm"
+                          (clicked)="confirmRemove(member.userId)"
+                        >
+                          Remove
+                        </app-button>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          @if (pageInfo().totalPages > 1) {
+            <div class="pagination">
+              <app-button
+                variant="ghost"
+                size="sm"
+                [disabled]="pageInfo().page === 0"
+                (clicked)="goToPage(pageInfo().page - 1)"
+              >
+                Previous
+              </app-button>
+              <span class="flex items-center px-3 text-sm text-[#64748d]">
+                Page {{ pageInfo().page + 1 }} of {{ pageInfo().totalPages }}
+              </span>
+              <app-button
+                variant="ghost"
+                size="sm"
+                [disabled]="pageInfo().page + 1 >= pageInfo().totalPages"
+                (clicked)="goToPage(pageInfo().page + 1)"
+              >
+                Next
+              </app-button>
+            </div>
           }
-        </tbody>
-      </table>
-    </div>
-    <div class="pagination"><button>Prev</button><strong>1</strong><button>Next</button></div>
-  </article>
+        </app-card>
+      }
+    }
+  }
 </section>
+
+@if (showAddModal()) {
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+    (click)="closeAddModal()"
+  >
+    <app-card class="w-full max-w-md" (click)="$event.stopPropagation()">
+      <div class="mb-4 flex items-center justify-between">
+        <h3 class="text-lg font-medium text-[#0d253d]">Add member</h3>
+        <app-button variant="ghost" size="sm" (clicked)="closeAddModal()">Close</app-button>
+      </div>
+
+      <form [formGroup]="addForm" (ngSubmit)="addMember()" class="space-y-4">
+        <div>
+          <label for="userId" class="mb-1 block text-sm font-medium text-[#0d253d]">
+            User ID
+          </label>
+          <input
+            id="userId"
+            formControlName="userId"
+            type="text"
+            placeholder="Paste the user ID"
+            class="block w-full rounded-md border border-[#a8c3de] px-3 py-2 text-sm"
+          />
+        </div>
+
+        <div>
+          <label for="role" class="mb-1 block text-sm font-medium text-[#0d253d]">Role</label>
+          <select
+            id="role"
+            formControlName="role"
+            class="block w-full rounded-md border border-[#a8c3de] px-3 py-2 text-sm"
+          >
+            @for (role of roles; track role) {
+              <option [value]="role">{{ role }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-2">
+          <app-button type="button" variant="secondary" (clicked)="closeAddModal()">
+            Cancel
+          </app-button>
+          <app-button
+            type="submit"
+            [disabled]="addForm.invalid || membershipsService.addMutation.isPending()"
+            [loading]="membershipsService.addMutation.isPending()"
+          >
+            Add member
+          </app-button>
+        </div>
+      </form>
+    </app-card>
+  </div>
+}
+
+<app-modal
+  [open]="removingUserId() !== null"
+  title="Remove member?"
+  confirmLabel="Remove"
+  (close)="cancelRemove()"
+  (confirm)="removeMember()"
+>
+  This member will be removed from the organization. This action can be reversed later.
+</app-modal>

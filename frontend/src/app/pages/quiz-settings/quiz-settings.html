@@ -1,1 +1,116 @@
-<p>quiz-settings works!</p>
+@if (quizQuery.isPending()) {
+  <app-loading-state message="Loading quiz settings..." />
+} @else if (quizQuery.isError()) {
+  <app-error-state
+    [message]="quizQuery.error()?.message ?? 'Failed to load quiz settings.'"
+    (retry)="quizQuery.refetch()"
+  />
+} @else {
+  @let quiz = quizQuery.data();
+
+  @if (!quiz) {
+    <app-empty-state title="Quiz not found" description="This quiz could not be loaded." />
+  } @else {
+    <app-page-header
+      title="Quiz settings"
+      [subtitle]="'Manage ' + quiz.title"
+      [hasActions]="true"
+    >
+      <ng-container actions>
+        <app-button variant="secondary" (clicked)="goBack()">Back</app-button>
+        @if (!isArchived()) {
+          <app-button variant="danger" (clicked)="openArchiveModal()">Archive</app-button>
+        }
+        <app-button variant="danger" (clicked)="openDeleteModal()">Delete</app-button>
+      </ng-container>
+    </app-page-header>
+
+    <div class="mb-6 flex items-center gap-3">
+      <app-badge [variant]="statusVariant()">{{ quiz.status }}</app-badge>
+    </div>
+
+    <app-card>
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-panel">
+        <label>
+          <span>Title *</span>
+          <input formControlName="title" maxlength="120" />
+          @if (form.get('title')?.invalid && form.get('title')?.touched) {
+            <p class="text-sm text-[var(--ruby)]">Title is required.</p>
+          }
+        </label>
+
+        <label>
+          <span>Description</span>
+          <textarea formControlName="description" rows="4"></textarea>
+        </label>
+
+        <div class="form-grid">
+          <label>
+            <span>Passing score (%) *</span>
+            <input type="number" formControlName="passingScore" min="0" max="100" />
+          </label>
+
+          <label>
+            <span>Duration (minutes) *</span>
+            <input type="number" formControlName="durationMinutes" min="1" />
+          </label>
+
+          <label>
+            <span>Max attempts *</span>
+            <input type="number" formControlName="maxAttempts" min="1" />
+          </label>
+        </div>
+
+        <div class="list-row">
+          <div>
+            <p class="font-medium">Issue certificates</p>
+            <p class="muted text-sm">Award a certificate when the participant passes.</p>
+          </div>
+          <input type="checkbox" formControlName="certificateEnabled" class="!w-auto" />
+        </div>
+
+        @if (certificateEnabled()) {
+          <label>
+            <span>Certificate issue mode</span>
+            <select formControlName="certificateIssueMode">
+              <option value="AUTO">Automatic</option>
+              <option value="MANUAL">Manual</option>
+              <option value="NONE">None</option>
+            </select>
+          </label>
+        }
+
+        <div class="button-row">
+          <app-button
+            type="submit"
+            [loading]="quizzesService.updateMutation.isPending()"
+            [disabled]="isPublished()"
+          >
+            Save settings
+          </app-button>
+          <app-button variant="secondary" (clicked)="goBack()">Cancel</app-button>
+        </div>
+      </form>
+    </app-card>
+  }
+}
+
+<app-modal
+  [open]="showArchiveModal()"
+  title="Archive quiz?"
+  confirmLabel="Archive"
+  (close)="closeArchiveModal()"
+  (confirm)="confirmArchive()"
+>
+  <p>Archived quizzes are no longer visible to participants. You can still view historical data.</p>
+</app-modal>
+
+<app-modal
+  [open]="showDeleteModal()"
+  title="Delete quiz?"
+  confirmLabel="Delete"
+  (close)="closeDeleteModal()"
+  (confirm)="confirmDelete()"
+>
+  <p>Are you sure you want to delete this quiz? All questions and attempts will be removed. This action cannot be undone.</p>
+</app-modal>

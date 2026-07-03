@@ -38,6 +38,20 @@ export class AttemptsService {
     };
   });
 
+  getQuizAttemptsQuery(quizId: () => string | null, page: () => number, size: () => number) {
+    return injectQuery(() => ({
+      queryKey: ['attempts', 'quiz', quizId(), page(), size()] as const,
+      queryFn: () =>
+        lastValueFrom(
+          this.api.getPage<AttemptResponse>(`quizzes/${quizId()}/attempts`, {
+            page: page(),
+            size: size(),
+          })
+        ),
+      enabled: !!quizId(),
+    }));
+  }
+
   getAttemptQuery(attemptId: () => string | null) {
     return injectQuery(() => ({
       queryKey: ['attempt', attemptId()] as const,

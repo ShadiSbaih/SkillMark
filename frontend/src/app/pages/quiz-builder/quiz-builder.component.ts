@@ -1,14 +1,25 @@
-import { Component, computed, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import {
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
+import {
+  FormArray,
+  FormBuilder,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
+import { toast } from 'ngx-sonner';
 import {
-  CreateOptionRequest,
   CreateQuestionRequest,
   Question,
   Quiz,
-  UpdateQuizRequest,
 } from '../../core/models/quiz.model';
 import { QuizzesService } from '../../services/quizzes.service';
 import { BadgeComponent } from '../../shared/components/badge/badge.component';
@@ -20,17 +31,6 @@ import { LoadingStateComponent } from '../../shared/components/loading-state/loa
 import { ModalComponent } from '../../shared/components/modal/modal.component';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 
-interface DraftQuestion {
-  text: string;
-  points: number;
-  options: DraftOption[];
-}
-
-interface DraftOption {
-  text: string;
-  isCorrect: boolean;
-}
-
 @Component({
   selector: 'app-quiz-builder',
   standalone: true,
@@ -40,17 +40,18 @@ interface DraftOption {
     CardComponent,
     EmptyStateComponent,
     ErrorStateComponent,
-    FormsModule,
     LoadingStateComponent,
     ModalComponent,
     PageHeaderComponent,
+    ReactiveFormsModule,
   ],
   templateUrl: './quiz-builder.component.html',
   styleUrl: './quiz-builder.component.scss',
 })
 export class QuizBuilderComponent {
   private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
+  readonly router = inject(Router);
+  private readonly fb = inject(FormBuilder);
   readonly quizzesService = inject(QuizzesService);
 
   readonly quizId = toSignal(
@@ -59,32 +60,21 @@ export class QuizBuilderComponent {
   );
 
   readonly quizQuery = this.quizzesService.getQuizQuery(() => this.quizId());
+  readonly loadedOnce = signal(false);
 
-  readonly isSaving = signal(false);
-  readonly saveError = signal<string | null>(null);
-
-  readonly draft = signal<UpdateQuizRequest>({
-    title: '',
-    description: '',
-    passingScore: 70,
-    durationMinutes: 30,
-    maxAttempts: 1,
-    certificateEnabled: true,
-    certificateIssueMode: 'AUTO',
-  });
-
-  readonly draftQuestions = signal<DraftQuestion[]>([]);
   readonly showQuestionModal = signal(false);
   readonly editingQuestionIndex = signal<number | null>(null);
-  readonly questionDraft = signal<DraftQuestion>({
-    text: '',
-    points: 1,
-    options: [{ text: '', isCorrect: true }],
+  readonly showDeleteModal = signal(false);
+  readonly deletingQuestionIndex = signal<number | null>(null);
+
+  readonly questionForm = this.fb.group({
+    text: ['', Validators.required],
+    points: [1, [Validators.required, Validators.min(1)]],
+    options: this.fb.array<FormGroup>([]),
   });
 
   readonly badgeVariant = computed(() => {
-    const status = this.quizQuery.data()?.status;
-    switch (status) {
+    switch (this.quizQuery.data()?.status) {
       case 'PUBLISHED':
         return 'success';
       case 'ARCHIVED':
@@ -100,7 +90,7 @@ export class QuizBuilderComponent {
 
   readonly publishChecklist = computed(() => {
     const quiz = this.quizQuery.data();
-    const questions = this.draftQuestions();
+    const questions = quiz?.questions ?? [];
     return {
       hasTitle: !!quiz?.title?.trim(),
       hasDescription: !!quiz?.description?.trim(),
@@ -129,68 +119,45 @@ export class QuizBuilderComponent {
   });
 
   constructor() {
-    this.quizQuery.isSuccess;
-  }
-
-  onQuizLoaded(quiz: Quiz): void {
-    this.draft.set({
-      title: quiz.title,
-      description: quiz.description ?? '',
-      passingScore: quiz.passingScore,
-      durationMinutes: quiz.durationMinutes,
-      maxAttempts: quiz.maxAttempts,
-      certificateEnabled: quiz.certificateEnabled,
-      certificateIssueMode: quiz.certificateIssueMode,
-    });
-
-    this.draftQuestions.set(
-      quiz.questions.map((q) => ({
-        text: q.text,
-        points: q.points,
-        options: q.options.map((o) => ({
-          text: o.text,
-          isCorrect: o.isCorrect,
-        })),
-      }))
-    );
-  }
-
-  saveSettings(): void {
-    const id = this.quizId();
-    if (!id) return;
-    this.isSaving.set(true);
-    this.saveError.set(null);
-    this.quizzesService.updateMutation.mutate(
-      { quizId: id, request: this.draft() },
-      {
-        onSuccess: () => this.isSaving.set(false),
-        onError: (error) => {
-          this.isSaving.set(false);
-          this.saveError.set(error?.message ?? 'Failed to save quiz settings');
-        },
+    effect(() => {
+      const quiz = this.quizQuery.data();
+      if (quiz && !this.loadedOnce()) {
+        this.loadedOnce.set(true);
       }
-    );
+    });
+  }
+
+  get optionsArray(): FormArray<FormGroup> {
+    return this.questionForm.get('options') as FormArray<FormGroup>;
+  }
+
+  private createOptionGroup(text = '', isCorrect = false): FormGroup {
+    return this.fb.group({
+      text: [text, Validators.required],
+      isCorrect: [isCorrect],
+    });
   }
 
   openAddQuestion(): void {
     this.editingQuestionIndex.set(null);
-    this.questionDraft.set({
-      text: '',
-      points: 1,
-      options: [{ text: '', isCorrect: true }],
-    });
+    this.questionForm.reset({ text: '', points: 1 });
+    this.optionsArray.clear();
+    this.optionsArray.push(this.createOptionGroup('', true));
+    this.optionsArray.push(this.createOptionGroup());
     this.showQuestionModal.set(true);
   }
 
   openEditQuestion(index: number): void {
-    const question = this.draftQuestions()[index];
+    const quiz = this.quizQuery.data();
+    const question = quiz?.questions[index];
     if (!question) return;
+
     this.editingQuestionIndex.set(index);
-    this.questionDraft.set({
-      text: question.text,
-      points: question.points,
-      options: question.options.map((o) => ({ ...o })),
-    });
+    this.questionForm.reset({ text: question.text, points: question.points });
+    this.optionsArray.clear();
+    for (const option of question.options) {
+      this.optionsArray.push(this.createOptionGroup(option.text, option.isCorrect));
+    }
     this.showQuestionModal.set(true);
   }
 
@@ -199,83 +166,146 @@ export class QuizBuilderComponent {
   }
 
   addOption(): void {
-    this.questionDraft.update((q) => ({
-      ...q,
-      options: [...q.options, { text: '', isCorrect: false }],
-    }));
+    this.optionsArray.push(this.createOptionGroup());
   }
 
   removeOption(index: number): void {
-    this.questionDraft.update((q) => ({
-      ...q,
-      options: q.options.filter((_, i) => i !== index),
-    }));
+    this.optionsArray.removeAt(index);
+    if (this.optionsArray.length === 0) {
+      this.optionsArray.push(this.createOptionGroup('', true));
+    }
   }
 
   setCorrectOption(index: number): void {
-    this.questionDraft.update((q) => ({
-      ...q,
-      options: q.options.map((o, i) => ({ ...o, isCorrect: i === index })),
-    }));
+    this.optionsArray.controls.forEach((group, i) => {
+      group.patchValue({ isCorrect: i === index });
+    });
   }
 
   saveQuestion(): void {
-    const id = this.quizId();
-    if (!id) return;
+    if (this.questionForm.invalid) {
+      this.questionForm.markAllAsTouched();
+      toast.error('Please fill in the question and all options.');
+      return;
+    }
 
-    const draft = this.questionDraft();
+    const quizId = this.quizId();
+    if (!quizId) return;
+
+    const formValue = this.questionForm.getRawValue();
+    const rawOptions = (formValue.options ?? []) as Array<{ text: string; isCorrect: boolean }>;
+    const options = rawOptions.map((o, i) => ({
+      text: o['text'],
+      isCorrect: o['isCorrect'],
+      position: i + 1,
+    }));
+
+    if (options.length === 0) {
+      toast.error('A question needs at least one option.');
+      return;
+    }
+
+    if (!options.some((o) => o.isCorrect)) {
+      toast.error('Please mark at least one option as correct.');
+      return;
+    }
+
     const request: CreateQuestionRequest = {
-      text: draft.text,
+      text: formValue.text ?? '',
       type: 'SINGLE_CHOICE',
-      points: draft.points,
-      position: this.editingQuestionIndex() ?? this.draftQuestions().length,
-      options: draft.options.map((o, i) => ({
-        text: o.text,
-        isCorrect: o.isCorrect,
-        position: i + 1,
-      })),
+      points: formValue.points ?? 1,
+      position: 0,
+      options,
     };
 
     const editingIndex = this.editingQuestionIndex();
     if (editingIndex !== null) {
-      const question = this.quizQuery.data()?.questions[editingIndex];
+      const quiz = this.quizQuery.data();
+      const question = quiz?.questions[editingIndex];
       if (!question) {
         this.showQuestionModal.set(false);
         return;
       }
+      request.position = question.position;
       this.quizzesService.updateQuestionMutation.mutate(
-        { questionId: question.id, quizId: id, request },
-        { onSuccess: () => this.showQuestionModal.set(false) }
+        { questionId: question.id, quizId, request },
+        {
+          onSuccess: () => {
+            this.showQuestionModal.set(false);
+            toast.success('Question updated.');
+          },
+          onError: (error) => {
+            toast.error(error?.message ?? 'Failed to update question.');
+          },
+        }
       );
     } else {
+      const quiz = this.quizQuery.data();
+      request.position = (quiz?.questions.length ?? 0) + 1;
       this.quizzesService.addQuestionMutation.mutate(
-        { quizId: id, request },
-        { onSuccess: () => this.showQuestionModal.set(false) }
+        { quizId, request },
+        {
+          onSuccess: () => {
+            this.showQuestionModal.set(false);
+            toast.success('Question added.');
+          },
+          onError: (error) => {
+            toast.error(error?.message ?? 'Failed to add question.');
+          },
+        }
       );
     }
   }
 
-  deleteQuestion(index: number): void {
-    const id = this.quizId();
-    const question = this.quizQuery.data()?.questions[index];
-    if (!id || !question) return;
+  openDeleteQuestion(index: number): void {
+    this.deletingQuestionIndex.set(index);
+    this.showDeleteModal.set(true);
+  }
+
+  closeDeleteModal(): void {
+    this.showDeleteModal.set(false);
+  }
+
+  confirmDeleteQuestion(): void {
+    const quizId = this.quizId();
+    const index = this.deletingQuestionIndex();
+    const quiz = this.quizQuery.data();
+    const question = quiz?.questions[index ?? -1];
+    if (!quizId || !question) {
+      this.showDeleteModal.set(false);
+      return;
+    }
+
     this.quizzesService.deleteQuestionMutation.mutate(
-      { questionId: question.id, quizId: id }
+      { questionId: question.id, quizId },
+      {
+        onSuccess: () => {
+          this.showDeleteModal.set(false);
+          toast.success('Question deleted.');
+        },
+        onError: (error) => {
+          this.showDeleteModal.set(false);
+          toast.error(error?.message ?? 'Failed to delete question.');
+        },
+      }
     );
   }
 
   publish(): void {
     const id = this.quizId();
     if (!id) return;
-    this.quizzesService.publishMutation.mutate(id);
+    this.quizzesService.publishMutation.mutate(id, {
+      onSuccess: () => toast.success('Quiz published successfully.'),
+      onError: (error) => toast.error(error?.message ?? 'Failed to publish quiz.'),
+    });
   }
 
   goBack(): void {
     const programId = this.quizQuery.data()?.programId;
     if (programId) {
-      this.router.navigate(['/programs', programId]);
+      void this.router.navigate(['/programs', programId, 'quizzes']);
     } else {
-      this.router.navigate(['/organizations']);
+      void this.router.navigate(['/organizations']);
     }
   }
 }

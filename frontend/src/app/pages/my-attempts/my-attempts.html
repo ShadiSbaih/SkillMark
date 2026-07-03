@@ -1,1 +1,71 @@
-<p>my-attempts works!</p>
+<app-page-header title="My Attempts" subtitle="Review your quiz attempts, scores, and results." />
+
+@if (query.isPending()) {
+  <app-loading-state message="Loading attempts..." />
+} @else if (query.isError()) {
+  <app-error-state [message]="query.error()?.message ?? 'Failed to load attempts'" (retry)="query.refetch()" />
+} @else if (data()?.items?.length === 0) {
+  <app-card>
+    <app-empty-state
+      title="No attempts yet"
+      description="You have not taken any quizzes yet."
+    />
+  </app-card>
+} @else {
+  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    @for (attempt of data()?.items; track attempt.attemptId) {
+      <app-card>
+        <div class="flex items-start justify-between">
+          <div>
+            <p class="text-xs font-medium text-[#64748d]">Attempt #{{ attempt.attemptNumber }}</p>
+            <h3 class="mt-1 text-lg font-semibold text-[#0d253d]">Quiz attempt</h3>
+          </div>
+          <app-badge [variant]="statusVariant(attempt.passed)">
+            {{ attempt.passed ? 'Passed' : 'Failed' }}
+          </app-badge>
+        </div>
+
+        <div class="mt-4 space-y-1 text-sm text-[#64748d]">
+          <p><span class="font-medium text-[#0d253d]">Score:</span> {{ attempt.scorePercentage }}%</p>
+          <p><span class="font-medium text-[#0d253d]">Points:</span> {{ attempt.earnedPoints }} / {{ attempt.totalPoints }}</p>
+          <p><span class="font-medium text-[#0d253d]">Status:</span> {{ attempt.status }}</p>
+        </div>
+
+        <div class="mt-4 flex items-center justify-between">
+          <p class="text-xs text-[#64748d]">
+            @if (attempt.submittedAt) {
+              Submitted {{ attempt.submittedAt | date:'mediumDate' }}
+            } @else {
+              Started {{ attempt.startedAt | date:'mediumDate' }}
+            }
+          </p>
+          <app-button variant="secondary" size="sm" (clicked)="router.navigate(['/attempts', attempt.attemptId, 'result'])">
+            View result
+          </app-button>
+        </div>
+      </app-card>
+    }
+  </div>
+
+  @if (totalPages() > 1) {
+    <div class="mt-6 flex items-center justify-between">
+      <app-button
+        variant="secondary"
+        size="sm"
+        [disabled]="!hasPrevious()"
+        (clicked)="goToPrevious()"
+      >
+        Previous
+      </app-button>
+      <span class="text-sm text-[#64748d]">Page {{ page() + 1 }} of {{ totalPages() }}</span>
+      <app-button
+        variant="secondary"
+        size="sm"
+        [disabled]="!hasNext()"
+        (clicked)="goToNext()"
+      >
+        Next
+      </app-button>
+    </div>
+  }
+}

@@ -63,17 +63,23 @@
 
         <div class="hidden items-center gap-2 sm:flex">
           <label class="text-sm font-medium text-[#64748d]" for="org-select">Organization</label>
-          <select
-            id="org-select"
-            class="rounded-md border border-[#a8c3de] bg-[#f6f9fc] px-3 py-1.5 text-sm text-[#0d253d] focus:border-[#533afd] focus:outline-none focus:ring-1 focus:ring-[#533afd]"
-            [value]="selectedOrganizationId() ?? ''"
-            (change)="onOrganizationChange($event)"
-          >
-            <option value="" disabled>Select organization</option>
-            @for (org of organizations(); track org.id) {
-              <option [value]="org.id">{{ org.name }}</option>
-            }
-          </select>
+          @if (listQuery.isLoading()) {
+            <span class="text-sm text-[#64748d]">Loading…</span>
+          } @else if (listQuery.error()) {
+            <span class="text-sm text-[#b91c1c]">Failed to load</span>
+          } @else {
+            <select
+              id="org-select"
+              class="rounded-md border border-[#a8c3de] bg-[#f6f9fc] px-3 py-1.5 text-sm text-[#0d253d] focus:border-[#533afd] focus:outline-none focus:ring-1 focus:ring-[#533afd]"
+              [value]="selectedOrganizationId() ?? ''"
+              (change)="onOrganizationChange($event)"
+            >
+              <option value="" disabled>Select organization</option>
+              @for (org of organizations(); track org.id) {
+                <option [value]="org.id">{{ org.name }}</option>
+              }
+            </select>
+          }
         </div>
       </div>
 

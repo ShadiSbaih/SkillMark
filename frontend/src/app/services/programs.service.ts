@@ -105,4 +105,13 @@ export class ProgramsService {
       this.queryClient.invalidateQueries({ queryKey: ['programs'] });
     },
   }));
+
+  readonly deleteMutation = injectMutation(() => ({
+    mutationFn: (programId: string) =>
+      lastValueFrom(this.api.delete<void>(`programs/${programId}`)),
+    onSuccess: (_, programId) => {
+      this.queryClient.invalidateQueries({ queryKey: ['program', programId] });
+      this.queryClient.invalidateQueries({ queryKey: ['programs'] });
+    },
+  }));
 }

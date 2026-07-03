@@ -1,1 +1,86 @@
-<p>quiz-attempts works!</p>
+@if (attemptsQuery.isPending()) {
+  <app-loading-state message="Loading attempts..." />
+} @else if (attemptsQuery.isError()) {
+  <app-error-state
+    [message]="attemptsQuery.error()?.message ?? 'Failed to load attempts.'"
+    (retry)="attemptsQuery.refetch()"
+  />
+} @else {
+  @let pageData = attemptsQuery.data();
+
+  <app-page-header
+    title="Quiz attempts"
+    subtitle="All participant attempts for this quiz."
+    [hasActions]="true"
+  >
+    <ng-container actions>
+      <app-button variant="secondary" (clicked)="goBack()">Back</app-button>
+    </ng-container>
+  </app-page-header>
+
+  @if (!pageData || pageData.items.length === 0) {
+    <app-empty-state
+      title="No attempts yet"
+      description="Attempts will appear here once participants start taking this quiz."
+    />
+  } @else {
+    <app-card>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Attempt #</th>
+              <th>User</th>
+              <th>Status</th>
+              <th>Score</th>
+              <th>Result</th>
+              <th>Submitted</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (attempt of pageData.items; track attempt.attemptId) {
+              <tr>
+                <td class="tabular-nums">{{ attempt.attemptNumber }}</td>
+                <td>
+                  <span class="pill-tag-soft">{{ attempt.userId | slice:0:8 }}</span>
+                </td>
+                <td>
+                  <app-badge
+                    [variant]="attempt.status === 'SUBMITTED' ? 'success' : attempt.status === 'IN_PROGRESS' ? 'warning' : 'danger'"
+                  >
+                    {{ attempt.status }}
+                  </app-badge>
+                </td>
+                <td class="tabular-nums">{{ attempt.scorePercentage | number: '1.1-1' }}%</td>
+                <td>
+                  @if (attempt.status === 'SUBMITTED') {
+                    <app-badge [variant]="attempt.passed ? 'success' : 'danger'">
+                      {{ attempt.passed ? 'Passed' : 'Failed' }}
+                    </app-badge>
+                  } @else {
+                    <span class="muted">—</span>
+                  }
+                </td>
+                <td>
+                  @if (attempt.submittedAt) {
+                    {{ attempt.submittedAt | date: 'medium' }}
+                  } @else {
+                    <span class="muted">—</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (totalPages() > 1) {
+        <div class="pagination">
+          <button [disabled]="!hasPrevious()" (click)="previousPage()">Previous</button>
+          <strong>{{ page() + 1 }} / {{ totalPages() }}</strong>
+          <button [disabled]="!hasNext()" (click)="nextPage()">Next</button>
+        </div>
+      }
+    </app-card>
+  }
+}

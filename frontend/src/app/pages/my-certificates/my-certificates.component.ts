@@ -60,4 +60,10 @@ export class MyCertificatesComponent {
   statusVariant(status: string): 'success' | 'danger' | 'default' {
     return status === 'ACTIVE' ? 'success' : status === 'REVOKED' ? 'danger' : 'default';
   }
+
+  openPdf(url: string | null): void {
+    if (url) {
+      window.open(url, '_blank');
+    }
+  }
 }

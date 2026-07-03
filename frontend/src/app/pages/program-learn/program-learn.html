@@ -1,1 +1,102 @@
-<p>program-learn works!</p>
+@if (programQuery.isPending()) {
+  <app-loading-state message="Loading program..." />
+} @else if (programQuery.isError()) {
+  <app-error-state
+    [message]="programQuery.error()?.message ?? 'Failed to load program'"
+    (retry)="programQuery.refetch()"
+  />
+} @else {
+  @let program = programQuery.data();
+
+  <app-page-header
+    [title]="program?.title ?? 'Program'"
+    subtitle="Your learning materials and quizzes."
+  />
+
+  @if (program?.description) {
+    <app-card class="mb-6">
+      <p class="text-sm leading-relaxed text-[#64748d]">{{ program?.description }}</p>
+    </app-card>
+  }
+
+  <div class="mb-6">
+    <h2 class="mb-4 text-lg font-semibold text-[#0d253d]">Resources</h2>
+
+    @if (resourcesQuery.isPending()) {
+      <app-loading-state message="Loading resources..." />
+    } @else if (resourcesQuery.isError()) {
+      <app-error-state
+        [message]="resourcesQuery.error()?.message ?? 'Failed to load resources'"
+        (retry)="resourcesQuery.refetch()"
+      />
+    } @else if (visibleResources().length === 0) {
+      <app-card>
+        <app-empty-state
+          title="No resources yet"
+          description="Resources for this program will appear here once added."
+        />
+      </app-card>
+    } @else {
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        @for (resource of visibleResources(); track resource.id) {
+          <app-card>
+            <div class="text-2xl">{{ typeIcon(resource.type) }}</div>
+            <h3 class="mt-3 text-base font-semibold text-[#0d253d]">{{ resource.title }}</h3>
+            @if (resource.description) {
+              <p class="mt-1 line-clamp-2 text-sm text-[#64748d]">{{ resource.description }}</p>
+            }
+            @if (resource.url) {
+              <a
+                [href]="resource.url"
+                target="_blank"
+                rel="noopener"
+                class="mt-3 inline-block text-sm text-[#533afd] hover:underline"
+              >
+                Open resource
+              </a>
+            }
+          </app-card>
+        }
+      </div>
+    }
+  </div>
+
+  <div>
+    <h2 class="mb-4 text-lg font-semibold text-[#0d253d]">Quizzes</h2>
+
+    @if (quizzesQuery.isPending()) {
+      <app-loading-state message="Loading quizzes..." />
+    } @else if (quizzesQuery.isError()) {
+      <app-error-state
+        [message]="quizzesQuery.error()?.message ?? 'Failed to load quizzes'"
+        (retry)="quizzesQuery.refetch()"
+      />
+    } @else if (visibleQuizzes().length === 0) {
+      <app-card>
+        <app-empty-state
+          title="No quizzes yet"
+          description="Quizzes will appear here once published."
+        />
+      </app-card>
+    } @else {
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        @for (quiz of visibleQuizzes(); track quiz.id) {
+          <app-card>
+            <h3 class="text-base font-semibold text-[#0d253d]">{{ quiz.title }}</h3>
+            @if (quiz.description) {
+              <p class="mt-1 line-clamp-2 text-sm text-[#64748d]">{{ quiz.description }}</p>
+            }
+            <div class="mt-3 space-y-1 text-sm text-[#64748d]">
+              <p>{{ quiz.questions?.length ?? 0 }} questions</p>
+              <p>Passing score: {{ quiz.passingScore }}%</p>
+              <p>Duration: {{ quiz.durationMinutes }} min</p>
+            </div>
+            <app-button class="mt-4" size="sm" (clicked)="router.navigate(['/quizzes', quiz.id, 'view'])">
+              Start quiz
+            </app-button>
+          </app-card>
+        }
+      </div>
+    }
+  </div>
+}

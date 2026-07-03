@@ -1,1 +1,77 @@
-<p>organization-certificates works!</p>
+@if (certificatesQuery.isPending()) {
+  <div class="space-y-4">
+    <div class="h-8 w-1/3 animate-pulse rounded bg-[#e1ebf5]"></div>
+    <div class="h-48 animate-pulse rounded bg-[#e1ebf5]"></div>
+  </div>
+}
+
+@if (certificatesQuery.error()) {
+  <app-error-state
+    [message]="certificatesQuery.error()?.message ?? 'Failed to load certificates'"
+    (retry)="certificatesQuery.refetch()"
+  />
+}
+
+@if (!certificatesQuery.isPending() && !certificatesQuery.error()) {
+  <header class="mb-6">
+    <p class="text-xs font-medium uppercase text-[#64748d]">Organization</p>
+    <h1 class="text-2xl font-bold text-[#0d253d]">Certificates</h1>
+    <p class="text-sm text-[#64748d]">Manage certificates issued within this organization.</p>
+  </header>
+
+  <app-card>
+    @if (certificates().length === 0) {
+      <app-empty-state message="No certificates have been issued yet." />
+    } @else {
+      <div class="table-wrap">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-[#e1ebf5]">
+              <th class="py-2 text-left font-medium text-[#64748d]">Number</th>
+              <th class="py-2 text-left font-medium text-[#64748d]">Participant</th>
+              <th class="py-2 text-left font-medium text-[#64748d]">Quiz</th>
+              <th class="py-2 text-left font-medium text-[#64748d]">Issued</th>
+              <th class="py-2 text-left font-medium text-[#64748d]">Status</th>
+              <th class="py-2 text-right font-medium text-[#64748d]">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (certificate of certificates(); track certificate.id) {
+              <tr class="border-b border-[#e1ebf5] last:border-0">
+                <td class="py-3 font-medium text-[#0d253d]">
+                  <a [routerLink]="['/certificates', certificate.id]" class="hover:underline">
+                    {{ certificate.certificateNumber }}
+                  </a>
+                </td>
+                <td class="py-3 text-[#0d253d]">{{ certificate.participantNameSnapshot }}</td>
+                <td class="py-3 text-[#64748d]">{{ certificate.quizTitleSnapshot }}</td>
+                <td class="py-3 text-[#64748d]">{{ certificate.issuedAt | date:'mediumDate' }}</td>
+                <td class="py-3">
+                  <span
+                    class="status"
+                    [class.status-published]="certificate.status === 'ACTIVE'"
+                    [class.status-archived]="certificate.status === 'REVOKED'"
+                  >
+                    {{ certificate.status }}
+                  </span>
+                </td>
+                <td class="py-3 text-right">
+                  @if (certificate.status === 'ACTIVE') {
+                    <app-button type="button" variant="danger" size="sm" (clicked)="revoke(certificate)">
+                      Revoke
+                    </app-button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <app-pagination
+        [page]="page()"
+        [totalPages]="totalPages()"
+        (pageChange)="page.set($event)"
+      />
+    }
+  </app-card>
+}

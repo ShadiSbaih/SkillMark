@@ -1,1 +1,54 @@
-<p>program-stats works!</p>
+<app-page-header
+  title="Program statistics"
+  subtitle="Enrollment, resource, quiz, and certificate metrics."
+  [hasActions]="true"
+>
+  <ng-container actions>
+    <app-button variant="secondary" (clicked)="router.navigate(['/programs', programId()])">Back</app-button>
+  </ng-container>
+</app-page-header>
+
+@if (statsQuery.isPending()) {
+  <app-loading-state message="Loading statistics..." />
+} @else if (statsQuery.isError()) {
+  <app-error-state
+    [message]="statsQuery.error()?.message ?? 'Failed to load statistics'"
+    (retry)="statsQuery.refetch()"
+  />
+} @else {
+  @let stats = statsQuery.data();
+
+  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <app-card>
+      <p class="text-sm text-[#64748d]">Enrollments</p>
+      <p class="mt-2 text-2xl font-semibold text-[#0d253d]">{{ stats?.enrollmentCount ?? 0 }}</p>
+    </app-card>
+
+    <app-card>
+      <p class="text-sm text-[#64748d]">Resources</p>
+      <p class="mt-2 text-2xl font-semibold text-[#0d253d]">{{ stats?.resourceCount ?? 0 }}</p>
+    </app-card>
+
+    <app-card>
+      <p class="text-sm text-[#64748d]">Quizzes</p>
+      <p class="mt-2 text-2xl font-semibold text-[#0d253d]">{{ stats?.quizCount ?? 0 }}</p>
+    </app-card>
+
+    <app-card>
+      <p class="text-sm text-[#64748d]">Certificates</p>
+      <p class="mt-2 text-2xl font-semibold text-[#0d253d]">{{ stats?.certificateCount ?? 0 }}</p>
+    </app-card>
+  </div>
+
+  <div class="mt-6 grid gap-4 sm:grid-cols-2">
+    <app-card>
+      <p class="text-sm text-[#64748d]">Average Score</p>
+      <p class="mt-2 text-2xl font-semibold text-[#0d253d]">{{ averageScore() }}%</p>
+    </app-card>
+
+    <app-card>
+      <p class="text-sm text-[#64748d]">Pass Rate</p>
+      <p class="mt-2 text-2xl font-semibold text-[#0d253d]">{{ passRate() }}%</p>
+    </app-card>
+  </div>
+}

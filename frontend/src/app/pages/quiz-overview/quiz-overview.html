@@ -1,1 +1,142 @@
-<p>quiz-overview works!</p>
+@if (quizQuery.isPending()) {
+  <app-loading-state message="Loading quiz overview..." />
+} @else if (quizQuery.isError()) {
+  <app-error-state
+    [message]="quizQuery.error()?.message ?? 'Failed to load quiz.'"
+    (retry)="quizQuery.refetch()"
+  />
+} @else {
+  @let quiz = quizQuery.data();
+
+  @if (!quiz) {
+    <app-empty-state
+      title="Quiz not found"
+      description="The quiz you are looking for does not exist or is unavailable."
+    />
+  } @else {
+    <app-page-header
+      [title]="quiz.title"
+      [subtitle]="quiz.description ?? 'Quiz overview and actions'"
+      [hasActions]="true"
+    >
+      <ng-container actions>
+        <app-button variant="secondary" (clicked)="navigateToBuilder()">Builder</app-button>
+        <app-button variant="secondary" (clicked)="navigateToSettings()">Settings</app-button>
+        <app-button variant="secondary" (clicked)="navigateToStats()">Stats</app-button>
+        <app-button variant="secondary" (clicked)="navigateToAttempts()">Attempts</app-button>
+        @if (quiz.status !== 'PUBLISHED') {
+          <app-button (clicked)="openPublishModal()">Publish</app-button>
+        }
+      </ng-container>
+    </app-page-header>
+
+    <div class="mb-6 flex items-center gap-3">
+      <app-badge [variant]="statusBadgeVariant()">{{ quiz.status }}</app-badge>
+      <app-badge [variant]="visibilityBadgeVariant()">
+        {{ quiz.visibleToParticipants ? 'Visible' : 'Hidden' }}
+      </app-badge>
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-3">
+      <div class="lg:col-span-2 space-y-6">
+        <app-card>
+          <h2 class="mb-4 text-lg font-semibold">Quiz settings</h2>
+          <div class="detail-grid">
+            <div>
+              <dt>Passing score</dt>
+              <dd>{{ quiz.passingScore }}%</dd>
+            </div>
+            <div>
+              <dt>Duration</dt>
+              <dd>{{ quiz.durationMinutes }} minutes</dd>
+            </div>
+            <div>
+              <dt>Max attempts</dt>
+              <dd>{{ quiz.maxAttempts }}</dd>
+            </div>
+            <div>
+              <dt>Certificates</dt>
+              <dd>{{ quiz.certificateEnabled ? 'Enabled' : 'Disabled' }}</dd>
+            </div>
+            <div>
+              <dt>Certificate mode</dt>
+              <dd>{{ quiz.certificateIssueMode }}</dd>
+            </div>
+            <div>
+              <dt>Questions</dt>
+              <dd>{{ quiz.questions.length }}</dd>
+            </div>
+          </div>
+        </app-card>
+
+        <app-card>
+          <h2 class="mb-4 text-lg font-semibold">Questions</h2>
+          @if (quiz.questions.length === 0) {
+            <app-empty-state
+              title="No questions yet"
+              description="Add questions in the builder before publishing."
+              actionLabel="Open builder"
+              (action)="navigateToBuilder()"
+            />
+          } @else {
+            <div class="space-y-4">
+              @for (question of quiz.questions; track question.id; let i = $index) {
+                <div class="rounded-lg border border-[var(--hairline)] p-4">
+                  <div class="mb-2 flex items-center justify-between gap-4">
+                    <p class="font-medium">{{ i + 1 }}. {{ question.text }}</p>
+                    <app-badge variant="info">{{ question.points }} pts</app-badge>
+                  </div>
+                  <div class="grid gap-2 sm:grid-cols-2">
+                    @for (option of question.options; track option.id) {
+                      <div
+                        class="flex items-center gap-2 rounded-md border px-3 py-2 text-sm"
+                        [class.border-[var(--primary)]]="option.isCorrect"
+                        [class.bg-[var(--canvas-soft)]]="option.isCorrect"
+                      >
+                        <span
+                          class="h-2 w-2 rounded-full"
+                          [class.bg-[var(--primary)]]="option.isCorrect"
+                          [class.bg-[var(--hairline-input)]]="!option.isCorrect"
+                        ></span>
+                        <span>{{ option.text }}</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </app-card>
+      </div>
+
+      <div class="space-y-6">
+        <app-card>
+          <h2 class="mb-4 text-lg font-semibold">Visibility</h2>
+          <p class="mb-4 text-sm text-[var(--ink-mute)]">
+            Participants can only see and attempt this quiz when it is visible.
+          </p>
+          <app-button
+            variant="secondary"
+            class="w-full"
+            [loading]="quizzesService.updateVisibilityMutation.isPending()"
+            (clicked)="toggleVisibility()"
+          >
+            {{ quiz.visibleToParticipants ? 'Hide from participants' : 'Show to participants' }}
+          </app-button>
+        </app-card>
+      </div>
+    </div>
+  }
+}
+
+<app-modal
+  [open]="showPublishModal()"
+  title="Publish quiz?"
+  confirmLabel="Publish"
+  (close)="closePublishModal()"
+  (confirm)="confirmPublish()"
+>
+  <p>
+    Once published, participants will be able to view and attempt this quiz. You will still be able to edit some settings.
+  </p>
+</app-modal>
