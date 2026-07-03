@@ -8,13 +8,13 @@
 
 ## 1.1 Product Vision
 
-**Skillmark** is a modern, API-first platform that helps universities, student clubs, and training organizations create workshops, assess participants, and issue verifiable digital certificates.
+**Skillmark** is a modern, API-first platform that helps universities, student clubs, and training organizations create programs, assess participants, and issue verifiable digital certificates.
 
 ### One-line pitch
-> Create workshops, assess skills, issue certificates—all through a simple API.
+> Create programs, assess skills, issue certificates—all through a simple API.
 
 ### Core value proposition
-Skillmark eliminates the complexity of managing training programs by providing a clean, secure backend that handles enrollment, assessments, and certificate verification out of the box.
+Skillmark eliminates the complexity of managing training programs by providing a clean, secure backend that handles enrollment, quizzes, and certificate verification out of the box.
 
 ---
 
@@ -36,9 +36,9 @@ This redesigned version focuses on:
 
 | User Type | Example | Primary Use Case |
 |-----------|---------|-----------------|
-| **Workshop Organizers** | Student club leaders | Run training workshops |
+| **Program Organizers** | Student club leaders | Run training programs |
 | **Training Coordinators** | University departments | Manage certification programs |
-| **Instructors** | Technical trainers | Create assessments |
+| **Owners** | Technical trainers | Create quizzes and programs |
 | **Participants** | Students, trainees | Complete courses, earn certificates |
 
 ---
@@ -46,12 +46,12 @@ This redesigned version focuses on:
 ## 1.4 Core User Journey
 
 ```
-1. Organizer creates a workspace
-2. Organizer creates a workshop
-3. Participants join using invite code
+1. Organizer creates an organization
+2. Organizer creates a program
+3. Participants join using invitation code
 4. Organizer adds learning materials
-5. Organizer creates an assessment
-6. Participants take the assessment
+5. Organizer creates a quiz
+6. Participants take the quiz
 7. System auto-grades and scores
 8. Qualified participants receive certificates
 9. Anyone can verify certificates publicly
@@ -65,11 +65,11 @@ This redesigned version focuses on:
 
 Core Features:
 - ✅ User authentication (Clerk)
-- ✅ Workspace management
-- ✅ Workshop creation & management
-- ✅ Participant enrollment via invite codes
+- ✅ Organization management
+- ✅ Program creation & management
+- ✅ Participant enrollment via invitation codes
 - ✅ Learning resources (links, files, videos)
-- ✅ Assessments (multiple choice quizzes)
+- ✅ Quizzes (multiple choice quizzes)
 - ✅ Auto-grading & scoring
 - ✅ Certificate generation
 - ✅ Public certificate verification
@@ -130,15 +130,15 @@ Deployment:      Any cloud platform (AWS, GCP, Railway, Render)
 
 ```
 User (managed by Clerk, synced locally)
-  └── Workspace (organization/institution)
-       └── Member (workspace membership with role)
-       └── Workshop (training program)
+  └── Organization (organization/institution)
+       └── Member (organization membership with role)
+       └── Program (training program)
             └── Enrollment (participant registration)
             └── Resource (learning materials)
-            └── Assessment (quiz/test)
+            └── Quiz (quiz/test)
                  └── Question
                       └── Answer Option
-                 └── Submission (student attempt)
+                 └── Attempt (student attempt)
                       └── Response (answers)
                  └── Certificate
 ```
@@ -151,11 +151,11 @@ User (managed by Clerk, synced locally)
 
 | Old Term | New Term | Why? |
 |----------|----------|------|
-| Organization | **Workspace** | More modern, familiar from tools like Notion |
-| Program | **Workshop** | Clearer purpose, less corporate |
-| Quiz | **Assessment** | More professional terminology |
-| Attempt | **Submission** | Clearer action/noun |
-| InvitationLink | **Invite** | Simpler, shorter |
+| Organization | Organization | Existing domain model |
+| Program | Program | Existing domain model |
+| Quiz | Quiz | Existing domain model |
+| Attempt | Attempt | Existing domain model |
+| InvitationLink | InvitationLink | Existing domain model |
 
 ---
 
@@ -163,48 +163,47 @@ User (managed by Clerk, synced locally)
 
 ## 5.1 Role Model (Simplified)
 
-Instead of complex organization + program permissions, we use **workspace-level roles**:
+Instead of complex organization + program permissions, we use **organization-level roles**:
 
 ### Roles
 
 | Role | Description |
 |------|-------------|
-| **ADMIN** | Workspace owner, full control |
-| **INSTRUCTOR** | Can create workshops & assessments |
-| **MEMBER** | Can enroll in workshops, take assessments |
+| **OWNER** | Organization owner, full control |
+| **PARTICIPANT** | Can enroll in programs and take quizzes |
 
 ### Permission Matrix
 
-| Action | ADMIN | INSTRUCTOR | MEMBER |
-|--------|-------|------------|--------|
-| Manage workspace | ✅ | ❌ | ❌ |
-| Invite members | ✅ | ✅ | ❌ |
-| Create workshops | ✅ | ✅ | ❌ |
-| Create assessments | ✅ | ✅ | ❌ |
-| Issue certificates | ✅ | ✅ | ❌ |
-| Enroll in workshops | ✅ | ✅ | ✅ |
-| Take assessments | ✅ | ✅ | ✅ |
-| View own certificates | ✅ | ✅ | ✅ |
+| Action | OWNER | PARTICIPANT |
+|--------|-------|-------------|
+| Manage organization | ✅ | ❌ |
+| Manage members | ✅ | ❌ |
+| Create programs | ✅ | ❌ |
+| Create quizzes | ✅ | ❌ |
+| Issue certificates | ✅ | ❌ |
+| Enroll in programs | ✅ | ✅ |
+| Take quizzes | ✅ | ✅ |
+| View own certificates | ✅ | ✅ |
 
 ---
 
 ## 5.2 Access Control Rules
 
-### Workspace-level
-- Users can only access workspaces where they are members
-- Users can be members of multiple workspaces with different roles
+### Organization-level
+- Users can only access organizations where they are members
+- Users can be members of multiple organizations with different roles
 
-### Workshop-level
-- Only enrolled members can access workshop content
-- Instructors/Admins have automatic access to their workspace's workshops
+### Program-level
+- Only enrolled members can access program content
+- Owners have automatic access to their organization's programs
 
 ### Resource-level
-- Resources inherit workshop access control
-- Admins can hide resources from members
+- Resources inherit program access control
+- Owners can hide resources from participants
 
-### Assessment-level
-- Only published assessments are visible to members
-- Members can only submit their own assessment attempts
+### Quiz-level
+- Only published quizzes are visible to members
+- Members can only submit their own quiz attempts
 
 ---
 
@@ -234,10 +233,10 @@ CREATE INDEX idx_users_email ON users(email);
 
 ---
 
-## 6.2 Workspace
+## 6.2 Organization
 
 ```sql
-CREATE TABLE workspaces (
+CREATE TABLE organizations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
     slug VARCHAR(100) UNIQUE NOT NULL,
@@ -248,45 +247,47 @@ CREATE TABLE workspaces (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_workspaces_slug ON workspaces(slug);
-CREATE INDEX idx_workspaces_created_by ON workspaces(created_by);
+CREATE INDEX idx_workspaces_slug ON organizations(slug);
+CREATE INDEX idx_workspaces_created_by ON organizations(created_by);
 ```
 
 **Notes:**
 - `slug` is URL-friendly identifier (e.g., "cs-club")
-- Creator automatically becomes ADMIN
+- Creator automatically becomes OWNER
 
 ---
 
 ## 6.3 Member
 
 ```sql
-CREATE TABLE members (
+CREATE TABLE organization_memberships (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    role VARCHAR(20) NOT NULL CHECK (role IN ('ADMIN', 'INSTRUCTOR', 'MEMBER')),
-    joined_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    role VARCHAR(30) NOT NULL,
+    status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     
-    UNIQUE(workspace_id, user_id)
+    UNIQUE(organization_id, user_id)
 );
 
-CREATE INDEX idx_members_workspace ON members(workspace_id);
-CREATE INDEX idx_members_user ON members(user_id);
+CREATE INDEX idx_memberships_organization ON organization_memberships(organization_id);
+CREATE INDEX idx_memberships_user ON organization_memberships(user_id);
 ```
 
 **Notes:**
-- One membership per user per workspace
-- Cascade delete when workspace or user is deleted
+- One membership per user per organization
+- Cascade delete when organization or user is deleted
 
 ---
 
-## 6.4 Workshop
+## 6.4 Program
 
 ```sql
-CREATE TABLE workshops (
+CREATE TABLE programs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
     description TEXT,
     cover_image_url TEXT,
@@ -299,8 +300,8 @@ CREATE TABLE workshops (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_workshops_workspace ON workshops(workspace_id);
-CREATE INDEX idx_workshops_status ON workshops(status);
+CREATE INDEX idx_programs_organization ON programs(organization_id);
+CREATE INDEX idx_workshops_status ON programs(status);
 ```
 
 **Notes:**
@@ -312,17 +313,17 @@ CREATE INDEX idx_workshops_status ON workshops(status);
 ## 6.5 Enrollment
 
 ```sql
-CREATE TABLE enrollments (
+CREATE TABLE program_enrollments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    workshop_id UUID NOT NULL REFERENCES workshops(id) ON DELETE CASCADE,
+    program_id UUID NOT NULL REFERENCES programs(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     enrolled_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     completed_at TIMESTAMP,
     
-    UNIQUE(workshop_id, user_id)
+    UNIQUE(program_id, user_id)
 );
 
-CREATE INDEX idx_enrollments_workshop ON enrollments(workshop_id);
+CREATE INDEX idx_enrollments_program ON enrollments(program_id);
 CREATE INDEX idx_enrollments_user ON enrollments(user_id);
 ```
 
@@ -332,15 +333,15 @@ CREATE INDEX idx_enrollments_user ON enrollments(user_id);
 
 ---
 
-## 6.6 Invite
+## 6.6 InvitationLink
 
 ```sql
-CREATE TABLE invites (
+CREATE TABLE invitations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-    workshop_id UUID REFERENCES workshops(id) ON DELETE CASCADE,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    program_id UUID REFERENCES programs(id) ON DELETE CASCADE,
     code VARCHAR(12) UNIQUE NOT NULL,
-    role VARCHAR(20) NOT NULL DEFAULT 'MEMBER',
+    role VARCHAR(20) NOT NULL DEFAULT 'PARTICIPANT',
     max_uses INT,
     uses_count INT NOT NULL DEFAULT 0,
     expires_at TIMESTAMP,
@@ -348,13 +349,13 @@ CREATE TABLE invites (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE UNIQUE INDEX idx_invites_code ON invites(code);
-CREATE INDEX idx_invites_workspace ON invites(workspace_id);
+CREATE UNIQUE INDEX idx_invites_code ON invitations(code);
+CREATE INDEX idx_invitations_organization ON invitations(organization_id);
 ```
 
 **Notes:**
-- If `workshop_id` is NULL, invite is for workspace membership
-- If `workshop_id` is set, invite enrolls user in specific workshop
+- If `program_id` is NULL, invitation is for organization membership
+- If `program_id` is set, invitation enrolls user in specific program
 - Code format: 12 chars, uppercase alphanumeric (e.g., `A3FX9KL2MN8P`)
 
 ---
@@ -362,9 +363,9 @@ CREATE INDEX idx_invites_workspace ON invites(workspace_id);
 ## 6.7 Resource
 
 ```sql
-CREATE TABLE resources (
+CREATE TABLE program_resources (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    workshop_id UUID NOT NULL REFERENCES workshops(id) ON DELETE CASCADE,
+    program_id UUID NOT NULL REFERENCES programs(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
     description TEXT,
     type VARCHAR(20) NOT NULL CHECK (type IN ('LINK', 'FILE', 'VIDEO', 'DOCUMENT')),
@@ -379,8 +380,8 @@ CREATE TABLE resources (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_resources_workshop ON resources(workshop_id);
-CREATE INDEX idx_resources_position ON resources(workshop_id, position);
+CREATE INDEX idx_resources_program ON resources(program_id);
+CREATE INDEX idx_resources_position ON resources(program_id, position);
 ```
 
 **Notes:**
@@ -390,12 +391,12 @@ CREATE INDEX idx_resources_position ON resources(workshop_id, position);
 
 ---
 
-## 6.8 Assessment
+## 6.8 Quiz
 
 ```sql
-CREATE TABLE assessments (
+CREATE TABLE quizzes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    workshop_id UUID NOT NULL REFERENCES workshops(id) ON DELETE CASCADE,
+    program_id UUID NOT NULL REFERENCES programs(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
     description TEXT,
     instructions TEXT,
@@ -410,8 +411,8 @@ CREATE TABLE assessments (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_assessments_workshop ON assessments(workshop_id);
-CREATE INDEX idx_assessments_status ON assessments(status);
+CREATE INDEX idx_quizzes_program ON quizzes(program_id);
+CREATE INDEX idx_assessments_status ON quizzes(status);
 ```
 
 **Notes:**
@@ -425,7 +426,7 @@ CREATE INDEX idx_assessments_status ON assessments(status);
 ```sql
 CREATE TABLE questions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    assessment_id UUID NOT NULL REFERENCES assessments(id) ON DELETE CASCADE,
+    assessment_id UUID NOT NULL REFERENCES quizzes(id) ON DELETE CASCADE,
     text TEXT NOT NULL,
     explanation TEXT,
     points INT NOT NULL DEFAULT 1 CHECK (points > 0),
@@ -465,12 +466,12 @@ CREATE INDEX idx_answers_question ON answers(question_id);
 
 ---
 
-## 6.11 Submission
+## 6.11 Attempt
 
 ```sql
-CREATE TABLE submissions (
+CREATE TABLE attempts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    assessment_id UUID NOT NULL REFERENCES assessments(id) ON DELETE CASCADE,
+    assessment_id UUID NOT NULL REFERENCES quizzes(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     attempt_number INT NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'IN_PROGRESS' 
@@ -486,15 +487,15 @@ CREATE TABLE submissions (
     UNIQUE(assessment_id, user_id, attempt_number)
 );
 
-CREATE INDEX idx_submissions_assessment ON submissions(assessment_id);
-CREATE INDEX idx_submissions_user ON submissions(user_id);
-CREATE INDEX idx_submissions_status ON submissions(status);
+CREATE INDEX idx_submissions_assessment ON attempts(assessment_id);
+CREATE INDEX idx_submissions_user ON attempts(user_id);
+CREATE INDEX idx_submissions_status ON attempts(status);
 ```
 
 **Notes:**
-- `attempt_number` auto-increments per user per assessment
-- `expires_at = started_at + assessment.duration_minutes`
-- Score calculated on submission
+- `attempt_number` auto-increments per user per quiz
+- `expires_at = started_at + quiz.duration_minutes`
+- Score calculated on attempt
 
 ---
 
@@ -503,7 +504,7 @@ CREATE INDEX idx_submissions_status ON submissions(status);
 ```sql
 CREATE TABLE responses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    submission_id UUID NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
+    submission_id UUID NOT NULL REFERENCES attempts(id) ON DELETE CASCADE,
     question_id UUID NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
     answer_id UUID REFERENCES answers(id) ON DELETE SET NULL,
     is_correct BOOLEAN,
@@ -516,7 +517,7 @@ CREATE INDEX idx_responses_submission ON responses(submission_id);
 ```
 
 **Notes:**
-- One response per question per submission
+- One response per question per attempt
 - `is_correct` and `points_earned` calculated on grading
 
 ---
@@ -526,10 +527,10 @@ CREATE INDEX idx_responses_submission ON responses(submission_id);
 ```sql
 CREATE TABLE certificates (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-    workshop_id UUID NOT NULL REFERENCES workshops(id) ON DELETE CASCADE,
-    assessment_id UUID NOT NULL REFERENCES assessments(id) ON DELETE CASCADE,
-    submission_id UUID NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    program_id UUID NOT NULL REFERENCES programs(id) ON DELETE CASCADE,
+    assessment_id UUID NOT NULL REFERENCES quizzes(id) ON DELETE CASCADE,
+    submission_id UUID NOT NULL REFERENCES attempts(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     
     certificate_number VARCHAR(50) UNIQUE NOT NULL,
@@ -560,23 +561,23 @@ CREATE TABLE certificates (
 CREATE UNIQUE INDEX idx_certificates_number ON certificates(certificate_number);
 CREATE UNIQUE INDEX idx_certificates_verification ON certificates(verification_code);
 CREATE INDEX idx_certificates_user ON certificates(user_id);
-CREATE INDEX idx_certificates_workspace ON certificates(workspace_id);
+CREATE INDEX idx_certificates_organization ON certificates(organization_id);
 ```
 
 **Notes:**
-- One certificate per user per assessment
+- One certificate per user per quiz
 - Certificate number format: `CERT-2024-A3FX9KL2` 
 - Verification code: 32-char alphanumeric
-- Snapshots preserve data even if workshop/workspace changes
+- Snapshots preserve data even if program/organization changes
 
 ---
 
 ## 6.14 Activity Log
 
 ```sql
-CREATE TABLE activity_logs (
+CREATE TABLE audit_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE,
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
     user_id UUID REFERENCES users(id) ON DELETE SET NULL,
     action VARCHAR(100) NOT NULL,
     entity_type VARCHAR(50),
@@ -587,7 +588,7 @@ CREATE TABLE activity_logs (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_activity_logs_workspace ON activity_logs(workspace_id);
+CREATE INDEX idx_activity_logs_organization ON activity_logs(organization_id);
 CREATE INDEX idx_activity_logs_user ON activity_logs(user_id);
 CREATE INDEX idx_activity_logs_created ON activity_logs(created_at);
 CREATE INDEX idx_activity_logs_entity ON activity_logs(entity_type, entity_id);
@@ -662,7 +663,7 @@ CREATE INDEX idx_activity_logs_entity ON activity_logs(entity_type, entity_id);
     ]
   },
   "timestamp": "2024-01-15T10:30:00Z",
-  "path": "/api/v1/workspaces"
+  "path": "/api/v1/organizations"
 }
 ```
 
@@ -710,16 +711,16 @@ POST   /api/v1/webhooks/clerk             # Clerk user sync (no auth)
 
 ---
 
-### Workspaces
+### Organizations
 
 ```http
-POST   /api/v1/workspaces                 # Create workspace
-GET    /api/v1/workspaces                 # List my workspaces
-GET    /api/v1/workspaces/:id             # Get workspace details
-PATCH  /api/v1/workspaces/:id             # Update workspace
-DELETE /api/v1/workspaces/:id             # Delete workspace
+POST   /api/v1/organizations                 # Create organization
+GET    /api/v1/organizations                 # List my organizations
+GET    /api/v1/organizations/:id             # Get organization details
+PATCH  /api/v1/organizations/:id             # Update organization
+DELETE /api/v1/organizations/:id             # Delete organization
 
-GET    /api/v1/workspaces/:id/stats       # Workspace statistics
+GET    /api/v1/organizations/:id/stats       # Organization statistics
 ```
 
 ---
@@ -727,28 +728,28 @@ GET    /api/v1/workspaces/:id/stats       # Workspace statistics
 ### Members
 
 ```http
-GET    /api/v1/workspaces/:id/members     # List workspace members
-POST   /api/v1/workspaces/:id/members     # Add member (via email)
-PATCH  /api/v1/workspaces/:id/members/:userId/role  # Update member role
-DELETE /api/v1/workspaces/:id/members/:userId       # Remove member
+GET    /api/v1/organizations/:id/members     # List organization members
+POST   /api/v1/organizations/:id/members     # Add member (via email)
+PATCH  /api/v1/organizations/:id/members/:userId/role  # Update member role
+DELETE /api/v1/organizations/:id/members/:userId       # Remove member
 ```
 
 ---
 
-### Invites
+### InvitationLinks
 
 ```http
-POST   /api/v1/workspaces/:id/invites     # Create invite
-GET    /api/v1/workspaces/:id/invites     # List invites
-DELETE /api/v1/invites/:id                # Delete/disable invite
+POST   /api/v1/organizations/:id/invitations     # Create invitation
+GET    /api/v1/organizations/:id/invitations     # List invitations
+DELETE /api/v1/invitations/:id                # Delete/disable invitation
 
-POST   /api/v1/invites/accept             # Accept invite by code (public)
-GET    /api/v1/invites/:code/preview      # Preview invite details (public)
+POST   /api/v1/invitations/accept             # Accept invitation by code (public)
+GET    /api/v1/invitations/:code/preview      # Preview invitation details (public)
 ```
 
-**Accept Invite Request:**
+**Accept InvitationLink Request:**
 ```json
-POST /api/v1/invites/accept
+POST /api/v1/invitations/accept
 {
   "code": "A3FX9KL2MN8P"
 }
@@ -756,19 +757,19 @@ POST /api/v1/invites/accept
 
 ---
 
-### Workshops
+### Programs
 
 ```http
-POST   /api/v1/workspaces/:id/workshops   # Create workshop
-GET    /api/v1/workspaces/:id/workshops   # List workshops
-GET    /api/v1/workshops/:id              # Get workshop details
-PATCH  /api/v1/workshops/:id              # Update workshop
-DELETE /api/v1/workshops/:id              # Delete workshop
+POST   /api/v1/organizations/:id/programs   # Create program
+GET    /api/v1/organizations/:id/programs   # List programs
+GET    /api/v1/programs/:id              # Get program details
+PATCH  /api/v1/programs/:id              # Update program
+DELETE /api/v1/programs/:id              # Delete program
 
-PATCH  /api/v1/workshops/:id/publish      # Publish workshop
-PATCH  /api/v1/workshops/:id/archive      # Archive workshop
+PATCH  /api/v1/programs/:id/publish      # Publish program
+PATCH  /api/v1/programs/:id/archive      # Archive program
 
-GET    /api/v1/workshops/:id/stats        # Workshop statistics
+GET    /api/v1/programs/:id/stats        # Program statistics
 ```
 
 ---
@@ -776,9 +777,9 @@ GET    /api/v1/workshops/:id/stats        # Workshop statistics
 ### Enrollments
 
 ```http
-GET    /api/v1/workshops/:id/enrollments  # List enrollments (admin/instructor)
-POST   /api/v1/workshops/:id/enrollments  # Manual enrollment
-DELETE /api/v1/workshops/:id/enrollments/:userId  # Remove enrollment
+GET    /api/v1/programs/:id/enrollments  # List enrollments (owner)
+POST   /api/v1/programs/:id/enrollments  # Manual enrollment
+DELETE /api/v1/programs/:id/enrollments/:userId  # Remove enrollment
 
 GET    /api/v1/enrollments                # My enrollments
 ```
@@ -788,8 +789,8 @@ GET    /api/v1/enrollments                # My enrollments
 ### Resources
 
 ```http
-POST   /api/v1/workshops/:id/resources    # Add resource
-GET    /api/v1/workshops/:id/resources    # List resources
+POST   /api/v1/programs/:id/resources    # Add resource
+GET    /api/v1/programs/:id/resources    # List resources
 GET    /api/v1/resources/:id              # Get resource
 PATCH  /api/v1/resources/:id              # Update resource
 DELETE /api/v1/resources/:id              # Delete resource
@@ -805,19 +806,19 @@ POST   /api/v1/resources/upload-url       # Get upload URL for R2
 
 ---
 
-### Assessments
+### Quizzes
 
 ```http
-POST   /api/v1/workshops/:id/assessments  # Create assessment
-GET    /api/v1/workshops/:id/assessments  # List assessments
-GET    /api/v1/assessments/:id            # Get assessment details
-PATCH  /api/v1/assessments/:id            # Update assessment
-DELETE /api/v1/assessments/:id            # Delete assessment
+POST   /api/v1/programs/:id/quizzes  # Create quiz
+GET    /api/v1/programs/:id/quizzes  # List quizzes
+GET    /api/v1/quizzes/:id            # Get quiz details
+PATCH  /api/v1/quizzes/:id            # Update quiz
+DELETE /api/v1/quizzes/:id            # Delete quiz
 
-PATCH  /api/v1/assessments/:id/publish    # Publish assessment
-PATCH  /api/v1/assessments/:id/archive    # Archive assessment
+PATCH  /api/v1/quizzes/:id/publish    # Publish quiz
+PATCH  /api/v1/quizzes/:id/archive    # Archive quiz
 
-GET    /api/v1/assessments/:id/stats      # Assessment statistics
+GET    /api/v1/quizzes/:id/stats      # Quiz statistics
 ```
 
 ---
@@ -825,7 +826,7 @@ GET    /api/v1/assessments/:id/stats      # Assessment statistics
 ### Questions & Answers
 
 ```http
-POST   /api/v1/assessments/:id/questions  # Add question
+POST   /api/v1/quizzes/:id/questions  # Add question
 PATCH  /api/v1/questions/:id              # Update question
 DELETE /api/v1/questions/:id              # Delete question
 
@@ -836,7 +837,7 @@ DELETE /api/v1/answers/:id                # Delete answer
 
 **Batch Question Creation:**
 ```json
-POST /api/v1/assessments/:id/questions/batch
+POST /api/v1/quizzes/:id/questions/batch
 {
   "questions": [
     {
@@ -854,21 +855,21 @@ POST /api/v1/assessments/:id/questions/batch
 
 ---
 
-### Submissions
+### Attempts
 
 ```http
-POST   /api/v1/assessments/:id/submissions        # Start new submission
-GET    /api/v1/assessments/:id/submissions        # List all submissions (admin)
-GET    /api/v1/submissions                        # My submissions
-GET    /api/v1/submissions/:id                    # Get submission details
-POST   /api/v1/submissions/:id/submit             # Submit for grading
+POST   /api/v1/quizzes/:id/attempts        # Start new attempt
+GET    /api/v1/quizzes/:id/attempts        # List all attempts (owner)
+GET    /api/v1/attempts                        # My attempts
+GET    /api/v1/attempts/:id                    # Get attempt details
+POST   /api/v1/attempts/:id/submit             # Submit for grading
 
-GET    /api/v1/submissions/:id/result             # Get graded result
+GET    /api/v1/attempts/:id/result             # Get graded result
 ```
 
-**Start Submission:**
+**Start Attempt:**
 ```json
-POST /api/v1/assessments/:id/submissions
+POST /api/v1/quizzes/:id/attempts
 {}
 
 Response:
@@ -885,7 +886,7 @@ Response:
 
 **Submit Answers:**
 ```json
-POST /api/v1/submissions/:id/submit
+POST /api/v1/attempts/:id/submit
 {
   "responses": [
     {"questionId": "...", "answerId": "..."},
@@ -917,7 +918,7 @@ Response:
 
 ```http
 GET    /api/v1/certificates                       # My certificates
-GET    /api/v1/workspaces/:id/certificates        # Workspace certificates (admin)
+GET    /api/v1/organizations/:id/certificates        # Organization certificates (owner)
 GET    /api/v1/certificates/:id                   # Get certificate
 POST   /api/v1/certificates/:id/revoke            # Revoke certificate
 GET    /api/v1/certificates/:id/download          # Download PDF
@@ -949,7 +950,7 @@ GET /api/v1/public/verify/VX8K2MN9PQR7Z
 ### Activity Logs
 
 ```http
-GET    /api/v1/workspaces/:id/activities  # Workspace activity log
+GET    /api/v1/organizations/:id/activities  # Organization activity log
 ```
 
 ---
@@ -969,15 +970,15 @@ GET    /api/v1/workspaces/:id/activities  # Workspace activity log
 
 ```
 ?status=PUBLISHED    # Filter by status
-?role=INSTRUCTOR     # Filter by role
+?role=OWNER     # Filter by role
 ?search=python       # Text search
 ```
 
 ### Examples
 
 ```http
-GET /api/v1/workspaces/123/workshops?status=PUBLISHED&page=0&size=10
-GET /api/v1/workspaces/123/members?role=INSTRUCTOR
+GET /api/v1/organizations/123/programs?status=PUBLISHED&page=0&size=10
+GET /api/v1/organizations/123/members?role=OWNER
 GET /api/v1/certificates?search=python
 ```
 
@@ -985,20 +986,20 @@ GET /api/v1/certificates?search=python
 
 # 8. Business Logic & Validation
 
-## 8.1 Workspace Rules
+## 8.1 Organization Rules
 
 **Creation:**
-- ✅ Any authenticated user can create a workspace
-- ✅ Creator automatically becomes ADMIN
+- ✅ Any authenticated user can create an organization
+- ✅ Creator automatically becomes OWNER
 - ✅ `slug` must be unique, URL-safe, 3-50 characters
 
 **Access:**
-- ✅ Users can only access workspaces where they are members
+- ✅ Users can only access organizations where they are members
 - ✅ Non-members get 404, not 403
 
 **Deletion:**
-- ✅ Only ADMIN can delete workspace
-- ✅ Cascades to all workshops, assessments, certificates
+- ✅ Only OWNER can delete organization
+- ✅ Cascades to all programs, quizzes, certificates
 - ⚠️ Warning: irreversible action
 
 ---
@@ -1006,30 +1007,30 @@ GET /api/v1/certificates?search=python
 ## 8.2 Member Rules
 
 **Adding:**
-- ✅ ADMIN and INSTRUCTOR can invite members
-- ✅ Invites can be for workspace or specific workshop
+- ✅ OWNER can invite members
+- ✅ InvitationLinks can be for organization or specific program
 - ✅ Duplicate membership returns 409
 
 **Roles:**
-- ✅ Only ADMIN can assign ADMIN or INSTRUCTOR roles
-- ✅ Cannot remove last ADMIN from workspace
+- ✅ Only OWNER can assign OWNER or OWNER roles
+- ✅ Cannot remove last OWNER from organization
 
 **Removing:**
-- ✅ ADMIN can remove any member
-- ✅ Members can leave workspace (except last ADMIN)
+- ✅ OWNER can remove any member
+- ✅ Members can leave organization (except last OWNER)
 
 ---
 
-## 8.3 Workshop Rules
+## 8.3 Program Rules
 
 **Publishing:**
 - ✅ Must have title and description
-- ✅ Can only publish if at least one resource or assessment exists
+- ✅ Can only publish if at least one resource or quiz exists
 
 **Archiving:**
-- ✅ Archived workshops cannot accept new enrollments
+- ✅ Archived programs cannot accept new enrollments
 - ✅ Existing enrollments remain valid
-- ✅ Assessments become read-only
+- ✅ Quizzes become read-only
 
 **Deletion:**
 - ⚠️ Only allowed if no certificates have been issued
@@ -1037,7 +1038,7 @@ GET /api/v1/certificates?search=python
 
 ---
 
-## 8.4 Assessment Rules
+## 8.4 Quiz Rules
 
 **Publishing:**
 Must pass all validations:
@@ -1050,28 +1051,28 @@ Must pass all validations:
 
 **Editing:**
 - ✅ Can edit freely in DRAFT status
-- ⚠️ Cannot edit questions/answers if submissions exist
+- ⚠️ Cannot edit questions/answers if attempts exist
 - ✅ Can edit metadata (title, passing score, etc.) anytime
 
 **Deletion:**
-- ✅ Can delete if no submissions exist
-- ⚠️ Cannot delete if submissions exist (must archive)
+- ✅ Can delete if no attempts exist
+- ⚠️ Cannot delete if attempts exist (must archive)
 
 ---
 
-## 8.5 Submission Rules
+## 8.5 Attempt Rules
 
 **Starting:**
-- ✅ Must be enrolled in workshop
-- ✅ Assessment must be PUBLISHED
+- ✅ Must be enrolled in program
+- ✅ Quiz must be PUBLISHED
 - ✅ Cannot exceed `maxAttempts`
-- ✅ Cannot have active IN_PROGRESS submission
+- ✅ Cannot have active IN_PROGRESS attempt
 - ✅ System records `startedAt` and calculates `expiresAt`
 
 **Submitting:**
 - ✅ Must answer all questions
 - ✅ Cannot submit after `expiresAt`
-- ✅ Cannot submit already-submitted submission
+- ✅ Cannot submit already-submitted attempt
 - ✅ System auto-grades immediately
 
 **Auto-grading:**
@@ -1084,11 +1085,11 @@ Must pass all validations:
    - score = sum of points earned
    - maxScore = sum of all question points
    - percentage = (score / maxScore) × 100
-   - passed = percentage >= assessment.passingScore
+   - passed = percentage >= quiz.passingScore
 
-3. Update submission status to SUBMITTED
+3. Update attempt status to SUBMITTED
 
-4. If passed AND assessment.autoIssueCertificate:
+4. If passed AND quiz.autoIssueCertificate:
    - Auto-generate certificate
    - Return certificate in response
 ```
@@ -1098,9 +1099,9 @@ Must pass all validations:
 ## 8.6 Certificate Rules
 
 **Issuance:**
-- ✅ Auto-issued when submission passes (if enabled)
-- ✅ Can be manually issued by ADMIN/INSTRUCTOR
-- ✅ One certificate per user per assessment
+- ✅ Auto-issued when attempt passes (if enabled)
+- ✅ Can be manually issued by OWNER
+- ✅ One certificate per user per quiz
 - ✅ Duplicate issuance returns existing certificate (409)
 
 **Number Generation:**
@@ -1124,24 +1125,24 @@ Example: VX8K2MN9PQR7Z3A1B5C7D9E2F4G6H8J0
 ```
 
 **Revocation:**
-- ✅ Only ADMIN/INSTRUCTOR can revoke
+- ✅ Only OWNER can revoke
 - ✅ Revoked certificates remain visible but marked as REVOKED
 - ✅ Public verification shows revocation status
 - ⚠️ Revocation is permanent
 
 ---
 
-## 8.7 Invite Rules
+## 8.7 InvitationLink Rules
 
 **Creation:**
-- ✅ Workspace invites grant membership with specified role
-- ✅ Workshop invites enroll user + grant workspace MEMBER role if needed
+- ✅ Organization invitations grant membership with specified role
+- ✅ Program invitations enroll user + grant organization PARTICIPANT role if needed
 - ✅ `maxUses = null` means unlimited
 - ✅ `expiresAt = null` means never expires
 
 **Acceptance:**
 ```
-1. Validate invite code exists and is not disabled
+1. Validate invitation code exists and is not disabled
 2. Check expiration: current_time < expiresAt
 3. Check usage: usesCount < maxUses (if maxUses not null)
 4. Check duplicate membership/enrollment (return 409 if exists)
@@ -1217,12 +1218,12 @@ public ResponseEntity<?> handleClerkWebhook(
 
 ## 9.3 Authorization Checks
 
-### Workspace-Level
+### Organization-Level
 
 ```java
-public void checkWorkspaceAccess(UUID workspaceId, User user, Role... allowedRoles) {
-    Member member = memberRepository.findByWorkspaceAndUser(workspaceId, user.getId())
-        .orElseThrow(() -> new NotFoundException("Workspace not found"));
+public void checkOrganizationAccess(UUID organizationId, User user, Role... allowedRoles) {
+    Member member = memberRepository.findByOrganizationAndUser(organizationId, user.getId())
+        .orElseThrow(() -> new NotFoundException("Organization not found"));
     
     if (!Arrays.asList(allowedRoles).contains(member.getRole())) {
         throw new ForbiddenException("Insufficient permissions");
@@ -1232,31 +1233,31 @@ public void checkWorkspaceAccess(UUID workspaceId, User user, Role... allowedRol
 
 **Usage:**
 ```java
-// Only ADMIN can update workspace
-checkWorkspaceAccess(workspaceId, currentUser, Role.ADMIN);
+// Only OWNER can update organization
+checkOrganizationAccess(organizationId, currentUser, Role.OWNER);
 
-// ADMIN or INSTRUCTOR can create workshops
-checkWorkspaceAccess(workspaceId, currentUser, Role.ADMIN, Role.INSTRUCTOR);
+// OWNER can create programs
+checkOrganizationAccess(organizationId, currentUser, Role.OWNER);
 ```
 
-### Workshop-Level
+### Program-Level
 
 ```java
-public void checkWorkshopAccess(UUID workshopId, User user) {
-    Workshop workshop = workshopRepository.findById(workshopId)
-        .orElseThrow(() -> new NotFoundException("Workshop not found"));
+public void checkProgramAccess(UUID programId, User user) {
+    Program program = programRepository.findById(programId)
+        .orElseThrow(() -> new NotFoundException("Program not found"));
     
-    // Check if user is enrolled OR has workspace admin/instructor role
+    // Check if user is enrolled OR has organization owner role
     boolean isEnrolled = enrollmentRepository
-        .existsByWorkshopAndUser(workshopId, user.getId());
+        .existsByProgramAndUser(programId, user.getId());
     
-    boolean isWorkspaceStaff = memberRepository
-        .findByWorkspaceAndUser(workshop.getWorkspaceId(), user.getId())
-        .map(m -> m.getRole() == Role.ADMIN || m.getRole() == Role.INSTRUCTOR)
+    boolean isOrganizationStaff = memberRepository
+        .findByOrganizationAndUser(program.getOrganizationId(), user.getId())
+        .map(m -> m.getRole() == Role.OWNER)
         .orElse(false);
     
-    if (!isEnrolled && !isWorkspaceStaff) {
-        throw new NotFoundException("Workshop not found");
+    if (!isEnrolled && !isOrganizationStaff) {
+        throw new NotFoundException("Program not found");
     }
 }
 ```
@@ -1267,9 +1268,9 @@ public void checkWorkshopAccess(UUID workshopId, User user) {
 
 | Endpoint Pattern | Limit |
 |-----------------|-------|
-| `POST /api/v1/invites/accept` | 10/min per IP |
-| `POST /api/v1/assessments/*/submissions` | 5/min per user |
-| `POST /api/v1/submissions/*/submit` | 3/min per user |
+| `POST /api/v1/invitations/accept` | 10/min per IP |
+| `POST /api/v1/quizzes/*/attempts` | 5/min per user |
+| `POST /api/v1/attempts/*/submit` | 3/min per user |
 | `GET /api/v1/public/verify/*` | 60/min per IP |
 | All other authenticated endpoints | 300/min per user |
 
@@ -1282,7 +1283,7 @@ public void checkWorkshopAccess(UUID workshopId, User user) {
 **Sensitive Data Protection:**
 - ❌ Never log JWT tokens
 - ❌ Never expose Clerk secrets in responses
-- ❌ Never expose other users' emails unless ADMIN
+- ❌ Never expose other users' emails unless OWNER
 - ✅ Redact IP addresses in exported logs
 - ✅ Use HTTPS only in production
 - ✅ Validate all user input
@@ -1310,13 +1311,13 @@ cors:
 1. Client requests upload URL:
    POST /api/v1/resources/upload-url
    {
-     "fileName": "workshop-slides.pdf",
+     "fileName": "program-slides.pdf",
      "contentType": "application/pdf",
      "fileSize": 1048576
    }
 
 2. Backend generates presigned R2 URL:
-   - Creates unique object key: "workshops/{workshopId}/resources/{uuid}-{fileName}"
+   - Creates unique object key: "programs/{programId}/resources/{uuid}-{fileName}"
    - Generates presigned PUT URL (valid 15 minutes)
    - Returns URL to client
 
@@ -1324,12 +1325,12 @@ cors:
    PUT https://skillmark-files.r2.cloudflarestorage.com/...
    
 4. Client creates resource with returned public URL:
-   POST /api/v1/workshops/{id}/resources
+   POST /api/v1/programs/{id}/resources
    {
-     "title": "Workshop Slides",
+     "title": "Program Slides",
      "type": "DOCUMENT",
-     "url": "https://files.skillmark.io/workshops/.../slides.pdf",
-     "storageKey": "workshops/.../slides.pdf"
+     "url": "https://files.skillmark.io/programs/.../slides.pdf",
+     "storageKey": "programs/.../slides.pdf"
    }
 ```
 
@@ -1347,9 +1348,9 @@ cors:
 Bucket: skillmark-files
 
 Structure:
-/workspaces/{workspaceId}/logo.{ext}
-/workshops/{workshopId}/cover.{ext}
-/workshops/{workshopId}/resources/{uuid}-{filename}
+/organizations/{organizationId}/logo.{ext}
+/programs/{programId}/cover.{ext}
+/programs/{programId}/resources/{uuid}-{filename}
 /certificates/{certificateId}/certificate.pdf
 /certificates/{certificateId}/qr.png
 ```
@@ -1412,7 +1413,7 @@ public interface StorageService {
 ## 11.1 Generation Flow
 
 ```
-Trigger: Submission passes AND assessment.autoIssueCertificate = true
+Trigger: Attempt passes AND quiz.autoIssueCertificate = true
 
 1. Check duplicate certificate:
    - Query: SELECT * FROM certificates 
@@ -1423,9 +1424,9 @@ Trigger: Submission passes AND assessment.autoIssueCertificate = true
 
 3. Snapshot data:
    - recipientName = user.fullName
-   - workshopTitle = workshop.title
-   - workspaceName = workspace.name
-   - score = submission.percentage
+   - workshopTitle = program.title
+   - workspaceName = organization.name
+   - score = attempt.percentage
 
 4. Create database record
 
@@ -1473,7 +1474,7 @@ String pdfUrl = storageService.uploadBytes(
     <div class="title">Certificate of Completion</div>
     <div class="recipient">${recipientName}</div>
     <p>Successfully completed</p>
-    <div class="workshop">${workshopTitle}</div>
+    <div class="program">${workshopTitle}</div>
     <div class="score">Score: ${score}%</div>
     <div class="qr"><img src="${qrCodeDataUrl}" /></div>
     <div class="number">${certificateNumber}</div>
@@ -1513,10 +1514,10 @@ String qrDataUrl = "data:image/png;base64," +
 
 # 12. Analytics & Statistics
 
-## 12.1 Workspace Stats
+## 12.1 Organization Stats
 
 ```http
-GET /api/v1/workspaces/:id/stats
+GET /api/v1/organizations/:id/stats
 
 Response:
 {
@@ -1524,7 +1525,7 @@ Response:
   "data": {
     "membersCount": 45,
     "workshopsCount": 8,
-    "activeWorkshopsCount": 5,
+    "activeProgramsCount": 5,
     "assessmentsCount": 12,
     "certificatesIssued": 127,
     "totalEnrollments": 234,
@@ -1535,18 +1536,18 @@ Response:
 
 **Queries:**
 ```sql
-SELECT COUNT(*) FROM members WHERE workspace_id = ?;
-SELECT COUNT(*) FROM workshops WHERE workspace_id = ?;
-SELECT COUNT(*) FROM workshops WHERE workspace_id = ? AND status = 'PUBLISHED';
-SELECT COUNT(*) FROM certificates WHERE workspace_id = ?;
+SELECT COUNT(*) FROM organization_memberships WHERE organization_id = ?;
+SELECT COUNT(*) FROM programs WHERE organization_id = ?;
+SELECT COUNT(*) FROM programs WHERE organization_id = ? AND status = 'PUBLISHED';
+SELECT COUNT(*) FROM certificates WHERE organization_id = ?;
 ```
 
 ---
 
-## 12.2 Workshop Stats
+## 12.2 Program Stats
 
 ```http
-GET /api/v1/workshops/:id/stats
+GET /api/v1/programs/:id/stats
 
 Response:
 {
@@ -1565,30 +1566,30 @@ Response:
 
 **Queries:**
 ```sql
-SELECT COUNT(*) FROM enrollments WHERE workshop_id = ?;
+SELECT COUNT(*) FROM enrollments WHERE program_id = ?;
 
 SELECT COUNT(*) FROM enrollments 
-WHERE workshop_id = ? AND completed_at IS NOT NULL;
+WHERE program_id = ? AND completed_at IS NOT NULL;
 
 SELECT AVG(percentage), COUNT(*), 
        SUM(CASE WHEN passed = TRUE THEN 1 ELSE 0 END) as passed_count
-FROM submissions s
-JOIN assessments a ON s.assessment_id = a.id
-WHERE a.workshop_id = ? AND s.status = 'SUBMITTED';
+FROM attempts s
+JOIN quizzes a ON s.assessment_id = a.id
+WHERE a.program_id = ? AND s.status = 'SUBMITTED';
 ```
 
 ---
 
-## 12.3 Assessment Stats
+## 12.3 Quiz Stats
 
 ```http
-GET /api/v1/assessments/:id/stats
+GET /api/v1/quizzes/:id/stats
 
 Response:
 {
   "success": true,
   "data": {
-    "totalSubmissions": 56,
+    "totalAttempts": 56,
     "averageScore": 82.3,
     "highestScore": 100,
     "lowestScore": 45,
@@ -1709,7 +1710,7 @@ management:
 - Business logic validation
 - Permission checks
 - Calculation algorithms (scoring, stats)
-- Code generation (certificate numbers, invite codes)
+- Code generation (certificate numbers, invitation codes)
 
 **Example:**
 ```java
@@ -1743,7 +1744,7 @@ void calculateScore_shouldReturnCorrectPercentage() {
 ```java
 @SpringBootTest
 @Testcontainers
-class WorkshopIntegrationTest {
+class ProgramIntegrationTest {
     
     @Container
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
@@ -1753,8 +1754,8 @@ class WorkshopIntegrationTest {
     private MockMvc mockMvc;
     
     @Test
-    void createWorkshop_shouldReturnCreated() throws Exception {
-        mockMvc.perform(post("/api/v1/workspaces/{id}/workshops", workspaceId)
+    void createProgram_shouldReturnCreated() throws Exception {
+        mockMvc.perform(post("/api/v1/organizations/{id}/programs", organizationId)
                 .header("Authorization", "Bearer " + validToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
@@ -1773,7 +1774,7 @@ class WorkshopIntegrationTest {
 - All API endpoints
 - Auth/permission flows
 - Database constraints
-- Concurrent operations (invite acceptance, etc.)
+- Concurrent operations (invitation acceptance, etc.)
 
 ---
 
@@ -1781,24 +1782,24 @@ class WorkshopIntegrationTest {
 
 ```java
 @Test
-void accessWorkspace_withoutToken_shouldReturn401() {
-    mockMvc.perform(get("/api/v1/workspaces/{id}", workspaceId))
+void accessOrganization_withoutToken_shouldReturn401() {
+    mockMvc.perform(get("/api/v1/organizations/{id}", organizationId))
         .andExpect(status().isUnauthorized());
 }
 
 @Test
-void updateWorkspace_asMember_shouldReturn403() {
-    // Given: user is MEMBER, not ADMIN
-    mockMvc.perform(patch("/api/v1/workspaces/{id}", workspaceId)
+void updateOrganization_asParticipant_shouldReturn403() {
+    // Given: user is PARTICIPANT, not OWNER
+    mockMvc.perform(patch("/api/v1/organizations/{id}", organizationId)
             .header("Authorization", "Bearer " + memberToken)
             .content("{}"))
         .andExpect(status().isForbidden());
 }
 
 @Test
-void accessOtherWorkspace_shouldReturn404() {
+void accessOtherOrganization_shouldReturn404() {
     // User not a member: should return 404, not 403
-    mockMvc.perform(get("/api/v1/workspaces/{id}", otherWorkspaceId)
+    mockMvc.perform(get("/api/v1/organizations/{id}", otherOrganizationId)
             .header("Authorization", "Bearer " + validToken))
         .andExpect(status().isNotFound());
 }
@@ -1918,25 +1919,25 @@ skillmark-api/
 │   │   │       │   ├── UserService.java
 │   │   │       │   └── UserController.java
 │   │   │       │
-│   │   │       ├── workspace/
-│   │   │       │   ├── Workspace.java
-│   │   │       │   ├── WorkspaceRepository.java
-│   │   │       │   ├── WorkspaceService.java
-│   │   │       │   ├── WorkspaceController.java
+│   │   │       ├── organization/
+│   │   │       │   ├── Organization.java
+│   │   │       │   ├── OrganizationRepository.java
+│   │   │       │   ├── OrganizationService.java
+│   │   │       │   ├── OrganizationController.java
 │   │   │       │   ├── Member.java
 │   │   │       │   ├── MemberRepository.java
 │   │   │       │   └── Role.java
 │   │   │       │
-│   │   │       ├── workshop/
-│   │   │       │   ├── Workshop.java
-│   │   │       │   ├── WorkshopRepository.java
-│   │   │       │   ├── WorkshopService.java
-│   │   │       │   ├── WorkshopController.java
+│   │   │       ├── program/
+│   │   │       │   ├── Program.java
+│   │   │       │   ├── ProgramRepository.java
+│   │   │       │   ├── ProgramService.java
+│   │   │       │   ├── ProgramController.java
 │   │   │       │   ├── Enrollment.java
 │   │   │       │   └── EnrollmentRepository.java
 │   │   │       │
-│   │   │       ├── invite/
-│   │   │       │   ├── Invite.java
+│   │   │       ├── invitation/
+│   │   │       │   ├── InvitationLink.java
 │   │   │       │   ├── InviteRepository.java
 │   │   │       │   ├── InviteService.java
 │   │   │       │   └── InviteController.java
@@ -1948,21 +1949,21 @@ skillmark-api/
 │   │   │       │   ├── ResourceController.java
 │   │   │       │   └── ResourceType.java
 │   │   │       │
-│   │   │       ├── assessment/
-│   │   │       │   ├── Assessment.java
-│   │   │       │   ├── AssessmentRepository.java
-│   │   │       │   ├── AssessmentService.java
-│   │   │       │   ├── AssessmentController.java
+│   │   │       ├── quiz/
+│   │   │       │   ├── Quiz.java
+│   │   │       │   ├── QuizRepository.java
+│   │   │       │   ├── QuizService.java
+│   │   │       │   ├── QuizController.java
 │   │   │       │   ├── Question.java
 │   │   │       │   ├── QuestionRepository.java
 │   │   │       │   ├── Answer.java
 │   │   │       │   └── AnswerRepository.java
 │   │   │       │
-│   │   │       ├── submission/
-│   │   │       │   ├── Submission.java
-│   │   │       │   ├── SubmissionRepository.java
-│   │   │       │   ├── SubmissionService.java
-│   │   │       │   ├── SubmissionController.java
+│   │   │       ├── attempt/
+│   │   │       │   ├── Attempt.java
+│   │   │       │   ├── AttemptRepository.java
+│   │   │       │   ├── AttemptService.java
+│   │   │       │   ├── AttemptController.java
 │   │   │       │   ├── Response.java
 │   │   │       │   ├── ResponseRepository.java
 │   │   │       │   └── ScoringService.java
@@ -2010,7 +2011,7 @@ skillmark-api/
 │   │       ├── db/migration/
 │   │       │   ├── V1__create_users.sql
 │   │       │   ├── V2__create_workspaces.sql
-│   │       │   ├── V3__create_members.sql
+│   │       │   ├── V3__create_organization_memberships.sql
 │   │       │   ├── V4__create_workshops.sql
 │   │       │   ├── V5__create_enrollments.sql
 │   │       │   ├── V6__create_invites.sql
@@ -2028,13 +2029,13 @@ skillmark-api/
 │   └── test/
 │       └── java/
 │           └── io/skillmark/
-│               ├── workspace/
-│               │   └── WorkspaceServiceTest.java
-│               ├── assessment/
+│               ├── organization/
+│               │   └── OrganizationServiceTest.java
+│               ├── quiz/
 │               │   └── ScoringServiceTest.java
 │               └── integration/
-│                   ├── WorkshopApiTest.java
-│                   └── SubmissionApiTest.java
+│                   ├── ProgramApiTest.java
+│                   └── AttemptApiTest.java
 │
 ├── pom.xml
 ├── Dockerfile
@@ -2053,14 +2054,14 @@ If implementing from scratch, you can ignore this section. If migrating from the
 
 | V2 Concept | V3 Concept | Reason |
 |------------|------------|---------|
-| Organization | Workspace | Modern terminology |
+| Organization | Organization | Modern terminology |
 | OrganizationMembership | Member | Simplified |
-| Program | Workshop | Clearer purpose |
+| Program | Program | Clearer purpose |
 | ProgramEnrollment | Enrollment | Simplified |
-| InvitationLink | Invite | Shorter |
+| InvitationLink | InvitationLink | Shorter |
 | ProgramResource | Resource | Less verbose |
-| Quiz | Assessment | Professional term |
-| QuizAttempt | Submission | Clearer noun |
+| Quiz | Quiz | Professional term |
+| QuizAttempt | Attempt | Clearer noun |
 | QuizAttemptAnswer | Response | Simpler |
 | AuditLog | ActivityLog | Less scary term |
 
@@ -2069,17 +2070,17 @@ If implementing from scratch, you can ignore this section. If migrating from the
 1. **Removed duplicate status fields**: `isPublished` removed, use `status` only
 2. **Simplified roles**: 3 roles instead of complex permission matrix
 3. **Flatter hierarchy**: Removed unnecessary nesting
-4. **Cleaner invite system**: Workshop invites are optional, workspace invites are primary
+4. **Cleaner invitation system**: Program invitations are optional, organization invitations are primary
 
 ## API Changes
 
 Old → New:
 
 ```
-POST /api/v1/organizations → POST /api/v1/workspaces
-POST /api/v1/programs → POST /api/v1/workspaces/:id/workshops
-POST /api/v1/quizzes/:id/attempts → POST /api/v1/assessments/:id/submissions
-PATCH /api/v1/programs/:id/publish → PATCH /api/v1/workshops/:id/publish
+POST /api/v1/organizations → POST /api/v1/organizations
+POST /api/v1/programs → POST /api/v1/organizations/:id/programs
+POST /api/v1/quizzes/:id/attempts → POST /api/v1/quizzes/:id/attempts
+PATCH /api/v1/programs/:id/publish → PATCH /api/v1/programs/:id/publish
 GET /api/v1/public/certificates/verify/:code → GET /api/v1/public/verify/:code
 ```
 
@@ -2095,11 +2096,11 @@ GET /api/v1/public/certificates/verify/:code → GET /api/v1/public/verify/:code
 - 📧 **Email Notifications**: Enrollment, certificate issuance
 - 📊 **Advanced Analytics**: Completion rates, time tracking
 - 🎨 **Custom Certificate Templates**: Upload custom designs
-- 💬 **Discussion Boards**: Workshop Q&A
+- 💬 **Discussion Boards**: Program Q&A
 
 ## Phase 3 (Future)
 
-- 💰 **Payments**: Paid workshops via Stripe
+- 💰 **Payments**: Paid programs via Stripe
 - 📱 **Mobile Apps**: iOS/Android
 - 🤖 **AI Features**: Auto-question generation
 - 🎥 **Video Hosting**: Built-in video platform
@@ -2121,10 +2122,10 @@ GET /api/v1/public/certificates/verify/:code → GET /api/v1/public/verify/:code
 
 ## Product Metrics
 
-- 📊 Number of workspaces created
-- 📊 Number of workshops published
+- 📊 Number of organizations created
+- 📊 Number of programs published
 - 📊 Number of certificates issued
-- 📊 Average workshop completion rate
+- 📊 Average program completion rate
 - 📊 API adoption rate (requests/day)
 
 ---
@@ -2192,16 +2193,16 @@ This redesigned **Skillmark V3** PRD delivers:
 ✅ **Developer friendly** — Clear structure, good DX  
 
 **Core flows work out of the box:**
-1. Create workspace → auto-become admin
-2. Create workshop → publish
-3. Generate invite → share code
+1. Create organization → auto-become owner
+2. Create program → publish
+3. Generate invitation → share code
 4. Users join → get enrolled
 5. Add resources → students access
-6. Create assessment → students take
+6. Create quiz → students take
 7. Auto-grade → issue certificate
 8. Public verification → trust & verify
 
-**Next step**: Start implementation with `User` + `Workspace` + `Member` modules, then expand from there.
+**Next step**: Start implementation with `User` + `Organization` + `Member` modules, then expand from there.
 
 ---
 
