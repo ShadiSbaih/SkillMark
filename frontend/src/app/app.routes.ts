@@ -4,9 +4,9 @@ import { DashboardLayoutComponent } from './core/layout/dashboard-layout/dashboa
 import { PublicLayoutComponent } from './core/layout/public-layout/public-layout.component';
 import { AttemptResultComponent } from './pages/attempt-result/attempt-result.component';
 import { AuditLogsComponent } from './pages/audit-logs/audit-logs.component';
-import { JoinComponent } from './pages/join/join.component';
 import { CertificateDetailComponent } from './pages/certificate-detail/certificate-detail.component';
 import { DashboardComponent } from './pages/dashboard/dashboard.component';
+import { JoinComponent } from './pages/join/join.component';
 import { LandingComponent } from './pages/landing/landing.component';
 import { MyCertificatesComponent } from './pages/my-certificates/my-certificates.component';
 import { OrganizationMembersComponent } from './pages/organization-members/organization-members.component';
@@ -20,14 +20,34 @@ import { QuizAttemptComponent } from './pages/quiz-attempt/quiz-attempt.componen
 import { QuizBuilderComponent } from './pages/quiz-builder/quiz-builder.component';
 import { VerifyCertificateComponent } from './pages/verify-certificate/verify-certificate.component';
 
+// Dedicated components generated to eliminate route-to-component reuse
+import { Profile as ProfileComponent } from './pages/profile/profile';
+import { OrganizationOverview as OrganizationOverviewComponent } from './pages/organization-overview/organization-overview';
+import { OrganizationSettings as OrganizationSettingsComponent } from './pages/organization-settings/organization-settings';
+import { OrganizationCertificates as OrganizationCertificatesComponent } from './pages/organization-certificates/organization-certificates';
+import { ProgramQuizzes as ProgramQuizzesComponent } from './pages/program-quizzes/program-quizzes';
+import { ProgramStats as ProgramStatsComponent } from './pages/program-stats/program-stats';
+import { ProgramSettings as ProgramSettingsComponent } from './pages/program-settings/program-settings';
+import { ProgramLearn as ProgramLearnComponent } from './pages/program-learn/program-learn';
+import { CreateQuiz as CreateQuizComponent } from './pages/create-quiz/create-quiz';
+import { QuizOverview as QuizOverviewComponent } from './pages/quiz-overview/quiz-overview';
+import { QuizView as QuizViewComponent } from './pages/quiz-view/quiz-view';
+import { QuizAttempts as QuizAttemptsComponent } from './pages/quiz-attempts/quiz-attempts';
+import { QuizStats as QuizStatsComponent } from './pages/quiz-stats/quiz-stats';
+import { QuizSettings as QuizSettingsComponent } from './pages/quiz-settings/quiz-settings';
+import { MyEnrollments as MyEnrollmentsComponent } from './pages/my-enrollments/my-enrollments';
+import { MyAttempts as MyAttemptsComponent } from './pages/my-attempts/my-attempts';
+import { SignIn as SignInComponent } from './pages/sign-in/sign-in';
+import { SignUp as SignUpComponent } from './pages/sign-up/sign-up';
+
 export const routes: Routes = [
   {
     path: '',
     component: PublicLayoutComponent,
     children: [
       { path: '', component: LandingComponent },
-      { path: 'sign-in', component: LandingComponent },
-      { path: 'sign-up', component: LandingComponent },
+      { path: 'sign-in', component: SignInComponent },
+      { path: 'sign-up', component: SignUpComponent },
       { path: 'verify', component: VerifyCertificateComponent },
       { path: 'verify/:verificationCode', component: VerifyCertificateComponent },
     ],
@@ -35,13 +55,13 @@ export const routes: Routes = [
   {
     path: '',
     component: DashboardLayoutComponent,
+    canActivate: [authGuard],
     children: [
       { path: 'dashboard', component: DashboardComponent },
-      { path: 'profile', component: DashboardComponent },
+      { path: 'profile', component: ProfileComponent },
       { path: 'join/:code', component: JoinComponent },
       {
         path: 'organizations',
-        canActivate: [authGuard],
         children: [
           { path: '', component: OrganizationsComponent },
           {
@@ -51,12 +71,12 @@ export const routes: Routes = [
                 (m) => m.CreateOrganizationComponent
               ),
           },
-          { path: ':orgId', component: OrganizationsComponent },
+          { path: ':orgId', component: OrganizationOverviewComponent },
           { path: ':orgId/members', component: OrganizationMembersComponent },
-          { path: ':orgId/settings', component: OrganizationsComponent },
+          { path: ':orgId/settings', component: OrganizationSettingsComponent },
           { path: ':orgId/stats', component: OrganizationStatsComponent },
           { path: ':orgId/audit-logs', component: AuditLogsComponent },
-          { path: ':orgId/certificates', component: MyCertificatesComponent },
+          { path: ':orgId/certificates', component: OrganizationCertificatesComponent },
           {
             path: ':orgId/programs/new',
             loadComponent: () =>
@@ -70,21 +90,21 @@ export const routes: Routes = [
       { path: 'programs/:programId/enrollments', component: ProgramEnrollmentsComponent },
       { path: 'programs/:programId/invitations', component: ProgramInvitationsComponent },
       { path: 'programs/:programId/resources', component: ProgramResourcesComponent },
-      { path: 'programs/:programId/quizzes', component: QuizBuilderComponent },
-      { path: 'programs/:programId/stats', component: OrganizationStatsComponent },
-      { path: 'programs/:programId/settings', component: ProgramOverviewComponent },
-      { path: 'programs/:programId/learn', component: ProgramOverviewComponent },
-      { path: 'programs/:programId/quizzes/new', component: QuizBuilderComponent },
-      { path: 'quizzes/:quizId', component: QuizBuilderComponent },
+      { path: 'programs/:programId/quizzes', component: ProgramQuizzesComponent },
+      { path: 'programs/:programId/stats', component: ProgramStatsComponent },
+      { path: 'programs/:programId/settings', component: ProgramSettingsComponent },
+      { path: 'programs/:programId/learn', component: ProgramLearnComponent },
+      { path: 'programs/:programId/quizzes/new', component: CreateQuizComponent },
+      { path: 'quizzes/:quizId', component: QuizOverviewComponent },
       { path: 'quizzes/:quizId/builder', component: QuizBuilderComponent },
-      { path: 'quizzes/:quizId/view', component: QuizAttemptComponent },
+      { path: 'quizzes/:quizId/view', component: QuizViewComponent },
       { path: 'quizzes/:quizId/attempt', component: QuizAttemptComponent },
-      { path: 'quizzes/:quizId/attempts', component: ProgramEnrollmentsComponent },
-      { path: 'quizzes/:quizId/stats', component: OrganizationStatsComponent },
-      { path: 'quizzes/:quizId/settings', component: QuizBuilderComponent },
+      { path: 'quizzes/:quizId/attempts', component: QuizAttemptsComponent },
+      { path: 'quizzes/:quizId/stats', component: QuizStatsComponent },
+      { path: 'quizzes/:quizId/settings', component: QuizSettingsComponent },
       { path: 'attempts/:attemptId/result', component: AttemptResultComponent },
-      { path: 'my-enrollments', component: ProgramEnrollmentsComponent },
-      { path: 'my-attempts', component: AttemptResultComponent },
+      { path: 'my-enrollments', component: MyEnrollmentsComponent },
+      { path: 'my-attempts', component: MyAttemptsComponent },
       { path: 'my-certificates', component: MyCertificatesComponent },
       { path: 'certificates/:certificateId', component: CertificateDetailComponent },
     ],
