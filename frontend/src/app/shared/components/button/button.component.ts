@@ -31,12 +31,12 @@ export class ButtonComponent {
   readonly clicked = output<MouseEvent>();
 
   readonly classes = () => {
-    const base = 'inline-flex items-center justify-center rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[#533afd] focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-60';
+    const base = 'inline-flex items-center justify-center rounded-[var(--radius-pill)] font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none';
     const variants: Record<ButtonVariant, string> = {
-      primary: 'bg-[#533afd] text-white hover:bg-[#3f2bd4]',
-      secondary: 'bg-[#f6f9fc] text-[#0d253d] border border-[#a8c3de] hover:bg-[#eaf0f7]',
-      ghost: 'bg-transparent text-[#64748d] hover:bg-[#f6f9fc] hover:text-[#0d253d]',
-      danger: 'bg-red-600 text-white hover:bg-red-700',
+      primary: 'bg-[var(--primary)] text-[var(--on-primary)] hover:bg-[var(--primary-deep)]',
+      secondary: 'bg-[var(--canvas-soft)] text-[var(--ink)] border border-[var(--hairline-input)] hover:bg-[var(--primary-bg-subdued-hover)]',
+      ghost: 'bg-transparent text-[var(--ink-mute)] hover:bg-[var(--canvas-soft)] hover:text-[var(--ink)]',
+      danger: 'bg-[var(--ruby)] text-[var(--on-primary)] hover:bg-[var(--danger)]',
     };
     const sizes: Record<ButtonSize, string> = {
       sm: 'px-3 py-1.5 text-sm',
