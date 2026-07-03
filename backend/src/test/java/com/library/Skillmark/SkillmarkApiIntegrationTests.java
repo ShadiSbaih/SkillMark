@@ -37,7 +37,9 @@ import java.util.concurrent.TimeUnit;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -425,6 +427,250 @@ class SkillmarkApiIntegrationTests {
                 .andExpect(jsonPath("$.paths['/api/v1/public/certificates/verify/{verificationCode}'].get").exists());
     }
 
+    @Test
+    void ownerCanRevokeCertificate() throws Exception {
+        String ownerToken = token("clerk_owner", "owner@example.com", "Owner_One");
+        String organizationId = createOrganization(ownerToken, "Computer Science Club");
+        String programId = createPublishedProgram(ownerToken, organizationId);
+
+        String participantToken = token("clerk_student", "student@example.com", "Jane_Student");
+        joinProgram(ownerToken, participantToken, programId);
+
+        String quizId = read(postJson("/api/v1/programs/" + programId + "/quizzes", ownerToken, """
+                {
+                  "title": "Certificate Quiz",
+                  "description": "Earn a certificate",
+                  "passingScore": 70,
+                  "durationMinutes": 30,
+                  "maxAttempts": 1,
+                  "certificateEnabled": true,
+                  "certificateIssueMode": "AUTO"
+                }
+                """)
+                .andExpect(status().isCreated())
+                .andReturn(), "/data/id");
+
+        String correctOptionId = read(postJson("/api/v1/quizzes/" + quizId + "/questions", ownerToken, """
+                {
+                  "text": "Pick A",
+                  "type": "SINGLE_CHOICE",
+                  "points": 1,
+                  "position": 1,
+                  "options": [
+                    {"text": "A", "isCorrect": true, "position": 1},
+                    {"text": "B", "isCorrect": false, "position": 2}
+                  ]
+                }
+                """)
+                .andExpect(status().isCreated())
+                .andReturn(), "/data/options/0/id");
+
+        postJson("/api/v1/quizzes/" + quizId + "/publish", ownerToken, "{}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.isPublished", is(true)));
+
+        String questionId = read(getJson("/api/v1/quizzes/" + quizId, participantToken)
+                .andExpect(status().isOk())
+                .andReturn(), "/data/questions/0/id");
+
+        String attemptId = read(postJson("/api/v1/quizzes/" + quizId + "/attempts", participantToken, "{}")
+                .andExpect(status().isCreated())
+                .andReturn(), "/data/attemptId");
+
+        String certificateId = read(postJson("/api/v1/quiz-attempts/" + attemptId + "/submit", participantToken, """
+                {
+                  "answers": [
+                    {"questionId": "%s", "selectedOptionId": "%s"}
+                  ]
+                }
+                """.formatted(questionId, correctOptionId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.passed", is(true)))
+                .andExpect(jsonPath("$.data.certificateIssued", is(true)))
+                .andReturn(), "/data/certificateId");
+
+        postJson("/api/v1/certificates/" + certificateId + "/revoke", ownerToken, """
+                {
+                  "reason": "Test revocation"
+                }
+                """)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status", is("REVOKED")));
+
+        MvcResult certificateResult = getJson("/api/v1/certificates/" + certificateId, participantToken)
+                .andExpect(status().isOk())
+                .andReturn();
+
+        mockMvc.perform(get("/api/v1/public/certificates/verify/" + read(certificateResult, "/data/verificationCode")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status", is("REVOKED")));
+    }
+
+    @Test
+    void ownerCanUpdateAndArchiveResource() throws Exception {
+        String ownerToken = token("clerk_owner", "owner@example.com", "Owner_One");
+        String organizationId = createOrganization(ownerToken, "Computer Science Club");
+        String programId = createPublishedProgram(ownerToken, organizationId);
+
+        String participantToken = token("clerk_student", "student@example.com", "Jane_Student");
+        joinProgram(ownerToken, participantToken, programId);
+
+        String resourceId = read(postJson("/api/v1/programs/" + programId + "/resources", ownerToken, """
+                {
+                  "title": "Slides",
+                  "type": "LINK",
+                  "url": "https://example.com/slides",
+                  "position": 1
+                }
+                """)
+                .andExpect(status().isCreated())
+                .andReturn(), "/data/id");
+
+        putJson("/api/v1/resources/" + resourceId, ownerToken, """
+                {
+                  "title": "Updated Slides",
+                  "type": "LINK",
+                  "url": "https://example.com/updated",
+                  "position": 2
+                }
+                """)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.title", is("Updated Slides")));
+
+        patchJson("/api/v1/resources/" + resourceId + "/visibility", ownerToken, """
+                {
+                  "visibleToParticipants": false
+                }
+                """)
+                .andExpect(status().isOk());
+
+        getJson("/api/v1/programs/" + programId + "/resources", participantToken)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items.length()", is(0)));
+
+        deleteJson("/api/v1/resources/" + resourceId, ownerToken)
+                .andExpect(status().isOk());
+
+        getJson("/api/v1/programs/" + programId + "/resources", ownerToken)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items.length()", is(0)));
+    }
+
+    @Test
+    void ownerCanAddAndRemoveOrganizationMember() throws Exception {
+        String ownerToken = token("clerk_owner", "owner@example.com", "Owner_One");
+        String organizationId = createOrganization(ownerToken, "Computer Science Club");
+
+        String participantToken = token("clerk_student", "student@example.com", "Jane_Student");
+        String participantUserId = read(getJson("/api/v1/users/me", participantToken)
+                .andExpect(status().isOk())
+                .andReturn(), "/data/id");
+
+        postJson("/api/v1/organizations/" + organizationId + "/members", ownerToken, """
+                {
+                  "userId": "%s",
+                  "role": "PARTICIPANT"
+                }
+                """.formatted(participantUserId))
+                .andExpect(status().isCreated());
+
+        getJson("/api/v1/organizations/" + organizationId + "/members", ownerToken)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items[*].userId", org.hamcrest.Matchers.hasItem(participantUserId)));
+
+        deleteJson("/api/v1/organizations/" + organizationId + "/members/" + participantUserId, ownerToken)
+                .andExpect(status().isOk());
+
+        getJson("/api/v1/organizations/" + organizationId + "/members", ownerToken)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items[*].userId", org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem(participantUserId))));
+    }
+
+    @Test
+    void ownerCanToggleQuizVisibility() throws Exception {
+        String ownerToken = token("clerk_owner", "owner@example.com", "Owner_One");
+        String organizationId = createOrganization(ownerToken, "Computer Science Club");
+        String programId = createPublishedProgram(ownerToken, organizationId);
+
+        String participantToken = token("clerk_student", "student@example.com", "Jane_Student");
+        joinProgram(ownerToken, participantToken, programId);
+
+        String quizId = read(postJson("/api/v1/programs/" + programId + "/quizzes", ownerToken, """
+                {
+                  "title": "Visible Quiz",
+                  "description": "Toggle visibility",
+                  "passingScore": 70,
+                  "durationMinutes": 30,
+                  "maxAttempts": 1,
+                  "certificateEnabled": false,
+                  "certificateIssueMode": "NONE"
+                }
+                """)
+                .andExpect(status().isCreated())
+                .andReturn(), "/data/id");
+
+        postJson("/api/v1/quizzes/" + quizId + "/questions", ownerToken, """
+                {
+                  "text": "Pick A",
+                  "type": "SINGLE_CHOICE",
+                  "points": 1,
+                  "position": 1,
+                  "options": [
+                    {"text": "A", "isCorrect": true, "position": 1},
+                    {"text": "B", "isCorrect": false, "position": 2}
+                  ]
+                }
+                """)
+                .andExpect(status().isCreated());
+
+        postJson("/api/v1/quizzes/" + quizId + "/publish", ownerToken, "{}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.isPublished", is(true)));
+
+        getJson("/api/v1/quizzes/" + quizId, participantToken)
+                .andExpect(status().isOk());
+
+        patchJson("/api/v1/quizzes/" + quizId + "/visibility", ownerToken, """
+                {
+                  "visibleToParticipants": false
+                }
+                """)
+                .andExpect(status().isOk());
+
+        getJson("/api/v1/quizzes/" + quizId, participantToken)
+                .andExpect(status().isNotFound());
+
+        patchJson("/api/v1/quizzes/" + quizId + "/visibility", ownerToken, """
+                {
+                  "visibleToParticipants": true
+                }
+                """)
+                .andExpect(status().isOk());
+
+        getJson("/api/v1/quizzes/" + quizId, participantToken)
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void ownerCanRemoveEnrollment() throws Exception {
+        String ownerToken = token("clerk_owner", "owner@example.com", "Owner_One");
+        String organizationId = createOrganization(ownerToken, "Computer Science Club");
+        String programId = createPublishedProgram(ownerToken, organizationId);
+
+        String participantToken = token("clerk_student", "student@example.com", "Jane_Student");
+        joinProgram(ownerToken, participantToken, programId);
+
+        String participantUserId = read(getJson("/api/v1/users/me", participantToken)
+                .andExpect(status().isOk())
+                .andReturn(), "/data/id");
+
+        deleteJson("/api/v1/programs/" + programId + "/enrollments/" + participantUserId, ownerToken)
+                .andExpect(status().isOk());
+
+        getJson("/api/v1/programs/" + programId + "/resources", participantToken)
+                .andExpect(status().isNotFound());
+    }
+
     private String createOrganization(String token, String name) throws Exception {
         MvcResult result = postJson("/api/v1/organizations", token, """
                 {
@@ -500,6 +746,22 @@ class SkillmarkApiIntegrationTests {
 
     private org.springframework.test.web.servlet.ResultActions getJson(String path, String token) throws Exception {
         var request = get(path).accept(MediaType.APPLICATION_JSON);
+        if (token != null) {
+            request.header(HttpHeaders.AUTHORIZATION, "Bearer " + token);
+        }
+        return mockMvc.perform(request);
+    }
+
+    private org.springframework.test.web.servlet.ResultActions deleteJson(String path, String token) throws Exception {
+        var request = delete(path);
+        if (token != null) {
+            request.header(HttpHeaders.AUTHORIZATION, "Bearer " + token);
+        }
+        return mockMvc.perform(request);
+    }
+
+    private org.springframework.test.web.servlet.ResultActions patchJson(String path, String token, String json) throws Exception {
+        var request = patch(path).contentType(MediaType.APPLICATION_JSON).content(json);
         if (token != null) {
             request.header(HttpHeaders.AUTHORIZATION, "Bearer " + token);
         }
