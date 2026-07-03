@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, ActivatedRoute } from '@angular/router';
 import { provideQueryClient, QueryClient } from '@tanstack/angular-query-experimental';
 import { signal } from '@angular/core';
+import { vi } from 'vitest';
 import { ProgramEnrollmentsComponent } from './program-enrollments.component';
 import { EnrollmentsService } from '../../services/enrollments.service';
 import { Enrollment, EnrollmentStatus } from '../../core/models/enrollment.model';
@@ -14,7 +15,7 @@ class FakeEnrollmentsService {
     isError: false,
     data: null as PageResponse<Enrollment> | null,
     error: null as Error | null,
-    refetch: jasmine.createSpy('refetch'),
+    refetch: vi.fn(),
   });
 
   readonly mineParams = signal({ page: 0, size: 10 });
@@ -35,7 +36,7 @@ class FakeEnrollmentsService {
       isError: false,
       data: null,
       error: null,
-      refetch: jasmine.createSpy('refetch'),
+      refetch: vi.fn(),
     });
   }
 
@@ -46,7 +47,7 @@ class FakeEnrollmentsService {
       isError: true,
       data: null,
       error,
-      refetch: jasmine.createSpy('refetch'),
+      refetch: vi.fn(),
     });
   }
 
@@ -57,7 +58,7 @@ class FakeEnrollmentsService {
       isError: false,
       data,
       error: null,
-      refetch: jasmine.createSpy('refetch'),
+      refetch: vi.fn(),
     });
   }
 }

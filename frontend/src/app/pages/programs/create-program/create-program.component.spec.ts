@@ -2,13 +2,14 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideQueryClient, QueryClient } from '@tanstack/angular-query-experimental';
 import { of } from 'rxjs';
+import { vi } from 'vitest';
 import { CreateProgramComponent } from './create-program.component';
 import { ProgramsService } from '../../../services/programs.service';
 
 class FakeProgramsService {
   createMutation = {
     isPending: () => false,
-    mutate: jasmine.createSpy('mutate'),
+    mutate: vi.fn(),
   };
 }
 
@@ -85,7 +86,7 @@ describe('CreateProgramComponent', () => {
           endDate: '2026-08-31',
         },
       },
-      jasmine.any(Object)
+      expect.any(Object)
     );
   });
 
@@ -107,7 +108,7 @@ describe('CreateProgramComponent', () => {
           title: 'Compliance Training',
         },
       },
-      jasmine.any(Object)
+      expect.any(Object)
     );
   });
 });

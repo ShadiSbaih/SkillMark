@@ -4,6 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { provideQueryClient, QueryClient } from '@tanstack/angular-query-experimental';
 import { signal } from '@angular/core';
 import { of } from 'rxjs';
+import { vi } from 'vitest';
 import { ProgramOverviewComponent } from './program-overview.component';
 import { ProgramsService } from '../../services/programs.service';
 import { ProgramResponse } from '../../core/models/program.model';
@@ -11,25 +12,25 @@ import { ProgramResponse } from '../../core/models/program.model';
 class FakeProgramsService {
   publishIsPending = signal(false);
   archiveIsPending = signal(false);
-  publishMutate = jasmine.createSpy('publishMutate');
-  archiveMutate = jasmine.createSpy('archiveMutate');
+  publishMutate = vi.fn();
+  archiveMutate = vi.fn();
 
   readonly publishMutation = {
     isPending: () => this.publishIsPending(),
     mutate: this.publishMutate,
-  } as unknown as ReturnType<typeof jasmine.createSpy>;
+  } as unknown as ReturnType<typeof vi.fn>;
 
   readonly archiveMutation = {
     isPending: () => this.archiveIsPending(),
     mutate: this.archiveMutate,
-  } as unknown as ReturnType<typeof jasmine.createSpy>;
+  } as unknown as ReturnType<typeof vi.fn>;
 
   private queryState = signal({
     isPending: false,
     isError: false,
     data: null as ProgramResponse | null,
     error: null as Error | null,
-    refetch: jasmine.createSpy('refetch'),
+    refetch: vi.fn(),
   });
 
   get refetchSpy() {
@@ -52,7 +53,7 @@ class FakeProgramsService {
       isError: false,
       data: null,
       error: null,
-      refetch: jasmine.createSpy('refetch'),
+      refetch: vi.fn(),
     });
   }
 
@@ -62,7 +63,7 @@ class FakeProgramsService {
       isError: true,
       data: null,
       error,
-      refetch: jasmine.createSpy('refetch'),
+      refetch: vi.fn(),
     });
   }
 
@@ -72,7 +73,7 @@ class FakeProgramsService {
       isError: false,
       data,
       error: null,
-      refetch: jasmine.createSpy('refetch'),
+      refetch: vi.fn(),
     });
   }
 }
@@ -117,7 +118,7 @@ describe('ProgramOverviewComponent', () => {
     fixture = TestBed.createComponent(ProgramOverviewComponent);
     component = fixture.componentInstance;
     router = TestBed.inject(Router);
-    spyOn(router, 'navigate');
+    vi.spyOn(router, 'navigate');
   });
 
   it('should create', () => {
@@ -185,7 +186,7 @@ describe('ProgramOverviewComponent', () => {
     fixture.detectChanges();
 
     component.publish();
-    expect(programsService.publishMutate).toHaveBeenCalledWith('program-1', jasmine.any(Object));
+    expect(programsService.publishMutate).toHaveBeenCalledWith('program-1', expect.any(Object));
   });
 
   it('should call archive mutation', () => {
@@ -193,7 +194,7 @@ describe('ProgramOverviewComponent', () => {
     fixture.detectChanges();
 
     component.archive();
-    expect(programsService.archiveMutate).toHaveBeenCalledWith('program-1', jasmine.any(Object));
+    expect(programsService.archiveMutate).toHaveBeenCalledWith('program-1', expect.any(Object));
   });
 
   it('should navigate back', () => {

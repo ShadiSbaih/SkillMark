@@ -1,6 +1,7 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { map } from 'rxjs/operators';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { QuizzesService } from '../../services/quizzes.service';
 import { ButtonComponent } from '../../shared/components/button/button.component';
@@ -28,9 +29,10 @@ export class QuizView {
   readonly router = inject(Router);
   private readonly quizzesService = inject(QuizzesService);
 
-  readonly quizId = toSignal(this.route.paramMap.pipe((map) => map.get('quizId')), {
-    initialValue: this.route.snapshot.paramMap.get('quizId'),
-  });
+  readonly quizId = toSignal(
+    this.route.paramMap.pipe(map((params) => params.get('quizId'))),
+    { initialValue: this.route.snapshot.paramMap.get('quizId') }
+  );
 
   readonly quizQuery = this.quizzesService.getQuizQuery(this.quizId);
   readonly quiz = computed(() => this.quizQuery.data());

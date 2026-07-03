@@ -1,6 +1,7 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { map } from 'rxjs/operators';
 import { DecimalPipe } from '@angular/common';
 import { StatsService } from '../../services/stats.service';
 import { ProgramsService } from '../../services/programs.service';
@@ -31,7 +32,7 @@ export class OrganizationStatsComponent {
   private readonly programsService = inject(ProgramsService);
 
   readonly organizationId = toSignal(
-    this.route.paramMap.pipe((map) => map.get('orgId')),
+    this.route.paramMap.pipe(map((params) => params.get('orgId'))),
     { initialValue: this.route.snapshot.paramMap.get('orgId') }
   );
 

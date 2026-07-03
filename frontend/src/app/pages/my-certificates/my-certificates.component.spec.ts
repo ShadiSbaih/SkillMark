@@ -16,7 +16,7 @@ interface MyCertificatesQueryState {
   isError: boolean;
   data: PageResponse<CertificateResponse> | null;
   error: Error | null;
-  refetch: ReturnType<typeof vi.fn>;
+  refetch: (...args: unknown[]) => unknown;
 }
 
 class FakeCertificatesService {
@@ -35,7 +35,7 @@ class FakeCertificatesService {
     isError: () => this.queryState().isError,
     data: () => this.queryState().data,
     error: () => this.queryState().error,
-    refetch: () => this.queryState().refetch(),
+    refetch: this.queryState().refetch,
   };
 
   get refetchSpy() {

@@ -1,80 +1,168 @@
-<section class="page">
-  <header class="page-heading">
-    <div>
-      <p class="breadcrumb">Home / Dashboard</p>
-      <h1>Role-aware dashboard</h1>
-      <p>Track programs, quiz performance, certificates, and participant activity across CS Club.</p>
+@if (organizationsQuery.error() || certificatesQuery.error() || attemptsQuery.error()) {
+  <app-error-state
+    [message]="(organizationsQuery.error() ?? certificatesQuery.error() ?? attemptsQuery.error())?.message ?? 'Failed to load dashboard'"
+    (retry)="organizationsQuery.refetch(); certificatesQuery.refetch(); attemptsQuery.refetch()"
+  />
+}
+
+@if (organizationsQuery.isPending() && certificatesQuery.isPending() && attemptsQuery.isPending()) {
+  <div class="space-y-4">
+    <div class="h-8 w-1/3 animate-pulse rounded bg-[#e1ebf5]"></div>
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      @for (_ of [1,2,3,4]; track $index) {
+        <div class="h-24 animate-pulse rounded bg-[#e1ebf5]"></div>
+      }
     </div>
-    <div class="button-row">
-      <a class="button button-secondary" routerLink="/organizations/org-cs/programs/new">Create program</a>
-      <a class="button button-primary" routerLink="/programs/program-git/quizzes">Create quiz</a>
+  </div>
+}
+
+@if (!organizationsQuery.error() && !certificatesQuery.error() && !attemptsQuery.error()) {
+  <header class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+      <p class="text-xs font-medium uppercase text-[#64748d]">Home / Dashboard</p>
+      <h1 class="text-2xl font-bold text-[#0d253d]">Role-aware dashboard</h1>
+      <p class="text-sm text-[#64748d]">Track programs, quiz performance, certificates, and activity.</p>
+    </div>
+    <div class="flex gap-3">
+      <a class="rounded-lg border border-[#a8c3de] bg-white px-4 py-2 text-sm font-medium text-[#0d253d] hover:bg-[#f6f9fc]" routerLink="/organizations/new">
+        Create organization
+      </a>
     </div>
   </header>
 
-  <div class="metric-grid">
-    <article class="metric-card"><span>Programs</span><strong>{{ stats.totalPrograms }}</strong></article>
-    <article class="metric-card"><span>Members</span><strong>{{ stats.totalMembers }}</strong></article>
-    <article class="metric-card"><span>Attempts</span><strong>{{ stats.totalAttempts }}</strong></article>
-    <article class="metric-card"><span>Pass rate</span><strong>{{ stats.passRate }}%</strong></article>
-  </div>
-
-  <div class="two-column">
-    <article class="panel">
-      <div class="panel-header">
-        <h2>Active programs</h2>
-        <a routerLink="/organizations/org-cs">View all</a>
-      </div>
-      <div class="stack">
-        @for (program of programs; track program.id) {
-          <a class="list-row" [routerLink]="['/programs', program.id]">
-            <div>
-              <strong>{{ program.title }}</strong>
-              <span>{{ program.description }}</span>
-            </div>
-            <em class="status" [class.status-published]="program.status === 'PUBLISHED'" [class.status-draft]="program.status === 'DRAFT'">{{ program.status }}</em>
-          </a>
-        }
-      </div>
-    </article>
-
-    <article class="panel dark-panel">
-      <div class="panel-header">
-        <h2>Quiz outcomes</h2>
-        <a routerLink="/my-attempts">Attempts</a>
-      </div>
-      <div class="chart-bars" aria-label="Score distribution">
-        <span style="height: 42%"></span>
-        <span style="height: 58%"></span>
-        <span style="height: 76%"></span>
-        <span style="height: 88%"></span>
-        <span style="height: 64%"></span>
-      </div>
-      <p>{{ stats.averageScore }}% average score across recent submitted attempts.</p>
-    </article>
-  </div>
-
-  <article class="panel">
-    <div class="panel-header">
-      <h2>Recent attempts</h2>
-      <a routerLink="/programs/program-git/enrollments">Manage enrollments</a>
+  <div class="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="rounded-xl border border-[#e1ebf5] bg-white p-4">
+      <p class="text-xs font-medium uppercase text-[#64748d]">Organizations</p>
+      <p class="mt-1 text-2xl font-bold text-[#0d253d]">{{ stats().organizations }}</p>
     </div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>Participant</th><th>Quiz</th><th>Score</th><th>Status</th><th>Submitted</th></tr>
-        </thead>
-        <tbody>
-          @for (attempt of attempts; track attempt.id) {
-            <tr>
-              <td>{{ attempt.participant }}</td>
-              <td>{{ attempt.quizTitle }}</td>
-              <td class="numeric">{{ attempt.score }}%</td>
-              <td><span class="status status-submitted">{{ attempt.status }}</span></td>
-              <td>{{ attempt.submittedAt }}</td>
-            </tr>
+    <div class="rounded-xl border border-[#e1ebf5] bg-white p-4">
+      <p class="text-xs font-medium uppercase text-[#64748d]">Certificates</p>
+      <p class="mt-1 text-2xl font-bold text-[#0d253d]">{{ certificates().length }}</p>
+    </div>
+    <div class="rounded-xl border border-[#e1ebf5] bg-white p-4">
+      <p class="text-xs font-medium uppercase text-[#64748d]">Attempts</p>
+      <p class="mt-1 text-2xl font-bold text-[#0d253d]">{{ stats().attempts }}</p>
+    </div>
+    <div class="rounded-xl border border-[#e1ebf5] bg-white p-4">
+      <p class="text-xs font-medium uppercase text-[#64748d]">Pass rate</p>
+      <p class="mt-1 text-2xl font-bold text-[#0d253d]">{{ stats().passRate | number:'1.0-1' }}%</p>
+    </div>
+  </div>
+
+  <div class="mb-6 grid gap-6 lg:grid-cols-2">
+    <app-card>
+      <div class="mb-4 flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-[#0d253d]">Your organizations</h2>
+        <a routerLink="/organizations" class="text-sm font-medium text-[#1971ff] hover:underline">View all</a>
+      </div>
+      @if (organizations().length === 0) {
+        <app-empty-state message="No organizations yet." />
+      } @else {
+        <div class="space-y-2">
+          @for (org of organizations().slice(0, 5); track org.id) {
+            <a
+              [routerLink]="['/organizations', org.id]"
+              class="flex items-center justify-between rounded-lg border border-[#e1ebf5] p-3 hover:bg-[#f6f9fc]"
+            >
+              <div>
+                <p class="font-medium text-[#0d253d]">{{ org.name }}</p>
+                @if (org.description) {
+                  <p class="text-sm text-[#64748d]">{{ org.description }}</p>
+                }
+              </div>
+              <span class="text-sm text-[#64748d]">{{ org.status }}</span>
+            </a>
           }
-        </tbody>
-      </table>
+        </div>
+      }
+    </app-card>
+
+    <app-card>
+      <div class="mb-4 flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-[#0d253d]">Recent certificates</h2>
+        <a routerLink="/my-certificates" class="text-sm font-medium text-[#1971ff] hover:underline">View all</a>
+      </div>
+      @if (certificates().length === 0) {
+        <app-empty-state message="No certificates yet." />
+      } @else {
+        <div class="space-y-2">
+          @for (cert of certificates().slice(0, 5); track cert.id) {
+            <a
+              [routerLink]="['/certificates', cert.id]"
+              class="flex items-center justify-between rounded-lg border border-[#e1ebf5] p-3 hover:bg-[#f6f9fc]"
+            >
+              <div>
+                <p class="font-medium text-[#0d253d]">{{ cert.title }}</p>
+                <p class="text-sm text-[#64748d]">{{ cert.programTitleSnapshot }} / {{ cert.quizTitleSnapshot }}</p>
+              </div>
+              <span
+                class="rounded-full px-2 py-1 text-xs font-medium"
+                [class.bg-[#e8f8f0]]="cert.status === 'ACTIVE'"
+                [class.text-[#2ec27e]]="cert.status === 'ACTIVE'"
+                [class.bg-[#ffedea]]="cert.status === 'REVOKED'"
+                [class.text-[#ff5630]]="cert.status === 'REVOKED'"
+              >
+                {{ cert.status }}
+              </span>
+            </a>
+          }
+        </div>
+      }
+    </app-card>
+  </div>
+
+  <app-card>
+    <div class="mb-4 flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-[#0d253d]">Recent attempts</h2>
+      <a routerLink="/my-attempts" class="text-sm font-medium text-[#1971ff] hover:underline">View all</a>
     </div>
-  </article>
-</section>
+    @if (attempts().length === 0) {
+      <app-empty-state message="No attempts yet." />
+    } @else {
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-[#f6f9fc]">
+            <tr>
+              <th class="px-4 py-3 text-left font-medium text-[#64748d]">Quiz</th>
+              <th class="px-4 py-3 text-left font-medium text-[#64748d]">Score</th>
+              <th class="px-4 py-3 text-left font-medium text-[#64748d]">Status</th>
+              <th class="px-4 py-3 text-left font-medium text-[#64748d]">Submitted</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (attempt of attempts().slice(0, 5); track attempt.attemptId) {
+              <tr class="border-t border-[#e1ebf5]">
+                <td class="px-4 py-3 text-[#0d253d]">{{ attempt.attemptId }}</td>
+                <td class="px-4 py-3 text-[#0d253d]">
+                  @if (attempt.status === 'SUBMITTED') {
+                    {{ attempt.scorePercentage | number:'1.0-1' }}%
+                  } @else {
+                    -
+                  }
+                </td>
+                <td class="px-4 py-3">
+                  <span
+                    class="rounded-full px-2 py-1 text-xs font-medium"
+                    [class.bg-[#e8f8f0]]="attempt.status === 'SUBMITTED' && attempt.passed"
+                    [class.text-[#2ec27e]]="attempt.status === 'SUBMITTED' && attempt.passed"
+                    [class.bg-[#ffedea]]="attempt.status === 'SUBMITTED' && !attempt.passed"
+                    [class.text-[#ff5630]]="attempt.status === 'SUBMITTED' && !attempt.passed"
+                    [class.bg-[#fff6e6]]="attempt.status === 'IN_PROGRESS'"
+                    [class.text-[#ffab00]]="attempt.status === 'IN_PROGRESS'"
+                    [class.bg-[#e1ebf5]]="attempt.status === 'EXPIRED' || attempt.status === 'CANCELLED'"
+                    [class.text-[#64748d]]="attempt.status === 'EXPIRED' || attempt.status === 'CANCELLED'"
+                  >
+                    {{ attempt.status }}
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-[#64748d]">
+                  {{ attempt.submittedAt ? (attempt.submittedAt | date:'mediumDate') : '-' }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </app-card>
+}

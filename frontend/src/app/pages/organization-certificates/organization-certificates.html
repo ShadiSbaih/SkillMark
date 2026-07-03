@@ -67,11 +67,25 @@
           </tbody>
         </table>
       </div>
-      <app-pagination
-        [page]="page()"
-        [totalPages]="totalPages()"
-        (pageChange)="page.set($event)"
-      />
+      <div class="flex items-center justify-between border-t border-[#e1ebf5] pt-4">
+        <button
+          type="button"
+          class="rounded-md border border-[#a8c3de] px-3 py-1.5 text-sm text-[#0d253d] hover:bg-[#f6f9fc] disabled:opacity-50"
+          [disabled]="page() === 0"
+          (click)="previousPage()"
+        >
+          Previous
+        </button>
+        <span class="text-sm text-[#64748d]">Page {{ page() + 1 }} of {{ totalPages() || 1 }}</span>
+        <button
+          type="button"
+          class="rounded-md border border-[#a8c3de] px-3 py-1.5 text-sm text-[#0d253d] hover:bg-[#f6f9fc] disabled:opacity-50"
+          [disabled]="page() >= totalPages() - 1"
+          (click)="nextPage()"
+        >
+          Next
+        </button>
+      </div>
     }
   </app-card>
 }

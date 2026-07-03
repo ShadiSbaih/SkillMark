@@ -174,7 +174,7 @@ describe('ApiClientService', () => {
   });
 
   describe('error handling', () => {
-    it('emits an ApiErrorResponse on HTTP error', (done) => {
+    it('emits an ApiErrorResponse on HTTP error', () => {
       const errorResponse: ApiErrorResponse = {
         success: false,
         message: 'Bad request',
@@ -184,11 +184,10 @@ describe('ApiClientService', () => {
       };
 
       service.get<string>('test').subscribe({
-        next: () => fail('expected error'),
+        next: () => expect(true).toBe(false),
         error: (err: ApiErrorResponse) => {
           expect(err.success).toBe(false);
           expect(err.message).toBe('Bad request');
-          done();
         },
       });
 
