@@ -15,45 +15,54 @@ import java.util.List;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
     @ExceptionHandler(ApiException.class)
     ResponseEntity<ApiResponse<Void>> handleApi(ApiException ex, HttpServletRequest request) {
-        return ResponseEntity.status(ex.getStatus()).body(error(ex.getMessage(), List.of(), request));
+        return ResponseEntity.status(ex.getStatus())
+                .body(ApiResponse.<Void>error(ex.getCode().name(), ex.getMessage(), List.of(), request.getRequestURI()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ResponseEntity<ApiResponse<Void>> handleValidation(MethodArgumentNotValidException ex,
-                                                                       HttpServletRequest request) {
-        List<String> errors = ex.getBindingResult().getFieldErrors().stream()
-                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                                                       HttpServletRequest request) {
+        List<ApiResponse.ErrorDetail> errors = ex.getBindingResult().getFieldErrors().stream()
+                .map(error -> new ApiResponse.ErrorDetail(error.getField(), error.getDefaultMessage()))
                 .toList();
-        return ResponseEntity.badRequest().body(error("Validation failed", errors, request));
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.<Void>error(ErrorCode.VALIDATION_ERROR.name(), "Validation failed", errors,
+                        request.getRequestURI()));
     }
 
     @ExceptionHandler(AuthenticationException.class)
     ResponseEntity<ApiResponse<Void>> handleAuthentication(AuthenticationException ex,
-                                                                          HttpServletRequest request) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error("Authentication required", List.of(), request));
+                                                           HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.<Void>error(ErrorCode.UNAUTHORIZED.name(), "Authentication required", List.of(),
+                        request.getRequestURI()));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     ResponseEntity<ApiResponse<Void>> handleUnreadable(HttpMessageNotReadableException ex,
-                                                                      HttpServletRequest request) {
-        return ResponseEntity.badRequest().body(error("Invalid request body", List.of(ex.getMostSpecificCause().getMessage()), request));
+                                                       HttpServletRequest request) {
+        List<ApiResponse.ErrorDetail> errors = List.of(
+                new ApiResponse.ErrorDetail(null, ex.getMostSpecificCause().getMessage()));
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.<Void>error(ErrorCode.BAD_REQUEST.name(), "Invalid request body", errors,
+                        request.getRequestURI()));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException ex,
-                                                                        HttpServletRequest request) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error("Access denied", List.of(), request));
+                                                         HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.<Void>error(ErrorCode.ACCESS_DENIED.name(), "Access denied", List.of(),
+                        request.getRequestURI()));
     }
 
     @ExceptionHandler(Exception.class)
     ResponseEntity<ApiResponse<Void>> handleUnexpected(Exception ex, HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(error("Internal server error", List.of(), request));
-    }
-
-    private ApiResponse<Void> error(String message, List<String> errors, HttpServletRequest request) {
-        return ApiResponse.failure(message, errors, request.getRequestURI());
+                .body(ApiResponse.<Void>error(ErrorCode.INTERNAL_ERROR.name(), "Internal server error", List.of(),
+                        request.getRequestURI()));
     }
 }

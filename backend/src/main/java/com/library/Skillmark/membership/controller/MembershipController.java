@@ -9,14 +9,13 @@ import com.library.Skillmark.membership.service.*;
 import com.library.Skillmark.common.response.ApiResponse;
 import com.library.Skillmark.common.response.PageResponse;
 import com.library.Skillmark.config.OpenApiConfig;
-import com.library.Skillmark.security.SecurityUtil;
+import com.library.Skillmark.security.AuthUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -36,27 +35,27 @@ public class MembershipController {
     @Operation(summary = "Add organization member", description = "Adds an existing user as a PARTICIPANT. Requires OWNER membership in the organization.")
     ResponseEntity<ApiResponse<MembershipResponse>> add(@PathVariable UUID organizationId,
                                                         @Valid @RequestBody AddMemberRequest request,
-                                                        Authentication authentication) {
+                                                        AuthUser currentUser) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Member added successfully",
-                membershipService.add(organizationId, request, SecurityUtil.userId(authentication))));
+                membershipService.add(organizationId, request, currentUser.id())));
     }
 
     @GetMapping
     @Operation(summary = "List organization members", description = "Lists organization memberships. Requires OWNER membership in the organization.")
     ApiResponse<PageResponse<MembershipResponse>> list(@PathVariable UUID organizationId,
-                                                       Authentication authentication,
+                                                       AuthUser currentUser,
                                                        @RequestParam(defaultValue = "0") int page,
                                                        @RequestParam(defaultValue = "10") int size) {
         return ApiResponse.success("Members retrieved successfully",
-                membershipService.list(organizationId, SecurityUtil.userId(authentication), page, size));
+                membershipService.list(organizationId, currentUser.id(), page, size));
     }
 
     @DeleteMapping("/{userId}")
     @Operation(summary = "Remove organization member", description = "Marks a participant membership as REMOVED while preserving historical attempts and certificates.")
     ApiResponse<Void> remove(@PathVariable UUID organizationId,
                              @PathVariable UUID userId,
-                             Authentication authentication) {
-        membershipService.remove(organizationId, userId, SecurityUtil.userId(authentication));
+                             AuthUser currentUser) {
+        membershipService.remove(organizationId, userId, currentUser.id());
         return ApiResponse.success("Member removed successfully", null);
     }
 }

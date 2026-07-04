@@ -123,7 +123,10 @@ public class CertificateService {
     }
 
     @Transactional
-    public CertificateResponse revoke(UUID certificateId, RevokeCertificateRequest request, UUID actorId) {
+    public CertificateResponse updateStatus(UUID certificateId, UpdateCertificateStatusRequest request, UUID actorId) {
+        if (request.status() != CertificateStatus.REVOKED) {
+            throw new BusinessRuleException("Certificate status can only be changed to REVOKED");
+        }
         Certificate certificate = certificateRepository.findById(certificateId)
                 .orElseThrow(() -> new NotFoundException("Certificate not found"));
         authorizationService.ensureOrganizationOwner(certificate.getOrganization().getId(), actorId);

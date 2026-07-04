@@ -207,10 +207,9 @@ public class QuizService {
     }
 
     @Transactional
-    public QuestionResponse updateQuestion(UUID questionId, CreateQuestionRequest request, UUID actorId) {
-        QuizQuestion question = questionRepository.findById(questionId)
-                .orElseThrow(() -> new NotFoundException("Question not found"));
-        Quiz quiz = authorizationService.ensureQuizOwner(question.getQuiz().getId(), actorId);
+    public QuestionResponse updateQuestion(UUID quizId, UUID questionId, CreateQuestionRequest request, UUID actorId) {
+        Quiz quiz = authorizationService.ensureQuizOwner(quizId, actorId);
+        QuizQuestion question = requireQuestionInQuiz(quizId, questionId);
         ensureQuizStructureMutable(quiz);
         if (request.type() != QuestionType.SINGLE_CHOICE) {
             throw new BadRequestException("MVP supports SINGLE_CHOICE questions only");
@@ -240,10 +239,9 @@ public class QuizService {
     }
 
     @Transactional
-    public void deleteQuestion(UUID questionId, UUID actorId) {
-        QuizQuestion question = questionRepository.findById(questionId)
-                .orElseThrow(() -> new NotFoundException("Question not found"));
-        Quiz quiz = authorizationService.ensureQuizOwner(question.getQuiz().getId(), actorId);
+    public void deleteQuestion(UUID quizId, UUID questionId, UUID actorId) {
+        Quiz quiz = authorizationService.ensureQuizOwner(quizId, actorId);
+        QuizQuestion question = requireQuestionInQuiz(quizId, questionId);
         ensureQuizStructureMutable(quiz);
         optionRepository.findByQuestionIdOrderByPositionAsc(questionId).forEach(optionRepository::delete);
         questionRepository.delete(question);
@@ -251,10 +249,9 @@ public class QuizService {
     }
 
     @Transactional
-    public OptionResponse addOption(UUID questionId, CreateOptionRequest request, UUID actorId) {
-        QuizQuestion question = questionRepository.findById(questionId)
-                .orElseThrow(() -> new NotFoundException("Question not found"));
-        Quiz quiz = authorizationService.ensureQuizOwner(question.getQuiz().getId(), actorId);
+    public OptionResponse addOption(UUID quizId, UUID questionId, CreateOptionRequest request, UUID actorId) {
+        Quiz quiz = authorizationService.ensureQuizOwner(quizId, actorId);
+        QuizQuestion question = requireQuestionInQuiz(quizId, questionId);
         ensureQuizStructureMutable(quiz);
         boolean duplicatePosition = optionRepository.findByQuestionIdOrderByPositionAsc(questionId).stream()
                 .anyMatch(existing -> existing.getPosition().equals(request.position()));
@@ -272,12 +269,11 @@ public class QuizService {
     }
 
     @Transactional
-    public OptionResponse updateOption(UUID optionId, CreateOptionRequest request, UUID actorId) {
-        QuizOption option = optionRepository.findById(optionId)
-                .orElseThrow(() -> new NotFoundException("Option not found"));
-        Quiz quiz = authorizationService.ensureQuizOwner(option.getQuestion().getQuiz().getId(), actorId);
+    public OptionResponse updateOption(UUID quizId, UUID questionId, UUID optionId, CreateOptionRequest request, UUID actorId) {
+        QuizOption option = requireOptionInQuestion(quizId, questionId, optionId);
+        Quiz quiz = authorizationService.ensureQuizOwner(quizId, actorId);
         ensureQuizStructureMutable(quiz);
-        boolean duplicatePosition = optionRepository.findByQuestionIdOrderByPositionAsc(option.getQuestion().getId()).stream()
+        boolean duplicatePosition = optionRepository.findByQuestionIdOrderByPositionAsc(questionId).stream()
                 .anyMatch(existing -> existing.getPosition().equals(request.position()) && !existing.getId().equals(optionId));
         if (duplicatePosition) {
             throw new BadRequestException("Option position already exists for this question");
@@ -290,10 +286,9 @@ public class QuizService {
     }
 
     @Transactional
-    public void deleteOption(UUID optionId, UUID actorId) {
-        QuizOption option = optionRepository.findById(optionId)
-                .orElseThrow(() -> new NotFoundException("Option not found"));
-        Quiz quiz = authorizationService.ensureQuizOwner(option.getQuestion().getQuiz().getId(), actorId);
+    public void deleteOption(UUID quizId, UUID questionId, UUID optionId, UUID actorId) {
+        QuizOption option = requireOptionInQuestion(quizId, questionId, optionId);
+        Quiz quiz = authorizationService.ensureQuizOwner(quizId, actorId);
         ensureQuizStructureMutable(quiz);
         optionRepository.delete(option);
         auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.QUIZ_UPDATED, "QuizOption", optionId);
@@ -306,6 +301,27 @@ public class QuizService {
         quiz.setStatus(QuizStatus.PUBLISHED);
         auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.QUIZ_PUBLISHED, "Quiz", quizId);
         return toResponse(quiz, true);
+    }
+
+    private QuizQuestion requireQuestionInQuiz(UUID quizId, UUID questionId) {
+        QuizQuestion question = questionRepository.findById(questionId)
+                .orElseThrow(() -> new NotFoundException("Question not found"));
+        if (!question.getQuiz().getId().equals(quizId)) {
+            throw new NotFoundException("Question not found for this quiz");
+        }
+        return question;
+    }
+
+    private QuizOption requireOptionInQuestion(UUID quizId, UUID questionId, UUID optionId) {
+        QuizOption option = optionRepository.findById(optionId)
+                .orElseThrow(() -> new NotFoundException("Option not found"));
+        if (!option.getQuestion().getId().equals(questionId)) {
+            throw new NotFoundException("Option not found for this question");
+        }
+        if (!option.getQuestion().getQuiz().getId().equals(quizId)) {
+            throw new NotFoundException("Option not found for this quiz");
+        }
+        return option;
     }
 
     private List<Quiz> quizzesForOwnerMembership(OrganizationMembership membership) {

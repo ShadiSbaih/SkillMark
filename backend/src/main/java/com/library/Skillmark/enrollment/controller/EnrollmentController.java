@@ -6,18 +6,18 @@ import com.library.Skillmark.config.OpenApiConfig;
 import com.library.Skillmark.enrollment.dto.CreateEnrollmentRequest;
 import com.library.Skillmark.enrollment.dto.EnrollmentResponse;
 import com.library.Skillmark.enrollment.service.EnrollmentService;
-import com.library.Skillmark.security.SecurityUtil;
+import com.library.Skillmark.security.AuthUser;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
 @RestController
+@RequestMapping("/api/v1")
 @Tag(name = "Enrollments")
 @SecurityRequirement(name = OpenApiConfig.BEARER_AUTH)
 public class EnrollmentController {
@@ -27,34 +27,26 @@ public class EnrollmentController {
         this.enrollmentService = enrollmentService;
     }
 
-    @PostMapping("/api/v1/programs/{programId}/enrollments")
+    @PostMapping("/programs/{programId}/enrollments")
     ResponseEntity<ApiResponse<EnrollmentResponse>> enroll(@PathVariable UUID programId,
                                                            @Valid @RequestBody CreateEnrollmentRequest request,
-                                                           Authentication authentication) {
+                                                           AuthUser currentUser) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Enrollment created successfully",
-                enrollmentService.enroll(programId, request, SecurityUtil.userId(authentication))));
+                enrollmentService.enroll(programId, request, currentUser.id())));
     }
 
-    @GetMapping("/api/v1/programs/{programId}/enrollments")
+    @GetMapping("/programs/{programId}/enrollments")
     ApiResponse<PageResponse<EnrollmentResponse>> list(@PathVariable UUID programId,
-                                                       Authentication authentication,
+                                                       AuthUser currentUser,
                                                        @RequestParam(defaultValue = "0") int page,
                                                        @RequestParam(defaultValue = "10") int size) {
         return ApiResponse.success("Enrollments retrieved successfully",
-                enrollmentService.list(programId, SecurityUtil.userId(authentication), page, size));
+                enrollmentService.list(programId, currentUser.id(), page, size));
     }
 
-    @GetMapping("/api/v1/enrollments/me")
-    ApiResponse<PageResponse<EnrollmentResponse>> mine(Authentication authentication,
-                                                       @RequestParam(defaultValue = "0") int page,
-                                                       @RequestParam(defaultValue = "10") int size) {
-        return ApiResponse.success("Enrollments retrieved successfully",
-                enrollmentService.mine(SecurityUtil.userId(authentication), page, size));
-    }
-
-    @DeleteMapping("/api/v1/programs/{programId}/enrollments/{userId}")
-    ApiResponse<Void> remove(@PathVariable UUID programId, @PathVariable UUID userId, Authentication authentication) {
-        enrollmentService.remove(programId, userId, SecurityUtil.userId(authentication));
+    @DeleteMapping("/programs/{programId}/enrollments/{userId}")
+    ApiResponse<Void> remove(@PathVariable UUID programId, @PathVariable UUID userId, AuthUser currentUser) {
+        enrollmentService.remove(programId, userId, currentUser.id());
         return ApiResponse.success("Enrollment removed successfully", null);
     }
 }

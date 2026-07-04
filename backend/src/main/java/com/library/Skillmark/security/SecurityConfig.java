@@ -18,12 +18,27 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.Arrays;
 import java.util.List;
 
 @Configuration
-public class SecurityConfig {
+public class SecurityConfig implements WebMvcConfigurer {
+
+    private final AuthUserArgumentResolver authUserArgumentResolver;
+
+    public SecurityConfig(AuthUserArgumentResolver authUserArgumentResolver) {
+        this.authUserArgumentResolver = authUserArgumentResolver;
+    }
+
+    @Override
+    public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
+        resolvers.add(authUserArgumentResolver);
+    }
+
+
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http,
                                             ClerkAuthenticationFilter clerkAuthenticationFilter,

@@ -5,14 +5,14 @@ import com.library.Skillmark.config.OpenApiConfig;
 import com.library.Skillmark.media.dto.CloudinarySignatureRequest;
 import com.library.Skillmark.media.dto.CloudinarySignatureResponse;
 import com.library.Skillmark.media.service.CloudinaryMediaService;
-import com.library.Skillmark.security.SecurityUtil;
+import com.library.Skillmark.security.AuthUser;
 import com.library.Skillmark.security.service.AuthorizationService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
+@RequestMapping("/api/v1")
 @Tag(name = "Media")
 @SecurityRequirement(name = OpenApiConfig.BEARER_AUTH)
 public class MediaController {
@@ -24,16 +24,16 @@ public class MediaController {
         this.authorizationService = authorizationService;
     }
 
-    @PostMapping("/api/v1/media/cloudinary/signature")
+    @PostMapping("/media/signatures")
     ApiResponse<CloudinarySignatureResponse> signature(@RequestBody CloudinarySignatureRequest request,
-                                                       Authentication authentication) {
+                                                       AuthUser currentUser) {
         if (request.organizationId() != null && request.programId() != null) {
             throw new com.library.Skillmark.common.exception.BadRequestException("Provide either organizationId or programId, not both");
         }
         if (request.programId() != null) {
-            authorizationService.ensureProgramOwner(request.programId(), SecurityUtil.userId(authentication));
+            authorizationService.ensureProgramOwner(request.programId(), currentUser.id());
         } else if (request.organizationId() != null) {
-            authorizationService.ensureOrganizationOwner(request.organizationId(), SecurityUtil.userId(authentication));
+            authorizationService.ensureOrganizationOwner(request.organizationId(), currentUser.id());
         } else {
             throw new com.library.Skillmark.common.exception.BadRequestException("organizationId or programId is required");
         }

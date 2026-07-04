@@ -2,19 +2,19 @@ package com.library.Skillmark.stats.controller;
 
 import com.library.Skillmark.common.response.ApiResponse;
 import com.library.Skillmark.config.OpenApiConfig;
-import com.library.Skillmark.security.SecurityUtil;
+import com.library.Skillmark.security.AuthUser;
 import com.library.Skillmark.stats.dto.OrganizationStatsResponse;
 import com.library.Skillmark.stats.dto.ProgramStatsResponse;
 import com.library.Skillmark.stats.dto.QuizStatsResponse;
 import com.library.Skillmark.stats.service.StatsService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
 @RestController
+@RequestMapping("/api/v1")
 @Tag(name = "Statistics")
 @SecurityRequirement(name = OpenApiConfig.BEARER_AUTH)
 public class StatsController {
@@ -24,21 +24,21 @@ public class StatsController {
         this.statsService = statsService;
     }
 
-    @GetMapping("/api/v1/organizations/{organizationId}/stats")
-    ApiResponse<OrganizationStatsResponse> organizationStats(@PathVariable UUID organizationId, Authentication authentication) {
+    @GetMapping("/organizations/{organizationId}/stats")
+    ApiResponse<OrganizationStatsResponse> organizationStats(@PathVariable UUID organizationId, AuthUser currentUser) {
         return ApiResponse.success("Organization stats retrieved successfully",
-                statsService.organizationStats(organizationId, SecurityUtil.userId(authentication)));
+                statsService.organizationStats(organizationId, currentUser.id()));
     }
 
-    @GetMapping("/api/v1/programs/{programId}/stats")
-    ApiResponse<ProgramStatsResponse> programStats(@PathVariable UUID programId, Authentication authentication) {
+    @GetMapping("/programs/{programId}/stats")
+    ApiResponse<ProgramStatsResponse> programStats(@PathVariable UUID programId, AuthUser currentUser) {
         return ApiResponse.success("Program stats retrieved successfully",
-                statsService.programStats(programId, SecurityUtil.userId(authentication)));
+                statsService.programStats(programId, currentUser.id()));
     }
 
-    @GetMapping("/api/v1/quizzes/{quizId}/stats")
-    ApiResponse<QuizStatsResponse> quizStats(@PathVariable UUID quizId, Authentication authentication) {
+    @GetMapping("/quizzes/{quizId}/stats")
+    ApiResponse<QuizStatsResponse> quizStats(@PathVariable UUID quizId, AuthUser currentUser) {
         return ApiResponse.success("Quiz stats retrieved successfully",
-                statsService.quizStats(quizId, SecurityUtil.userId(authentication)));
+                statsService.quizStats(quizId, currentUser.id()));
     }
 }

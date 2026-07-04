@@ -8,11 +8,10 @@ import com.library.Skillmark.user.repository.*;
 import com.library.Skillmark.user.service.*;
 import com.library.Skillmark.common.response.ApiResponse;
 import com.library.Skillmark.config.OpenApiConfig;
-import com.library.Skillmark.security.SecurityUtil;
+import com.library.Skillmark.security.AuthUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -28,23 +27,23 @@ public class UserController {
 
     @GetMapping("/me")
     @Operation(summary = "Get current user", description = "Returns the current authenticated user's safe profile without password or token hashes.")
-    ApiResponse<UserResponse> me(Authentication authentication) {
-        return ApiResponse.success("User profile retrieved successfully", userService.me(SecurityUtil.userId(authentication)));
+    ApiResponse<UserResponse> me(AuthUser currentUser) {
+        return ApiResponse.success("User profile retrieved successfully", userService.me(currentUser.id()));
     }
 
     @PatchMapping("/me")
     @Operation(summary = "Update current user", description = "Updates the current user's local profile fields.")
-    ApiResponse<UserResponse> updateMe(@RequestBody SyncUserRequest request, Authentication authentication) {
+    ApiResponse<UserResponse> updateMe(@RequestBody SyncUserRequest request, AuthUser currentUser) {
         return ApiResponse.success("User profile updated successfully",
-                userService.update(SecurityUtil.userId(authentication), request));
+                userService.update(currentUser.id(), request));
     }
 
     @PostMapping("/sync")
     @Operation(summary = "Sync current Clerk user", description = "Compatibility alias for updating the local user profile.")
-    ApiResponse<UserResponse> sync(@RequestBody(required = false) SyncUserRequest request, Authentication authentication) {
+    ApiResponse<UserResponse> sync(@RequestBody(required = false) SyncUserRequest request, AuthUser currentUser) {
         return ApiResponse.success("User profile synced successfully",
                 request == null
-                        ? userService.sync(SecurityUtil.authUser(authentication))
-                        : userService.update(SecurityUtil.userId(authentication), request));
+                        ? userService.sync(currentUser)
+                        : userService.update(currentUser.id(), request));
     }
 }

@@ -7,18 +7,18 @@ import com.library.Skillmark.invitation.dto.CreateInvitationRequest;
 import com.library.Skillmark.invitation.dto.InvitationResponse;
 import com.library.Skillmark.invitation.dto.UpdateInvitationStatusRequest;
 import com.library.Skillmark.invitation.service.InvitationService;
-import com.library.Skillmark.security.SecurityUtil;
+import com.library.Skillmark.security.AuthUser;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
 @RestController
+@RequestMapping("/api/v1")
 @Tag(name = "Invitations")
 @SecurityRequirement(name = OpenApiConfig.BEARER_AUTH)
 public class InvitationController {
@@ -28,42 +28,35 @@ public class InvitationController {
         this.invitationService = invitationService;
     }
 
-    @PostMapping("/api/v1/programs/{programId}/invitations")
+    @PostMapping("/programs/{programId}/invitations")
     ResponseEntity<ApiResponse<InvitationResponse>> create(@PathVariable UUID programId,
                                                            @Valid @RequestBody CreateInvitationRequest request,
-                                                           Authentication authentication) {
+                                                           AuthUser currentUser) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Invitation created successfully",
-                invitationService.create(programId, request, SecurityUtil.userId(authentication))));
+                invitationService.create(programId, request, currentUser.id())));
     }
 
-    @GetMapping("/api/v1/programs/{programId}/invitations")
+    @GetMapping("/programs/{programId}/invitations")
     ApiResponse<PageResponse<InvitationResponse>> list(@PathVariable UUID programId,
-                                                       Authentication authentication,
+                                                       AuthUser currentUser,
                                                        @RequestParam(defaultValue = "0") int page,
                                                        @RequestParam(defaultValue = "10") int size) {
         return ApiResponse.success("Invitations retrieved successfully",
-                invitationService.list(programId, SecurityUtil.userId(authentication), page, size));
+                invitationService.list(programId, currentUser.id(), page, size));
     }
 
-    @PostMapping("/api/v1/invitations/{code}/join")
+    @PostMapping("/invitations/{code}/join")
     @io.swagger.v3.oas.annotations.Operation(summary = "Join by invitation", description = "Joins a program using a concurrency-safe invitation usage check; usedCount cannot exceed maxUses.")
-    ApiResponse<InvitationResponse> join(@PathVariable String code, Authentication authentication) {
+    ApiResponse<InvitationResponse> join(@PathVariable String code, AuthUser currentUser) {
         return ApiResponse.success("Invitation joined successfully",
-                invitationService.join(code, SecurityUtil.userId(authentication)));
+                invitationService.join(code, currentUser.id()));
     }
 
-    @PostMapping("/api/v1/invitations/{invitationId}/disable")
-    ApiResponse<InvitationResponse> disable(@PathVariable UUID invitationId, Authentication authentication) {
-        return ApiResponse.success("Invitation disabled successfully",
-                invitationService.updateStatus(invitationId, com.library.Skillmark.invitation.enums.InvitationStatus.DISABLED,
-                        SecurityUtil.userId(authentication)));
-    }
-
-    @PatchMapping("/api/v1/invitations/{invitationId}/status")
+    @PatchMapping("/invitations/{invitationId}/status")
     ApiResponse<InvitationResponse> updateStatus(@PathVariable UUID invitationId,
                                                  @Valid @RequestBody UpdateInvitationStatusRequest request,
-                                                 Authentication authentication) {
+                                                 AuthUser currentUser) {
         return ApiResponse.success("Invitation status updated successfully",
-                invitationService.updateStatus(invitationId, request.status(), SecurityUtil.userId(authentication)));
+                invitationService.updateStatus(invitationId, request.status(), currentUser.id()));
     }
 }

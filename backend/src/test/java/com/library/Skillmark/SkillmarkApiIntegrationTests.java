@@ -174,7 +174,11 @@ class SkillmarkApiIntegrationTests {
                 .andReturn();
         String programId = read(programResult, "/data/id");
 
-        postJson("/api/v1/programs/" + programId + "/publish", ownerToken, "{}")
+        patchJson("/api/v1/programs/" + programId + "/status", ownerToken, """
+                {
+                  "status": "PUBLISHED"
+                }
+                """)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.isPublished", is(true)));
 
@@ -249,7 +253,11 @@ class SkillmarkApiIntegrationTests {
                 .andExpect(status().isCreated())
                 .andReturn(), "/data/options/0/id");
 
-        postJson("/api/v1/quizzes/" + quizId + "/publish", ownerToken, "{}")
+        patchJson("/api/v1/quizzes/" + quizId + "/status", ownerToken, """
+                {
+                  "status": "PUBLISHED"
+                }
+                """)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.isPublished", is(true)));
 
@@ -276,7 +284,7 @@ class SkillmarkApiIntegrationTests {
                 .andExpect(jsonPath("$.data.certificateIssued", is(true)))
                 .andReturn(), "/data/certificateId");
 
-        putJson("/api/v1/questions/" + questionId, ownerToken, """
+        putJson("/api/v1/quizzes/" + quizId + "/questions/" + questionId, ownerToken, """
                 {
                   "text": "Changed after submit?",
                   "type": "SINGLE_CHOICE",
@@ -341,7 +349,11 @@ class SkillmarkApiIntegrationTests {
                 .andExpect(status().isCreated())
                 .andReturn(), "/data/options/0/id");
 
-        postJson("/api/v1/quizzes/" + quizId + "/publish", ownerToken, "{}")
+        patchJson("/api/v1/quizzes/" + quizId + "/status", ownerToken, """
+                {
+                  "status": "PUBLISHED"
+                }
+                """)
                 .andExpect(status().isOk());
         String questionId = read(getJson("/api/v1/quizzes/" + quizId, participantToken)
                 .andExpect(status().isOk())
@@ -422,8 +434,8 @@ class SkillmarkApiIntegrationTests {
                 .andExpect(jsonPath("$.paths['/api/v1/users/sync'].post").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/organizations/{organizationId}/programs'].post").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/programs/{programId}/quizzes'].post").exists())
-                .andExpect(jsonPath("$.paths['/api/v1/files/r2/upload-url'].post").exists())
-                .andExpect(jsonPath("$.paths['/api/v1/media/cloudinary/signature'].post").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/storage/upload-urls'].post").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/media/signatures'].post").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/public/certificates/verify/{verificationCode}'].get").exists());
     }
 
@@ -465,7 +477,11 @@ class SkillmarkApiIntegrationTests {
                 .andExpect(status().isCreated())
                 .andReturn(), "/data/options/0/id");
 
-        postJson("/api/v1/quizzes/" + quizId + "/publish", ownerToken, "{}")
+        patchJson("/api/v1/quizzes/" + quizId + "/status", ownerToken, """
+                {
+                  "status": "PUBLISHED"
+                }
+                """)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.isPublished", is(true)));
 
@@ -489,8 +505,14 @@ class SkillmarkApiIntegrationTests {
                 .andExpect(jsonPath("$.data.certificateIssued", is(true)))
                 .andReturn(), "/data/certificateId");
 
-        postJson("/api/v1/certificates/" + certificateId + "/revoke", ownerToken, """
+        getJson("/api/v1/organizations/" + organizationId + "/certificates", ownerToken)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items.length()", is(1)))
+                .andExpect(jsonPath("$.data.items[0].id", is(certificateId)));
+
+        patchJson("/api/v1/certificates/" + certificateId + "/status", ownerToken, """
                 {
+                  "status": "REVOKED",
                   "reason": "Test revocation"
                 }
                 """)
@@ -623,7 +645,11 @@ class SkillmarkApiIntegrationTests {
                 """)
                 .andExpect(status().isCreated());
 
-        postJson("/api/v1/quizzes/" + quizId + "/publish", ownerToken, "{}")
+        patchJson("/api/v1/quizzes/" + quizId + "/status", ownerToken, """
+                {
+                  "status": "PUBLISHED"
+                }
+                """)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.isPublished", is(true)));
 
@@ -691,7 +717,11 @@ class SkillmarkApiIntegrationTests {
                 """)
                 .andExpect(status().isCreated())
                 .andReturn(), "/data/id");
-        postJson("/api/v1/programs/" + programId + "/publish", ownerToken, "{}")
+        patchJson("/api/v1/programs/" + programId + "/status", ownerToken, """
+                {
+                  "status": "PUBLISHED"
+                }
+                """)
                 .andExpect(status().isOk());
         return programId;
     }
