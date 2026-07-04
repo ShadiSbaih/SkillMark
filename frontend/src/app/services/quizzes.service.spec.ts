@@ -64,7 +64,7 @@ describe('QuizzesService', () => {
   it('should publish a quiz via PATCH /quizzes/:id/status', async () => {
     vi.mocked(apiClient.patch).mockReturnValue(of(quiz));
 
-    const result = await service.publishMutation.mutate('quiz-1');
+    const result = await service.publishMutation.mutateAsync('quiz-1');
 
     expect(result).toEqual(quiz);
     expect(apiClient.patch).toHaveBeenCalledWith('quizzes/quiz-1/status', {
@@ -75,7 +75,7 @@ describe('QuizzesService', () => {
   it('should archive a quiz via PATCH /quizzes/:id/status', async () => {
     vi.mocked(apiClient.patch).mockReturnValue(of({ ...quiz, status: 'ARCHIVED' }));
 
-    const result = await service.archiveMutation.mutate({
+    const result = await service.archiveMutation.mutateAsync({
       quizId: 'quiz-1',
       status: 'ARCHIVED',
     });

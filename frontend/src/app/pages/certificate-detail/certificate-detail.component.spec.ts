@@ -70,6 +70,16 @@ class FakeCertificatesService {
       refetch: vi.fn(),
     });
   }
+
+  setEmpty() {
+    this.queryState.set({
+      isPending: false,
+      isError: false,
+      data: null,
+      error: null,
+      refetch: vi.fn(),
+    });
+  }
 }
 
 describe('CertificateDetailComponent', () => {
@@ -178,6 +188,15 @@ describe('CertificateDetailComponent', () => {
     expect(text).toContain('REVOKED');
     expect(text).toContain('Revoked at');
     expect(text).toContain('Jul 4, 2026');
+  });
+
+  it('should show empty state when certificate data is missing', () => {
+    certificatesService.setEmpty();
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('Certificate not found');
+    expect(text).toContain('The requested certificate could not be loaded.');
   });
 
   it('should provide a back link and a public verify link', () => {

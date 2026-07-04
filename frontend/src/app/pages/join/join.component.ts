@@ -4,6 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { InvitationsService } from '../../services/invitations.service';
 import { CardComponent } from '../../shared/components/card/card.component';
+import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { ErrorStateComponent } from '../../shared/components/error-state/error-state.component';
 import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
 
@@ -12,6 +13,7 @@ import { LoadingStateComponent } from '../../shared/components/loading-state/loa
   standalone: true,
   imports: [
     CardComponent,
+    EmptyStateComponent,
     ErrorStateComponent,
     LoadingStateComponent,
   ],

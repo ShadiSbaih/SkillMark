@@ -127,4 +127,28 @@ describe('JoinComponent', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Joining program...');
   }));
+
+  it('should show empty state when no invitation code is provided', async () => {
+    await TestBed.configureTestingModule({
+      imports: [JoinComponent],
+      providers: [
+        provideQueryClient(new QueryClient()),
+        { provide: InvitationsService, useValue: invitationsService },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            paramMap: of({ get: () => null }),
+          },
+        },
+      ],
+    }).compileComponents();
+
+    const noCodeFixture = TestBed.createComponent(JoinComponent);
+    noCodeFixture.detectChanges();
+
+    const text = noCodeFixture.nativeElement.textContent;
+    expect(text).toContain('No invitation code');
+    expect(text).toContain('Invitation code missing');
+    expect(text).toContain('Ask the program owner for a valid join link.');
+  });
 });

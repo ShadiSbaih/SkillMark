@@ -10,9 +10,15 @@
           [message]="error() ?? 'Failed to join the program.'"
           (retry)="retry()"
         />
-      } @else {
+      } @else if (code()) {
         <h1 class="mb-4 text-xl font-semibold text-ink">Joining program...</h1>
         <app-loading-state message="Preparing your invitation..." />
+      } @else {
+        <h1 class="mb-4 text-xl font-semibold text-ink">No invitation code</h1>
+        <app-empty-state
+          title="Invitation code missing"
+          description="Ask the program owner for a valid join link."
+        />
       }
     </div>
   </app-card>
