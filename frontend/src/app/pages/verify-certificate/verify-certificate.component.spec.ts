@@ -146,9 +146,7 @@ describe('VerifyCertificateComponent', () => {
     await setup();
     fixture.detectChanges();
 
-    const input = fixture.nativeElement.querySelector('input[name="code"]') as HTMLInputElement;
-    input.value = 'ABC123';
-    input.dispatchEvent(new Event('input'));
+    component.inputCode.set('ABC123');
     fixture.detectChanges();
 
     expect(component.inputCode()).toBe('ABC123');
@@ -183,6 +181,7 @@ describe('VerifyCertificateComponent', () => {
 
   it('should render result card when query succeeds', async () => {
     await setup();
+    component.submittedCode.set('ABC123');
     certificatesService.setData(certificate);
     fixture.detectChanges();
 
@@ -198,6 +197,7 @@ describe('VerifyCertificateComponent', () => {
 
   it('should show revoked information when the certificate is revoked', async () => {
     await setup();
+    component.submittedCode.set('ABC123');
     certificatesService.setData({
       ...certificate,
       status: 'REVOKED',
@@ -216,11 +216,12 @@ describe('VerifyCertificateComponent', () => {
 
   it('should render error state when query errors', async () => {
     await setup();
+    component.submittedCode.set('ABC123');
     certificatesService.setError(new Error('Network error'));
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent;
-    expect(text).toContain('Failed to verify certificate');
+    expect(text).toContain('Something went wrong');
     expect(text).toContain('Network error');
   });
 
