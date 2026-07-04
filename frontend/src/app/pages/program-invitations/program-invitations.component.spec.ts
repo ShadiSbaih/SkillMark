@@ -17,7 +17,7 @@ class FakeInvitationsService {
     size: 10,
   });
 
-  private queryState = signal({
+  readonly queryState = signal({
     isPending: false,
     isError: false,
     data: null as PageResponse<Invitation> | null,

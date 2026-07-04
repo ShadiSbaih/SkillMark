@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, ActivatedRoute } from '@angular/router';
 import { provideQueryClient, QueryClient } from '@tanstack/angular-query-experimental';
 import { signal } from '@angular/core';
+import { of } from 'rxjs';
 import { vi } from 'vitest';
 import { ProgramEnrollmentsComponent } from './program-enrollments.component';
 import { EnrollmentsService } from '../../services/enrollments.service';
@@ -9,8 +10,8 @@ import { Enrollment, EnrollmentStatus } from '../../core/models/enrollment.model
 import { PageResponse } from '../../core/api/api-response.model';
 
 class FakeEnrollmentsService {
-  private queryState = signal({
-    status: 'pending',
+  readonly queryState = signal({
+    status: 'pending' as 'pending' | 'error' | 'success',
     isPending: true,
     isError: false,
     data: null as PageResponse<Enrollment> | null,
@@ -18,15 +19,33 @@ class FakeEnrollmentsService {
     refetch: vi.fn(),
   });
 
-  readonly mineParams = signal({ page: 0, size: 10 });
+  readonly listParams = signal<{ programId: string | null; page: number; size: number }>({
+    programId: null,
+    page: 0,
+    size: 10,
+  });
 
-  readonly myEnrollmentsQuery = {
+  readonly programEnrollmentsQuery = {
     status: () => this.queryState().status,
     isPending: () => this.queryState().isPending,
     isError: () => this.queryState().isError,
     data: () => this.queryState().data,
     error: () => this.queryState().error,
     refetch: this.queryState().refetch,
+  };
+
+  readonly createMutation = {
+    isPending: signal(false),
+    mutate: vi.fn((_vars: unknown, options?: { onSuccess?: () => void }) => {
+      options?.onSuccess?.();
+    }),
+  };
+
+  readonly removeMutation = {
+    isPending: signal(false),
+    mutate: vi.fn((_vars: unknown, options?: { onSuccess?: () => void }) => {
+      options?.onSuccess?.();
+    }),
   };
 
   setPending() {
@@ -63,7 +82,7 @@ class FakeEnrollmentsService {
   }
 }
 
-describe('ProgramEnrollmentsComponent /my-enrollments', () => {
+describe('ProgramEnrollmentsComponent', () => {
   let component: ProgramEnrollmentsComponent;
   let fixture: ComponentFixture<ProgramEnrollmentsComponent>;
   let enrollmentsService: FakeEnrollmentsService;
@@ -89,7 +108,7 @@ describe('ProgramEnrollmentsComponent /my-enrollments', () => {
         {
           provide: ActivatedRoute,
           useValue: {
-            snapshot: { routeConfig: { path: 'my-enrollments' } },
+            paramMap: of({ get: (key: string) => (key === 'programId' ? 'program-1' : null) }),
           },
         },
       ],
@@ -105,15 +124,20 @@ describe('ProgramEnrollmentsComponent /my-enrollments', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should detect my-enrollments route', () => {
-    expect(component.isMyEnrollments).toBe(true);
+  it('should set listParams from the route', () => {
+    fixture.detectChanges();
+    expect(enrollmentsService.listParams()).toEqual({
+      programId: 'program-1',
+      page: 0,
+      size: 10,
+    });
   });
 
   it('should show loading state while fetching', () => {
     enrollmentsService.setPending();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Loading your enrollments...');
+    expect(fixture.nativeElement.textContent).toContain('Loading enrollments...');
   });
 
   it('should show error state with retry', () => {
@@ -123,9 +147,9 @@ describe('ProgramEnrollmentsComponent /my-enrollments', () => {
     expect(fixture.nativeElement.textContent).toContain('Something went wrong');
     expect(fixture.nativeElement.textContent).toContain('Network error');
 
-    const retryButton = fixture.nativeElement.querySelector('app-button');
+    const retryButton = fixture.nativeElement.querySelector('app-error-state app-button');
     retryButton.click();
-    expect(enrollmentsService.myEnrollmentsQuery.refetch).toHaveBeenCalled();
+    expect(enrollmentsService.programEnrollmentsQuery.refetch).toHaveBeenCalled();
   });
 
   it('should show empty state when no enrollments', () => {
@@ -141,7 +165,7 @@ describe('ProgramEnrollmentsComponent /my-enrollments', () => {
     expect(fixture.nativeElement.textContent).toContain('No enrollments yet');
   });
 
-  it('should render enrollment cards with status badge and continue link', () => {
+  it('should render enrollment table with status badge and remove button', () => {
     enrollmentsService.setData({
       items: [enrollment],
       page: 0,
@@ -151,12 +175,9 @@ describe('ProgramEnrollmentsComponent /my-enrollments', () => {
     });
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Program program-1');
+    expect(fixture.nativeElement.textContent).toContain('Ada Lovelace');
     expect(fixture.nativeElement.textContent).toContain('ACTIVE');
-    expect(fixture.nativeElement.textContent).toContain('Continue learning');
-
-    const link = fixture.nativeElement.querySelector('a[href="/programs/program-1/learn"]');
-    expect(link).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('app-button')).toBeTruthy();
   });
 
   it('should map status to badge variants', () => {
@@ -170,36 +191,63 @@ describe('ProgramEnrollmentsComponent /my-enrollments', () => {
       expect(component.statusVariant(status)).toBe(variant);
     });
   });
-});
 
-describe('ProgramEnrollmentsComponent owner route', () => {
-  let component: ProgramEnrollmentsComponent;
-  let fixture: ComponentFixture<ProgramEnrollmentsComponent>;
-
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [ProgramEnrollmentsComponent],
-      providers: [
-        provideRouter([]),
-        provideQueryClient(new QueryClient()),
-        { provide: EnrollmentsService, useValue: new FakeEnrollmentsService() },
-        {
-          provide: ActivatedRoute,
-          useValue: {
-            snapshot: { routeConfig: { path: ':programId/enrollments' } },
-          },
-        },
-      ],
-    }).compileComponents();
-
-    fixture = TestBed.createComponent(ProgramEnrollmentsComponent);
-    component = fixture.componentInstance;
-  });
-
-  it('should not render my-enrollments view on owner route', () => {
+  it('should open and close the enroll modal', () => {
+    enrollmentsService.setData({
+      items: [],
+      page: 0,
+      size: 10,
+      totalElements: 0,
+      totalPages: 0,
+    });
     fixture.detectChanges();
 
-    expect(component.isMyEnrollments).toBe(false);
-    expect(fixture.nativeElement.textContent).not.toContain('My Enrollments');
+    expect(component.showEnrollModal()).toBe(false);
+    component.openEnrollModal();
+    expect(component.showEnrollModal()).toBe(true);
+    component.closeEnrollModal();
+    expect(component.showEnrollModal()).toBe(false);
+  });
+
+  it('should call create mutation when enrolling a user', () => {
+    fixture.detectChanges();
+    component.openEnrollModal();
+    component.enrollForm.setValue({ userId: 'user-2' });
+    component.enrollUser();
+
+    expect(enrollmentsService.createMutation.mutate).toHaveBeenCalledWith(
+      { programId: 'program-1', request: { userId: 'user-2' } },
+      expect.any(Object)
+    );
+  });
+
+  it('should confirm and remove an enrollment', () => {
+    fixture.detectChanges();
+    component.confirmRemove('user-1');
+    expect(component.removingUserId()).toBe('user-1');
+
+    component.removeEnrollment();
+    expect(enrollmentsService.removeMutation.mutate).toHaveBeenCalledWith(
+      { programId: 'program-1', userId: 'user-1' },
+      expect.any(Object)
+    );
+  });
+
+  it('should navigate pages', () => {
+    enrollmentsService.setData({
+      items: [enrollment],
+      page: 0,
+      size: 10,
+      totalElements: 20,
+      totalPages: 2,
+    });
+    fixture.detectChanges();
+
+    component.goToPage(1);
+    expect(enrollmentsService.listParams()).toEqual({
+      programId: 'program-1',
+      page: 1,
+      size: 10,
+    });
   });
 });

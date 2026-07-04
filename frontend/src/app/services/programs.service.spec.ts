@@ -51,7 +51,7 @@ describe('ProgramsService', () => {
   it('should publish a program via PATCH /programs/:id/status', async () => {
     vi.mocked(apiClient.patch).mockReturnValue(of({ ...program, status: 'PUBLISHED' }));
 
-    const result = await service.publishMutation.mutate('program-1');
+    const result = await service.publishMutation.mutateAsync('program-1');
 
     expect(result.status).toBe('PUBLISHED');
     expect(apiClient.patch).toHaveBeenCalledWith('programs/program-1/status', {
@@ -62,7 +62,7 @@ describe('ProgramsService', () => {
   it('should archive a program via PATCH /programs/:id/status', async () => {
     vi.mocked(apiClient.patch).mockReturnValue(of({ ...program, status: 'ARCHIVED' }));
 
-    const result = await service.archiveMutation.mutate('program-1');
+    const result = await service.archiveMutation.mutateAsync('program-1');
 
     expect(result.status).toBe('ARCHIVED');
     expect(apiClient.patch).toHaveBeenCalledWith('programs/program-1/status', {

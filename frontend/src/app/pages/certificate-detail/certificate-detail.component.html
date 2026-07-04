@@ -83,5 +83,10 @@
         <app-button variant="secondary" (clicked)="share()">Share link</app-button>
       </div>
     </app-card>
+  } @else {
+    <app-empty-state
+      title="Certificate not found"
+      description="The requested certificate could not be loaded."
+    />
   }
 }
