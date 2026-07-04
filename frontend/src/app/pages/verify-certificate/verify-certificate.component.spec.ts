@@ -124,16 +124,14 @@ describe('VerifyCertificateComponent', () => {
     vi.spyOn(router, 'navigate').mockResolvedValue(true);
   }
 
-  beforeEach(async () => {
+  it('should create', async () => {
     await setup();
-  });
-
-  it('should create', () => {
     fixture.detectChanges();
     expect(component).toBeTruthy();
   });
 
-  it('should show input form and verify button when no route code is provided', () => {
+  it('should show input form and verify button when no route code is provided', async () => {
+    await setup();
     fixture.detectChanges();
 
     const input = fixture.nativeElement.querySelector('input[name="code"]');
@@ -144,7 +142,8 @@ describe('VerifyCertificateComponent', () => {
     expect(button.textContent).toContain('Verify');
   });
 
-  it('should update inputCode when the input value changes', () => {
+  it('should update inputCode when the input value changes', async () => {
+    await setup();
     fixture.detectChanges();
 
     const input = fixture.nativeElement.querySelector('input[name="code"]') as HTMLInputElement;
@@ -155,7 +154,8 @@ describe('VerifyCertificateComponent', () => {
     expect(component.inputCode()).toBe('ABC123');
   });
 
-  it('should set submittedCode and navigate when verify is clicked', () => {
+  it('should set submittedCode and navigate when verify is clicked', async () => {
+    await setup();
     fixture.detectChanges();
 
     component.inputCode.set('ABC123');
@@ -181,7 +181,8 @@ describe('VerifyCertificateComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Verifying certificate...');
   });
 
-  it('should render result card when query succeeds', () => {
+  it('should render result card when query succeeds', async () => {
+    await setup();
     certificatesService.setData(certificate);
     fixture.detectChanges();
 
@@ -195,7 +196,8 @@ describe('VerifyCertificateComponent', () => {
     expect(text).toContain('Jul 3, 2026');
   });
 
-  it('should show revoked information when the certificate is revoked', () => {
+  it('should show revoked information when the certificate is revoked', async () => {
+    await setup();
     certificatesService.setData({
       ...certificate,
       status: 'REVOKED',
@@ -212,7 +214,8 @@ describe('VerifyCertificateComponent', () => {
     expect(text).toContain('Reason: Policy violation');
   });
 
-  it('should render error state when query errors', () => {
+  it('should render error state when query errors', async () => {
+    await setup();
     certificatesService.setError(new Error('Network error'));
     fixture.detectChanges();
 
@@ -221,7 +224,8 @@ describe('VerifyCertificateComponent', () => {
     expect(text).toContain('Network error');
   });
 
-  it('should call query refetch when retry is clicked', () => {
+  it('should call query refetch when retry is clicked', async () => {
+    await setup();
     certificatesService.setError(new Error('Network error'));
     fixture.detectChanges();
 
