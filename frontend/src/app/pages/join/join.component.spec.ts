@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { provideQueryClient, QueryClient } from '@tanstack/angular-query-experimental';
 import { signal } from '@angular/core';
@@ -9,18 +9,26 @@ import { InvitationsService } from '../../services/invitations.service';
 import { Invitation } from '../../core/models/invitation.model';
 
 class FakeInvitationsService {
-  readonly joinMutate = vi.fn((_code: string, options?: { onSuccess?: (invitation: Invitation) => void; onError?: (error: Error) => void }) => {
-    this.isPending.set(true);
-    setTimeout(() => {
-      this.isPending.set(false);
-      if (this.nextError) {
-        options?.onError?.(this.nextError);
-        this.nextError = null;
-      } else {
-        options?.onSuccess?.(this.nextInvitation);
+  readonly joinMutate = vi.fn(
+    (
+      _code: string,
+      options?: {
+        onSuccess?: (invitation: Invitation) => void;
+        onError?: (error: Error) => void;
       }
-    }, 0);
-  });
+    ) => {
+      this.isPending.set(true);
+      Promise.resolve().then(() => {
+        this.isPending.set(false);
+        if (this.nextError) {
+          options?.onError?.(this.nextError);
+          this.nextError = null;
+        } else {
+          options?.onSuccess?.(this.nextInvitation);
+        }
+      });
+    }
+  );
 
   readonly isPending = signal(false);
   nextError: Error | null = null;
@@ -87,48 +95,62 @@ describe('JoinComponent', () => {
     expect(component.code()).toBe('JOIN-CODE');
   });
 
-  it('should call joinMutation with the route code on init', fakeAsync(() => {
+  it('should call joinMutation with the route code on init', async () => {
     fixture.detectChanges();
-    tick();
-    expect(invitationsService.joinMutate).toHaveBeenCalledWith('JOIN-CODE', expect.any(Object));
-  }));
+    await fixture.whenStable();
+    expect(invitationsService.joinMutate).toHaveBeenCalledWith(
+      'JOIN-CODE',
+      expect.any(Object)
+    );
+  });
 
-  it('should navigate to the program learn page on success', fakeAsync(() => {
+  it('should navigate to the program learn page on success', async () => {
     fixture.detectChanges();
-    tick();
-    expect(router.navigate).toHaveBeenCalledWith(['/programs', 'program-1', 'learn']);
-  }));
+    await fixture.whenStable();
+    expect(router.navigate).toHaveBeenCalledWith([
+      '/programs',
+      'program-1',
+      'learn',
+    ]);
+  });
 
-  it('should display an error message when joining fails', fakeAsync(() => {
+  it('should display an error message when joining fails', async () => {
     invitationsService.nextError = new Error('Invitation expired');
     fixture.detectChanges();
-    tick();
+    await fixture.whenStable();
     expect(component.error()).toBe('Invitation expired');
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Could not join');
     expect(fixture.nativeElement.textContent).toContain('Invitation expired');
-  }));
+  });
 
-  it('should retry joining when the retry button is clicked', fakeAsync(() => {
+  it('should retry joining when the retry button is clicked', async () => {
     invitationsService.nextError = new Error('Invitation expired');
     fixture.detectChanges();
-    tick();
+    await fixture.whenStable();
     expect(invitationsService.joinMutate).toHaveBeenCalledTimes(1);
 
     invitationsService.nextError = null;
     component.retry();
-    tick();
+    await fixture.whenStable();
     expect(invitationsService.joinMutate).toHaveBeenCalledTimes(2);
-    expect(router.navigate).toHaveBeenCalledWith(['/programs', 'program-1', 'learn']);
-  }));
+    expect(router.navigate).toHaveBeenCalledWith([
+      '/programs',
+      'program-1',
+      'learn',
+    ]);
+  });
 
-  it('should show loading state while joining is pending', fakeAsync(() => {
+  it('should show loading state while joining is pending', async () => {
     invitationsService.isPending.set(true);
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Joining program...');
-  }));
+  });
 
   it('should show empty state when no invitation code is provided', async () => {
+    await TestBed.resetTestingModule();
+    invitationsService = new FakeInvitationsService();
+
     await TestBed.configureTestingModule({
       imports: [JoinComponent],
       providers: [
@@ -145,6 +167,7 @@ describe('JoinComponent', () => {
 
     const noCodeFixture = TestBed.createComponent(JoinComponent);
     noCodeFixture.detectChanges();
+    await noCodeFixture.whenStable();
 
     const text = noCodeFixture.nativeElement.textContent;
     expect(text).toContain('No invitation code');

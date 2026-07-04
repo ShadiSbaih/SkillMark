@@ -1,7 +1,10 @@
-import { ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { ActivatedRoute, ParamMap } from '@angular/router';
-import { provideQueryClient, QueryClient } from '@tanstack/angular-query-experimental';
+import {
+  provideQueryClient,
+  QueryClient,
+} from '@tanstack/angular-query-experimental';
 import { signal } from '@angular/core';
 import { of } from 'rxjs';
 import { vi } from 'vitest';
@@ -23,22 +26,22 @@ interface QueryState {
 }
 
 class FakeQuizzesService {
+  private readonly refetchSpy = vi.fn();
   private queryState = signal<QueryState>({
     isPending: false,
     isError: false,
     data: null,
     error: null,
-    refetch: vi.fn(),
+    refetch: this.refetchSpy,
   });
 
   getQuizQuery() {
-    const state = this.queryState();
     return {
-      isPending: () => state.isPending,
-      isError: () => state.isError,
+      isPending: () => this.queryState().isPending,
+      isError: () => this.queryState().isError,
       data: () => this.queryState().data,
       error: () => this.queryState().error,
-      refetch: this.queryState().refetch,
+      refetch: this.refetchSpy,
     };
   }
 
@@ -48,7 +51,7 @@ class FakeQuizzesService {
       isError: false,
       data: null,
       error: null,
-      refetch: vi.fn(),
+      refetch: this.refetchSpy,
     });
   }
 
@@ -58,7 +61,7 @@ class FakeQuizzesService {
       isError: true,
       data: null,
       error,
-      refetch: vi.fn(),
+      refetch: this.refetchSpy,
     });
   }
 
@@ -68,7 +71,7 @@ class FakeQuizzesService {
       isError: false,
       data,
       error: null,
-      refetch: vi.fn(),
+      refetch: this.refetchSpy,
     });
   }
 }
@@ -204,9 +207,9 @@ describe('QuizAttemptComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Remaining');
   });
 
-  it('should store attemptId and start timer when start succeeds', fakeAsync(() => {
+  it('should store attemptId and start timer when start succeeds', async () => {
     quizzesService.setData(quiz);
-    attemptsService.startMutate.mockImplementation((_, options) => {
+    attemptsService.startMutate.mockImplementation((vars) => {
       const response: StartAttemptResponse = {
         attemptId: 'attempt-1',
         quizId: 'quiz-1',
@@ -215,16 +218,13 @@ describe('QuizAttemptComponent', () => {
         startedAt: new Date().toISOString(),
         expiresAt: new Date(Date.now() + 5 * 60_000).toISOString(),
       };
-      options?.onSuccess?.(response);
+      vars?.onSuccess?.(response);
     });
 
     fixture.detectChanges();
     expect(component.attemptId()).toBe('attempt-1');
     expect(component.timeRemainingMs()).toBeGreaterThan(0);
-
-    tick(1000);
-    fixture.detectChanges();
-  }));
+  });
 
   it('should track selected answers', () => {
     quizzesService.setData(quiz);
@@ -257,8 +257,8 @@ describe('QuizAttemptComponent', () => {
 
   it('should submit answers and navigate to result', () => {
     quizzesService.setData(quiz);
-    attemptsService.startMutate.mockImplementation((_, options) => {
-      options?.onSuccess?.({
+    attemptsService.startMutate.mockImplementation((vars) => {
+      vars?.onSuccess?.({
         attemptId: 'attempt-1',
         quizId: 'quiz-1',
         attemptNumber: 1,
@@ -270,7 +270,7 @@ describe('QuizAttemptComponent', () => {
     fixture.detectChanges();
 
     component.selectOption('q1', 'q1-a');
-    attemptsService.submitMutate.mockImplementation((_, options) => {
+    attemptsService.submitMutate.mockImplementation((vars) => {
       const result: AttemptResultResponse = {
         attemptId: 'attempt-1',
         totalPoints: 3,
@@ -282,7 +282,7 @@ describe('QuizAttemptComponent', () => {
         certificateIssued: false,
         certificateId: null,
       };
-      options?.onSuccess?.(result);
+      vars?.onSuccess?.(result);
     });
 
     component.confirmSubmit();

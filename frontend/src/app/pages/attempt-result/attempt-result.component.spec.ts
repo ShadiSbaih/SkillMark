@@ -2,7 +2,10 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideRouter, Router } from '@angular/router';
 import { ActivatedRoute, ParamMap } from '@angular/router';
-import { provideQueryClient, QueryClient } from '@tanstack/angular-query-experimental';
+import {
+  provideQueryClient,
+  QueryClient,
+} from '@tanstack/angular-query-experimental';
 import { signal } from '@angular/core';
 import { of } from 'rxjs';
 import { vi } from 'vitest';
@@ -21,12 +24,13 @@ interface QueryState<T> {
 }
 
 class FakeAttemptsService {
+  private readonly refetchSpy = vi.fn();
   private queryState = signal<QueryState<AttemptResponse>>({
     isPending: true,
     isError: false,
     data: null,
     error: null,
-    refetch: vi.fn(),
+    refetch: this.refetchSpy,
   });
 
   getAttemptQuery() {
@@ -35,7 +39,7 @@ class FakeAttemptsService {
       isError: () => this.queryState().isError,
       data: () => this.queryState().data,
       error: () => this.queryState().error,
-      refetch: this.queryState().refetch,
+      refetch: this.refetchSpy,
     };
   }
 
@@ -45,7 +49,7 @@ class FakeAttemptsService {
       isError: false,
       data: null,
       error: null,
-      refetch: vi.fn(),
+      refetch: this.refetchSpy,
     });
   }
 
@@ -55,7 +59,7 @@ class FakeAttemptsService {
       isError: true,
       data: null,
       error,
-      refetch: vi.fn(),
+      refetch: this.refetchSpy,
     });
   }
 
@@ -65,7 +69,7 @@ class FakeAttemptsService {
       isError: false,
       data,
       error: null,
-      refetch: vi.fn(),
+      refetch: this.refetchSpy,
     });
   }
 }
@@ -177,7 +181,9 @@ describe('AttemptResultComponent', () => {
         {
           provide: ActivatedRoute,
           useValue: {
-            paramMap: of({ get: () => 'attempt-1' } as unknown as ParamMap),
+            paramMap: of({
+              get: () => 'attempt-1',
+            } as unknown as ParamMap),
           },
         },
       ],
@@ -208,10 +214,16 @@ describe('AttemptResultComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Something went wrong');
-    expect(fixture.nativeElement.textContent).toContain('Failed to fetch attempt');
+    expect(fixture.nativeElement.textContent).toContain(
+      'Failed to fetch attempt'
+    );
 
-    component.attemptQuery.refetch();
-    expect(attemptsService.getAttemptQuery().refetch).toHaveBeenCalled();
+    const refetchSpy = attemptsService.getAttemptQuery().refetch;
+    const retryButton =
+      fixture.nativeElement.querySelector('app-error-state button');
+    retryButton.click();
+
+    expect(refetchSpy).toHaveBeenCalled();
   });
 
   it('should render passed badge, score, and certificate link when certificate is issued', () => {
@@ -242,10 +254,17 @@ describe('AttemptResultComponent', () => {
     quizzesService.setData(baseQuiz);
     fixture.detectChanges();
 
-    const viewCertificateButton = fixture.nativeElement.querySelector('app-button');
-    viewCertificateButton.click();
+    const viewCertificateButton = Array.from<HTMLButtonElement>(
+      fixture.nativeElement.querySelectorAll('button')
+    ).find((button) =>
+      button.textContent?.trim().includes('View Certificate')
+    );
+    viewCertificateButton?.click();
 
-    expect(router.navigate).toHaveBeenCalledWith(['/certificates', 'cert-1']);
+    expect(router.navigate).toHaveBeenCalledWith([
+      '/certificates',
+      'cert-1',
+    ]);
   });
 
   it('should render failed badge and no certificate section for a failed attempt', () => {
@@ -282,7 +301,9 @@ describe('AttemptResultComponent', () => {
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('Passed');
     expect(text).toContain('Certificate pending');
-    expect(text).toContain('You passed, but your certificate has not been issued yet.');
+    expect(text).toContain(
+      'You passed, but your certificate has not been issued yet.'
+    );
     expect(text).not.toContain('View Certificate');
   });
 
