@@ -1,6 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
-import { provideQueryClient, QueryClient } from '@tanstack/angular-query-experimental';
+import {
+  provideQueryClient,
+  QueryClient,
+} from '@tanstack/angular-query-experimental';
 import { signal } from '@angular/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CertificateDetailComponent } from './certificate-detail.component';
@@ -15,16 +18,17 @@ interface CertificateQueryState {
   isError: boolean;
   data: CertificateResponse | null;
   error: Error | null;
-  refetch: (...args: unknown[]) => unknown;
+  refetch: ReturnType<typeof vi.fn>;
 }
 
 class FakeCertificatesService {
+  private readonly refetchSpy = vi.fn();
   private queryState = signal<CertificateQueryState>({
     isPending: false,
     isError: false,
     data: null,
     error: null,
-    refetch: vi.fn(),
+    refetch: this.refetchSpy,
   });
 
   getCertificateQuery(_certificateId: () => string | null) {
@@ -33,12 +37,12 @@ class FakeCertificatesService {
       isError: () => this.queryState().isError,
       data: () => this.queryState().data,
       error: () => this.queryState().error,
-      refetch: this.queryState().refetch,
+      refetch: this.refetchSpy,
     };
   }
 
   get refetchSpy() {
-    return this.queryState().refetch;
+    return this.refetchSpy;
   }
 
   setPending() {
@@ -47,7 +51,7 @@ class FakeCertificatesService {
       isError: false,
       data: null,
       error: null,
-      refetch: vi.fn(),
+      refetch: this.refetchSpy,
     });
   }
 
@@ -57,7 +61,7 @@ class FakeCertificatesService {
       isError: true,
       data: null,
       error,
-      refetch: vi.fn(),
+      refetch: this.refetchSpy,
     });
   }
 
@@ -67,7 +71,7 @@ class FakeCertificatesService {
       isError: false,
       data,
       error: null,
-      refetch: vi.fn(),
+      refetch: this.refetchSpy,
     });
   }
 
@@ -77,7 +81,7 @@ class FakeCertificatesService {
       isError: false,
       data: null,
       error: null,
-      refetch: vi.fn(),
+      refetch: this.refetchSpy,
     });
   }
 }
@@ -143,7 +147,9 @@ describe('CertificateDetailComponent', () => {
     certificatesService.setPending();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Loading certificate...');
+    expect(fixture.nativeElement.textContent).toContain(
+      'Loading certificate...'
+    );
   });
 
   it('should show error state with retry', () => {
@@ -154,7 +160,9 @@ describe('CertificateDetailComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Network error');
 
     const refetchSpy = certificatesService.refetchSpy;
-    const retryButton = fixture.nativeElement.querySelector('app-error-state button');
+    const retryButton = fixture.nativeElement.querySelector(
+      'app-error-state button'
+    );
     retryButton.click();
 
     expect(refetchSpy).toHaveBeenCalled();
@@ -196,7 +204,9 @@ describe('CertificateDetailComponent', () => {
 
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('Certificate not found');
-    expect(text).toContain('The requested certificate could not be loaded.');
+    expect(text).toContain(
+      'The requested certificate could not be loaded.'
+    );
   });
 
   it('should provide a back link and a public verify link', () => {

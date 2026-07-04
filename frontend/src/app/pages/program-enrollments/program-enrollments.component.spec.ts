@@ -1,6 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, ActivatedRoute } from '@angular/router';
-import { provideQueryClient, QueryClient } from '@tanstack/angular-query-experimental';
+import {
+  provideQueryClient,
+  QueryClient,
+} from '@tanstack/angular-query-experimental';
 import { signal } from '@angular/core';
 import { of } from 'rxjs';
 import { vi } from 'vitest';
@@ -10,16 +13,21 @@ import { Enrollment, EnrollmentStatus } from '../../core/models/enrollment.model
 import { PageResponse } from '../../core/api/api-response.model';
 
 class FakeEnrollmentsService {
+  private readonly refetchSpy = vi.fn();
   readonly queryState = signal({
     status: 'pending' as 'pending' | 'error' | 'success',
     isPending: true,
     isError: false,
     data: null as PageResponse<Enrollment> | null,
     error: null as Error | null,
-    refetch: vi.fn(),
+    refetch: this.refetchSpy,
   });
 
-  readonly listParams = signal<{ programId: string | null; page: number; size: number }>({
+  readonly listParams = signal<{
+    programId: string | null;
+    page: number;
+    size: number;
+  }>({
     programId: null,
     page: 0,
     size: 10,
@@ -31,7 +39,7 @@ class FakeEnrollmentsService {
     isError: () => this.queryState().isError,
     data: () => this.queryState().data,
     error: () => this.queryState().error,
-    refetch: this.queryState().refetch,
+    refetch: this.refetchSpy,
   };
 
   readonly createMutation = {
@@ -55,7 +63,7 @@ class FakeEnrollmentsService {
       isError: false,
       data: null,
       error: null,
-      refetch: vi.fn(),
+      refetch: this.refetchSpy,
     });
   }
 
@@ -66,7 +74,7 @@ class FakeEnrollmentsService {
       isError: true,
       data: null,
       error,
-      refetch: vi.fn(),
+      refetch: this.refetchSpy,
     });
   }
 
@@ -77,7 +85,7 @@ class FakeEnrollmentsService {
       isError: false,
       data,
       error: null,
-      refetch: vi.fn(),
+      refetch: this.refetchSpy,
     });
   }
 }
@@ -108,7 +116,10 @@ describe('ProgramEnrollmentsComponent', () => {
         {
           provide: ActivatedRoute,
           useValue: {
-            paramMap: of({ get: (key: string) => (key === 'programId' ? 'program-1' : null) }),
+            paramMap: of({
+              get: (key: string) =>
+                key === 'programId' ? 'program-1' : null,
+            }),
           },
         },
       ],
@@ -137,7 +148,9 @@ describe('ProgramEnrollmentsComponent', () => {
     enrollmentsService.setPending();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Loading enrollments...');
+    expect(fixture.nativeElement.textContent).toContain(
+      'Loading enrollments...'
+    );
   });
 
   it('should show error state with retry', () => {
@@ -147,7 +160,9 @@ describe('ProgramEnrollmentsComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Something went wrong');
     expect(fixture.nativeElement.textContent).toContain('Network error');
 
-    const retryButton = fixture.nativeElement.querySelector('app-error-state app-button');
+    const retryButton = fixture.nativeElement.querySelector(
+      'app-error-state button'
+    );
     retryButton.click();
     expect(enrollmentsService.programEnrollmentsQuery.refetch).toHaveBeenCalled();
   });
@@ -181,7 +196,10 @@ describe('ProgramEnrollmentsComponent', () => {
   });
 
   it('should map status to badge variants', () => {
-    const cases: { status: EnrollmentStatus; variant: 'default' | 'success' | 'warning' | 'danger' | 'info' }[] = [
+    const cases: {
+      status: EnrollmentStatus;
+      variant: 'default' | 'success' | 'warning' | 'danger' | 'info';
+    }[] = [
       { status: 'ACTIVE', variant: 'success' },
       { status: 'COMPLETED', variant: 'info' },
       { status: 'REMOVED', variant: 'danger' },

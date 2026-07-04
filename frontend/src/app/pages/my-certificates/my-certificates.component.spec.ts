@@ -1,6 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
-import { provideQueryClient, QueryClient } from '@tanstack/angular-query-experimental';
+import {
+  provideQueryClient,
+  QueryClient,
+} from '@tanstack/angular-query-experimental';
 import { signal } from '@angular/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MyCertificatesComponent } from './my-certificates.component';
@@ -16,18 +19,18 @@ interface MyCertificatesQueryState {
   isError: boolean;
   data: PageResponse<CertificateResponse> | null;
   error: Error | null;
-  refetch: (...args: unknown[]) => unknown;
+  refetch: ReturnType<typeof vi.fn>;
 }
 
 class FakeCertificatesService {
   readonly myCertificatesParams = signal({ page: 0, size: 10 });
-
+  private readonly refetchSpy = vi.fn();
   private queryState = signal<MyCertificatesQueryState>({
     isPending: false,
     isError: false,
     data: null,
     error: null,
-    refetch: vi.fn(),
+    refetch: this.refetchSpy,
   });
 
   readonly myCertificatesQuery = {
@@ -35,11 +38,11 @@ class FakeCertificatesService {
     isError: () => this.queryState().isError,
     data: () => this.queryState().data,
     error: () => this.queryState().error,
-    refetch: this.queryState().refetch,
+    refetch: this.refetchSpy,
   };
 
   get refetchSpy() {
-    return this.queryState().refetch;
+    return this.refetchSpy;
   }
 
   setPending() {
@@ -48,7 +51,7 @@ class FakeCertificatesService {
       isError: false,
       data: null,
       error: null,
-      refetch: vi.fn(),
+      refetch: this.refetchSpy,
     });
   }
 
@@ -58,7 +61,7 @@ class FakeCertificatesService {
       isError: true,
       data: null,
       error,
-      refetch: vi.fn(),
+      refetch: this.refetchSpy,
     });
   }
 
@@ -68,7 +71,7 @@ class FakeCertificatesService {
       isError: false,
       data,
       error: null,
-      refetch: vi.fn(),
+      refetch: this.refetchSpy,
     });
   }
 }
@@ -141,7 +144,9 @@ describe('MyCertificatesComponent', () => {
     certificatesService.setPending();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Loading certificates...');
+    expect(fixture.nativeElement.textContent).toContain(
+      'Loading certificates...'
+    );
   });
 
   it('should show error state with retry', () => {
@@ -152,7 +157,9 @@ describe('MyCertificatesComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Network error');
 
     const refetchSpy = certificatesService.refetchSpy;
-    const retryButton = fixture.nativeElement.querySelector('app-error-state button');
+    const retryButton = fixture.nativeElement.querySelector(
+      'app-error-state button'
+    );
     retryButton.click();
 
     expect(refetchSpy).toHaveBeenCalled();
@@ -195,7 +202,10 @@ describe('MyCertificatesComponent', () => {
 
     viewButton?.click();
 
-    expect(router.navigate).toHaveBeenCalledWith(['/certificates', certificate.id]);
+    expect(router.navigate).toHaveBeenCalledWith([
+      '/certificates',
+      certificate.id,
+    ]);
   });
 
   it('should disable Previous on the first page and enable Next when another page exists', () => {
@@ -208,19 +218,28 @@ describe('MyCertificatesComponent', () => {
     });
     fixture.detectChanges();
 
-    const previousButton = getButtonByText(fixture, 'Previous');
-    const nextButton = getButtonByText(fixture, 'Next');
+    let previousButton = getButtonByText(fixture, 'Previous');
+    let nextButton = getButtonByText(fixture, 'Next');
 
     expect(previousButton?.disabled).toBe(true);
     expect(nextButton?.disabled).toBe(false);
 
     nextButton?.click();
+    fixture.detectChanges();
 
-    expect(certificatesService.myCertificatesParams()).toEqual({ page: 1, size: 10 });
+    expect(certificatesService.myCertificatesParams()).toEqual({
+      page: 1,
+      size: 10,
+    });
 
+    previousButton = getButtonByText(fixture, 'Previous');
     previousButton?.click();
+    fixture.detectChanges();
 
-    expect(certificatesService.myCertificatesParams()).toEqual({ page: 0, size: 10 });
+    expect(certificatesService.myCertificatesParams()).toEqual({
+      page: 0,
+      size: 10,
+    });
   });
 
   function getButtonByText(
