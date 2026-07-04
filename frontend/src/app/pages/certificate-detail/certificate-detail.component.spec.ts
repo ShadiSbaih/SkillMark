@@ -22,13 +22,13 @@ interface CertificateQueryState {
 }
 
 class FakeCertificatesService {
-  private readonly refetchSpy = vi.fn();
+  private readonly _refetchSpy = vi.fn();
   private queryState = signal<CertificateQueryState>({
     isPending: false,
     isError: false,
     data: null,
     error: null,
-    refetch: this.refetchSpy,
+    refetch: this._refetchSpy,
   });
 
   getCertificateQuery(_certificateId: () => string | null) {
@@ -37,12 +37,12 @@ class FakeCertificatesService {
       isError: () => this.queryState().isError,
       data: () => this.queryState().data,
       error: () => this.queryState().error,
-      refetch: this.refetchSpy,
+      refetch: this._refetchSpy,
     };
   }
 
   get refetchSpy() {
-    return this.refetchSpy;
+    return this._refetchSpy;
   }
 
   setPending() {
@@ -51,7 +51,7 @@ class FakeCertificatesService {
       isError: false,
       data: null,
       error: null,
-      refetch: this.refetchSpy,
+      refetch: this._refetchSpy,
     });
   }
 
@@ -61,7 +61,7 @@ class FakeCertificatesService {
       isError: true,
       data: null,
       error,
-      refetch: this.refetchSpy,
+      refetch: this._refetchSpy,
     });
   }
 
@@ -71,7 +71,7 @@ class FakeCertificatesService {
       isError: false,
       data,
       error: null,
-      refetch: this.refetchSpy,
+      refetch: this._refetchSpy,
     });
   }
 
@@ -81,7 +81,7 @@ class FakeCertificatesService {
       isError: false,
       data: null,
       error: null,
-      refetch: this.refetchSpy,
+      refetch: this._refetchSpy,
     });
   }
 }
