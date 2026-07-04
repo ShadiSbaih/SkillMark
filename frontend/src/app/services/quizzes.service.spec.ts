@@ -97,7 +97,7 @@ describe('QuizzesService', () => {
       options: [],
     };
 
-    const result = await service.updateQuestionMutation.mutate({
+    const result = await service.updateQuestionMutation.mutateAsync({
       quizId: 'quiz-1',
       questionId: 'question-1',
       request,

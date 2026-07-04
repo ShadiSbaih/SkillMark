@@ -120,14 +120,18 @@ describe('CertificatesService', () => {
   it('should expose a certificate query for the given id', async () => {
     vi.mocked(apiClient.get).mockReturnValue(of(certificateResponse));
 
-    const query = service.getCertificateQuery(() => 'cert-1');
+    const query = TestBed.runInInjectionContext(() =>
+      service.getCertificateQuery(() => 'cert-1')
+    );
     await query.refetch();
 
     expect(apiClient.get).toHaveBeenCalledWith('certificates/cert-1');
   });
 
   it('should not fetch the certificate query when the id is null', () => {
-    service.getCertificateQuery(() => null);
+    TestBed.runInInjectionContext(() =>
+      service.getCertificateQuery(() => null)
+    );
 
     expect(apiClient.get).not.toHaveBeenCalled();
   });
@@ -142,7 +146,7 @@ describe('CertificatesService', () => {
       title: 'Certificate of Completion',
     };
 
-    const result = await service.issueMutation.mutate(request);
+    const result = await service.issueMutation.mutateAsync(request);
 
     expect(result).toEqual(certificateResponse);
     expect(apiClient.post).toHaveBeenCalledWith('certificates', request);
@@ -155,7 +159,7 @@ describe('CertificatesService', () => {
       reason: 'Cheating detected',
     };
 
-    const result = await service.revokeMutation.mutate({
+    const result = await service.revokeMutation.mutateAsync({
       certificateId: 'cert-1',
       request,
     });
@@ -170,10 +174,12 @@ describe('CertificatesService', () => {
   it('should expose an organization certificates query', async () => {
     vi.mocked(apiClient.getPage).mockReturnValue(of(pageResponse));
 
-    const query = service.organizationCertificatesQuery(
-      () => 'org-1',
-      () => 0,
-      () => 10
+    const query = TestBed.runInInjectionContext(() =>
+      service.organizationCertificatesQuery(
+        () => 'org-1',
+        () => 0,
+        () => 10
+      )
     );
     await query.refetch();
 
@@ -187,7 +193,9 @@ describe('CertificatesService', () => {
   });
 
   it('should not fetch the organization certificates query when the id is null', () => {
-    service.organizationCertificatesQuery(() => null, () => 0, () => 10);
+    TestBed.runInInjectionContext(() =>
+      service.organizationCertificatesQuery(() => null, () => 0, () => 10)
+    );
 
     expect(apiClient.getPage).not.toHaveBeenCalled();
   });
@@ -195,7 +203,9 @@ describe('CertificatesService', () => {
   it('should expose a public verification query', async () => {
     vi.mocked(apiClient.get).mockReturnValue(of(publicVerificationResponse));
 
-    const query = service.verifyPublicCertificateQuery(() => 'abc123');
+    const query = TestBed.runInInjectionContext(() =>
+      service.verifyPublicCertificateQuery(() => 'abc123')
+    );
     await query.refetch();
 
     expect(apiClient.get).toHaveBeenCalledWith(
@@ -204,7 +214,9 @@ describe('CertificatesService', () => {
   });
 
   it('should not fetch the public verification query when the code is null', () => {
-    service.verifyPublicCertificateQuery(() => null);
+    TestBed.runInInjectionContext(() =>
+      service.verifyPublicCertificateQuery(() => null)
+    );
 
     expect(apiClient.get).not.toHaveBeenCalled();
   });

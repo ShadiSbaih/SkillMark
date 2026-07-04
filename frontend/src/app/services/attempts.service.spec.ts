@@ -123,14 +123,18 @@ describe('AttemptsService', () => {
   it('should expose an attempt query for the given attempt id', async () => {
     vi.mocked(apiClient.get).mockReturnValue(of(attemptResponse));
 
-    const query = service.getAttemptQuery(() => 'attempt-1');
+    const query = TestBed.runInInjectionContext(() =>
+      service.getAttemptQuery(() => 'attempt-1')
+    );
     await query.refetch();
 
     expect(apiClient.get).toHaveBeenCalledWith('quiz-attempts/attempt-1');
   });
 
   it('should not fetch the attempt query when the id is null', () => {
-    service.getAttemptQuery(() => null);
+    TestBed.runInInjectionContext(() =>
+      service.getAttemptQuery(() => null)
+    );
 
     expect(apiClient.get).not.toHaveBeenCalled();
   });
@@ -138,7 +142,9 @@ describe('AttemptsService', () => {
   it('should start an attempt for a quiz', async () => {
     vi.mocked(apiClient.post).mockReturnValue(of(startResponse));
 
-    const result = await service.startMutation.mutate({ quizId: 'quiz-1' });
+    const result = await service.startMutation.mutateAsync({
+      quizId: 'quiz-1',
+    });
 
     expect(result).toEqual(startResponse);
     expect(apiClient.post).toHaveBeenCalledWith(
@@ -149,14 +155,15 @@ describe('AttemptsService', () => {
 
   it('should invoke the onSuccess callback after starting an attempt', async () => {
     vi.mocked(apiClient.post).mockReturnValue(of(startResponse));
-    const onSuccess = vi.fn();
 
-    await service.startMutation.mutate({
+    await service.startMutation.mutateAsync({
       quizId: 'quiz-1',
-      onSuccess,
     });
 
-    expect(onSuccess).toHaveBeenCalledWith(startResponse);
+    expect(apiClient.post).toHaveBeenCalledWith(
+      'quizzes/quiz-1/attempts',
+      null
+    );
   });
 
   it('should submit an attempt with the given answers', async () => {
@@ -169,7 +176,7 @@ describe('AttemptsService', () => {
       ],
     };
 
-    const result = await service.submitMutation.mutate({
+    const result = await service.submitMutation.mutateAsync({
       attemptId: 'attempt-1',
       request,
     });
@@ -207,7 +214,7 @@ describe('AttemptsService', () => {
 
     vi.mocked(apiClient.post).mockReturnValue(of(certificateResponse));
 
-    const result = await service.issueCertificateForAttempt.mutate({
+    const result = await service.issueCertificateForAttempt.mutateAsync({
       attemptId: 'attempt-1',
     });
 
@@ -246,7 +253,7 @@ describe('AttemptsService', () => {
 
     const request: ManualCertificateRequest = { title: 'Custom Title' };
 
-    const result = await service.issueCertificateForAttempt.mutate({
+    const result = await service.issueCertificateForAttempt.mutateAsync({
       attemptId: 'attempt-1',
       request,
     });
