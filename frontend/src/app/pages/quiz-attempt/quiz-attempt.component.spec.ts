@@ -255,7 +255,7 @@ describe('QuizAttemptComponent', () => {
     expect(component.showSubmitModal()).toBe(true);
   });
 
-  it('should submit answers and navigate to result', () => {
+  it('should submit answers and navigate to result', async () => {
     quizzesService.setData(quiz);
     attemptsService.startMutate.mockImplementation((vars) => {
       vars?.onSuccess?.({
@@ -270,7 +270,7 @@ describe('QuizAttemptComponent', () => {
     fixture.detectChanges();
 
     component.selectOption('q1', 'q1-a');
-    attemptsService.submitMutate.mockImplementation((vars) => {
+    attemptsService.submitMutate.mockImplementation((vars, options) => {
       const result: AttemptResultResponse = {
         attemptId: 'attempt-1',
         totalPoints: 3,
@@ -282,10 +282,12 @@ describe('QuizAttemptComponent', () => {
         certificateIssued: false,
         certificateId: null,
       };
-      vars?.onSuccess?.(result);
+      options?.onSuccess?.(result);
     });
 
     component.confirmSubmit();
+    await fixture.whenStable();
+
     expect(attemptsService.submitMutate).toHaveBeenCalled();
     expect(router.navigate).toHaveBeenCalledWith([
       '/attempts',
