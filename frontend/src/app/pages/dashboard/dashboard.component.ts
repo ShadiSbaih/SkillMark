@@ -7,6 +7,7 @@ import { AttemptsService } from '../../services/attempts.service';
 import { CardComponent } from '../../shared/components/card/card.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { ErrorStateComponent } from '../../shared/components/error-state/error-state.component';
+import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -18,6 +19,7 @@ import { ErrorStateComponent } from '../../shared/components/error-state/error-s
     CardComponent,
     EmptyStateComponent,
     ErrorStateComponent,
+    LoadingStateComponent,
   ],
   templateUrl: './dashboard.component.html',
   styles: ``,

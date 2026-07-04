@@ -1,27 +1,28 @@
 export interface OrganizationStatsResponse {
-  organizationId: string;
-  programCount: number;
-  memberCount: number;
-  enrollmentCount: number;
-  quizCount: number;
-  certificateCount: number;
+  totalPrograms: number;
+  totalMembers: number;
+  totalEnrolledParticipants: number;
+  totalQuizzes: number;
+  totalAttempts: number;
+  totalCertificates: number;
   averageScore: number;
   passRate: number;
 }
 
 export interface ProgramStatsResponse {
-  programId: string;
-  enrollmentCount: number;
-  resourceCount: number;
-  quizCount: number;
-  certificateCount: number;
+  totalEnrollments: number;
+  activeEnrollments: number;
+  resourcesCount: number;
+  quizzesCount: number;
+  attemptsCount: number;
+  passedParticipants: number;
+  certificatesIssued: number;
   averageScore: number;
-  passRate: number;
 }
 
 export interface QuizStatsResponse {
-  quizId: string;
-  attemptCount: number;
+  attemptsCount: number;
+  submittedAttempts: number;
   averageScore: number;
   highestScore: number;
   lowestScore: number;

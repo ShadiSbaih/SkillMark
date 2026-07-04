@@ -4,10 +4,6 @@ import { lastValueFrom } from 'rxjs';
 import { ApiClientService } from '../core/api/api-client.service';
 import { SyncUserRequest, UserResponse } from '../core/models/user.model';
 
-export interface SearchUsersParams {
-  email: string;
-}
-
 @Injectable({ providedIn: 'root' })
 export class UsersService {
   private readonly api = inject(ApiClientService);
@@ -32,10 +28,5 @@ export class UsersService {
     onSuccess: () => {
       this.queryClient.invalidateQueries({ queryKey: ['users', 'me'] });
     },
-  }));
-
-  readonly searchByEmailMutation = injectMutation(() => ({
-    mutationFn: (email: string) =>
-      lastValueFrom(this.api.get<UserResponse>('users/search', { email: email.trim() })),
   }));
 }

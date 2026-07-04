@@ -1,11 +1,91 @@
-<section class="page">
-  <header class="page-heading">
-    <div>
-      <p class="breadcrumb">Account</p>
-      <h1>Your profile</h1>
-      <p>Manage your account settings and security preferences.</p>
-    </div>
-  </header>
+@if (meQuery.isPending()) {
+  <app-loading-state message="Loading profile..." />
+} @else if (meQuery.isError()) {
+  <app-error-state
+    [message]="meQuery.error()?.message ?? 'Failed to load profile'"
+    (retry)="meQuery.refetch()"
+  />
+} @else if (!meQuery.data()) {
+  <app-empty-state
+    title="Profile not found"
+    description="We couldn't load your profile. Please try again."
+    actionLabel="Retry"
+    (action)="meQuery.refetch()"
+  />
+} @else {
+  <app-page-header
+    title="Profile"
+    subtitle="Manage your account"
+  />
 
-  <clerk-user-profile />
-</section>
+  <app-card>
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
+      <div class="flex items-center gap-4">
+        <app-avatar
+          [src]="form.value.avatarUrl || meQuery.data()?.avatarUrl || undefined"
+          [fallback]="form.value.name || meQuery.data()?.name || meQuery.data()?.email"
+          size="xl"
+        />
+        <div>
+          <p class="text-lg font-medium text-ink">{{ meQuery.data()?.name || 'Your profile' }}</p>
+          <p class="text-sm text-ink-mute">{{ meQuery.data()?.email }}</p>
+        </div>
+      </div>
+
+      <div>
+        <label for="name" class="block text-sm font-medium text-ink">Name</label>
+        <input
+          id="name"
+          type="text"
+          formControlName="name"
+          class="mt-1 block w-full rounded-md border border-input bg-canvas-soft px-3 py-2 text-sm text-ink placeholder-ink-mute focus-ring-primary"
+          placeholder="Your name"
+        />
+        @if (form.get('name')?.invalid && form.get('name')?.touched) {
+          <p class="mt-1 text-sm text-red-600">Name is required and must be 100 characters or less.</p>
+        }
+      </div>
+
+      <div>
+        <label for="avatarUrl" class="block text-sm font-medium text-ink">Avatar URL</label>
+        <input
+          id="avatarUrl"
+          type="url"
+          formControlName="avatarUrl"
+          class="mt-1 block w-full rounded-md border border-input bg-canvas-soft px-3 py-2 text-sm text-ink placeholder-ink-mute focus-ring-primary"
+          placeholder="https://example.com/avatar.png"
+        />
+      </div>
+
+      <div>
+        <label for="email" class="block text-sm font-medium text-ink">Email</label>
+        <input
+          id="email"
+          type="email"
+          [value]="meQuery.data()?.email"
+          disabled
+          class="mt-1 block w-full rounded-md border border-input bg-canvas-soft px-3 py-2 text-sm text-ink-mute focus-ring-primary cursor-not-allowed"
+        />
+        <p class="mt-1 text-sm text-ink-mute">Your email is managed through your authentication provider.</p>
+      </div>
+
+      <div class="flex justify-end gap-3">
+        <app-button
+          type="button"
+          variant="ghost"
+          (clicked)="form.reset({ name: meQuery.data()?.name ?? '', avatarUrl: meQuery.data()?.avatarUrl ?? '' })"
+          [disabled]="usersService.updateMeMutation.isPending()"
+        >
+          Reset
+        </app-button>
+        <app-button
+          type="submit"
+          [loading]="usersService.updateMeMutation.isPending()"
+          [disabled]="form.invalid || usersService.updateMeMutation.isPending()"
+        >
+          Save changes
+        </app-button>
+      </div>
+    </form>
+  </app-card>
+}

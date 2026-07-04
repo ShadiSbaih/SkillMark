@@ -1,1 +1,14 @@
-<p>date-picker works!</p>
+@if (label()) {
+  <label [attr.for]="'date-picker-' + label()">{{ label() }}</label>
+}
+<input
+  type="date"
+  [attr.id]="label() ? 'date-picker-' + label() : null"
+  [value]="value()"
+  [placeholder]="placeholder()"
+  [disabled]="disabled()"
+  [required]="required()"
+  [min]="min()"
+  [max]="max()"
+  (change)="onChange($event)"
+/>

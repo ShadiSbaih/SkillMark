@@ -8,6 +8,7 @@ import { ButtonComponent } from '../../shared/components/button/button.component
 import { CardComponent } from '../../shared/components/card/card.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { ErrorStateComponent } from '../../shared/components/error-state/error-state.component';
+import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
 import { CertificateResponse } from '../../core/models/certificate.model';
 import { toast } from 'ngx-sonner';
 
@@ -21,6 +22,7 @@ import { toast } from 'ngx-sonner';
     CardComponent,
     EmptyStateComponent,
     ErrorStateComponent,
+    LoadingStateComponent,
   ],
   templateUrl: './organization-certificates.html',
   styleUrl: './organization-certificates.scss',

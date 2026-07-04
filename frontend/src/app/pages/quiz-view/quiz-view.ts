@@ -2,24 +2,25 @@ import { Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs/operators';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { QuizzesService } from '../../services/quizzes.service';
 import { ButtonComponent } from '../../shared/components/button/button.component';
 import { CardComponent } from '../../shared/components/card/card.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { ErrorStateComponent } from '../../shared/components/error-state/error-state.component';
+import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
 
 @Component({
   selector: 'app-quiz-view',
   standalone: true,
   imports: [
     RouterLink,
-    DatePipe,
     DecimalPipe,
     ButtonComponent,
     CardComponent,
     EmptyStateComponent,
     ErrorStateComponent,
+    LoadingStateComponent,
   ],
   templateUrl: './quiz-view.html',
   styleUrl: './quiz-view.scss',

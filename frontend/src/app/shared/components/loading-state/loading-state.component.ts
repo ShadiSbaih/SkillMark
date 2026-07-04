@@ -4,13 +4,14 @@ import { Component, input } from '@angular/core';
   selector: 'app-loading-state',
   standalone: true,
   template: `
-    <div class="flex flex-col items-center justify-center py-12 text-[#64748d]">
-      <div class="h-8 w-8 animate-spin rounded-full border-4 border-[#a8c3de] border-t-[#533afd]"></div>
+    <div class="loading-state">
+      <div class="spinner"></div>
       @if (message()) {
-        <p class="mt-4 text-sm">{{ message() }}</p>
+        <p>{{ message() }}</p>
       }
     </div>
   `,
+  styleUrl: './loading-state.component.scss',
 })
 export class LoadingStateComponent {
   readonly message = input('Loading...');

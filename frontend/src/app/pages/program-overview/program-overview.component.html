@@ -51,17 +51,17 @@
 
     <app-card>
       <p class="text-sm text-ink-mute">Enrollments</p>
-      <p class="mt-2 text-2xl font-semibold text-ink">{{ statsQuery.data()?.enrollmentCount ?? 0 }}</p>
+      <p class="mt-2 text-2xl font-semibold text-ink">{{ statsQuery.data()?.totalEnrollments ?? 0 }}</p>
     </app-card>
 
     <app-card>
       <p class="text-sm text-ink-mute">Resources</p>
-      <p class="mt-2 text-2xl font-semibold text-ink">{{ statsQuery.data()?.resourceCount ?? 0 }}</p>
+      <p class="mt-2 text-2xl font-semibold text-ink">{{ statsQuery.data()?.resourcesCount ?? 0 }}</p>
     </app-card>
 
     <app-card>
       <p class="text-sm text-ink-mute">Quizzes</p>
-      <p class="mt-2 text-2xl font-semibold text-ink">{{ statsQuery.data()?.quizCount ?? 0 }}</p>
+      <p class="mt-2 text-2xl font-semibold text-ink">{{ statsQuery.data()?.quizzesCount ?? 0 }}</p>
     </app-card>
   </div>
 

@@ -35,8 +35,10 @@ export class ProgramStats {
   readonly statsQuery = this.statsService.getProgramStatsQuery(() => this.programId());
 
   readonly passRate = computed(() => {
-    const rate = this.statsQuery.data()?.passRate;
-    return rate !== undefined ? Math.round(rate * 100) : 0;
+    const stats = this.statsQuery.data();
+    const attempts = stats?.attemptsCount ?? 0;
+    const passed = stats?.passedParticipants ?? 0;
+    return attempts > 0 ? Math.round((passed / attempts) * 100) : 0;
   });
 
   readonly averageScore = computed(() => {

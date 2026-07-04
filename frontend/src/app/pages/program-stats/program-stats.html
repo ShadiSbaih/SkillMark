@@ -23,22 +23,22 @@
   <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
     <app-card>
       <p class="text-sm text-ink-mute">Enrollments</p>
-      <p class="mt-2 text-2xl font-semibold text-ink">{{ stats?.enrollmentCount ?? 0 }}</p>
+      <p class="mt-2 text-2xl font-semibold text-ink">{{ stats?.totalEnrollments ?? 0 }}</p>
     </app-card>
 
     <app-card>
       <p class="text-sm text-ink-mute">Resources</p>
-      <p class="mt-2 text-2xl font-semibold text-ink">{{ stats?.resourceCount ?? 0 }}</p>
+      <p class="mt-2 text-2xl font-semibold text-ink">{{ stats?.resourcesCount ?? 0 }}</p>
     </app-card>
 
     <app-card>
       <p class="text-sm text-ink-mute">Quizzes</p>
-      <p class="mt-2 text-2xl font-semibold text-ink">{{ stats?.quizCount ?? 0 }}</p>
+      <p class="mt-2 text-2xl font-semibold text-ink">{{ stats?.quizzesCount ?? 0 }}</p>
     </app-card>
 
     <app-card>
       <p class="text-sm text-ink-mute">Certificates</p>
-      <p class="mt-2 text-2xl font-semibold text-ink">{{ stats?.certificateCount ?? 0 }}</p>
+      <p class="mt-2 text-2xl font-semibold text-ink">{{ stats?.certificatesIssued ?? 0 }}</p>
     </app-card>
   </div>
 

@@ -1,8 +1,5 @@
 @if (certificatesQuery.isPending()) {
-  <div class="space-y-4">
-    <div class="h-8 w-1-3 animate-pulse rounded bg-gray-light"></div>
-    <div class="cert-skeleton-lg animate-pulse rounded bg-gray-light"></div>
-  </div>
+  <app-loading-state message="Loading certificates..." />
 }
 
 @if (certificatesQuery.error()) {

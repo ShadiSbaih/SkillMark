@@ -43,6 +43,10 @@ export interface IssueCertificateRequest {
   title?: string;
 }
 
+export interface ManualCertificateRequest {
+  title?: string;
+}
+
 export interface RevokeCertificateRequest {
   reason: string;
 }

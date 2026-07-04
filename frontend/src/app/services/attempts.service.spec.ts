@@ -15,6 +15,10 @@ import {
   StartAttemptResponse,
   SubmitAttemptRequest,
 } from '../core/models/attempt.model';
+import {
+  CertificateResponse,
+  ManualCertificateRequest,
+} from '../core/models/certificate.model';
 
 describe('AttemptsService', () => {
   let service: AttemptsService;
@@ -173,6 +177,83 @@ describe('AttemptsService', () => {
     expect(result).toEqual(resultResponse);
     expect(apiClient.post).toHaveBeenCalledWith(
       'quiz-attempts/attempt-1/submit',
+      request
+    );
+  });
+
+  it('should issue a certificate for an attempt without a title', async () => {
+    const certificateResponse: CertificateResponse = {
+      id: 'cert-1',
+      certificateNumber: 'CERT-001',
+      verificationCode: 'ABC123',
+      organizationId: 'org-1',
+      programId: 'program-1',
+      quizId: 'quiz-1',
+      userId: 'user-1',
+      attemptId: 'attempt-1',
+      title: 'Certificate of Completion',
+      participantNameSnapshot: 'Test User',
+      quizTitleSnapshot: 'Test Quiz',
+      programTitleSnapshot: 'Test Program',
+      organizationNameSnapshot: 'Test Organization',
+      status: 'ACTIVE',
+      issuedAt: '2026-07-03T10:30:00Z',
+      revokedAt: null,
+      pdfUrl: null,
+      pdfObjectKey: null,
+      qrCodeUrl: null,
+      qrCodeObjectKey: null,
+    };
+
+    vi.mocked(apiClient.post).mockReturnValue(of(certificateResponse));
+
+    const result = await service.issueCertificateForAttempt.mutate({
+      attemptId: 'attempt-1',
+    });
+
+    expect(result).toEqual(certificateResponse);
+    expect(apiClient.post).toHaveBeenCalledWith(
+      'quiz-attempts/attempt-1/certificate',
+      null
+    );
+  });
+
+  it('should issue a certificate for an attempt with a custom title', async () => {
+    const certificateResponse: CertificateResponse = {
+      id: 'cert-2',
+      certificateNumber: 'CERT-002',
+      verificationCode: 'DEF456',
+      organizationId: 'org-1',
+      programId: 'program-1',
+      quizId: 'quiz-1',
+      userId: 'user-1',
+      attemptId: 'attempt-1',
+      title: 'Custom Title',
+      participantNameSnapshot: 'Test User',
+      quizTitleSnapshot: 'Test Quiz',
+      programTitleSnapshot: 'Test Program',
+      organizationNameSnapshot: 'Test Organization',
+      status: 'ACTIVE',
+      issuedAt: '2026-07-03T10:30:00Z',
+      revokedAt: null,
+      pdfUrl: null,
+      pdfObjectKey: null,
+      qrCodeUrl: null,
+      qrCodeObjectKey: null,
+    };
+
+    vi.mocked(apiClient.post).mockReturnValue(of(certificateResponse));
+
+    const request: ManualCertificateRequest = { title: 'Custom Title' };
+
+    const result = await service.issueCertificateForAttempt.mutate({
+      attemptId: 'attempt-1',
+      request,
+    });
+
+    expect(result).toEqual(certificateResponse);
+    expect(apiClient.post).toHaveBeenCalledWith(
+      'quiz-attempts/attempt-1/certificate',
       request
     );
   });

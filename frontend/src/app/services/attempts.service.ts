@@ -6,13 +6,16 @@ import {
 } from '@tanstack/angular-query-experimental';
 import { lastValueFrom } from 'rxjs';
 import { ApiClientService } from '../core/api/api-client.service';
-import { PageResponse } from '../core/api/api-response.model';
 import {
   AttemptResponse,
   AttemptResultResponse,
   StartAttemptResponse,
   SubmitAttemptRequest,
 } from '../core/models/attempt.model';
+import {
+  CertificateResponse,
+  ManualCertificateRequest,
+} from '../core/models/certificate.model';
 
 @Injectable({ providedIn: 'root' })
 export class AttemptsService {
@@ -98,6 +101,29 @@ export class AttemptsService {
         queryKey: ['attempt', variables.attemptId],
       });
       this.queryClient.invalidateQueries({ queryKey: ['attempts', 'me'] });
+    },
+  }));
+
+  readonly issueCertificateForAttempt = injectMutation(() => ({
+    mutationFn: ({
+      attemptId,
+      request,
+    }: {
+      attemptId: string;
+      request?: ManualCertificateRequest;
+    }) =>
+      lastValueFrom(
+        this.api.post<CertificateResponse>(
+          `quiz-attempts/${attemptId}/certificate`,
+          request ?? null
+        )
+      ),
+    onSuccess: (_, variables) => {
+      this.queryClient.invalidateQueries({
+        queryKey: ['attempt', variables.attemptId],
+      });
+      this.queryClient.invalidateQueries({ queryKey: ['attempts', 'me'] });
+      this.queryClient.invalidateQueries({ queryKey: ['certificates'] });
     },
   }));
 }

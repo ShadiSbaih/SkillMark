@@ -1,1 +1,21 @@
-<p>status-badge works!</p>
+<span class="inline-flex items-center font-medium"
+  [class]="{
+    'px-2 py-0.5 text-xs': size() === 'sm',
+    'px-2.5 py-0.5 text-sm': size() === 'md',
+    'px-3 py-1 text-base': size() === 'lg',
+    'rounded-full': true,
+    'bg-green-100 text-green-800': color() === 'green' && variant() === 'subtle',
+    'bg-amber-100 text-amber-800': color() === 'amber' && variant() === 'subtle',
+    'bg-red-100 text-red-800': color() === 'red' && variant() === 'subtle',
+    'bg-gray-100 text-gray-800': color() === 'gray' && variant() === 'subtle',
+    'bg-green-600 text-white': color() === 'green' && variant() === 'solid',
+    'bg-amber-600 text-white': color() === 'amber' && variant() === 'solid',
+    'bg-red-600 text-white': color() === 'red' && variant() === 'solid',
+    'bg-gray-600 text-white': color() === 'gray' && variant() === 'solid',
+    'border border-green-600 text-green-600': color() === 'green' && variant() === 'outline',
+    'border border-amber-600 text-amber-600': color() === 'amber' && variant() === 'outline',
+    'border border-red-600 text-red-600': color() === 'red' && variant() === 'outline',
+    'border border-gray-600 text-gray-600': color() === 'gray' && variant() === 'outline'
+  }">
+  {{ status() }}
+</span>

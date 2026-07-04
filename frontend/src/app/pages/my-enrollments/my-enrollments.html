@@ -1,1 +1,65 @@
-<p>my-enrollments works!</p>
+<app-page-header title="My Programs" subtitle="Programs you are enrolled in as a participant." />
+
+@if (query.isPending()) {
+  <app-loading-state message="Loading enrollments..." />
+} @else if (query.isError()) {
+  <app-error-state [message]="query.error()?.message ?? 'Failed to load enrollments'" (retry)="query.refetch()" />
+} @else if (data()?.items?.length === 0) {
+  <app-card>
+    <app-empty-state
+      title="No enrollments"
+      description="You are not enrolled in any programs yet."
+    />
+  </app-card>
+} @else {
+  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    @for (enrollment of data()?.items; track enrollment.id) {
+      <app-card>
+        <div class="flex items-start justify-between">
+          <div>
+            <p class="text-xs font-medium text-ink-mute">Participant: {{ enrollment.userName }}</p>
+            <h3 class="mt-1 text-lg font-semibold text-ink">Program {{ enrollment.programId }}</h3>
+          </div>
+          <app-badge [variant]="statusVariant(enrollment.status)">{{ enrollment.status }}</app-badge>
+        </div>
+
+        <div class="mt-4 space-y-1 text-sm text-ink-mute">
+          <p><span class="font-medium text-ink">Enrolled:</span> {{ enrollment.enrolledAt | date:'mediumDate' }}</p>
+        </div>
+
+        <div class="mt-4 flex items-center justify-between">
+          <p class="text-xs text-ink-mute">Program ID: {{ enrollment.programId }}</p>
+          <app-button
+            variant="secondary"
+            size="sm"
+            (clicked)="router.navigate(['/programs', enrollment.programId, 'learn'])"
+          >
+            Open
+          </app-button>
+        </div>
+      </app-card>
+    }
+  </div>
+
+  @if (totalPages() > 1) {
+    <div class="mt-6 flex items-center justify-between">
+      <app-button
+        variant="secondary"
+        size="sm"
+        [disabled]="!hasPrevious()"
+        (clicked)="goToPrevious()"
+      >
+        Previous
+      </app-button>
+      <span class="text-sm text-ink-mute">Page {{ page() + 1 }} of {{ totalPages() }}</span>
+      <app-button
+        variant="secondary"
+        size="sm"
+        [disabled]="!hasNext()"
+        (clicked)="goToNext()"
+      >
+        Next
+      </app-button>
+    </div>
+  }
+}

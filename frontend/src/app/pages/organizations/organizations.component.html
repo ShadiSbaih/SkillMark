@@ -67,11 +67,11 @@
       </app-card>
       <app-card>
         <p class="text-sm text-ink-mute">Programs</p>
-        <p class="mt-2 text-2xl font-semibold text-ink">0</p>
+        <p class="mt-2 text-2xl font-semibold text-ink">{{ programsQuery.data()?.totalElements ?? 0 }}</p>
       </app-card>
       <app-card>
         <p class="text-sm text-ink-mute">Members</p>
-        <p class="mt-2 text-2xl font-semibold text-ink">1</p>
+        <p class="mt-2 text-2xl font-semibold text-ink">{{ membershipsQuery.data()?.totalElements ?? 0 }}</p>
       </app-card>
       <app-card>
         <p class="text-sm text-ink-mute">Created</p>

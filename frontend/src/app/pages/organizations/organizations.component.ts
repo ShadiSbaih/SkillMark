@@ -3,6 +3,7 @@ import { DatePipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { OrganizationsService } from '../../services/organizations.service';
 import { ProgramsService } from '../../services/programs.service';
+import { MembershipsService } from '../../services/memberships.service';
 import { ButtonComponent } from '../../shared/components/button/button.component';
 import { CardComponent } from '../../shared/components/card/card.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
@@ -30,6 +31,7 @@ export class OrganizationsComponent {
   readonly router = inject(Router);
   private readonly organizationsService = inject(OrganizationsService);
   private readonly programsService = inject(ProgramsService);
+  private readonly membershipsService = inject(MembershipsService);
 
   readonly orgId = input<string | null>(null);
   readonly isOverview = computed(() => !!this.orgId());
@@ -37,11 +39,17 @@ export class OrganizationsComponent {
   readonly listQuery = this.organizationsService.organizationsQuery;
   readonly organizationQuery = this.organizationsService.getOrganizationQuery(() => this.orgId());
   readonly programsQuery = this.programsService.programsQuery;
+  readonly membershipsQuery = this.membershipsService.membershipsQuery;
 
   constructor() {
     effect(() => {
       const id = this.orgId();
       this.programsService.listParams.set({
+        organizationId: id ?? null,
+        page: 0,
+        size: 5,
+      });
+      this.membershipsService.listParams.set({
         organizationId: id ?? null,
         page: 0,
         size: 5,
