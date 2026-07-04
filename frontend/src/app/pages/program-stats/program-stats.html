@@ -4,7 +4,9 @@
   [hasActions]="true"
 >
   <ng-container actions>
-    <app-button variant="secondary" (clicked)="router.navigate(['/programs', programId()])">Back</app-button>
+    <app-button variant="secondary" (clicked)="router.navigate(['/programs', programId()])"
+      >Back</app-button
+    >
   </ng-container>
 </app-page-header>
 
@@ -20,35 +22,35 @@
 
   <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
     <app-card>
-      <p class="text-sm text-[#64748d]">Enrollments</p>
-      <p class="mt-2 text-2xl font-semibold text-[#0d253d]">{{ stats?.enrollmentCount ?? 0 }}</p>
+      <p class="text-sm text-ink-mute">Enrollments</p>
+      <p class="mt-2 text-2xl font-semibold text-ink">{{ stats?.enrollmentCount ?? 0 }}</p>
     </app-card>
 
     <app-card>
-      <p class="text-sm text-[#64748d]">Resources</p>
-      <p class="mt-2 text-2xl font-semibold text-[#0d253d]">{{ stats?.resourceCount ?? 0 }}</p>
+      <p class="text-sm text-ink-mute">Resources</p>
+      <p class="mt-2 text-2xl font-semibold text-ink">{{ stats?.resourceCount ?? 0 }}</p>
     </app-card>
 
     <app-card>
-      <p class="text-sm text-[#64748d]">Quizzes</p>
-      <p class="mt-2 text-2xl font-semibold text-[#0d253d]">{{ stats?.quizCount ?? 0 }}</p>
+      <p class="text-sm text-ink-mute">Quizzes</p>
+      <p class="mt-2 text-2xl font-semibold text-ink">{{ stats?.quizCount ?? 0 }}</p>
     </app-card>
 
     <app-card>
-      <p class="text-sm text-[#64748d]">Certificates</p>
-      <p class="mt-2 text-2xl font-semibold text-[#0d253d]">{{ stats?.certificateCount ?? 0 }}</p>
+      <p class="text-sm text-ink-mute">Certificates</p>
+      <p class="mt-2 text-2xl font-semibold text-ink">{{ stats?.certificateCount ?? 0 }}</p>
     </app-card>
   </div>
 
   <div class="mt-6 grid gap-4 sm:grid-cols-2">
     <app-card>
-      <p class="text-sm text-[#64748d]">Average Score</p>
-      <p class="mt-2 text-2xl font-semibold text-[#0d253d]">{{ averageScore() }}%</p>
+      <p class="text-sm text-ink-mute">Average Score</p>
+      <p class="mt-2 text-2xl font-semibold text-ink">{{ averageScore() }}%</p>
     </app-card>
 
     <app-card>
-      <p class="text-sm text-[#64748d]">Pass Rate</p>
-      <p class="mt-2 text-2xl font-semibold text-[#0d253d]">{{ passRate() }}%</p>
+      <p class="text-sm text-ink-mute">Pass Rate</p>
+      <p class="mt-2 text-2xl font-semibold text-ink">{{ passRate() }}%</p>
     </app-card>
   </div>
 }

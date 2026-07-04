@@ -5,7 +5,7 @@ import {
 } from '@angular/common/http/testing';
 import { ApiClientService } from './api-client.service';
 import { environment } from '../../../environments/environment';
-import { ApiErrorResponse, ApiResponse, PaginatedResponse } from './api-response.model';
+import { ApiErrorResponse, ApiResponse } from './api-response.model';
 
 describe('ApiClientService', () => {
   let service: ApiClientService;
@@ -59,39 +59,6 @@ describe('ApiClientService', () => {
       const req = httpMock.expectOne(
         `${environment.apiBaseUrl}/test?page=1&active=true`
       );
-      expect(req.request.method).toBe('GET');
-      req.flush(response);
-    });
-  });
-
-  describe('getPaginated', () => {
-    it('returns the paginated response', () => {
-      const response: ApiResponse<PaginatedResponse<string>> = {
-        success: true,
-        message: 'OK',
-        data: {
-          success: true,
-          message: 'OK',
-          data: ['a', 'b'],
-          timestamp: '2026-07-02T00:00:00Z',
-          pagination: {
-            page: 0,
-            size: 10,
-            totalElements: 2,
-            totalPages: 1,
-            hasNext: false,
-            hasPrevious: false,
-          },
-        },
-        timestamp: '2026-07-02T00:00:00Z',
-      };
-
-      service.getPaginated<string>('test').subscribe((paginated) => {
-        expect(paginated.data).toEqual(['a', 'b']);
-        expect(paginated.pagination.totalElements).toBe(2);
-      });
-
-      const req = httpMock.expectOne(`${environment.apiBaseUrl}/test`);
       expect(req.request.method).toBe('GET');
       req.flush(response);
     });

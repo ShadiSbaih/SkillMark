@@ -17,20 +17,20 @@
       <app-card>
         <div class="flex items-start justify-between">
           <div>
-            <p class="text-xs font-medium text-[#64748d]">{{ certificate.certificateNumber }}</p>
-            <h3 class="mt-1 text-lg font-semibold text-[#0d253d]">{{ certificate.title }}</h3>
+            <p class="text-xs font-medium text-ink-mute">{{ certificate.certificateNumber }}</p>
+            <h3 class="mt-1 text-lg font-semibold text-ink">{{ certificate.title }}</h3>
           </div>
           <app-badge [variant]="statusVariant(certificate.status)">{{ certificate.status }}</app-badge>
         </div>
 
-        <div class="mt-4 space-y-1 text-sm text-[#64748d]">
-          <p><span class="font-medium text-[#0d253d]">Quiz:</span> {{ certificate.quizTitleSnapshot }}</p>
-          <p><span class="font-medium text-[#0d253d]">Program:</span> {{ certificate.programTitleSnapshot }}</p>
-          <p><span class="font-medium text-[#0d253d]">Organization:</span> {{ certificate.organizationNameSnapshot }}</p>
+        <div class="mt-4 space-y-1 text-sm text-ink-mute">
+          <p><span class="font-medium text-ink">Quiz:</span> {{ certificate.quizTitleSnapshot }}</p>
+          <p><span class="font-medium text-ink">Program:</span> {{ certificate.programTitleSnapshot }}</p>
+          <p><span class="font-medium text-ink">Organization:</span> {{ certificate.organizationNameSnapshot }}</p>
         </div>
 
         <div class="mt-4 flex items-center justify-between">
-          <p class="text-xs text-[#64748d]">Issued {{ certificate.issuedAt | date:'mediumDate' }}</p>
+          <p class="text-xs text-ink-mute">Issued {{ certificate.issuedAt | date:'mediumDate' }}</p>
           <div class="flex items-center gap-2">
             <app-button variant="secondary" size="sm" (clicked)="router.navigate(['/certificates', certificate.id])">
               View
@@ -56,7 +56,7 @@
       >
         Previous
       </app-button>
-      <span class="text-sm text-[#64748d]">Page {{ page() + 1 }} of {{ totalPages() }}</span>
+      <span class="text-sm text-ink-mute">Page {{ page() + 1 }} of {{ totalPages() }}</span>
       <app-button
         variant="secondary"
         size="sm"

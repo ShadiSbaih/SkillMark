@@ -26,7 +26,7 @@ export class EnrollmentsService {
       queryKey: ['enrollments', 'me', params.page, params.size] as const,
       queryFn: () =>
         lastValueFrom(
-          this.api.getPage<Enrollment>('enrollments/me', {
+          this.api.getPage<Enrollment>('me/enrollments', {
             page: params.page,
             size: params.size,
           })

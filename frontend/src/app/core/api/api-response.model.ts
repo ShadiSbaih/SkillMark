@@ -8,22 +8,10 @@ export interface ApiResponse<T> {
 export interface ApiErrorResponse {
   success: false;
   message: string;
+  code?: string;
   errors?: { field?: string; message: string }[];
   path?: string;
   timestamp: string;
-}
-
-export interface PaginationMeta {
-  page: number;
-  size: number;
-  totalElements: number;
-  totalPages: number;
-  hasNext: boolean;
-  hasPrevious: boolean;
-}
-
-export interface PaginatedResponse<T> extends ApiResponse<T[]> {
-  pagination: PaginationMeta;
 }
 
 export function isApiErrorResponse(response: unknown): response is ApiErrorResponse {

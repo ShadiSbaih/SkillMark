@@ -12,7 +12,11 @@
     [hasActions]="true"
   >
     <ng-container actions>
-      <app-button variant="danger" (clicked)="deleteProgram()" [loading]="programsService.deleteMutation.isPending()">
+      <app-button
+        variant="danger"
+        (clicked)="deleteProgram()"
+        [loading]="programsService.deleteMutation.isPending()"
+      >
         Delete program
       </app-button>
     </ng-container>
@@ -21,26 +25,28 @@
   <app-card>
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
       <div>
-        <label for="title" class="block text-sm font-medium text-[#0d253d]">Title</label>
+        <label for="title" class="block text-sm font-medium text-ink">Title</label>
         <input
           id="title"
           type="text"
           formControlName="title"
-          class="mt-1 block w-full rounded-md border border-[#a8c3de] bg-[#f6f9fc] px-3 py-2 text-sm text-[#0d253d] placeholder-[#64748d] focus:border-[#533afd] focus:outline-none focus:ring-1 focus:ring-[#533afd]"
+          class="mt-1 block w-full rounded-md border border-input bg-canvas-soft px-3 py-2 text-sm text-ink placeholder-ink-mute focus-ring-primary"
           placeholder="e.g. Git & GitHub Workshop"
         />
         @if (form.get('title')?.invalid && form.get('title')?.touched) {
-          <p class="mt-1 text-sm text-red-600">Title is required and must be 100 characters or less.</p>
+          <p class="mt-1 text-sm text-red-600">
+            Title is required and must be 100 characters or less.
+          </p>
         }
       </div>
 
       <div>
-        <label for="description" class="block text-sm font-medium text-[#0d253d]">Description</label>
+        <label for="description" class="block text-sm font-medium text-ink">Description</label>
         <textarea
           id="description"
           formControlName="description"
           rows="4"
-          class="mt-1 block w-full rounded-md border border-[#a8c3de] bg-[#f6f9fc] px-3 py-2 text-sm text-[#0d253d] placeholder-[#64748d] focus:border-[#533afd] focus:outline-none focus:ring-1 focus:ring-[#533afd]"
+          class="mt-1 block w-full rounded-md border border-input bg-canvas-soft px-3 py-2 text-sm text-ink placeholder-ink-mute focus-ring-primary"
           placeholder="What will participants learn?"
         ></textarea>
         @if (form.get('description')?.invalid && form.get('description')?.touched) {
@@ -49,40 +55,49 @@
       </div>
 
       <div>
-        <label for="coverImageUrl" class="block text-sm font-medium text-[#0d253d]">Cover image URL</label>
+        <label for="coverImageUrl" class="block text-sm font-medium text-ink"
+          >Cover image URL</label
+        >
         <input
           id="coverImageUrl"
           type="url"
           formControlName="coverImageUrl"
-          class="mt-1 block w-full rounded-md border border-[#a8c3de] bg-[#f6f9fc] px-3 py-2 text-sm text-[#0d253d] placeholder-[#64748d] focus:border-[#533afd] focus:outline-none focus:ring-1 focus:ring-[#533afd]"
+          class="mt-1 block w-full rounded-md border border-input bg-canvas-soft px-3 py-2 text-sm text-ink placeholder-ink-mute focus-ring-primary"
           placeholder="https://example.com/image.png"
         />
       </div>
 
       <div class="grid gap-4 sm:grid-cols-2">
         <div>
-          <label for="startDate" class="block text-sm font-medium text-[#0d253d]">Start date</label>
+          <label for="startDate" class="block text-sm font-medium text-ink">Start date</label>
           <input
             id="startDate"
             type="date"
             formControlName="startDate"
-            class="mt-1 block w-full rounded-md border border-[#a8c3de] bg-[#f6f9fc] px-3 py-2 text-sm text-[#0d253d] placeholder-[#64748d] focus:border-[#533afd] focus:outline-none focus:ring-1 focus:ring-[#533afd]"
+            class="mt-1 block w-full rounded-md border border-input bg-canvas-soft px-3 py-2 text-sm text-ink placeholder-ink-mute focus-ring-primary"
           />
         </div>
         <div>
-          <label for="endDate" class="block text-sm font-medium text-[#0d253d]">End date</label>
+          <label for="endDate" class="block text-sm font-medium text-ink">End date</label>
           <input
             id="endDate"
             type="date"
             formControlName="endDate"
-            class="mt-1 block w-full rounded-md border border-[#a8c3de] bg-[#f6f9fc] px-3 py-2 text-sm text-[#0d253d] placeholder-[#64748d] focus:border-[#533afd] focus:outline-none focus:ring-1 focus:ring-[#533afd]"
+            class="mt-1 block w-full rounded-md border border-input bg-canvas-soft px-3 py-2 text-sm text-ink placeholder-ink-mute focus-ring-primary"
           />
         </div>
       </div>
 
       <div class="flex justify-end gap-3">
-        <app-button type="button" variant="ghost" (clicked)="router.navigate(['/programs', programId()])">Cancel</app-button>
-        <app-button type="submit" [loading]="programsService.updateMutation.isPending()">Save changes</app-button>
+        <app-button
+          type="button"
+          variant="ghost"
+          (clicked)="router.navigate(['/programs', programId()])"
+          >Cancel</app-button
+        >
+        <app-button type="submit" [loading]="programsService.updateMutation.isPending()"
+          >Save changes</app-button
+        >
       </div>
     </form>
   </app-card>

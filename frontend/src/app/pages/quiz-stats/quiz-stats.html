@@ -9,7 +9,10 @@
   @let stats = statsQuery.data();
 
   @if (!stats) {
-    <app-empty-state title="No statistics available" description="Statistics will appear after participants attempt this quiz." />
+    <app-empty-state
+      title="No statistics available"
+      description="Statistics will appear after participants attempt this quiz."
+    />
   } @else {
     <app-page-header
       [title]="'Quiz statistics'"
@@ -43,11 +46,11 @@
         </div>
         <div class="mt-6 grid grid-cols-2 gap-4 text-center text-sm">
           <div>
-            <p class="text-2xl font-light text-[var(--success)]">{{ stats.passCount }}</p>
+            <p class="text-2xl font-light text-success">{{ stats.passCount }}</p>
             <p class="muted">Passed</p>
           </div>
           <div>
-            <p class="text-2xl font-light text-[var(--danger)]">{{ stats.failCount }}</p>
+            <p class="text-2xl font-light text-danger">{{ stats.failCount }}</p>
             <p class="muted">Failed</p>
           </div>
         </div>

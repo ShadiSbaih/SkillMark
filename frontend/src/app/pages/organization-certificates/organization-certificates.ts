@@ -23,7 +23,7 @@ import { toast } from 'ngx-sonner';
     ErrorStateComponent,
   ],
   templateUrl: './organization-certificates.html',
-  styles: ``,
+  styleUrl: './organization-certificates.scss',
 })
 export class OrganizationCertificates {
   private readonly route = inject(ActivatedRoute);

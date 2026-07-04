@@ -7,10 +7,10 @@
 
 @if (organizationsQuery.isPending() && certificatesQuery.isPending() && attemptsQuery.isPending()) {
   <div class="space-y-4">
-    <div class="h-8 w-1/3 animate-pulse rounded bg-[#e1ebf5]"></div>
+    <div class="h-8 w-1-3 animate-pulse rounded bg-gray-light"></div>
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       @for (_ of [1,2,3,4]; track $index) {
-        <div class="h-24 animate-pulse rounded bg-[#e1ebf5]"></div>
+        <div class="h-24 animate-pulse rounded bg-gray-light"></div>
       }
     </div>
   </div>
@@ -19,41 +19,41 @@
 @if (!organizationsQuery.error() && !certificatesQuery.error() && !attemptsQuery.error()) {
   <header class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
     <div>
-      <p class="text-xs font-medium uppercase text-[#64748d]">Home / Dashboard</p>
-      <h1 class="text-2xl font-bold text-[#0d253d]">Role-aware dashboard</h1>
-      <p class="text-sm text-[#64748d]">Track programs, quiz performance, certificates, and activity.</p>
+      <p class="text-xs font-medium uppercase text-ink-mute">Home / Dashboard</p>
+      <h1 class="text-2xl font-bold text-ink">Role-aware dashboard</h1>
+      <p class="text-sm text-ink-mute">Track programs, quiz performance, certificates, and activity.</p>
     </div>
     <div class="flex gap-3">
-      <a class="rounded-lg border border-[#a8c3de] bg-white px-4 py-2 text-sm font-medium text-[#0d253d] hover:bg-[#f6f9fc]" routerLink="/organizations/new">
+      <a class="rounded-lg border border-input bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-canvas-soft" routerLink="/organizations/new">
         Create organization
       </a>
     </div>
   </header>
 
   <div class="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-    <div class="rounded-xl border border-[#e1ebf5] bg-white p-4">
-      <p class="text-xs font-medium uppercase text-[#64748d]">Organizations</p>
-      <p class="mt-1 text-2xl font-bold text-[#0d253d]">{{ stats().organizations }}</p>
+    <div class="rounded-xl border border-light bg-white p-4">
+      <p class="text-xs font-medium uppercase text-ink-mute">Organizations</p>
+      <p class="mt-1 text-2xl font-bold text-ink">{{ stats().organizations }}</p>
     </div>
-    <div class="rounded-xl border border-[#e1ebf5] bg-white p-4">
-      <p class="text-xs font-medium uppercase text-[#64748d]">Certificates</p>
-      <p class="mt-1 text-2xl font-bold text-[#0d253d]">{{ certificates().length }}</p>
+    <div class="rounded-xl border border-light bg-white p-4">
+      <p class="text-xs font-medium uppercase text-ink-mute">Certificates</p>
+      <p class="mt-1 text-2xl font-bold text-ink">{{ certificates().length }}</p>
     </div>
-    <div class="rounded-xl border border-[#e1ebf5] bg-white p-4">
-      <p class="text-xs font-medium uppercase text-[#64748d]">Attempts</p>
-      <p class="mt-1 text-2xl font-bold text-[#0d253d]">{{ stats().attempts }}</p>
+    <div class="rounded-xl border border-light bg-white p-4">
+      <p class="text-xs font-medium uppercase text-ink-mute">Attempts</p>
+      <p class="mt-1 text-2xl font-bold text-ink">{{ stats().attempts }}</p>
     </div>
-    <div class="rounded-xl border border-[#e1ebf5] bg-white p-4">
-      <p class="text-xs font-medium uppercase text-[#64748d]">Pass rate</p>
-      <p class="mt-1 text-2xl font-bold text-[#0d253d]">{{ stats().passRate | number:'1.0-1' }}%</p>
+    <div class="rounded-xl border border-light bg-white p-4">
+      <p class="text-xs font-medium uppercase text-ink-mute">Pass rate</p>
+      <p class="mt-1 text-2xl font-bold text-ink">{{ stats().passRate | number:'1.0-1' }}%</p>
     </div>
   </div>
 
   <div class="mb-6 grid gap-6 lg:grid-cols-2">
     <app-card>
       <div class="mb-4 flex items-center justify-between">
-        <h2 class="text-lg font-semibold text-[#0d253d]">Your organizations</h2>
-        <a routerLink="/organizations" class="text-sm font-medium text-[#1971ff] hover:underline">View all</a>
+        <h2 class="text-lg font-semibold text-ink">Your organizations</h2>
+        <a routerLink="/organizations" class="text-sm font-medium text-info hover:underline">View all</a>
       </div>
       @if (organizations().length === 0) {
         <app-empty-state message="No organizations yet." />
@@ -62,15 +62,15 @@
           @for (org of organizations().slice(0, 5); track org.id) {
             <a
               [routerLink]="['/organizations', org.id]"
-              class="flex items-center justify-between rounded-lg border border-[#e1ebf5] p-3 hover:bg-[#f6f9fc]"
+              class="flex items-center justify-between rounded-lg border border-light p-3 hover:bg-canvas-soft"
             >
               <div>
-                <p class="font-medium text-[#0d253d]">{{ org.name }}</p>
+                <p class="font-medium text-ink">{{ org.name }}</p>
                 @if (org.description) {
-                  <p class="text-sm text-[#64748d]">{{ org.description }}</p>
+                  <p class="text-sm text-ink-mute">{{ org.description }}</p>
                 }
               </div>
-              <span class="text-sm text-[#64748d]">{{ org.status }}</span>
+              <span class="text-sm text-ink-mute">{{ org.status }}</span>
             </a>
           }
         </div>
@@ -79,8 +79,8 @@
 
     <app-card>
       <div class="mb-4 flex items-center justify-between">
-        <h2 class="text-lg font-semibold text-[#0d253d]">Recent certificates</h2>
-        <a routerLink="/my-certificates" class="text-sm font-medium text-[#1971ff] hover:underline">View all</a>
+        <h2 class="text-lg font-semibold text-ink">Recent certificates</h2>
+        <a routerLink="/my-certificates" class="text-sm font-medium text-info hover:underline">View all</a>
       </div>
       @if (certificates().length === 0) {
         <app-empty-state message="No certificates yet." />
@@ -89,18 +89,18 @@
           @for (cert of certificates().slice(0, 5); track cert.id) {
             <a
               [routerLink]="['/certificates', cert.id]"
-              class="flex items-center justify-between rounded-lg border border-[#e1ebf5] p-3 hover:bg-[#f6f9fc]"
+              class="flex items-center justify-between rounded-lg border border-light p-3 hover:bg-canvas-soft"
             >
               <div>
-                <p class="font-medium text-[#0d253d]">{{ cert.title }}</p>
-                <p class="text-sm text-[#64748d]">{{ cert.programTitleSnapshot }} / {{ cert.quizTitleSnapshot }}</p>
+                <p class="font-medium text-ink">{{ cert.title }}</p>
+                <p class="text-sm text-ink-mute">{{ cert.programTitleSnapshot }} / {{ cert.quizTitleSnapshot }}</p>
               </div>
               <span
                 class="rounded-full px-2 py-1 text-xs font-medium"
-                [class.bg-[#e8f8f0]]="cert.status === 'ACTIVE'"
-                [class.text-[#2ec27e]]="cert.status === 'ACTIVE'"
-                [class.bg-[#ffedea]]="cert.status === 'REVOKED'"
-                [class.text-[#ff5630]]="cert.status === 'REVOKED'"
+                [class.bg-success-light]="cert.status === 'ACTIVE'"
+                [class.text-success]="cert.status === 'ACTIVE'"
+                [class.bg-danger-light]="cert.status === 'REVOKED'"
+                [class.text-danger]="cert.status === 'REVOKED'"
               >
                 {{ cert.status }}
               </span>
@@ -113,27 +113,27 @@
 
   <app-card>
     <div class="mb-4 flex items-center justify-between">
-      <h2 class="text-lg font-semibold text-[#0d253d]">Recent attempts</h2>
-      <a routerLink="/my-attempts" class="text-sm font-medium text-[#1971ff] hover:underline">View all</a>
+      <h2 class="text-lg font-semibold text-ink">Recent attempts</h2>
+      <a routerLink="/my-attempts" class="text-sm font-medium text-info hover:underline">View all</a>
     </div>
     @if (attempts().length === 0) {
       <app-empty-state message="No attempts yet." />
     } @else {
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
-          <thead class="bg-[#f6f9fc]">
+          <thead class="bg-canvas-soft">
             <tr>
-              <th class="px-4 py-3 text-left font-medium text-[#64748d]">Quiz</th>
-              <th class="px-4 py-3 text-left font-medium text-[#64748d]">Score</th>
-              <th class="px-4 py-3 text-left font-medium text-[#64748d]">Status</th>
-              <th class="px-4 py-3 text-left font-medium text-[#64748d]">Submitted</th>
+              <th class="px-4 py-3 text-left font-medium text-ink-mute">Quiz</th>
+              <th class="px-4 py-3 text-left font-medium text-ink-mute">Score</th>
+              <th class="px-4 py-3 text-left font-medium text-ink-mute">Status</th>
+              <th class="px-4 py-3 text-left font-medium text-ink-mute">Submitted</th>
             </tr>
           </thead>
           <tbody>
             @for (attempt of attempts().slice(0, 5); track attempt.attemptId) {
-              <tr class="border-t border-[#e1ebf5]">
-                <td class="px-4 py-3 text-[#0d253d]">{{ attempt.attemptId }}</td>
-                <td class="px-4 py-3 text-[#0d253d]">
+              <tr class="border-t border-light">
+                <td class="px-4 py-3 text-ink">{{ attempt.attemptId }}</td>
+                <td class="px-4 py-3 text-ink">
                   @if (attempt.status === 'SUBMITTED') {
                     {{ attempt.scorePercentage | number:'1.0-1' }}%
                   } @else {
@@ -143,19 +143,19 @@
                 <td class="px-4 py-3">
                   <span
                     class="rounded-full px-2 py-1 text-xs font-medium"
-                    [class.bg-[#e8f8f0]]="attempt.status === 'SUBMITTED' && attempt.passed"
-                    [class.text-[#2ec27e]]="attempt.status === 'SUBMITTED' && attempt.passed"
-                    [class.bg-[#ffedea]]="attempt.status === 'SUBMITTED' && !attempt.passed"
-                    [class.text-[#ff5630]]="attempt.status === 'SUBMITTED' && !attempt.passed"
-                    [class.bg-[#fff6e6]]="attempt.status === 'IN_PROGRESS'"
-                    [class.text-[#ffab00]]="attempt.status === 'IN_PROGRESS'"
-                    [class.bg-[#e1ebf5]]="attempt.status === 'EXPIRED' || attempt.status === 'CANCELLED'"
-                    [class.text-[#64748d]]="attempt.status === 'EXPIRED' || attempt.status === 'CANCELLED'"
+                    [class.bg-success-light]="attempt.status === 'SUBMITTED' && attempt.passed"
+                    [class.text-success]="attempt.status === 'SUBMITTED' && attempt.passed"
+                    [class.bg-danger-light]="attempt.status === 'SUBMITTED' && !attempt.passed"
+                    [class.text-danger]="attempt.status === 'SUBMITTED' && !attempt.passed"
+                    [class.bg-warning-light]="attempt.status === 'IN_PROGRESS'"
+                    [class.text-warning]="attempt.status === 'IN_PROGRESS'"
+                    [class.bg-gray-light]="attempt.status === 'EXPIRED' || attempt.status === 'CANCELLED'"
+                    [class.text-ink-mute]="attempt.status === 'EXPIRED' || attempt.status === 'CANCELLED'"
                   >
                     {{ attempt.status }}
                   </span>
                 </td>
-                <td class="px-4 py-3 text-[#64748d]">
+                <td class="px-4 py-3 text-ink-mute">
                   {{ attempt.submittedAt ? (attempt.submittedAt | date:'mediumDate') : '-' }}
                 </td>
               </tr>

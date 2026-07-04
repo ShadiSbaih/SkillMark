@@ -71,6 +71,7 @@ describe('CertificatesService', () => {
       getPage: vi.fn(),
       get: vi.fn(),
       post: vi.fn(),
+      patch: vi.fn(),
     } as unknown as ApiClientService;
 
     TestBed.configureTestingModule({
@@ -97,7 +98,7 @@ describe('CertificatesService', () => {
 
     await service.myCertificatesQuery.refetch();
 
-    expect(apiClient.getPage).toHaveBeenCalledWith('certificates/me', {
+    expect(apiClient.getPage).toHaveBeenCalledWith('me/certificates', {
       page: 0,
       size: 10,
     });
@@ -110,7 +111,7 @@ describe('CertificatesService', () => {
 
     await service.myCertificatesQuery.refetch();
 
-    expect(apiClient.getPage).toHaveBeenCalledWith('certificates/me', {
+    expect(apiClient.getPage).toHaveBeenCalledWith('me/certificates', {
       page: 1,
       size: 20,
     });
@@ -148,7 +149,7 @@ describe('CertificatesService', () => {
   });
 
   it('should revoke a certificate with the given reason', async () => {
-    vi.mocked(apiClient.post).mockReturnValue(of(certificateResponse));
+    vi.mocked(apiClient.patch).mockReturnValue(of(certificateResponse));
 
     const request: RevokeCertificateRequest = {
       reason: 'Cheating detected',
@@ -160,9 +161,9 @@ describe('CertificatesService', () => {
     });
 
     expect(result).toEqual(certificateResponse);
-    expect(apiClient.post).toHaveBeenCalledWith(
-      'certificates/cert-1/revoke',
-      request
+    expect(apiClient.patch).toHaveBeenCalledWith(
+      'certificates/cert-1/status',
+      { status: 'REVOKED', reason: request.reason }
     );
   });
 
@@ -177,7 +178,7 @@ describe('CertificatesService', () => {
     await query.refetch();
 
     expect(apiClient.getPage).toHaveBeenCalledWith(
-      'certificates/organization/org-1',
+      'organizations/org-1/certificates',
       {
         page: 0,
         size: 10,

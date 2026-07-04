@@ -15,13 +15,13 @@
 
 @if (showCreateForm()) {
   <app-card class="mb-8 block">
-    <h2 class="mb-4 text-lg font-semibold text-[#0d253d]">New invitation</h2>
+    <h2 class="mb-4 text-lg font-semibold text-ink">New invitation</h2>
     <form
       class="space-y-4"
       (submit)="$event.preventDefault(); createInvitation()"
     >
       <div>
-        <label for="description" class="mb-1 block text-sm font-medium text-[#0d253d]">
+        <label for="description" class="mb-1 block text-sm font-medium text-ink">
           Description
         </label>
         <input
@@ -30,13 +30,13 @@
           [value]="description()"
           (input)="description.set($any($event.target).value)"
           placeholder="e.g. Spring cohort invite"
-          class="block w-full rounded-md border border-[#a8c3de] px-3 py-2 text-sm text-[#0d253d] placeholder:text-[#94a3b8] focus:border-[#533afd] focus:outline-none focus:ring-1 focus:ring-[#533afd]"
+          class="block w-full rounded-md border border-input px-3 py-2 text-sm text-ink placeholder-ink-mute focus-ring-primary"
         />
       </div>
 
       <div class="grid gap-4 sm:grid-cols-2">
         <div>
-          <label for="maxUses" class="mb-1 block text-sm font-medium text-[#0d253d]">
+          <label for="maxUses" class="mb-1 block text-sm font-medium text-ink">
             Max uses
           </label>
           <input
@@ -45,12 +45,12 @@
             min="1"
             [value]="maxUses()"
             (input)="maxUses.set($any($event.target).valueAsNumber)"
-            class="block w-full rounded-md border border-[#a8c3de] px-3 py-2 text-sm text-[#0d253d] placeholder:text-[#94a3b8] focus:border-[#533afd] focus:outline-none focus:ring-1 focus:ring-[#533afd]"
+            class="block w-full rounded-md border border-input px-3 py-2 text-sm text-ink placeholder-ink-mute focus-ring-primary"
           />
         </div>
 
         <div>
-          <label for="expiresAt" class="mb-1 block text-sm font-medium text-[#0d253d]">
+          <label for="expiresAt" class="mb-1 block text-sm font-medium text-ink">
             Expires at
           </label>
           <input
@@ -58,7 +58,7 @@
             type="datetime-local"
             [value]="expiresAt()"
             (input)="expiresAt.set($any($event.target).value)"
-            class="block w-full rounded-md border border-[#a8c3de] px-3 py-2 text-sm text-[#0d253d] placeholder:text-[#94a3b8] focus:border-[#533afd] focus:outline-none focus:ring-1 focus:ring-[#533afd]"
+            class="block w-full rounded-md border border-input px-3 py-2 text-sm text-ink placeholder-ink-mute focus-ring-primary"
           />
         </div>
       </div>
@@ -101,26 +101,26 @@
   } @else {
     <app-card>
       <div class="overflow-x-auto">
-        <table class="w-full min-w-[640px] text-left text-sm">
+        <table class="w-full min-w-640 text-left text-sm">
           <thead>
-            <tr class="border-b border-[#a8c3de]">
-              <th class="pb-3 font-semibold text-[#0d253d]">Code</th>
-              <th class="pb-3 font-semibold text-[#0d253d]">Uses / Max</th>
-              <th class="pb-3 font-semibold text-[#0d253d]">Expires</th>
-              <th class="pb-3 font-semibold text-[#0d253d]">Status</th>
-              <th class="pb-3 text-right font-semibold text-[#0d253d]">Actions</th>
+            <tr class="border-b border-input">
+              <th class="pb-3 font-semibold text-ink">Code</th>
+              <th class="pb-3 font-semibold text-ink">Uses / Max</th>
+              <th class="pb-3 font-semibold text-ink">Expires</th>
+              <th class="pb-3 font-semibold text-ink">Status</th>
+              <th class="pb-3 text-right font-semibold text-ink">Actions</th>
             </tr>
           </thead>
           <tbody>
             @for (invitation of invitations; track invitation.id) {
-              <tr class="border-b border-[#eaf0f7] last:border-b-0">
-                <td class="py-3 font-medium text-[#0d253d]">
+              <tr class="border-b border-light last:border-b-0">
+                <td class="py-3 font-medium text-ink">
                   {{ invitation.code }}
                 </td>
-                <td class="py-3 text-[#64748d]">
+                <td class="py-3 text-ink-mute">
                   {{ invitation.usedCount }} / {{ invitation.maxUses ?? '∞' }}
                 </td>
-                <td class="py-3 text-[#64748d]">
+                <td class="py-3 text-ink-mute">
                   @if (invitation.expiresAt) {
                     {{ invitation.expiresAt | date:'medium' }}
                   } @else {

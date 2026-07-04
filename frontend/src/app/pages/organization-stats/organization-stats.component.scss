@@ -1,1 +1,34 @@
+:host {
+  display: block;
+}
 
+.pass-rate-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--success-bg);
+  color: var(--success);
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.pass-rate-chart-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pass-rate-chart {
+  width: 160px;
+  height: 160px;
+  transform: rotate(-90deg);
+}
+
+.pass-rate-percentage {
+  position: absolute;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--ink);
+}

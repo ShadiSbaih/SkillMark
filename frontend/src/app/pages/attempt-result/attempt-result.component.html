@@ -30,19 +30,19 @@
     <app-card>
       <div class="space-y-6">
         <div class="flex flex-col gap-1">
-          <h2 class="text-xl font-semibold text-[#0d253d]">
+          <h2 class="text-xl font-semibold text-ink">
             {{ quiz?.title ?? 'Untitled Quiz' }}
           </h2>
           @if (quiz?.description) {
-            <p class="text-sm text-[#64748d]">{{ quiz?.description }}</p>
+            <p class="text-sm text-ink-mute">{{ quiz?.description }}</p>
           }
         </div>
 
         <div class="flex items-end gap-3">
-          <span class="text-5xl font-bold text-[#0d253d]">
+          <span class="text-5xl font-bold text-ink">
             {{ attempt.earnedPoints }} / {{ attempt.totalPoints }}
           </span>
-          <span class="mb-1 text-xl font-medium text-[#64748d]">
+          <span class="mb-1 text-xl font-medium text-ink-mute">
             ({{ attempt.scorePercentage }}%)
           </span>
         </div>
@@ -51,19 +51,19 @@
           <app-badge [variant]="attempt.passed ? 'success' : 'danger'">
             {{ attempt.passed ? 'Passed' : 'Failed' }}
           </app-badge>
-          <span class="text-[#64748d]">
+          <span class="text-ink-mute">
             Status:
-            <span class="font-medium text-[#0d253d]">{{ attempt.status }}</span>
+            <span class="font-medium text-ink">{{ attempt.status }}</span>
           </span>
           @if (attempt.submittedAt) {
-            <span class="text-[#64748d]">
+            <span class="text-ink-mute">
               Submitted:
-              <span class="font-medium text-[#0d253d]">
+              <span class="font-medium text-ink">
                 {{ attempt.submittedAt | date: 'medium' }}
               </span>
             </span>
           }
-          <span class="text-[#64748d]">
+          <span class="text-ink-mute">
             Attempt #{{ attempt.attemptNumber }}
           </span>
         </div>
@@ -74,8 +74,8 @@
       <div class="mt-6">
         @if (attempt.certificateIssued && attempt.certificateId) {
           <app-card>
-            <h3 class="text-lg font-semibold text-[#0d253d]">Certificate issued</h3>
-            <p class="mt-1 text-sm text-[#64748d]">
+            <h3 class="text-lg font-semibold text-ink">Certificate issued</h3>
+            <p class="mt-1 text-sm text-ink-mute">
               Your certificate has been issued and is ready to view.
             </p>
             <div class="mt-4">
@@ -88,8 +88,8 @@
           </app-card>
         } @else if (quiz && quiz.certificateIssueMode !== 'NONE') {
           <app-card>
-            <h3 class="text-lg font-semibold text-[#0d253d]">Certificate pending</h3>
-            <p class="mt-1 text-sm text-[#64748d]">
+            <h3 class="text-lg font-semibold text-ink">Certificate pending</h3>
+            <p class="mt-1 text-sm text-ink-mute">
               You passed, but your certificate has not been issued yet.
             </p>
           </app-card>

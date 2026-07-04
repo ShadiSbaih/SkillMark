@@ -1,0 +1,21 @@
+.dashboard-sidebar {
+  left: 0;
+}
+
+.sidebar-header {
+  padding: 0 24px;
+}
+
+.nav-section {
+  padding: 16px;
+
+  &.no-pt {
+    padding-top: 0;
+  }
+}
+
+.nav-link {
+  display: block;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+}

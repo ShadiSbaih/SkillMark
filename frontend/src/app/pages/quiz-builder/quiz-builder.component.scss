@@ -5,3 +5,15 @@
 	color: var(--ink-secondary);
 }
 
+.main-column {
+  grid-column: span 2;
+}
+
+.option-correct {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--primary);
+}
+
+

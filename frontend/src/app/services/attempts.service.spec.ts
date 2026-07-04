@@ -97,7 +97,7 @@ describe('AttemptsService', () => {
 
     await service.myAttemptsQuery.refetch();
 
-    expect(apiClient.getPage).toHaveBeenCalledWith('quiz-attempts/me', {
+    expect(apiClient.getPage).toHaveBeenCalledWith('me/attempts', {
       page: 0,
       size: 10,
     });
@@ -110,7 +110,7 @@ describe('AttemptsService', () => {
 
     await service.myAttemptsQuery.refetch();
 
-    expect(apiClient.getPage).toHaveBeenCalledWith('quiz-attempts/me', {
+    expect(apiClient.getPage).toHaveBeenCalledWith('me/attempts', {
       page: 1,
       size: 20,
     });

@@ -98,7 +98,9 @@ export class QuizzesService {
 
   readonly publishMutation = injectMutation(() => ({
     mutationFn: (quizId: string) =>
-      lastValueFrom(this.api.post<Quiz>(`quizzes/${quizId}/publish`, null)),
+      lastValueFrom(
+        this.api.patch<Quiz>(`quizzes/${quizId}/status`, { status: 'PUBLISHED' })
+      ),
     onSuccess: (_, quizId) => {
       this.queryClient.invalidateQueries({ queryKey: ['quiz', quizId] });
       this.queryClient.invalidateQueries({ queryKey: ['quizzes'] });
@@ -168,7 +170,7 @@ export class QuizzesService {
       request: CreateQuestionRequest;
     }) =>
       lastValueFrom(
-        this.api.put<Question>(`questions/${questionId}`, request)
+        this.api.put<Question>(`quizzes/${quizId}/questions/${questionId}`, request)
       ),
     onSuccess: (_, variables) => {
       this.queryClient.invalidateQueries({ queryKey: ['quiz', variables.quizId] });
@@ -177,7 +179,7 @@ export class QuizzesService {
 
   readonly deleteQuestionMutation = injectMutation(() => ({
     mutationFn: ({ questionId, quizId }: { questionId: string; quizId: string }) =>
-      lastValueFrom(this.api.delete<void>(`questions/${questionId}`)),
+      lastValueFrom(this.api.delete<void>(`quizzes/${quizId}/questions/${questionId}`)),
     onSuccess: (_, variables) => {
       this.queryClient.invalidateQueries({ queryKey: ['quiz', variables.quizId] });
     },
@@ -194,7 +196,7 @@ export class QuizzesService {
       request: { text: string; isCorrect: boolean; position: number };
     }) =>
       lastValueFrom(
-        this.api.post<QuizOption>(`questions/${questionId}/options`, request)
+        this.api.post<QuizOption>(`quizzes/${quizId}/questions/${questionId}/options`, request)
       ),
     onSuccess: (_, variables) => {
       this.queryClient.invalidateQueries({ queryKey: ['quiz', variables.quizId] });
@@ -204,22 +206,36 @@ export class QuizzesService {
   readonly updateOptionMutation = injectMutation(() => ({
     mutationFn: ({
       optionId,
+      questionId,
       quizId,
       request,
     }: {
       optionId: string;
+      questionId: string;
       quizId: string;
       request: { text: string; isCorrect: boolean; position: number };
     }) =>
-      lastValueFrom(this.api.put<QuizOption>(`options/${optionId}`, request)),
+      lastValueFrom(
+        this.api.put<QuizOption>(`quizzes/${quizId}/questions/${questionId}/options/${optionId}`, request)
+      ),
     onSuccess: (_, variables) => {
       this.queryClient.invalidateQueries({ queryKey: ['quiz', variables.quizId] });
     },
   }));
 
   readonly deleteOptionMutation = injectMutation(() => ({
-    mutationFn: ({ optionId, quizId }: { optionId: string; quizId: string }) =>
-      lastValueFrom(this.api.delete<void>(`options/${optionId}`)),
+    mutationFn: ({
+      optionId,
+      questionId,
+      quizId,
+    }: {
+      optionId: string;
+      questionId: string;
+      quizId: string;
+    }) =>
+      lastValueFrom(
+        this.api.delete<void>(`quizzes/${quizId}/questions/${questionId}/options/${optionId}`)
+      ),
     onSuccess: (_, variables) => {
       this.queryClient.invalidateQueries({ queryKey: ['quiz', variables.quizId] });
     },

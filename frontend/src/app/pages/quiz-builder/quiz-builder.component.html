@@ -31,7 +31,9 @@
     <div class="mb-6 flex items-center gap-3">
       <app-badge [variant]="badgeVariant()">{{ quiz.status }}</app-badge>
       @if (isPublished()) {
-        <span class="text-sm text-[var(--ink-mute)]">This quiz is published. Questions cannot be edited.</span>
+        <span class="text-sm text-ink-mute"
+          >This quiz is published. Questions cannot be edited.</span
+        >
       }
     </div>
 
@@ -55,11 +57,13 @@
           } @else {
             <div class="space-y-4">
               @for (question of quiz.questions; track question.id; let i = $index) {
-                <div class="rounded-lg border border-[var(--hairline)] p-4">
+                <div class="rounded-lg border border-hairline p-4">
                   <div class="mb-3 flex flex-col items-start justify-between gap-3 sm:flex-row">
                     <div class="min-w-0">
                       <p class="font-medium">{{ i + 1 }}. {{ question.text }}</p>
-                      <p class="text-xs text-[var(--ink-mute)]">{{ question.points }} pts · {{ question.type }}</p>
+                      <p class="text-xs text-ink-mute">
+                        {{ question.points }} pts · {{ question.type }}
+                      </p>
                     </div>
                     <div class="flex w-full flex-wrap gap-2 sm:w-auto">
                       <app-button
@@ -86,18 +90,18 @@
                     @for (option of question.options; track option.id) {
                       <div
                         class="flex items-center gap-2 rounded-md border px-3 py-2 text-sm"
-                        [class.border-[var(--primary)]]="option.isCorrect"
-                        [class.bg-[var(--canvas-soft)]]="option.isCorrect"
-                        [class.border-[var(--hairline)]]="!option.isCorrect"
+                        [class.border-primary]="option.isCorrect"
+                        [class.bg-canvas-soft]="option.isCorrect"
+                        [class.border-hairline]="!option.isCorrect"
                       >
                         <span
                           class="h-2 w-2 rounded-full"
-                          [class.bg-[var(--primary)]]="option.isCorrect"
-                          [class.bg-[var(--hairline-input)]]="!option.isCorrect"
+                          [class.bg-primary]="option.isCorrect"
+                          [class.bg-hairline-input]="!option.isCorrect"
                         ></span>
                         <span>{{ option.text }}</span>
                         @if (option.isCorrect) {
-                          <span class="ml-auto text-xs font-medium text-[var(--primary)]">Correct</span>
+                          <span class="ml-auto text-xs font-medium text-primary">Correct</span>
                         }
                       </div>
                     }
@@ -127,11 +131,19 @@
             </div>
             <div>
               <dt>Certificates</dt>
-              <dd>{{ quiz.certificateEnabled ? 'Enabled' : 'Disabled' }} ({{ quiz.certificateIssueMode }})</dd>
+              <dd>
+                {{ quiz.certificateEnabled ? 'Enabled' : 'Disabled' }} ({{
+                  quiz.certificateIssueMode
+                }})
+              </dd>
             </div>
           </dl>
           <div class="mt-4">
-            <app-button variant="secondary" size="sm" (clicked)="router.navigate(['/quizzes', quiz.id, 'settings'])">
+            <app-button
+              variant="secondary"
+              size="sm"
+              (clicked)="router.navigate(['/quizzes', quiz.id, 'settings'])"
+            >
               Edit settings
             </app-button>
           </div>
@@ -140,31 +152,59 @@
         <app-card>
           <h2 class="mb-4 text-lg font-semibold">Publish checklist</h2>
           <ul class="space-y-2 text-sm">
-            <li class="flex items-center gap-2" [class.text-[var(--success)]]="publishChecklist().hasTitle" [class.text-[var(--ink-mute)]]="!publishChecklist().hasTitle">
+            <li
+              class="flex items-center gap-2"
+              [class.text-success]="publishChecklist().hasTitle"
+              [class.text-ink-mute]="!publishChecklist().hasTitle"
+            >
               <span>{{ publishChecklist().hasTitle ? '✓' : '○' }}</span>
               <span>Quiz has a title</span>
             </li>
-            <li class="flex items-center gap-2" [class.text-[var(--success)]]="publishChecklist().hasDescription" [class.text-[var(--ink-mute)]]="!publishChecklist().hasDescription">
+            <li
+              class="flex items-center gap-2"
+              [class.text-success]="publishChecklist().hasDescription"
+              [class.text-ink-mute]="!publishChecklist().hasDescription"
+            >
               <span>{{ publishChecklist().hasDescription ? '✓' : '○' }}</span>
               <span>Quiz has a description</span>
             </li>
-            <li class="flex items-center gap-2" [class.text-[var(--success)]]="publishChecklist().hasQuestions" [class.text-[var(--ink-mute)]]="!publishChecklist().hasQuestions">
+            <li
+              class="flex items-center gap-2"
+              [class.text-success]="publishChecklist().hasQuestions"
+              [class.text-ink-mute]="!publishChecklist().hasQuestions"
+            >
               <span>{{ publishChecklist().hasQuestions ? '✓' : '○' }}</span>
               <span>At least one question</span>
             </li>
-            <li class="flex items-center gap-2" [class.text-[var(--success)]]="publishChecklist().allQuestionsHaveOptions" [class.text-[var(--ink-mute)]]="!publishChecklist().allQuestionsHaveOptions">
+            <li
+              class="flex items-center gap-2"
+              [class.text-success]="publishChecklist().allQuestionsHaveOptions"
+              [class.text-ink-mute]="!publishChecklist().allQuestionsHaveOptions"
+            >
               <span>{{ publishChecklist().allQuestionsHaveOptions ? '✓' : '○' }}</span>
               <span>Every question has options</span>
             </li>
-            <li class="flex items-center gap-2" [class.text-[var(--success)]]="publishChecklist().allQuestionsHaveCorrectAnswer" [class.text-[var(--ink-mute)]]="!publishChecklist().allQuestionsHaveCorrectAnswer">
+            <li
+              class="flex items-center gap-2"
+              [class.text-success]="publishChecklist().allQuestionsHaveCorrectAnswer"
+              [class.text-ink-mute]="!publishChecklist().allQuestionsHaveCorrectAnswer"
+            >
               <span>{{ publishChecklist().allQuestionsHaveCorrectAnswer ? '✓' : '○' }}</span>
               <span>Every question has a correct answer</span>
             </li>
-            <li class="flex items-center gap-2" [class.text-[var(--success)]]="publishChecklist().passingScoreSet" [class.text-[var(--ink-mute)]]="!publishChecklist().passingScoreSet">
+            <li
+              class="flex items-center gap-2"
+              [class.text-success]="publishChecklist().passingScoreSet"
+              [class.text-ink-mute]="!publishChecklist().passingScoreSet"
+            >
               <span>{{ publishChecklist().passingScoreSet ? '✓' : '○' }}</span>
               <span>Passing score is set</span>
             </li>
-            <li class="flex items-center gap-2" [class.text-[var(--success)]]="publishChecklist().durationSet" [class.text-[var(--ink-mute)]]="!publishChecklist().durationSet">
+            <li
+              class="flex items-center gap-2"
+              [class.text-success]="publishChecklist().durationSet"
+              [class.text-ink-mute]="!publishChecklist().durationSet"
+            >
               <span>{{ publishChecklist().durationSet ? '✓' : '○' }}</span>
               <span>Duration is set</span>
             </li>
@@ -187,7 +227,7 @@
       <span>Question text *</span>
       <input formControlName="text" placeholder="What is...?" />
       @if (questionForm.get('text')?.invalid && questionForm.get('text')?.touched) {
-        <p class="text-sm text-[var(--ruby)]">Question text is required.</p>
+        <p class="text-sm text-danger">Question text is required.</p>
       }
     </label>
 
@@ -211,17 +251,13 @@
               (change)="setCorrectOption(oi)"
               title="Mark as correct"
             />
-            <input
-              class="flex-1"
-              formControlName="text"
-              placeholder="Option text"
-            />
+            <input class="flex-1" formControlName="text" placeholder="Option text" />
             <app-button variant="danger" size="sm" (clicked)="removeOption(oi)">Remove</app-button>
           </div>
         }
       </div>
       @if (questionForm.get('options')?.invalid && questionForm.get('options')?.touched) {
-        <p class="mt-2 text-sm text-[var(--ruby)]">At least one option is required.</p>
+        <p class="mt-2 text-sm text-danger">At least one option is required.</p>
       }
     </div>
   </form>

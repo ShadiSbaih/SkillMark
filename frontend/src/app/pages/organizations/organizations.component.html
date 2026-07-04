@@ -25,9 +25,9 @@
         <app-card>
           <div class="flex items-start justify-between">
             <div>
-              <h3 class="text-lg font-semibold text-[#0d253d]">{{ org.name }}</h3>
+              <h3 class="text-lg font-semibold text-ink">{{ org.name }}</h3>
               @if (org.description) {
-                <p class="mt-1 line-clamp-2 text-sm text-[#64748d]">{{ org.description }}</p>
+                <p class="mt-1 line-clamp-2 text-sm text-ink-mute">{{ org.description }}</p>
               }
               <div class="mt-3">
                 <app-badge [variant]="org.status === 'ACTIVE' ? 'success' : 'default'">{{ org.status }}</app-badge>
@@ -60,27 +60,27 @@
 
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <app-card>
-        <p class="text-sm text-[#64748d]">Status</p>
+        <p class="text-sm text-ink-mute">Status</p>
         <div class="mt-2">
           <app-badge [variant]="org?.status === 'ACTIVE' ? 'success' : 'default'">{{ org?.status }}</app-badge>
         </div>
       </app-card>
       <app-card>
-        <p class="text-sm text-[#64748d]">Programs</p>
-        <p class="mt-2 text-2xl font-semibold text-[#0d253d]">0</p>
+        <p class="text-sm text-ink-mute">Programs</p>
+        <p class="mt-2 text-2xl font-semibold text-ink">0</p>
       </app-card>
       <app-card>
-        <p class="text-sm text-[#64748d]">Members</p>
-        <p class="mt-2 text-2xl font-semibold text-[#0d253d]">1</p>
+        <p class="text-sm text-ink-mute">Members</p>
+        <p class="mt-2 text-2xl font-semibold text-ink">1</p>
       </app-card>
       <app-card>
-        <p class="text-sm text-[#64748d]">Created</p>
-        <p class="mt-2 text-sm font-medium text-[#0d253d]">{{ org?.createdAt | date:'mediumDate' }}</p>
+        <p class="text-sm text-ink-mute">Created</p>
+        <p class="mt-2 text-sm font-medium text-ink">{{ org?.createdAt | date:'mediumDate' }}</p>
       </app-card>
     </div>
 
     <div class="mt-8">
-      <h2 class="mb-4 text-lg font-semibold text-[#0d253d]">Recent programs</h2>
+      <h2 class="mb-4 text-lg font-semibold text-ink">Recent programs</h2>
 
       @if (programsQuery.isPending()) {
         <app-loading-state message="Loading programs..." />
@@ -101,9 +101,9 @@
             <app-card>
               <div class="flex items-start justify-between">
                 <div>
-                  <h3 class="text-lg font-semibold text-[#0d253d]">{{ program.title }}</h3>
+                  <h3 class="text-lg font-semibold text-ink">{{ program.title }}</h3>
                   @if (program.description) {
-                    <p class="mt-1 line-clamp-2 text-sm text-[#64748d]">{{ program.description }}</p>
+                    <p class="mt-1 line-clamp-2 text-sm text-ink-mute">{{ program.description }}</p>
                   }
                   <div class="mt-3">
                     <app-badge [variant]="program.status === 'PUBLISHED' ? 'success' : 'default'">{{ program.status }}</app-badge>
@@ -111,7 +111,7 @@
                 </div>
               </div>
               <div class="mt-4 flex items-center justify-between">
-                <p class="text-xs text-[#64748d]">Created {{ program.createdAt | date:'mediumDate' }}</p>
+                <p class="text-xs text-ink-mute">Created {{ program.createdAt | date:'mediumDate' }}</p>
                 <app-button variant="secondary" size="sm" (clicked)="router.navigate(['/programs', program.id])">
                   View
                 </app-button>

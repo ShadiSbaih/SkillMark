@@ -26,42 +26,42 @@
     <app-card>
       <div class="grid gap-6 lg:grid-cols-2">
         <div>
-          <p class="text-sm text-[#64748d]">Certificate number</p>
-          <p class="mt-1 text-lg font-semibold text-[#0d253d]">{{ cert.certificateNumber }}</p>
+          <p class="text-sm text-ink-mute">Certificate number</p>
+          <p class="mt-1 text-lg font-semibold text-ink">{{ cert.certificateNumber }}</p>
         </div>
         <div>
-          <p class="text-sm text-[#64748d]">Status</p>
+          <p class="text-sm text-ink-mute">Status</p>
           <div class="mt-1">
             <app-badge [variant]="statusVariant(cert.status)">{{ cert.status }}</app-badge>
           </div>
         </div>
         <div>
-          <p class="text-sm text-[#64748d]">Verification code</p>
-          <p class="mt-1 font-medium text-[#0d253d]">{{ cert.verificationCode }}</p>
+          <p class="text-sm text-ink-mute">Verification code</p>
+          <p class="mt-1 font-medium text-ink">{{ cert.verificationCode }}</p>
         </div>
         <div>
-          <p class="text-sm text-[#64748d]">Participant</p>
-          <p class="mt-1 font-medium text-[#0d253d]">{{ cert.participantNameSnapshot }}</p>
+          <p class="text-sm text-ink-mute">Participant</p>
+          <p class="mt-1 font-medium text-ink">{{ cert.participantNameSnapshot }}</p>
         </div>
         <div>
-          <p class="text-sm text-[#64748d]">Quiz</p>
-          <p class="mt-1 font-medium text-[#0d253d]">{{ cert.quizTitleSnapshot }}</p>
+          <p class="text-sm text-ink-mute">Quiz</p>
+          <p class="mt-1 font-medium text-ink">{{ cert.quizTitleSnapshot }}</p>
         </div>
         <div>
-          <p class="text-sm text-[#64748d]">Program</p>
-          <p class="mt-1 font-medium text-[#0d253d]">{{ cert.programTitleSnapshot }}</p>
+          <p class="text-sm text-ink-mute">Program</p>
+          <p class="mt-1 font-medium text-ink">{{ cert.programTitleSnapshot }}</p>
         </div>
         <div>
-          <p class="text-sm text-[#64748d]">Organization</p>
-          <p class="mt-1 font-medium text-[#0d253d]">{{ cert.organizationNameSnapshot }}</p>
+          <p class="text-sm text-ink-mute">Organization</p>
+          <p class="mt-1 font-medium text-ink">{{ cert.organizationNameSnapshot }}</p>
         </div>
         <div>
-          <p class="text-sm text-[#64748d]">Issued at</p>
-          <p class="mt-1 font-medium text-[#0d253d]">{{ cert.issuedAt | date:'medium' }}</p>
+          <p class="text-sm text-ink-mute">Issued at</p>
+          <p class="mt-1 font-medium text-ink">{{ cert.issuedAt | date:'medium' }}</p>
         </div>
         @if (cert.revokedAt) {
           <div class="lg:col-span-2">
-            <p class="text-sm text-[#64748d]">Revoked at</p>
+            <p class="text-sm text-ink-mute">Revoked at</p>
             <p class="mt-1 font-medium text-red-600">{{ cert.revokedAt | date:'medium' }}</p>
           </div>
         }
@@ -69,11 +69,11 @@
 
       @if (cert.qrCodeUrl) {
         <div class="mt-8 flex flex-col items-center">
-          <p class="text-sm text-[#64748d]">Scan to verify</p>
+          <p class="text-sm text-ink-mute">Scan to verify</p>
           <img
             [src]="cert.qrCodeUrl"
             alt="Certificate verification QR code"
-            class="mt-3 h-40 w-40 rounded-lg border border-[#e3e8ee]"
+            class="mt-3 h-40 w-40 rounded-lg border border-hairline"
           />
         </div>
       }

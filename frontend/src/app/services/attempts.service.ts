@@ -30,7 +30,7 @@ export class AttemptsService {
       queryKey: ['attempts', 'me', params.page, params.size] as const,
       queryFn: () =>
         lastValueFrom(
-          this.api.getPage<AttemptResponse>('quiz-attempts/me', {
+          this.api.getPage<AttemptResponse>('me/attempts', {
             page: params.page,
             size: params.size,
           })

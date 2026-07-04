@@ -90,7 +90,11 @@ export class ProgramsService {
 
   readonly publishMutation = injectMutation(() => ({
     mutationFn: (programId: string) =>
-      lastValueFrom(this.api.post<ProgramResponse>(`programs/${programId}/publish`, null)),
+      lastValueFrom(
+        this.api.patch<ProgramResponse>(`programs/${programId}/status`, {
+          status: 'PUBLISHED',
+        })
+      ),
     onSuccess: (_, programId) => {
       this.queryClient.invalidateQueries({ queryKey: ['program', programId] });
       this.queryClient.invalidateQueries({ queryKey: ['programs'] });
@@ -99,7 +103,11 @@ export class ProgramsService {
 
   readonly archiveMutation = injectMutation(() => ({
     mutationFn: (programId: string) =>
-      lastValueFrom(this.api.post<ProgramResponse>(`programs/${programId}/archive`, null)),
+      lastValueFrom(
+        this.api.patch<ProgramResponse>(`programs/${programId}/status`, {
+          status: 'ARCHIVED',
+        })
+      ),
     onSuccess: (_, programId) => {
       this.queryClient.invalidateQueries({ queryKey: ['program', programId] });
       this.queryClient.invalidateQueries({ queryKey: ['programs'] });

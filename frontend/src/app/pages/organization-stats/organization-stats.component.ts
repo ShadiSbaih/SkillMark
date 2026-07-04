@@ -20,11 +20,7 @@ import { ErrorStateComponent } from '../../shared/components/error-state/error-s
     ErrorStateComponent,
   ],
   templateUrl: './organization-stats.component.html',
-  styles: `
-    :host {
-      display: block;
-    }
-  `,
+  styleUrl: './organization-stats.component.scss',
 })
 export class OrganizationStatsComponent {
   private readonly route = inject(ActivatedRoute);

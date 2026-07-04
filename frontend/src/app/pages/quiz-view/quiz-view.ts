@@ -22,7 +22,7 @@ import { ErrorStateComponent } from '../../shared/components/error-state/error-s
     ErrorStateComponent,
   ],
   templateUrl: './quiz-view.html',
-  styles: ``,
+  styleUrl: './quiz-view.scss',
 })
 export class QuizView {
   private readonly route = inject(ActivatedRoute);

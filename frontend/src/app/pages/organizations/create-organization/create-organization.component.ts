@@ -11,6 +11,7 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
   standalone: true,
   imports: [ReactiveFormsModule, ButtonComponent, CardComponent, PageHeaderComponent],
   templateUrl: './create-organization.component.html',
+  styleUrl: './create-organization.component.scss',
 })
 export class CreateOrganizationComponent {
   readonly router = inject(Router);

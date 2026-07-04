@@ -81,7 +81,7 @@
           } @else {
             <div class="space-y-4">
               @for (question of quiz.questions; track question.id; let i = $index) {
-                <div class="rounded-lg border border-[var(--hairline)] p-4">
+                <div class="rounded-lg border border-hairline p-4">
                   <div class="mb-2 flex items-center justify-between gap-4">
                     <p class="font-medium">{{ i + 1 }}. {{ question.text }}</p>
                     <app-badge variant="info">{{ question.points }} pts</app-badge>
@@ -90,13 +90,13 @@
                     @for (option of question.options; track option.id) {
                       <div
                         class="flex items-center gap-2 rounded-md border px-3 py-2 text-sm"
-                        [class.border-[var(--primary)]]="option.isCorrect"
-                        [class.bg-[var(--canvas-soft)]]="option.isCorrect"
+                        [class.border-primary]="option.isCorrect"
+                        [class.bg-canvas-soft]="option.isCorrect"
                       >
                         <span
                           class="h-2 w-2 rounded-full"
-                          [class.bg-[var(--primary)]]="option.isCorrect"
-                          [class.bg-[var(--hairline-input)]]="!option.isCorrect"
+                          [class.bg-primary]="option.isCorrect"
+                          [class.bg-hairline-input]="!option.isCorrect"
                         ></span>
                         <span>{{ option.text }}</span>
                       </div>
@@ -112,7 +112,7 @@
       <div class="space-y-6">
         <app-card>
           <h2 class="mb-4 text-lg font-semibold">Visibility</h2>
-          <p class="mb-4 text-sm text-[var(--ink-mute)]">
+          <p class="mb-4 text-sm text-ink-mute">
             Participants can only see and attempt this quiz when it is visible.
           </p>
           <app-button
@@ -137,6 +137,7 @@
   (confirm)="confirmPublish()"
 >
   <p>
-    Once published, participants will be able to view and attempt this quiz. You will still be able to edit some settings.
+    Once published, participants will be able to view and attempt this quiz. You will still be able
+    to edit some settings.
   </p>
 </app-modal>

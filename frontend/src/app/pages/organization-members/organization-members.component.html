@@ -104,7 +104,7 @@
               >
                 Previous
               </app-button>
-              <span class="flex items-center px-3 text-sm text-[#64748d]">
+              <span class="flex items-center px-3 text-sm text-ink-mute">
                 Page {{ pageInfo().page + 1 }} of {{ pageInfo().totalPages }}
               </span>
               <app-button
@@ -125,18 +125,18 @@
 
 @if (showAddModal()) {
   <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+    class="fixed inset-0 z-50 flex items-center justify-center backdrop-dark p-4"
     (click)="closeAddModal()"
   >
     <app-card class="w-full max-w-md" (click)="$event.stopPropagation()">
       <div class="mb-4 flex items-center justify-between">
-        <h3 class="text-lg font-medium text-[#0d253d]">Add member</h3>
+        <h3 class="text-lg font-medium text-ink">Add member</h3>
         <app-button variant="ghost" size="sm" (clicked)="closeAddModal()">Close</app-button>
       </div>
 
       <form [formGroup]="addForm" (ngSubmit)="addMember()" class="space-y-4">
         <div>
-          <label for="userId" class="mb-1 block text-sm font-medium text-[#0d253d]">
+          <label for="userId" class="mb-1 block text-sm font-medium text-ink">
             User ID
           </label>
           <input
@@ -144,16 +144,16 @@
             formControlName="userId"
             type="text"
             placeholder="Paste the user ID"
-            class="block w-full rounded-md border border-[#a8c3de] px-3 py-2 text-sm"
+            class="member-form-control"
           />
         </div>
 
         <div>
-          <label for="role" class="mb-1 block text-sm font-medium text-[#0d253d]">Role</label>
+          <label for="role" class="mb-1 block text-sm font-medium text-ink">Role</label>
           <select
             id="role"
             formControlName="role"
-            class="block w-full rounded-md border border-[#a8c3de] px-3 py-2 text-sm"
+            class="member-form-control"
           >
             @for (role of roles; track role) {
               <option [value]="role">{{ role }}</option>
@@ -161,7 +161,7 @@
           </select>
         </div>
 
-        <div class="flex justify-end gap-3 pt-2">
+        <div class="modal-form-actions">
           <app-button type="button" variant="secondary" (clicked)="closeAddModal()">
             Cancel
           </app-button>

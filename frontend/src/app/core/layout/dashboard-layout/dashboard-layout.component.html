@@ -1,24 +1,24 @@
-<div class="flex h-screen w-full overflow-x-hidden bg-[#f6f9fc] text-[#0d253d]">
+<div class="flex h-screen w-full overflow-x-hidden bg-canvas-soft text-ink">
   <!-- Sidebar -->
   <aside
-    class="fixed inset-y-0 left-0 z-40 w-64 transform border-r border-[#a8c3de] bg-white transition-transform duration-200 ease-in-out lg:static lg:translate-x-0"
+    class="dashboard-sidebar fixed inset-y-0 z-40 w-64 border-r border-input bg-white transition-transform duration-200 ease-in-out lg:static lg:translate-x-0"
     [class.-translate-x-full]="!mobileOpen()"
   >
-    <div class="flex h-16 items-center border-b border-[#a8c3de] px-6">
-      <a class="flex items-center gap-2 font-semibold text-[#533afd]" routerLink="/">
-        <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-[#533afd] text-white">S</span>
+    <div class="sidebar-header flex h-16 items-center border-b border-input">
+      <a class="flex items-center gap-2 font-semibold text-primary" routerLink="/">
+        <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white">S</span>
         <span>Skillmark</span>
       </a>
     </div>
 
-    <nav class="flex flex-col gap-1 p-4" aria-label="Owner navigation">
-      <p class="px-3 text-xs font-semibold uppercase tracking-wider text-[#64748d]">Owner</p>
+    <nav class="nav-section flex flex-col gap-1" aria-label="Owner navigation">
+      <p class="px-3 text-xs font-semibold uppercase tracking-wider text-ink-mute">Owner</p>
       @for (link of ownerLinks; track link.route) {
         <a
           [routerLink]="link.route"
-          routerLinkActive="bg-[#f6f9fc] text-[#533afd]"
+          routerLinkActive="bg-canvas-soft text-primary"
           [routerLinkActiveOptions]="{ exact: true }"
-          class="rounded-md px-3 py-2 text-sm font-medium text-[#64748d] hover:bg-[#f6f9fc] hover:text-[#0d253d]"
+          class="nav-link text-sm font-medium text-ink-mute hover:bg-canvas-soft hover:text-ink"
           (click)="closeMobile()"
         >
           {{ link.label }}
@@ -26,13 +26,13 @@
       }
     </nav>
 
-    <nav class="flex flex-col gap-1 p-4 pt-0" aria-label="Participant navigation">
-      <p class="px-3 text-xs font-semibold uppercase tracking-wider text-[#64748d]">Participant</p>
+    <nav class="nav-section no-pt flex flex-col gap-1" aria-label="Participant navigation">
+      <p class="px-3 text-xs font-semibold uppercase tracking-wider text-ink-mute">Participant</p>
       @for (link of participantLinks; track link.route) {
         <a
           [routerLink]="link.route"
-          routerLinkActive="bg-[#f6f9fc] text-[#533afd]"
-          class="rounded-md px-3 py-2 text-sm font-medium text-[#64748d] hover:bg-[#f6f9fc] hover:text-[#0d253d]"
+          routerLinkActive="bg-canvas-soft text-primary"
+          class="nav-link text-sm font-medium text-ink-mute hover:bg-canvas-soft hover:text-ink"
           (click)="closeMobile()"
         >
           {{ link.label }}
@@ -43,16 +43,16 @@
 
   <!-- Mobile overlay -->
   @if (mobileOpen()) {
-    <div class="fixed inset-0 z-30 bg-black/50 lg:hidden" (click)="closeMobile()"></div>
+    <div class="fixed inset-0 z-30 backdrop-dark lg:hidden" (click)="closeMobile()"></div>
   }
 
   <!-- Main area -->
   <div class="flex min-w-0 flex-1 flex-col">
     <!-- Top bar -->
-    <header class="flex h-16 items-center justify-between border-b border-[#a8c3de] bg-white px-4 lg:px-6">
+    <header class="flex h-16 items-center justify-between border-b border-input bg-white px-4 lg:px-6">
       <div class="flex items-center gap-3">
         <button
-          class="rounded-md p-2 text-[#64748d] hover:bg-[#f6f9fc] lg:hidden"
+          class="rounded-md p-2 text-ink-mute hover:bg-canvas-soft lg:hidden"
           (click)="toggleMobile()"
           aria-label="Toggle navigation"
         >
@@ -62,15 +62,15 @@
         </button>
 
         <div class="hidden items-center gap-2 sm:flex">
-          <label class="text-sm font-medium text-[#64748d]" for="org-select">Organization</label>
+          <label class="text-sm font-medium text-ink-mute" for="org-select">Organization</label>
           @if (listQuery.isLoading()) {
-            <span class="text-sm text-[#64748d]">Loading…</span>
+            <span class="text-sm text-ink-mute">Loading…</span>
           } @else if (listQuery.error()) {
-            <span class="text-sm text-[#b91c1c]">Failed to load</span>
+            <span class="text-sm text-red-700">Failed to load</span>
           } @else {
             <select
               id="org-select"
-              class="rounded-md border border-[#a8c3de] bg-[#f6f9fc] px-3 py-1.5 text-sm text-[#0d253d] focus:border-[#533afd] focus:outline-none focus:ring-1 focus:ring-[#533afd]"
+              class="select rounded-md border-input bg-canvas-soft px-3 py-1-5 text-sm text-ink focus-ring-primary"
               [value]="selectedOrganizationId() ?? ''"
               (change)="onOrganizationChange($event)"
             >
@@ -85,7 +85,7 @@
 
       <div class="flex items-center gap-4">
         <a
-          class="text-sm font-medium text-[#64748d] hover:text-[#0d253d]"
+          class="text-sm font-medium text-ink-mute hover:text-ink"
           routerLink="/verify"
         >
           Verify

@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   ApiErrorResponse,
   ApiResponse,
-  PaginatedResponse,
   isApiErrorResponse,
 } from './api-response.model';
 
@@ -32,24 +31,6 @@ describe('ApiResponse types', () => {
     expect(response.errors?.[0].field).toBe('name');
   });
 
-  it('accepts a paginated response', () => {
-    const response: PaginatedResponse<string> = {
-      success: true,
-      message: 'OK',
-      data: ['a', 'b'],
-      timestamp: '2026-07-02T00:00:00Z',
-      pagination: {
-        page: 0,
-        size: 10,
-        totalElements: 2,
-        totalPages: 1,
-        hasNext: false,
-        hasPrevious: false,
-      },
-    };
-
-    expect(response.pagination.totalElements).toBe(2);
-  });
 });
 
 describe('isApiErrorResponse', () => {

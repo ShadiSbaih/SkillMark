@@ -1,8 +1,8 @@
 @if (quizQuery.isPending()) {
   <div class="space-y-4">
-    <div class="h-8 w-1/3 animate-pulse rounded bg-[#e1ebf5]"></div>
-    <div class="h-4 w-1/2 animate-pulse rounded bg-[#e1ebf5]"></div>
-    <div class="h-48 animate-pulse rounded bg-[#e1ebf5]"></div>
+    <div class="h-8 w-1-3 animate-pulse rounded bg-gray-light"></div>
+    <div class="h-4 w-1-2 animate-pulse rounded bg-gray-light"></div>
+    <div class="skeleton-lg animate-pulse rounded bg-gray-light"></div>
   </div>
 }
 
@@ -17,10 +17,10 @@
   <div class="space-y-6">
     <header class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <p class="text-xs font-medium uppercase text-[#64748d]">Quiz preview</p>
-        <h1 class="mt-1 text-2xl font-bold text-[#0d253d]">{{ quiz.title }}</h1>
+        <p class="text-xs font-medium uppercase text-ink-mute">Quiz preview</p>
+        <h1 class="mt-1 text-2xl font-bold text-ink">{{ quiz.title }}</h1>
         @if (quiz.description) {
-          <p class="mt-1 text-sm text-[#64748d]">{{ quiz.description }}</p>
+          <p class="mt-1 text-sm text-ink-mute">{{ quiz.description }}</p>
         }
       </div>
       <div class="flex gap-3">
@@ -36,26 +36,26 @@
     <app-card>
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <p class="text-xs font-medium uppercase text-[#64748d]">Passing score</p>
-          <p class="text-lg font-semibold text-[#0d253d]">{{ quiz.passingScore | number }}%</p>
+          <p class="text-xs font-medium uppercase text-ink-mute">Passing score</p>
+          <p class="text-lg font-semibold text-ink">{{ quiz.passingScore | number }}%</p>
         </div>
         <div>
-          <p class="text-xs font-medium uppercase text-[#64748d]">Duration</p>
-          <p class="text-lg font-semibold text-[#0d253d]">{{ quiz.durationMinutes }} min</p>
+          <p class="text-xs font-medium uppercase text-ink-mute">Duration</p>
+          <p class="text-lg font-semibold text-ink">{{ quiz.durationMinutes }} min</p>
         </div>
         <div>
-          <p class="text-xs font-medium uppercase text-[#64748d]">Max attempts</p>
-          <p class="text-lg font-semibold text-[#0d253d]">{{ quiz.maxAttempts }}</p>
+          <p class="text-xs font-medium uppercase text-ink-mute">Max attempts</p>
+          <p class="text-lg font-semibold text-ink">{{ quiz.maxAttempts }}</p>
         </div>
         <div>
-          <p class="text-xs font-medium uppercase text-[#64748d]">Questions</p>
-          <p class="text-lg font-semibold text-[#0d253d]">{{ quiz.questions.length }}</p>
+          <p class="text-xs font-medium uppercase text-ink-mute">Questions</p>
+          <p class="text-lg font-semibold text-ink">{{ quiz.questions.length }}</p>
         </div>
       </div>
     </app-card>
 
     <app-card>
-      <h2 class="mb-4 text-lg font-semibold text-[#0d253d]">
+      <h2 class="mb-4 text-lg font-semibold text-ink">
         Questions ({{ totalPoints() }} points total)
       </h2>
       @if (quiz.questions.length === 0) {
@@ -63,23 +63,23 @@
       } @else {
         <ol class="space-y-6">
           @for (question of quiz.questions; track question.id; let i = $index) {
-            <li class="rounded-lg border border-[#e1ebf5] p-4">
-              <p class="font-medium text-[#0d253d]">
-                <span class="mr-2 text-[#64748d]">{{ i + 1 }}.</span>{{ question.text }}
-                <span class="ml-2 text-xs font-normal text-[#64748d]">({{ question.points }} pts)</span>
+            <li class="rounded-lg border border-light p-4">
+              <p class="font-medium text-ink">
+                <span class="question-number">{{ i + 1 }}.</span>{{ question.text }}
+                <span class="question-points">({{ question.points }} pts)</span>
               </p>
               <ul class="mt-3 space-y-2">
                 @for (option of question.options; track option.id) {
                   <li
                     class="rounded border px-3 py-2 text-sm"
-                    [class.border-[#2ec27e]]="option.isCorrect"
-                    [class.bg-[#e8f8f0]]="option.isCorrect"
-                    [class.border-[#e1ebf5]]="!option.isCorrect"
-                    [class.text-[#0d253d]]="!option.isCorrect"
+                    [class.border-success]="option.isCorrect"
+                    [class.bg-success-light]="option.isCorrect"
+                    [class.border-light]="!option.isCorrect"
+                    [class.text-ink]="!option.isCorrect"
                   >
                     {{ option.text }}
                     @if (option.isCorrect) {
-                      <span class="ml-2 text-xs font-medium text-[#2ec27e]">Correct</span>
+                      <span class="option-correct-badge">Correct</span>
                     }
                   </li>
                 }

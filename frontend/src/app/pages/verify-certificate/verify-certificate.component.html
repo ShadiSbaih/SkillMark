@@ -1,17 +1,17 @@
-<section class="flex min-h-[calc(100vh-76px)] items-center justify-center px-4 py-12 sm:px-6">
-  <div class="w-full max-w-2xl rounded-lg border border-[#a8c3de] bg-white p-6 shadow-sm sm:p-8">
-    <p class="text-xs font-semibold uppercase tracking-wide text-[#533afd]">Public verification</p>
-    <h1 class="mt-2 text-2xl font-semibold text-[#0d253d]">Certificate Verification</h1>
-    <p class="mt-1 text-sm text-[#64748d]">Enter a Skillmark verification code to confirm status, recipient, issuer, and program.</p>
+<section class="verify-section flex min-h-screen-minus-header items-center justify-center px-4 sm:px-6">
+  <div class="w-full max-w-2xl rounded-lg border border-input bg-white p-6 shadow-sm sm:p-8">
+    <p class="text-xs font-semibold uppercase tracking-wide text-primary">Public verification</p>
+    <h1 class="mt-2 text-2xl font-semibold text-ink">Certificate Verification</h1>
+    <p class="mt-1 text-sm text-ink-mute">Enter a Skillmark verification code to confirm status, recipient, issuer, and program.</p>
 
     <form class="mt-6 flex flex-col items-end gap-3 sm:flex-row" (ngSubmit)="verify()">
       <label class="w-full flex-1">
-        <span class="block text-sm font-medium text-[#0d253d]">Verification code</span>
+        <span class="block text-sm font-medium text-ink">Verification code</span>
         <input
           name="code"
           [(ngModel)]="inputCode"
           placeholder="A3FX9KL2MN8PQR7Z"
-          class="mt-1 w-full rounded-md border border-[#a8c3de] bg-white px-3 py-2 text-sm text-[#0d253d] placeholder-[#94a3b8] focus:border-[#533afd] focus:outline-none focus:ring-1 focus:ring-[#533afd]"
+          class="verify-input mt-1 w-full rounded-md border border-input bg-white px-3 py-2 text-sm text-ink focus-ring-primary"
         />
       </label>
       <app-button class="w-full sm:w-auto" type="submit">Verify</app-button>
@@ -30,28 +30,28 @@
       <app-card class="mt-8 block">
         <div class="flex items-start justify-between">
           <div>
-            <p class="text-xs font-medium text-[#64748d]">{{ certificate.certificateNumber }}</p>
-            <h2 class="mt-1 text-xl font-semibold text-[#0d253d]">{{ certificate.participantName }}</h2>
+            <p class="text-xs font-medium text-ink-mute">{{ certificate.certificateNumber }}</p>
+            <h2 class="mt-1 text-xl font-semibold text-ink">{{ certificate.participantName }}</h2>
           </div>
           <app-badge [variant]="statusVariant(certificate.status)">{{ certificate.status }}</app-badge>
         </div>
 
         <div class="mt-6 grid gap-4 sm:grid-cols-2">
           <div>
-            <p class="text-sm text-[#64748d]">Quiz</p>
-            <p class="mt-1 font-medium text-[#0d253d]">{{ certificate.quizTitle }}</p>
+            <p class="text-sm text-ink-mute">Quiz</p>
+            <p class="mt-1 font-medium text-ink">{{ certificate.quizTitle }}</p>
           </div>
           <div>
-            <p class="text-sm text-[#64748d]">Program</p>
-            <p class="mt-1 font-medium text-[#0d253d]">{{ certificate.programTitle }}</p>
+            <p class="text-sm text-ink-mute">Program</p>
+            <p class="mt-1 font-medium text-ink">{{ certificate.programTitle }}</p>
           </div>
           <div>
-            <p class="text-sm text-[#64748d]">Organization</p>
-            <p class="mt-1 font-medium text-[#0d253d]">{{ certificate.organizationName }}</p>
+            <p class="text-sm text-ink-mute">Organization</p>
+            <p class="mt-1 font-medium text-ink">{{ certificate.organizationName }}</p>
           </div>
           <div>
-            <p class="text-sm text-[#64748d]">Issued at</p>
-            <p class="mt-1 font-medium text-[#0d253d]">{{ certificate.issuedAt | date:'medium' }}</p>
+            <p class="text-sm text-ink-mute">Issued at</p>
+            <p class="mt-1 font-medium text-ink">{{ certificate.issuedAt | date:'medium' }}</p>
           </div>
         </div>
 
@@ -77,7 +77,7 @@
     }
 
     <div class="mt-6 text-center">
-      <a class="text-sm font-medium text-[#533afd] hover:text-[#3f2bd4]" routerLink="/">Back to Skillmark</a>
+      <a class="back-link text-sm font-medium text-primary" routerLink="/">Back to Skillmark</a>
     </div>
   </div>
 </section>

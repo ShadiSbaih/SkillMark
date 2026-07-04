@@ -12,7 +12,7 @@
 
   <app-card class="mb-6 block">
     <div class="flex items-center justify-between">
-      <p class="text-sm text-[#64748d]">Use the enroll button to add a participant by user ID.</p>
+      <p class="text-sm text-ink-mute">Use the enroll button to add a participant by user ID.</p>
       <app-button type="button" variant="secondary" (clicked)="openEnrollModal()">
         Enroll user
       </app-button>
@@ -88,7 +88,7 @@
               >
                 Previous
               </app-button>
-              <span class="flex items-center px-3 text-sm text-[#64748d]">
+              <span class="flex items-center px-3 text-sm text-ink-mute">
                 Page {{ pageInfo().page + 1 }} of {{ pageInfo().totalPages }}
               </span>
               <app-button
@@ -109,18 +109,18 @@
 
 @if (showEnrollModal()) {
   <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+    class="fixed inset-0 z-50 flex items-center justify-center backdrop-dark p-4"
     (click)="closeEnrollModal()"
   >
     <app-card class="w-full max-w-md" (click)="$event.stopPropagation()">
       <div class="mb-4 flex items-center justify-between">
-        <h3 class="text-lg font-medium text-[#0d253d]">Enroll user</h3>
+        <h3 class="text-lg font-medium text-ink">Enroll user</h3>
         <app-button variant="ghost" size="sm" (clicked)="closeEnrollModal()">Close</app-button>
       </div>
 
       <form [formGroup]="enrollForm" (ngSubmit)="enrollUser()" class="space-y-4">
         <div>
-          <label for="userId" class="mb-1 block text-sm font-medium text-[#0d253d]">
+          <label for="userId" class="mb-1 block text-sm font-medium text-ink">
             User ID
           </label>
           <input
@@ -128,7 +128,7 @@
             formControlName="userId"
             type="text"
             placeholder="Paste the user ID"
-            class="block w-full rounded-md border border-[#a8c3de] px-3 py-2 text-sm"
+            class="block w-full rounded-md border border-input px-3 py-2 text-sm"
           />
         </div>
 

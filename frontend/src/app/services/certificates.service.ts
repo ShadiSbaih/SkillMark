@@ -30,7 +30,7 @@ export class CertificatesService {
       queryKey: ['certificates', 'me', params.page, params.size] as const,
       queryFn: () =>
         lastValueFrom(
-          this.api.getPage<CertificateResponse>('certificates/me', {
+          this.api.getPage<CertificateResponse>('me/certificates', {
             page: params.page,
             size: params.size,
           })
@@ -68,9 +68,9 @@ export class CertificatesService {
       request: RevokeCertificateRequest;
     }) =>
       lastValueFrom(
-        this.api.post<CertificateResponse>(
-          `certificates/${certificateId}/revoke`,
-          request
+        this.api.patch<CertificateResponse>(
+          `certificates/${certificateId}/status`,
+          { status: 'REVOKED', reason: request.reason }
         )
       ),
     onSuccess: (_, variables) => {
@@ -97,7 +97,7 @@ export class CertificatesService {
       queryFn: () =>
         lastValueFrom(
           this.api.getPage<CertificateResponse>(
-            `certificates/organization/${organizationId()}`,
+            `organizations/${organizationId()}/certificates`,
             {
               page: page(),
               size: size(),

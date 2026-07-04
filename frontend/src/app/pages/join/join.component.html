@@ -1,17 +1,17 @@
-<div class="flex min-h-[60vh] items-center justify-center">
+<div class="flex min-h-60vh items-center justify-center">
   <app-card class="w-full max-w-md">
     <div class="text-center">
       @if (invitationsService.joinMutation.isPending()) {
-        <h1 class="mb-4 text-xl font-semibold text-[#0d253d]">Joining program...</h1>
+        <h1 class="mb-4 text-xl font-semibold text-ink">Joining program...</h1>
         <app-loading-state message="Joining program, please wait..." />
       } @else if (error()) {
-        <h1 class="mb-4 text-xl font-semibold text-[#0d253d]">Could not join</h1>
+        <h1 class="mb-4 text-xl font-semibold text-ink">Could not join</h1>
         <app-error-state
           [message]="error() ?? 'Failed to join the program.'"
           (retry)="retry()"
         />
       } @else {
-        <h1 class="mb-4 text-xl font-semibold text-[#0d253d]">Joining program...</h1>
+        <h1 class="mb-4 text-xl font-semibold text-ink">Joining program...</h1>
         <app-loading-state message="Preparing your invitation..." />
       }
     </div>

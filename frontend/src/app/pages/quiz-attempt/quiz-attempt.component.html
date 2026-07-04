@@ -38,7 +38,7 @@
       </header>
 
       <div class="flex flex-col gap-5 lg:flex-row">
-        <div class="stack min-w-0 w-full lg:w-[60%]">
+        <div class="stack min-w-0 w-full lg:w-60">
           @let question = currentQuestion();
           @if (question) {
             <article class="panel question-card">
@@ -81,11 +81,9 @@
           </div>
         </div>
 
-        <aside class="panel min-w-0 w-full lg:w-[40%]">
+        <aside class="panel min-w-0 w-full lg:w-40">
           <h2>Question navigator</h2>
-          <p class="muted">
-            {{ answeredCount() }} of {{ totalQuestions() }} answered
-          </p>
+          <p class="muted">{{ answeredCount() }} of {{ totalQuestions() }} answered</p>
 
           <div class="navigator-grid">
             @for (q of quiz.questions; track q.id; let i = $index) {
@@ -104,9 +102,18 @@
           <div class="attempt-summary">
             <h3>Attempt summary</h3>
             <dl class="detail-grid single">
-              <div><dt>Passing score</dt><dd>{{ quiz.passingScore }}%</dd></div>
-              <div><dt>Duration</dt><dd>{{ quiz.durationMinutes }} minutes</dd></div>
-              <div><dt>Max attempts</dt><dd>{{ quiz.maxAttempts }}</dd></div>
+              <div>
+                <dt>Passing score</dt>
+                <dd>{{ quiz.passingScore }}%</dd>
+              </div>
+              <div>
+                <dt>Duration</dt>
+                <dd>{{ quiz.durationMinutes }} minutes</dd>
+              </div>
+              <div>
+                <dt>Max attempts</dt>
+                <dd>{{ quiz.maxAttempts }}</dd>
+              </div>
             </dl>
           </div>
 
@@ -132,7 +139,7 @@
   (confirm)="confirmSubmit()"
 >
   <p>
-    You have answered {{ answeredCount() }} of {{ totalQuestions() }} questions.
-    Once submitted, you cannot change your answers.
+    You have answered {{ answeredCount() }} of {{ totalQuestions() }} questions. Once submitted, you
+    cannot change your answers.
   </p>
 </app-modal>

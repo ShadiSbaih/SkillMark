@@ -64,7 +64,9 @@ export class InvitationsService {
   readonly disableMutation = injectMutation(() => ({
     mutationFn: (invitationId: string) =>
       lastValueFrom(
-        this.api.post<Invitation>(`invitations/${invitationId}/disable`, null)
+        this.api.patch<Invitation>(`invitations/${invitationId}/status`, {
+          status: 'DISABLED',
+        })
       ),
     onSuccess: () => {
       this.queryClient.invalidateQueries({ queryKey: ['invitations'] });

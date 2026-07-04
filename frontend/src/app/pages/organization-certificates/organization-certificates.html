@@ -1,7 +1,7 @@
 @if (certificatesQuery.isPending()) {
   <div class="space-y-4">
-    <div class="h-8 w-1/3 animate-pulse rounded bg-[#e1ebf5]"></div>
-    <div class="h-48 animate-pulse rounded bg-[#e1ebf5]"></div>
+    <div class="h-8 w-1-3 animate-pulse rounded bg-gray-light"></div>
+    <div class="cert-skeleton-lg animate-pulse rounded bg-gray-light"></div>
   </div>
 }
 
@@ -14,9 +14,9 @@
 
 @if (!certificatesQuery.isPending() && !certificatesQuery.error()) {
   <header class="mb-6">
-    <p class="text-xs font-medium uppercase text-[#64748d]">Organization</p>
-    <h1 class="text-2xl font-bold text-[#0d253d]">Certificates</h1>
-    <p class="text-sm text-[#64748d]">Manage certificates issued within this organization.</p>
+    <p class="text-xs font-medium uppercase text-ink-mute">Organization</p>
+    <h1 class="text-2xl font-bold text-ink">Certificates</h1>
+    <p class="text-sm text-ink-mute">Manage certificates issued within this organization.</p>
   </header>
 
   <app-card>
@@ -26,31 +26,31 @@
       <div class="table-wrap">
         <table class="w-full text-sm">
           <thead>
-            <tr class="border-b border-[#e1ebf5]">
-              <th class="py-2 text-left font-medium text-[#64748d]">Number</th>
-              <th class="py-2 text-left font-medium text-[#64748d]">Participant</th>
-              <th class="py-2 text-left font-medium text-[#64748d]">Quiz</th>
-              <th class="py-2 text-left font-medium text-[#64748d]">Issued</th>
-              <th class="py-2 text-left font-medium text-[#64748d]">Status</th>
-              <th class="py-2 text-right font-medium text-[#64748d]">Actions</th>
+            <tr class="border-b border-light">
+              <th class="py-2 text-left font-medium text-ink-mute">Number</th>
+              <th class="py-2 text-left font-medium text-ink-mute">Participant</th>
+              <th class="py-2 text-left font-medium text-ink-mute">Quiz</th>
+              <th class="py-2 text-left font-medium text-ink-mute">Issued</th>
+              <th class="py-2 text-left font-medium text-ink-mute">Status</th>
+              <th class="py-2 text-right font-medium text-ink-mute">Actions</th>
             </tr>
           </thead>
           <tbody>
             @for (certificate of certificates(); track certificate.id) {
-              <tr class="border-b border-[#e1ebf5] last:border-0">
-                <td class="py-3 font-medium text-[#0d253d]">
+              <tr class="cert-row">
+                <td class="py-3 font-medium text-ink">
                   <a [routerLink]="['/certificates', certificate.id]" class="hover:underline">
                     {{ certificate.certificateNumber }}
                   </a>
                 </td>
-                <td class="py-3 text-[#0d253d]">{{ certificate.participantNameSnapshot }}</td>
-                <td class="py-3 text-[#64748d]">{{ certificate.quizTitleSnapshot }}</td>
-                <td class="py-3 text-[#64748d]">{{ certificate.issuedAt | date:'mediumDate' }}</td>
+                <td class="py-3 text-ink">{{ certificate.participantNameSnapshot }}</td>
+                <td class="py-3 text-ink-mute">{{ certificate.quizTitleSnapshot }}</td>
+                <td class="py-3 text-ink-mute">{{ certificate.issuedAt | date:'mediumDate' }}</td>
                 <td class="py-3">
                   <span
                     class="status"
                     [class.status-published]="certificate.status === 'ACTIVE'"
-                    [class.status-archived]="certificate.status === 'REVOKED'"
+                    [class.status-revoked]="certificate.status === 'REVOKED'"
                   >
                     {{ certificate.status }}
                   </span>
@@ -67,19 +67,19 @@
           </tbody>
         </table>
       </div>
-      <div class="flex items-center justify-between border-t border-[#e1ebf5] pt-4">
+      <div class="cert-pagination">
         <button
           type="button"
-          class="rounded-md border border-[#a8c3de] px-3 py-1.5 text-sm text-[#0d253d] hover:bg-[#f6f9fc] disabled:opacity-50"
+          class="cert-page-btn"
           [disabled]="page() === 0"
           (click)="previousPage()"
         >
           Previous
         </button>
-        <span class="text-sm text-[#64748d]">Page {{ page() + 1 }} of {{ totalPages() || 1 }}</span>
+        <span class="text-sm text-ink-mute">Page {{ page() + 1 }} of {{ totalPages() || 1 }}</span>
         <button
           type="button"
-          class="rounded-md border border-[#a8c3de] px-3 py-1.5 text-sm text-[#0d253d] hover:bg-[#f6f9fc] disabled:opacity-50"
+          class="cert-page-btn"
           [disabled]="page() >= totalPages() - 1"
           (click)="nextPage()"
         >

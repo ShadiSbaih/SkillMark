@@ -26,6 +26,7 @@ interface NavLink {
   standalone: true,
   imports: [RouterLink, RouterLinkActive, RouterOutlet, ClerkUserButtonComponent],
   templateUrl: './dashboard-layout.component.html',
+  styleUrl: './dashboard-layout.component.scss',
 })
 export class DashboardLayoutComponent {
   private readonly router = inject(Router);

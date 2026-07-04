@@ -8,7 +8,6 @@ import {
   ApiErrorResponse,
   ApiResponse,
   PageResponse,
-  PaginatedResponse,
   isApiErrorResponse,
 } from './api-response.model';
 
@@ -23,20 +22,6 @@ export class ApiClientService {
 
   get<T>(endpoint: string, params?: Record<string, QueryParamValue>): Observable<T> {
     return this.request<T>('GET', endpoint, { params: this.buildParams(params) });
-  }
-
-  getPaginated<T>(
-    endpoint: string,
-    params?: Record<string, QueryParamValue>
-  ): Observable<PaginatedResponse<T>> {
-    return this.http
-      .get<ApiResponse<PaginatedResponse<T>>>(this.buildUrl(endpoint), {
-        params: this.buildParams(params),
-      })
-      .pipe(
-        map((response) => this.unwrapPaginatedResponse(response)),
-        catchError((error) => throwError(() => this.normalizeError(error)))
-      );
   }
 
   getPage<T>(endpoint: string, params?: Record<string, QueryParamValue>): Observable<PageResponse<T>> {
@@ -113,19 +98,11 @@ export class ApiClientService {
     return response.data;
   }
 
-  private unwrapPaginatedResponse<T>(
-    response: ApiResponse<PaginatedResponse<T>>
-  ): PaginatedResponse<T> {
-    if (!response.success) {
-      throw this.createApiError(response);
-    }
-    return response.data;
-  }
-
   private createApiError<T>(response: ApiResponse<T>): ApiErrorResponse {
     return {
       success: false,
       message: response.message,
+      code: (response as { code?: string }).code,
       timestamp: response.timestamp,
     };
   }

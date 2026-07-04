@@ -17,22 +17,22 @@
       <app-card>
         <div class="flex items-start justify-between">
           <div>
-            <p class="text-xs font-medium text-[#64748d]">Attempt #{{ attempt.attemptNumber }}</p>
-            <h3 class="mt-1 text-lg font-semibold text-[#0d253d]">Quiz attempt</h3>
+            <p class="text-xs font-medium text-ink-mute">Attempt #{{ attempt.attemptNumber }}</p>
+            <h3 class="mt-1 text-lg font-semibold text-ink">Quiz attempt</h3>
           </div>
           <app-badge [variant]="statusVariant(attempt.passed)">
             {{ attempt.passed ? 'Passed' : 'Failed' }}
           </app-badge>
         </div>
 
-        <div class="mt-4 space-y-1 text-sm text-[#64748d]">
-          <p><span class="font-medium text-[#0d253d]">Score:</span> {{ attempt.scorePercentage }}%</p>
-          <p><span class="font-medium text-[#0d253d]">Points:</span> {{ attempt.earnedPoints }} / {{ attempt.totalPoints }}</p>
-          <p><span class="font-medium text-[#0d253d]">Status:</span> {{ attempt.status }}</p>
+        <div class="mt-4 space-y-1 text-sm text-ink-mute">
+          <p><span class="font-medium text-ink">Score:</span> {{ attempt.scorePercentage }}%</p>
+          <p><span class="font-medium text-ink">Points:</span> {{ attempt.earnedPoints }} / {{ attempt.totalPoints }}</p>
+          <p><span class="font-medium text-ink">Status:</span> {{ attempt.status }}</p>
         </div>
 
         <div class="mt-4 flex items-center justify-between">
-          <p class="text-xs text-[#64748d]">
+          <p class="text-xs text-ink-mute">
             @if (attempt.submittedAt) {
               Submitted {{ attempt.submittedAt | date:'mediumDate' }}
             } @else {
@@ -57,7 +57,7 @@
       >
         Previous
       </app-button>
-      <span class="text-sm text-[#64748d]">Page {{ page() + 1 }} of {{ totalPages() }}</span>
+      <span class="text-sm text-ink-mute">Page {{ page() + 1 }} of {{ totalPages() }}</span>
       <app-button
         variant="secondary"
         size="sm"

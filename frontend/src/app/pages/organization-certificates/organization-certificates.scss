@@ -1,0 +1,38 @@
+.cert-skeleton-lg {
+  height: 192px;
+}
+
+.cert-row {
+  border-bottom: 1px solid var(--hairline);
+}
+
+.cert-row:last-child {
+  border-bottom: 0;
+}
+
+.cert-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--hairline);
+  padding-top: 16px;
+}
+
+.cert-page-btn {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--hairline-input);
+  padding: 6px 12px;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--canvas);
+  cursor: pointer;
+}
+
+.cert-page-btn:hover {
+  background: var(--canvas-soft);
+}
+
+.cert-page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

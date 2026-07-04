@@ -9,7 +9,7 @@
       <span>Title *</span>
       <input formControlName="title" placeholder="e.g. Git Basics Quiz" maxlength="120" />
       @if (form.get('title')?.invalid && form.get('title')?.touched) {
-        <p class="text-sm text-[var(--ruby)]">Title is required.</p>
+        <p class="text-sm text-danger">Title is required.</p>
       }
     </label>
 
