@@ -52,6 +52,7 @@ export class DashboardComponent {
       attempts: attempts.length,
       passRate,
       averageScore: avgScore,
+      certificates: certs.length,
     };
   });
 }
