@@ -12,30 +12,33 @@
     />
   </app-card>
 } @else {
-  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+  <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
     @for (enrollment of data()?.items; track enrollment.id) {
-      <app-card>
-        <div class="flex items-start justify-between">
+      <app-card [interactive]="true" (click)="router.navigate(['/programs', enrollment.programId, 'learn'])">
+        <div class="flex flex-col justify-between h-full min-h-[140px]">
           <div>
-            <p class="text-xs font-medium text-ink-mute">Participant: {{ enrollment.userName }}</p>
-            <h3 class="mt-1 text-lg font-semibold text-ink">Program {{ enrollment.programId }}</h3>
+            <div class="flex items-start justify-between">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-wider text-ink-mute">Participant</p>
+                <h3 class="text-lg font-semibold text-ink mt-1">{{ enrollment.userName }}</h3>
+              </div>
+              <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                [class]="enrollment.status === 'ACTIVE' ? 'badge-subtle-green' : (enrollment.status === 'COMPLETED' ? 'badge-subtle-amber' : 'badge-subtle-red')">
+                {{ enrollment.status }}
+              </span>
+            </div>
+            <p class="text-xs text-ink-mute mt-3">Enrolled: {{ enrollment.enrolledAt | date:'mediumDate' }}</p>
           </div>
-          <app-badge [variant]="statusVariant(enrollment.status)">{{ enrollment.status }}</app-badge>
-        </div>
 
-        <div class="mt-4 space-y-1 text-sm text-ink-mute">
-          <p><span class="font-medium text-ink">Enrolled:</span> {{ enrollment.enrolledAt | date:'mediumDate' }}</p>
-        </div>
-
-        <div class="mt-4 flex items-center justify-between">
-          <p class="text-xs text-ink-mute">Program ID: {{ enrollment.programId }}</p>
-          <app-button
-            variant="secondary"
-            size="sm"
-            (clicked)="router.navigate(['/programs', enrollment.programId, 'learn'])"
-          >
-            Open
-          </app-button>
+          <div class="flex items-center justify-between mt-auto pt-4 border-t border-light">
+            <span class="text-xs text-ink-mute">Program ID: {{ enrollment.programId }}</span>
+            <span class="text-xs text-primary font-semibold flex items-center gap-1">
+              Start learning
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+              </svg>
+            </span>
+          </div>
         </div>
       </app-card>
     }

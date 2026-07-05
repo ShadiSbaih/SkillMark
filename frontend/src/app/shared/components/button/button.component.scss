@@ -4,8 +4,14 @@
   justify-content: center;
   border-radius: var(--radius-pill);
   font-weight: 500;
-  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   outline: none;
+  cursor: pointer;
+  border: 1px solid transparent;
+
+  &:active:not(:disabled) {
+    transform: scale(0.97);
+  }
 
   &:focus-visible {
     box-shadow: 0 0 0 2px var(--primary), 0 0 0 4px white;
@@ -13,7 +19,8 @@
 
   &:disabled,
   &[disabled] {
-    opacity: 0.6;
+    opacity: 0.5;
+    cursor: not-allowed;
     pointer-events: none;
   }
 }
@@ -21,19 +28,24 @@
 .app-button-primary {
   background: var(--primary);
   color: var(--on-primary);
+  box-shadow: 0 2px 4px rgba(83, 58, 253, 0.15), 0 1px 2px rgba(83, 58, 253, 0.1);
 
   &:hover:not(:disabled) {
     background: var(--primary-deep);
+    box-shadow: 0 4px 8px rgba(83, 58, 253, 0.2), 0 2px 4px rgba(83, 58, 253, 0.1);
   }
 }
 
 .app-button-secondary {
-  background: var(--canvas-soft);
-  color: var(--ink);
+  background: var(--canvas);
+  color: var(--ink-secondary);
   border: 1px solid var(--hairline-input);
+  box-shadow: 0 1px 2px rgba(0, 55, 112, 0.05);
 
   &:hover:not(:disabled) {
-    background: var(--primary-bg-subdued-hover);
+    background: var(--canvas-soft);
+    border-color: var(--ink-mute);
+    color: var(--ink);
   }
 }
 
@@ -50,32 +62,37 @@
 .app-button-danger {
   background: var(--ruby);
   color: var(--on-primary);
+  box-shadow: 0 2px 4px rgba(234, 34, 97, 0.15);
 
   &:hover:not(:disabled) {
     background: var(--danger);
+    box-shadow: 0 4px 8px rgba(185, 28, 28, 0.2);
   }
 }
 
 .app-button-sm {
-  padding: 6px 12px;
-  font-size: 14px;
+  padding: 6px 14px;
+  font-size: 13px;
+  min-height: 32px;
 }
 
 .app-button-md {
-  padding: 8px 16px;
+  padding: 8px 18px;
   font-size: 14px;
+  min-height: 40px;
 }
 
 .app-button-lg {
-  padding: 12px 24px;
+  padding: 12px 28px;
   font-size: 16px;
+  min-height: 48px;
 }
 
 .spinner {
   margin-right: 8px;
   display: inline-block;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   animation: spin 1s linear infinite;
   border: 2px solid currentColor;
   border-top-color: transparent;

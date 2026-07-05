@@ -20,24 +20,28 @@
       />
     </app-card>
   } @else {
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       @for (org of listQuery.data()?.items; track org.id) {
-        <app-card>
-          <div class="flex items-start justify-between">
+        <app-card [interactive]="true" (click)="router.navigate(['/organizations', org.id])">
+          <div class="flex flex-col justify-between h-full min-h-[140px]">
             <div>
-              <h3 class="text-lg font-semibold text-ink">{{ org.name }}</h3>
+              <h3 class="text-lg font-semibold text-ink mb-1">{{ org.name }}</h3>
               @if (org.description) {
-                <p class="mt-1 line-clamp-2 text-sm text-ink-mute">{{ org.description }}</p>
+                <p class="line-clamp-2 text-sm text-ink-mute mb-4">{{ org.description }}</p>
               }
-              <div class="mt-3">
-                <app-badge [variant]="org.status === 'ACTIVE' ? 'success' : 'default'">{{ org.status }}</app-badge>
-              </div>
             </div>
-          </div>
-          <div class="mt-4 flex justify-end">
-            <app-button variant="secondary" size="sm" (clicked)="router.navigate(['/organizations', org.id])">
-              View
-            </app-button>
+            <div class="flex items-center justify-between mt-auto pt-4 border-t border-light">
+              <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                [class]="org.status === 'ACTIVE' ? 'badge-subtle-green' : 'badge-subtle-gray'">
+                {{ org.status }}
+              </span>
+              <span class="text-xs text-primary font-semibold flex items-center gap-1">
+                Manage
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+                </svg>
+              </span>
+            </div>
           </div>
         </app-card>
       }
@@ -60,21 +64,24 @@
 
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <app-card>
-        <p class="text-sm text-ink-mute">Status</p>
+        <p class="text-xs font-medium uppercase text-ink-mute">Status</p>
         <div class="mt-2">
-          <app-badge [variant]="org?.status === 'ACTIVE' ? 'success' : 'default'">{{ org?.status }}</app-badge>
+          <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+            [class]="org?.status === 'ACTIVE' ? 'badge-subtle-green' : 'badge-subtle-gray'">
+            {{ org?.status }}
+          </span>
         </div>
       </app-card>
       <app-card>
-        <p class="text-sm text-ink-mute">Programs</p>
-        <p class="mt-2 text-2xl font-semibold text-ink">{{ programsQuery.data()?.totalElements ?? 0 }}</p>
+        <p class="text-xs font-medium uppercase text-ink-mute">Programs</p>
+        <p class="mt-1 text-2xl font-bold text-ink">{{ programsQuery.data()?.totalElements ?? 0 }}</p>
       </app-card>
       <app-card>
-        <p class="text-sm text-ink-mute">Members</p>
-        <p class="mt-2 text-2xl font-semibold text-ink">{{ membershipsQuery.data()?.totalElements ?? 0 }}</p>
+        <p class="text-xs font-medium uppercase text-ink-mute">Members</p>
+        <p class="mt-1 text-2xl font-bold text-ink">{{ membershipsQuery.data()?.totalElements ?? 0 }}</p>
       </app-card>
       <app-card>
-        <p class="text-sm text-ink-mute">Created</p>
+        <p class="text-xs font-medium uppercase text-ink-mute">Created</p>
         <p class="mt-2 text-sm font-medium text-ink">{{ org?.createdAt | date:'mediumDate' }}</p>
       </app-card>
     </div>
@@ -96,25 +103,28 @@
           />
         </app-card>
       } @else {
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           @for (program of programsQuery.data()?.items; track program.id) {
-            <app-card>
-              <div class="flex items-start justify-between">
+            <app-card [interactive]="true" (click)="router.navigate(['/programs', program.id])">
+              <div class="flex flex-col justify-between h-full min-h-[140px]">
                 <div>
-                  <h3 class="text-lg font-semibold text-ink">{{ program.title }}</h3>
+                  <h3 class="text-lg font-semibold text-ink mb-1">{{ program.title }}</h3>
                   @if (program.description) {
-                    <p class="mt-1 line-clamp-2 text-sm text-ink-mute">{{ program.description }}</p>
+                    <p class="line-clamp-2 text-sm text-ink-mute mb-4">{{ program.description }}</p>
                   }
-                  <div class="mt-3">
-                    <app-badge [variant]="program.status === 'PUBLISHED' ? 'success' : 'default'">{{ program.status }}</app-badge>
-                  </div>
                 </div>
-              </div>
-              <div class="mt-4 flex items-center justify-between">
-                <p class="text-xs text-ink-mute">Created {{ program.createdAt | date:'mediumDate' }}</p>
-                <app-button variant="secondary" size="sm" (clicked)="router.navigate(['/programs', program.id])">
-                  View
-                </app-button>
+                <div class="flex items-center justify-between mt-auto pt-4 border-t border-light">
+                  <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                    [class]="program.status === 'PUBLISHED' ? 'badge-subtle-green' : 'badge-subtle-gray'">
+                    {{ program.status }}
+                  </span>
+                  <span class="text-xs text-primary font-semibold flex items-center gap-1">
+                    Open
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </span>
+                </div>
               </div>
             </app-card>
           }

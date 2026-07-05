@@ -16,7 +16,7 @@
       @for (link of ownerLinks; track link.route) {
         <a
           [routerLink]="link.route"
-          routerLinkActive="bg-canvas-soft text-primary"
+          routerLinkActive="active"
           [routerLinkActiveOptions]="{ exact: true }"
           class="nav-link text-sm font-medium text-ink-mute hover:bg-canvas-soft hover:text-ink"
           (click)="closeMobile()"
@@ -31,7 +31,7 @@
       @for (link of participantLinks; track link.route) {
         <a
           [routerLink]="link.route"
-          routerLinkActive="bg-canvas-soft text-primary"
+          routerLinkActive="active"
           class="nav-link text-sm font-medium text-ink-mute hover:bg-canvas-soft hover:text-ink"
           (click)="closeMobile()"
         >

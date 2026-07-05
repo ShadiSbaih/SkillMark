@@ -1,5 +1,6 @@
 .dashboard-sidebar {
   left: 0;
+  box-shadow: 1px 0 0 var(--hairline);
 }
 
 .sidebar-header {
@@ -7,15 +8,34 @@
 }
 
 .nav-section {
-  padding: 16px;
+  padding: 20px 16px;
 
   &.no-pt {
     padding-top: 0;
+  }
+
+  p {
+    margin-bottom: 8px;
+    font-size: 11px;
+    letter-spacing: 0.05em;
   }
 }
 
 .nav-link {
   display: block;
-  padding: 8px 12px;
+  padding: 8px 16px;
   border-radius: var(--radius-md);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  margin-bottom: 2px;
+
+  &.active {
+    background: var(--primary-bg-subdued-hover);
+    color: var(--primary) !important;
+    font-weight: 600;
+  }
+
+  &:hover:not(.active) {
+    background: var(--canvas-soft);
+    color: var(--ink) !important;
+  }
 }

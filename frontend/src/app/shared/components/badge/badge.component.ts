@@ -1,12 +1,10 @@
 import { Component, input } from '@angular/core';
-import { NgClass } from '@angular/common';
 
 type BadgeVariant = 'default' | 'success' | 'warning' | 'danger' | 'info';
 
 @Component({
   selector: 'app-badge',
   standalone: true,
-  imports: [NgClass],
   template: `
     <span [class]="classes()">
       <ng-content />
