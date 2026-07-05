@@ -77,8 +77,15 @@ public class QuizAttemptService {
             throw new BusinessRuleException("Quiz is not open for attempts");
         }
         authorizationService.ensureProgramEnrollment(quiz.getProgram().getId(), userId);
-        if (attemptRepository.existsByQuizIdAndUserIdAndStatus(quizId, userId, AttemptStatus.IN_PROGRESS)) {
-            throw new ConflictException("An in-progress attempt already exists for this quiz");
+        Optional<QuizAttempt> inProgressOpt = attemptRepository.findByQuizIdAndUserIdAndStatus(quizId, userId, AttemptStatus.IN_PROGRESS);
+        if (inProgressOpt.isPresent()) {
+            QuizAttempt inProgress = inProgressOpt.get();
+            if (Instant.now().isAfter(inProgress.getExpiresAt())) {
+                inProgress.setStatus(AttemptStatus.EXPIRED);
+                attemptRepository.save(inProgress);
+            } else {
+                throw new ConflictException("An in-progress attempt already exists for this quiz");
+            }
         }
         long priorAttempts = attemptRepository.countByQuizIdAndUserId(quizId, userId);
         if (priorAttempts >= quiz.getMaxAttempts()) {

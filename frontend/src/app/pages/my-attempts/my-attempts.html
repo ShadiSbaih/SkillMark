@@ -20,8 +20,16 @@
             <p class="text-xs font-medium text-ink-mute">Attempt #{{ attempt.attemptNumber }}</p>
             <h3 class="mt-1 text-lg font-semibold text-ink">Quiz attempt</h3>
           </div>
-          <app-badge [variant]="statusVariant(attempt.passed)">
-            {{ attempt.passed ? 'Passed' : 'Failed' }}
+          <app-badge [variant]="statusVariant(attempt)">
+            @if (attempt.status === 'IN_PROGRESS') {
+              In Progress
+            } @else if (attempt.status === 'EXPIRED') {
+              Expired
+            } @else if (attempt.status === 'CANCELLED') {
+              Cancelled
+            } @else {
+              {{ attempt.passed ? 'Passed' : 'Failed' }}
+            }
           </app-badge>
         </div>
 

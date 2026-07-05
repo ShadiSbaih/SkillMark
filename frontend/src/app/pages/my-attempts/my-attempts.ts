@@ -56,7 +56,13 @@ export class MyAttempts {
     }
   }
 
-  statusVariant(passed: boolean): 'success' | 'danger' | 'default' {
-    return passed ? 'success' : 'danger';
+  statusVariant(attempt: any): 'success' | 'danger' | 'warning' | 'default' {
+    if (attempt.status === 'IN_PROGRESS') {
+      return 'warning';
+    }
+    if (attempt.status === 'EXPIRED' || attempt.status === 'CANCELLED') {
+      return 'default';
+    }
+    return attempt.passed ? 'success' : 'danger';
   }
 }
