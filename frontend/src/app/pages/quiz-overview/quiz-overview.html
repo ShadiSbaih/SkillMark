@@ -20,6 +20,7 @@
       [hasActions]="true"
     >
       <ng-container actions>
+        <app-button variant="secondary" (clicked)="goBack()">Back</app-button>
         <app-button variant="secondary" (clicked)="navigateToBuilder()">Builder</app-button>
         <app-button variant="secondary" (clicked)="navigateToSettings()">Settings</app-button>
         <app-button variant="secondary" (clicked)="navigateToStats()">Stats</app-button>

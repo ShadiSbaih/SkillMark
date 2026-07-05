@@ -60,6 +60,15 @@ export class QuizOverview {
 
   readonly isPublished = computed(() => this.quizQuery.data()?.status === 'PUBLISHED');
 
+  goBack(): void {
+    const quiz = this.quizQuery.data();
+    if (quiz?.programId) {
+      void this.router.navigate(['/programs', quiz.programId]);
+    } else {
+      void this.router.navigate(['/dashboard']);
+    }
+  }
+
   navigateToBuilder(): void {
     const id = this.quizId();
     if (id) void this.router.navigate(['/quizzes', id, 'builder']);

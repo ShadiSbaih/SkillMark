@@ -32,7 +32,7 @@ import { PageHeaderComponent } from '../../shared/components/page-header/page-he
 })
 export class QuizAttempts {
   private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
+  readonly router = inject(Router);
   readonly attemptsService = inject(AttemptsService);
 
   readonly quizId = toSignal(

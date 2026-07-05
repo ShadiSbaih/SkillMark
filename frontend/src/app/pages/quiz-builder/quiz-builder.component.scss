@@ -16,4 +16,25 @@
   color: var(--primary);
 }
 
+.icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--ink-mute);
+  cursor: pointer;
+  transition: all 0.2s ease;
 
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  &:hover {
+    color: var(--danger);
+    background: rgba(255, 86, 48, 0.1);
+  }
+}

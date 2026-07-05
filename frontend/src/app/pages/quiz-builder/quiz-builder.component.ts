@@ -301,11 +301,11 @@ export class QuizBuilderComponent {
   }
 
   goBack(): void {
-    const programId = this.quizQuery.data()?.programId;
-    if (programId) {
-      void this.router.navigate(['/programs', programId, 'quizzes']);
+    const id = this.quizId();
+    if (id) {
+      void this.router.navigate(['/quizzes', id]);
     } else {
-      void this.router.navigate(['/organizations']);
+      void this.router.navigate(['/dashboard']);
     }
   }
 }

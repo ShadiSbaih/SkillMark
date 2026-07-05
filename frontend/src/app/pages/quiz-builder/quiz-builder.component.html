@@ -237,9 +237,9 @@
     </label>
 
     <div>
-      <div class="mb-2 flex items-center justify-between">
-        <span class="text-sm font-medium">Options *</span>
-        <app-button size="sm" (clicked)="addOption()">Add option</app-button>
+      <div class="mb-4 flex items-center justify-between">
+        <span class="text-sm font-medium text-ink">Options *</span>
+        <app-button variant="secondary" size="sm" (clicked)="addOption()">Add option</app-button>
       </div>
       <div class="space-y-2" formArrayName="options">
         @for (option of optionsArray.controls; track $index; let oi = $index) {
@@ -252,7 +252,16 @@
               title="Mark as correct"
             />
             <input class="flex-1" formControlName="text" placeholder="Option text" />
-            <app-button variant="danger" size="sm" (clicked)="removeOption(oi)">Remove</app-button>
+            <button
+              type="button"
+              class="icon-button"
+              (click)="removeOption(oi)"
+              title="Remove option"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
           </div>
         }
       </div>
@@ -267,6 +276,7 @@
   [open]="showDeleteModal()"
   title="Delete question?"
   confirmLabel="Delete"
+  confirmVariant="danger"
   (close)="closeDeleteModal()"
   (confirm)="confirmDeleteQuestion()"
 >

@@ -15,24 +15,31 @@
   >
     <ng-container actions>
       <app-button variant="secondary" (clicked)="router.navigate(['/organizations'])">Back</app-button>
+      <app-button variant="secondary" (clicked)="router.navigate(['/organizations', orgId(), 'members'])">Members</app-button>
+      <app-button variant="secondary" (clicked)="router.navigate(['/organizations', orgId(), 'settings'])">Settings</app-button>
+      <app-button (clicked)="router.navigate(['/organizations', orgId(), 'programs', 'new'])">New program</app-button>
     </ng-container>
   </app-page-header>
 
   <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
     <app-card>
-      <p class="text-sm text-ink-mute">Status</p>
+      <p class="text-xs font-medium uppercase text-ink-mute">Status</p>
       <div class="mt-2">
         <app-status-badge [status]="org?.status ?? ''" />
       </div>
     </app-card>
     <app-card>
-      <p class="text-sm text-ink-mute">Created</p>
+      <p class="text-xs font-medium uppercase text-ink-mute">Created</p>
       <p class="mt-2 text-sm font-medium text-ink">{{ org?.createdAt | date:'mediumDate' }}</p>
     </app-card>
   </div>
 
   <div class="mt-8">
-    <h2 class="mb-4 text-lg font-semibold text-ink">Members</h2>
+    <div class="mb-4 flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-ink">Members</h2>
+      <a (click)="router.navigate(['/organizations', orgId(), 'members'])" class="text-sm font-medium text-primary hover:underline cursor-pointer">Manage members</a>
+    </div>
+
     @if (membershipsQuery.isPending()) {
       <app-loading-state message="Loading members..." />
     } @else if (membershipsQuery.isError()) {
@@ -65,7 +72,11 @@
   </div>
 
   <div class="mt-8">
-    <h2 class="mb-4 text-lg font-semibold text-ink">Programs</h2>
+    <div class="mb-4 flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-ink">Programs</h2>
+      <app-button variant="secondary" size="sm" (clicked)="router.navigate(['/organizations', orgId(), 'programs', 'new'])">New Program</app-button>
+    </div>
+
     @if (programsQuery.isPending()) {
       <app-loading-state message="Loading programs..." />
     } @else if (programsQuery.isError()) {
@@ -81,18 +92,24 @@
         />
       </app-card>
     } @else {
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         @for (program of programsQuery.data()?.items; track program.id) {
-          <app-card>
-            <div class="flex items-start justify-between">
+          <app-card [interactive]="true" (click)="router.navigate(['/programs', program.id])">
+            <div class="flex flex-col justify-between h-full min-h-[140px]">
               <div>
-                <h3 class="text-lg font-semibold text-ink">{{ program.title }}</h3>
+                <h3 class="text-lg font-semibold text-ink mb-1">{{ program.title }}</h3>
                 @if (program.description) {
-                  <p class="mt-1 line-clamp-2 text-sm text-ink-mute">{{ program.description }}</p>
+                  <p class="line-clamp-2 text-sm text-ink-mute mb-4">{{ program.description }}</p>
                 }
-                <div class="mt-3">
-                  <app-status-badge [status]="program.status" />
-                </div>
+              </div>
+              <div class="flex items-center justify-between mt-auto pt-4 border-t border-light">
+                <app-status-badge [status]="program.status" />
+                <span class="text-xs text-primary font-semibold flex items-center gap-1">
+                  Manage
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+                  </svg>
+                </span>
               </div>
             </div>
           </app-card>

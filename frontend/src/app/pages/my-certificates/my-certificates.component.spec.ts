@@ -192,15 +192,12 @@ describe('MyCertificatesComponent', () => {
     expect(text).toContain('Issued Jul 3, 2026');
   });
 
-  it('should navigate to certificate detail when View is clicked', () => {
+  it('should navigate to certificate detail when the card is clicked', () => {
     certificatesService.setData(pageResponse);
     fixture.detectChanges();
 
-    const viewButton = Array.from<HTMLButtonElement>(
-      fixture.nativeElement.querySelectorAll('button')
-    ).find((button) => button.textContent?.trim() === 'View');
-
-    viewButton?.click();
+    const card = fixture.nativeElement.querySelector('app-card');
+    card?.click();
 
     expect(router.navigate).toHaveBeenCalledWith([
       '/certificates',

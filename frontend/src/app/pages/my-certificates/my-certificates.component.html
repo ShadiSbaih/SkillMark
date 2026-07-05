@@ -12,34 +12,44 @@
     />
   </app-card>
 } @else {
-  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+  <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
     @for (certificate of data()?.items; track certificate.id) {
-      <app-card>
-        <div class="flex items-start justify-between">
+      <app-card [interactive]="true" (click)="router.navigate(['/certificates', certificate.id])">
+        <div class="flex flex-col justify-between h-full min-h-[160px]">
           <div>
-            <p class="text-xs font-medium text-ink-mute">{{ certificate.certificateNumber }}</p>
-            <h3 class="mt-1 text-lg font-semibold text-ink">{{ certificate.title }}</h3>
+            <div class="flex items-start justify-between">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-wider text-ink-mute">{{ certificate.certificateNumber }}</p>
+                <h3 class="text-lg font-semibold text-ink mt-1">{{ certificate.title }}</h3>
+              </div>
+              <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                [class]="certificate.status === 'ACTIVE' ? 'badge-subtle-green' : 'badge-subtle-red'">
+                {{ certificate.status }}
+              </span>
+            </div>
+
+            <div class="mt-4 space-y-1 text-sm text-ink-mute">
+              <p><span class="font-medium text-ink">Quiz:</span> {{ certificate.quizTitleSnapshot }}</p>
+              <p><span class="font-medium text-ink">Program:</span> {{ certificate.programTitleSnapshot }}</p>
+              <p><span class="font-medium text-ink">Org:</span> {{ certificate.organizationNameSnapshot }}</p>
+            </div>
           </div>
-          <app-badge [variant]="statusVariant(certificate.status)">{{ certificate.status }}</app-badge>
-        </div>
 
-        <div class="mt-4 space-y-1 text-sm text-ink-mute">
-          <p><span class="font-medium text-ink">Quiz:</span> {{ certificate.quizTitleSnapshot }}</p>
-          <p><span class="font-medium text-ink">Program:</span> {{ certificate.programTitleSnapshot }}</p>
-          <p><span class="font-medium text-ink">Organization:</span> {{ certificate.organizationNameSnapshot }}</p>
-        </div>
-
-        <div class="mt-4 flex items-center justify-between">
-          <p class="text-xs text-ink-mute">Issued {{ certificate.issuedAt | date:'mediumDate' }}</p>
-          <div class="flex items-center gap-2">
-            <app-button variant="secondary" size="sm" (clicked)="router.navigate(['/certificates', certificate.id])">
-              View
-            </app-button>
-            @if (certificate.pdfUrl) {
-              <app-button size="sm" (clicked)="openPdf(certificate.pdfUrl)">
-                Download
-              </app-button>
-            }
+          <div class="flex items-center justify-between mt-auto pt-4 border-t border-light">
+            <span class="text-xs text-ink-mute">Issued {{ certificate.issuedAt | date:'mediumDate' }}</span>
+            <div class="flex items-center gap-2">
+              @if (certificate.pdfUrl) {
+                <app-button size="sm" (clicked)="$event.stopPropagation(); openPdf(certificate.pdfUrl)">
+                  Download
+                </app-button>
+              }
+              <span class="text-xs text-primary font-semibold flex items-center gap-1">
+                View
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+                </svg>
+              </span>
+            </div>
           </div>
         </div>
       </app-card>

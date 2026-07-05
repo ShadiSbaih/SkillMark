@@ -15,7 +15,7 @@ import { ButtonComponent } from '../button/button.component';
           </div>
           <div class="modal-actions">
             <app-button variant="ghost" (clicked)="close.emit()">Cancel</app-button>
-            <app-button variant="danger" (clicked)="confirm.emit()">{{ confirmLabel() }}</app-button>
+            <app-button [variant]="confirmVariant()" (clicked)="confirm.emit()">{{ confirmLabel() }}</app-button>
           </div>
         </div>
       </div>
@@ -27,6 +27,7 @@ export class ModalComponent {
   readonly open = input.required<boolean>();
   readonly title = input.required<string>();
   readonly confirmLabel = input('Confirm');
+  readonly confirmVariant = input<'primary' | 'secondary' | 'danger'>('primary');
   readonly close = output<void>();
   readonly confirm = output<void>();
 }

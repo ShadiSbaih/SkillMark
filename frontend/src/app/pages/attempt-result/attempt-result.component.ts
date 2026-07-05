@@ -43,5 +43,11 @@ export class AttemptResultComponent {
   readonly quizId = computed(() => this.attemptQuery.data()?.quizId ?? null);
   readonly quizQuery = this.quizzesService.getQuizQuery(() => this.quizId());
 
-  readonly backToAttempts = () => this.router.navigate(['/my-attempts']);
+  backToAttempts(): void {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      void this.router.navigate(['/my-attempts']);
+    }
+  }
 }

@@ -1,5 +1,184 @@
-.quiz-summary {
-	display: grid;
-	gap: 14px;
+.quick-actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
+.action-card-button {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--hairline);
+  background: var(--canvas);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease-in-out;
+
+  &:hover {
+    border-color: var(--primary);
+    background: var(--canvas-soft);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-2);
+  }
+
+  &:focus-visible {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+  }
+}
+
+.action-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+  transition: transform 0.2s ease-in-out;
+
+  &.enrollments {
+    background: #e6fcf5;
+    color: #0ca678;
+  }
+  &.invitations {
+    background: #edf2ff;
+    color: #4c6ef5;
+  }
+  &.resources {
+    background: #fff9db;
+    color: #f08c00;
+  }
+  &.quizzes {
+    background: #e3fafc;
+    color: #1098ad;
+  }
+  &.stats {
+    background: #fff5f5;
+    color: #fa5252;
+  }
+  &.settings {
+    background: #f1f3f5;
+    color: #495057;
+  }
+
+  .action-card-button:hover & {
+    transform: scale(1.05);
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.action-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.action-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
+  transition: color 0.2s ease-in-out;
+
+  .action-card-button:hover & {
+    color: var(--primary);
+  }
+}
+
+.action-desc {
+  font-size: 12px;
+  color: var(--ink-mute);
+  margin: 4px 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.action-chevron {
+  width: 14px;
+  height: 14px;
+  color: var(--ink-mute);
+  transition: transform 0.2s ease-in-out;
+
+  .action-card-button:hover & {
+    transform: translateX(3px);
+    color: var(--primary);
+  }
+
+  svg {
+    width: 14px;
+    height: 14px;
+    display: block;
+  }
+}
+
+// Date styling overrides
+.overview-date-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--hairline);
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.overview-date-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: var(--canvas-soft);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+}
+
+.overview-date-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  background: var(--primary-bg-subdued-hover);
+  color: var(--primary);
+  flex-shrink: 0;
+
+  svg {
+    width: 20px;
+    height: 20px;
+    display: block;
+  }
+}
+
+.overview-date-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.overview-date-label {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-mute);
+}
+
+.overview-date-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-top: 2px;
+}

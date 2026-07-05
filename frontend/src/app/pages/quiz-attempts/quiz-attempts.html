@@ -35,6 +35,7 @@
               <th>Score</th>
               <th>Result</th>
               <th>Submitted</th>
+              <th class="text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -45,18 +46,18 @@
                   <span class="pill-tag-soft">{{ attempt.userId | slice:0:8 }}</span>
                 </td>
                 <td>
-                  <app-badge
-                    [variant]="attempt.status === 'SUBMITTED' ? 'success' : attempt.status === 'IN_PROGRESS' ? 'warning' : 'danger'"
-                  >
+                  <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                    [class]="attempt.status === 'SUBMITTED' ? 'badge-subtle-green' : (attempt.status === 'IN_PROGRESS' ? 'badge-subtle-amber' : 'badge-subtle-red')">
                     {{ attempt.status }}
-                  </app-badge>
+                  </span>
                 </td>
                 <td class="tabular-nums">{{ attempt.scorePercentage | number: '1.1-1' }}%</td>
                 <td>
                   @if (attempt.status === 'SUBMITTED') {
-                    <app-badge [variant]="attempt.passed ? 'success' : 'danger'">
+                    <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                      [class]="attempt.passed ? 'badge-subtle-green' : 'badge-subtle-red'">
                       {{ attempt.passed ? 'Passed' : 'Failed' }}
-                    </app-badge>
+                    </span>
                   } @else {
                     <span class="muted">—</span>
                   }
@@ -64,6 +65,15 @@
                 <td>
                   @if (attempt.submittedAt) {
                     {{ attempt.submittedAt | date: 'medium' }}
+                  } @else {
+                    <span class="muted">—</span>
+                  }
+                </td>
+                <td class="text-right">
+                  @if (attempt.status === 'SUBMITTED') {
+                    <app-button variant="secondary" size="sm" (clicked)="router.navigate(['/attempts', attempt.attemptId, 'result'])">
+                      View Results
+                    </app-button>
                   } @else {
                     <span class="muted">—</span>
                   }
