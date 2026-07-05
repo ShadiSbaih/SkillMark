@@ -14,6 +14,7 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import java.util.Optional;
 
 @Service
 public class ClerkUserSyncService {
@@ -37,6 +38,7 @@ public class ClerkUserSyncService {
     public AuthUser resolve(String token) {
         ClerkClaims claims = token.startsWith("dev:") && devTokensAllowed() ? parseDevToken(token) : parseJwt(token);
         User user = userRepository.findByClerkUserId(claims.clerkUserId())
+                .or(() -> StringUtils.hasText(claims.email()) ? userRepository.findByEmailIgnoreCase(claims.email()) : Optional.empty())
                 .orElseGet(() -> {
                     User created = new User();
                     created.setClerkUserId(claims.clerkUserId());
@@ -44,6 +46,9 @@ public class ClerkUserSyncService {
                     created.setName(claims.name());
                     return userRepository.save(created);
                 });
+        if (user.getClerkUserId() == null) {
+            user.setClerkUserId(claims.clerkUserId());
+        }
         if (StringUtils.hasText(claims.email())) {
             user.setEmail(claims.email());
         }

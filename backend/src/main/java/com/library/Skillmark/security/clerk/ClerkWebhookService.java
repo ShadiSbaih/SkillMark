@@ -17,6 +17,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Base64;
+import java.util.Optional;
 
 @Service
 public class ClerkWebhookService {
@@ -50,7 +51,9 @@ public class ClerkWebhookService {
 
         if ("user.created".equals(type) || "user.updated".equals(type)) {
             ClerkWebhookUser incoming = toUser(data);
-            User user = userRepository.findByClerkUserId(clerkUserId).orElseGet(User::new);
+            User user = userRepository.findByClerkUserId(clerkUserId)
+                    .or(() -> StringUtils.hasText(incoming.email()) ? userRepository.findByEmailIgnoreCase(incoming.email()) : Optional.empty())
+                    .orElseGet(User::new);
             if (user.getClerkUserId() == null) {
                 user.setClerkUserId(clerkUserId);
             }

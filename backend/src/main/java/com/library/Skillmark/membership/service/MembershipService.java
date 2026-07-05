@@ -51,9 +51,21 @@ public class MembershipService {
                 .orElseThrow(() -> new NotFoundException("Organization not found"));
         var actor = userRepository.findById(actorId).orElseThrow(() -> new NotFoundException("User not found"));
         var user = userRepository.findById(request.userId()).orElseThrow(() -> new NotFoundException("User not found"));
-        var existing = membershipRepository.findByOrganizationIdAndUserIdAndStatus(organizationId, request.userId(), MembershipStatus.ACTIVE);
+        var existing = membershipRepository.findByOrganizationIdAndUserId(organizationId, request.userId());
         if (existing.isPresent()) {
-            throw new ConflictException("Active membership already exists");
+            OrganizationMembership membership = existing.get();
+            if (membership.getStatus() == MembershipStatus.ACTIVE) {
+                throw new ConflictException("Active membership already exists");
+            }
+            membership.setStatus(MembershipStatus.ACTIVE);
+            membership.setRole(MembershipRole.PARTICIPANT);
+            membership.setInvitedBy(actor);
+            membership.setJoinedAt(java.time.Instant.now());
+            membership.setRemovedBy(null);
+            membership.setRemovedAt(null);
+            OrganizationMembership saved = membershipRepository.save(membership);
+            auditLogService.record(actorId, organizationId, AuditAction.MEMBER_ADDED, "User", request.userId());
+            return MembershipResponse.from(saved);
         }
         OrganizationMembership membership = new OrganizationMembership();
         membership.setOrganization(organization);

@@ -132,8 +132,8 @@ public class InvitationService {
     }
 
     private void ensureActiveMembership(InvitationLink invitation, User user) {
-        var existing = membershipRepository.findByOrganizationIdAndUserIdAndStatus(
-                invitation.getOrganization().getId(), user.getId(), MembershipStatus.ACTIVE);
+        var existing = membershipRepository.findByOrganizationIdAndUserId(
+                invitation.getOrganization().getId(), user.getId());
         if (existing.isPresent()) {
             OrganizationMembership membership = existing.get();
             if (membership.getRole() == null) {
@@ -141,7 +141,10 @@ public class InvitationService {
             }
             if (membership.getStatus() != MembershipStatus.ACTIVE) {
                 membership.setStatus(MembershipStatus.ACTIVE);
+                membership.setRemovedBy(null);
+                membership.setRemovedAt(null);
             }
+            membershipRepository.save(membership);
             return;
         }
         OrganizationMembership membership = new OrganizationMembership();

@@ -10,12 +10,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, UUID> {
     long countByQuizIdAndUserIdAndStatus(UUID quizId, UUID userId, AttemptStatus status);
     long countByQuizIdAndUserId(UUID quizId, UUID userId);
     boolean existsByQuizIdAndUserIdAndStatus(UUID quizId, UUID userId, AttemptStatus status);
+    Optional<QuizAttempt> findByQuizIdAndUserIdAndStatus(UUID quizId, UUID userId, AttemptStatus status);
     boolean existsByQuizId(UUID quizId);
     long countByQuizId(UUID quizId);
     List<QuizAttempt> findByUserId(UUID userId);
