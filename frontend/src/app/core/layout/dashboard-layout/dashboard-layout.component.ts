@@ -12,6 +12,7 @@ import { AuthService } from '../../auth/auth.service';
 import { OrganizationsService } from '../../../services/organizations.service';
 import { OrganizationResponse } from '../../models/organization.model';
 import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state.component';
+import { ProductLanguage } from '../../constants/product-language';
 
 interface NavLink {
   label: string;
@@ -58,18 +59,16 @@ export class DashboardLayoutComponent {
   readonly ownerLinks = computed<NavLink[]>(() => {
     const links: NavLink[] = [
       { label: 'Dashboard', route: '/dashboard' },
-      { label: 'My Organizations', route: '/organizations' },
+      { label: ProductLanguage.organization.plural, route: '/organizations' },
     ];
 
     const orgId = this.currentOrganizationId();
     if (orgId) {
       links.push(
         { label: 'Overview', route: `/organizations/${orgId}` },
-        { label: 'Members', route: `/organizations/${orgId}/members` },
-        { label: 'Settings', route: `/organizations/${orgId}/settings` },
-        { label: 'Stats', route: `/organizations/${orgId}/stats` },
-        { label: 'Audit Logs', route: `/organizations/${orgId}/audit-logs` },
-        { label: 'Certificates', route: `/organizations/${orgId}/certificates` }
+        { label: ProductLanguage.membership.plural, route: `/organizations/${orgId}/members` },
+        { label: 'Credentials', route: `/organizations/${orgId}/certificates` },
+        { label: 'Settings', route: `/organizations/${orgId}/settings` }
       );
     }
 
@@ -78,9 +77,9 @@ export class DashboardLayoutComponent {
 
   readonly participantLinks: NavLink[] = [
     { label: 'Dashboard', route: '/dashboard' },
-    { label: 'My Programs', route: '/my-enrollments' },
-    { label: 'My Attempts', route: '/my-attempts' },
-    { label: 'My Certificates', route: '/my-certificates' },
+    { label: 'My Learning', route: '/my-enrollments' },
+    { label: ProductLanguage.quiz.plural, route: '/my-attempts' },
+    { label: ProductLanguage.certificate.plural, route: '/my-certificates' },
   ];
 
   readonly accountLinks: NavLink[] = [{ label: 'Profile', route: '/profile' }];

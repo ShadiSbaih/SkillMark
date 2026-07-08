@@ -143,10 +143,10 @@ describe('DashboardLayoutComponent', () => {
     ).map((el) => (el as HTMLElement).textContent?.trim());
 
     expect(links).toContain('Dashboard');
-    expect(links).toContain('My Organizations');
-    expect(links).toContain('My Programs');
-    expect(links).toContain('My Attempts');
-    expect(links).toContain('My Certificates');
+    expect(links).toContain('Teams');
+    expect(links).toContain('My Learning');
+    expect(links).toContain('Assessments');
+    expect(links).toContain('Credentials');
     expect(links).toContain('Profile');
   });
 
@@ -271,10 +271,8 @@ describe('DashboardLayoutComponent', () => {
     ).map((el) => (el as HTMLElement).textContent?.trim());
 
     expect(links).toContain('Overview');
-    expect(links).toContain('Members');
+    expect(links).toContain('Team members');
+    expect(links).toContain('Credentials');
     expect(links).toContain('Settings');
-    expect(links).toContain('Stats');
-    expect(links).toContain('Audit Logs');
-    expect(links).toContain('Certificates');
   });
 });
