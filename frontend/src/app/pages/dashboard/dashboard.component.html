@@ -1,151 +1,139 @@
-@if (organizationsQuery.error() || certificatesQuery.error() || attemptsQuery.error()) {
+@if (hasAnyError()) {
   <app-error-state
-    [message]="(organizationsQuery.error() ?? certificatesQuery.error() ?? attemptsQuery.error())?.message ?? 'Failed to load dashboard'"
-    (retry)="organizationsQuery.refetch(); certificatesQuery.refetch(); attemptsQuery.refetch()"
+    [message]="firstErrorMessage()"
+    (retry)="retryAll()"
   />
 }
 
-@if (organizationsQuery.isPending() && certificatesQuery.isPending() && attemptsQuery.isPending()) {
+@if (allPending() && !hasAnyError()) {
   <app-loading-state message="Loading dashboard..." />
 }
 
-@if (!organizationsQuery.error() && !certificatesQuery.error() && !attemptsQuery.error()) {
-  <header class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-    <div>
-      <p class="text-xs font-medium uppercase text-ink-mute">Home / Dashboard</p>
-      <h1 class="text-2xl font-bold text-ink">Role-aware dashboard</h1>
-      <p class="text-sm text-ink-mute">Track programs, quiz performance, certificates, and activity.</p>
-    </div>
-    <div class="flex gap-3">
-      <a class="rounded-lg border border-input bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-canvas-soft" routerLink="/organizations/new">
-        Create organization
-      </a>
-    </div>
-  </header>
+@if (!hasAnyError() && !allPending()) {
+  <app-page-header
+    title="Dashboard"
+    subtitle="Track your organizations, quiz performance, certificates, and activity."
+    [hasActions]="true"
+  >
+    <a
+      actions
+      class="button button-secondary"
+      routerLink="/organizations/new"
+    >
+      Create organization
+    </a>
+  </app-page-header>
 
-  <div class="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  <section class="dashboard-metrics" aria-label="Dashboard metrics">
     <app-card>
-      <p class="text-xs font-medium uppercase text-ink-mute">Organizations</p>
-      <p class="mt-1 text-2xl font-bold text-ink">{{ stats().organizations }}</p>
+      <span class="metric-label">Organizations</span>
+      <strong class="metric-value">{{ stats().organizations }}</strong>
     </app-card>
     <app-card>
-      <p class="text-xs font-medium uppercase text-ink-mute">Certificates</p>
-      <p class="mt-1 text-2xl font-bold text-ink">{{ certificates().length }}</p>
+      <span class="metric-label">Certificates</span>
+      <strong class="metric-value">{{ stats().certificates }}</strong>
     </app-card>
     <app-card>
-      <p class="text-xs font-medium uppercase text-ink-mute">Attempts</p>
-      <p class="mt-1 text-2xl font-bold text-ink">{{ stats().attempts }}</p>
+      <span class="metric-label">Attempts</span>
+      <strong class="metric-value">{{ stats().attempts }}</strong>
     </app-card>
     <app-card>
-      <p class="text-xs font-medium uppercase text-ink-mute">Pass rate</p>
-      <p class="mt-1 text-2xl font-bold text-ink">{{ stats().passRate | number:'1.0-1' }}%</p>
+      <span class="metric-label">Pass rate</span>
+      <strong class="metric-value">{{ stats().passRate | number:'1.0-1' }}%</strong>
     </app-card>
-  </div>
+  </section>
 
-  <div class="mb-6 grid gap-6 lg:grid-cols-2">
-    <app-card>
-      <div class="mb-4 flex items-center justify-between">
-        <h2 class="text-lg font-semibold text-ink">Your organizations</h2>
-        <a routerLink="/organizations" class="text-sm font-medium text-primary hover:underline">View all</a>
+  <section class="dashboard-lists" aria-label="Recent organizations and certificates">
+    <app-card class="dashboard-list-card">
+      <div class="panel-header">
+        <h2>Your organizations</h2>
+        <a class="link" routerLink="/organizations">View all</a>
       </div>
       @if (organizations().length === 0) {
-        <app-empty-state message="No organizations yet." />
+        <app-empty-state title="No organizations" description="You are not a member of any organizations yet." />
       } @else {
-        <div class="space-y-2">
+        <ul class="dashboard-list">
           @for (org of organizations().slice(0, 5); track org.id) {
-            <a
-              [routerLink]="['/organizations', org.id]"
-              class="flex items-center justify-between rounded-lg border border-light p-3 hover:bg-canvas-soft transition-all duration-200"
-            >
-              <div>
-                <p class="font-medium text-ink">{{ org.name }}</p>
-                @if (org.description) {
-                  <p class="text-sm text-ink-mute">{{ org.description }}</p>
-                }
-              </div>
-              <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
-                [class]="org.status === 'ACTIVE' ? 'badge-subtle-green' : 'badge-subtle-gray'">
-                {{ org.status }}
-              </span>
-            </a>
+            <li>
+              <a
+                class="list-row list-row-link"
+                [routerLink]="['/organizations', org.id]"
+              >
+                <div class="min-w-0">
+                  <p class="font-medium text-ink">{{ org.name }}</p>
+                  @if (org.description) {
+                    <p class="text-sm text-ink-mute line-clamp-2">{{ org.description }}</p>
+                  }
+                </div>
+                <app-status-badge [status]="org.status" />
+              </a>
+            </li>
           }
-        </div>
+        </ul>
       }
     </app-card>
 
-    <app-card>
-      <div class="mb-4 flex items-center justify-between">
-        <h2 class="text-lg font-semibold text-ink">Recent certificates</h2>
-        <a routerLink="/my-certificates" class="text-sm font-medium text-primary hover:underline">View all</a>
+    <app-card class="dashboard-list-card">
+      <div class="panel-header">
+        <h2>Recent certificates</h2>
+        <a class="link" routerLink="/my-certificates">View all</a>
       </div>
       @if (certificates().length === 0) {
-        <app-empty-state message="No certificates yet." />
+        <app-empty-state title="No certificates" description="You have not earned any certificates yet." />
       } @else {
-        <div class="space-y-2">
+        <ul class="dashboard-list">
           @for (cert of certificates().slice(0, 5); track cert.id) {
-            <a
-              [routerLink]="['/certificates', cert.id]"
-              class="flex items-center justify-between rounded-lg border border-light p-3 hover:bg-canvas-soft transition-all duration-200"
-            >
-              <div>
-                <p class="font-medium text-ink">{{ cert.title }}</p>
-                <p class="text-sm text-ink-mute">{{ cert.programTitleSnapshot }} / {{ cert.quizTitleSnapshot }}</p>
-              </div>
-              <span
-                class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-                [class.badge-subtle-green]="cert.status === 'ACTIVE'"
-                [class.badge-subtle-red]="cert.status === 'REVOKED'"
+            <li>
+              <a
+                class="list-row list-row-link"
+                [routerLink]="['/certificates', cert.id]"
               >
-                {{ cert.status }}
-              </span>
-            </a>
+                <div class="min-w-0">
+                  <p class="font-medium text-ink">{{ cert.title }}</p>
+                  <p class="text-sm text-ink-mute">{{ cert.programTitleSnapshot }} / {{ cert.quizTitleSnapshot }}</p>
+                </div>
+                <app-status-badge entity="certificate" [status]="cert.status" />
+              </a>
+            </li>
           }
-        </div>
+        </ul>
       }
     </app-card>
-  </div>
+  </section>
 
   <app-card>
-    <div class="mb-4 flex items-center justify-between">
-      <h2 class="text-lg font-semibold text-ink">Recent attempts</h2>
-      <a routerLink="/my-attempts" class="text-sm font-medium text-primary hover:underline">View all</a>
+    <div class="panel-header">
+      <h2>Recent attempts</h2>
+      <a class="link" routerLink="/my-attempts">View all</a>
     </div>
     @if (attempts().length === 0) {
-      <app-empty-state message="No attempts yet." />
+      <app-empty-state title="No attempts" description="You have not started any quizzes yet." />
     } @else {
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead class="bg-canvas-soft">
+      <div class="table-wrap">
+        <table>
+          <thead>
             <tr>
-              <th class="px-4 py-3 text-left font-medium text-ink-mute">Quiz</th>
-              <th class="px-4 py-3 text-left font-medium text-ink-mute">Score</th>
-              <th class="px-4 py-3 text-left font-medium text-ink-mute">Status</th>
-              <th class="px-4 py-3 text-left font-medium text-ink-mute">Submitted</th>
+              <th>Quiz</th>
+              <th>Score</th>
+              <th>Status</th>
+              <th>Submitted</th>
             </tr>
           </thead>
           <tbody>
             @for (attempt of attempts().slice(0, 5); track attempt.attemptId) {
-              <tr class="border-t border-light hover:bg-canvas-soft transition-colors duration-150">
-                <td class="px-4 py-3 text-ink">{{ attempt.attemptId }}</td>
-                <td class="px-4 py-3 text-ink">
+              <tr>
+                <td class="font-medium text-ink">{{ attempt.attemptId }}</td>
+                <td>
                   @if (attempt.status === 'SUBMITTED') {
                     {{ attempt.scorePercentage | number:'1.0-1' }}%
                   } @else {
                     -
                   }
                 </td>
-                <td class="px-4 py-3">
-                  <span
-                    class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-                    [class.badge-subtle-green]="attempt.status === 'SUBMITTED' && attempt.passed"
-                    [class.badge-subtle-red]="attempt.status === 'SUBMITTED' && !attempt.passed"
-                    [class.badge-subtle-amber]="attempt.status === 'IN_PROGRESS'"
-                    [class.badge-subtle-gray]="attempt.status === 'EXPIRED' || attempt.status === 'CANCELLED'"
-                  >
-                    {{ attempt.status }}
-                  </span>
+                <td>
+                  <app-status-badge entity="attempt" [status]="attempt.status" />
                 </td>
-                <td class="px-4 py-3 text-ink-mute">
+                <td class="text-ink-mute">
                   {{ attempt.submittedAt ? (attempt.submittedAt | date:'mediumDate') : '-' }}
                 </td>
               </tr>
