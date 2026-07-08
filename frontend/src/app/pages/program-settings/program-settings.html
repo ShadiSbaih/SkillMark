@@ -1,26 +1,39 @@
-@if (programQuery.isPending()) {
+@if (programQuery.isPending() || organizationQuery.isPending()) {
   <app-loading-state message="Loading program..." />
 } @else if (programQuery.isError()) {
   <app-error-state
     [message]="programQuery.error()?.message ?? 'Failed to load program'"
     (retry)="programQuery.refetch()"
   />
+} @else if (organizationQuery.isError()) {
+  <app-error-state
+    [message]="organizationQuery.error()?.message ?? 'Failed to load organization'"
+    (retry)="organizationQuery.refetch()"
+  />
+} @else if (!programQuery.data()) {
+  <app-empty-state
+    title="Program not found"
+    description="The program you are looking for does not exist or has been removed."
+    actionLabel="Go back"
+    (action)="router.navigate(['/organizations'])"
+  />
 } @else {
+  @let program = programQuery.data();
+  @let organization = organizationQuery.data();
+
+  <app-breadcrumb
+    [items]="[
+      { label: 'Organizations', route: ['/organizations'] },
+      { label: organization?.name ?? 'Organization', route: ['/organizations', program?.organizationId ?? ''] },
+      { label: program?.title ?? 'Program', route: ['/programs', programId() ?? ''] },
+      { label: 'Settings' }
+    ]"
+  />
+
   <app-page-header
     title="Program settings"
     subtitle="Edit details or delete the program."
-    [hasActions]="true"
-  >
-    <ng-container actions>
-      <app-button
-        variant="danger"
-        (clicked)="deleteProgram()"
-        [loading]="programsService.deleteMutation.isPending()"
-      >
-        Delete program
-      </app-button>
-    </ng-container>
-  </app-page-header>
+  />
 
   <app-card>
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
@@ -41,6 +54,40 @@
       </div>
 
       <div>
+        <label for="status" class="block text-sm font-medium text-ink">Status</label>
+        <select
+          id="status"
+          formControlName="status"
+          class="mt-1 block w-full rounded-md border border-input bg-canvas-soft px-3 py-2 text-sm text-ink focus-ring-primary"
+        >
+          @for (option of statusOptions; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label for="startDate" class="block text-sm font-medium text-ink">Start date</label>
+          <input
+            id="startDate"
+            type="datetime-local"
+            formControlName="startDate"
+            class="mt-1 block w-full rounded-md border border-input bg-canvas-soft px-3 py-2 text-sm text-ink placeholder-ink-mute focus-ring-primary"
+          />
+        </div>
+        <div>
+          <label for="endDate" class="block text-sm font-medium text-ink">End date</label>
+          <input
+            id="endDate"
+            type="datetime-local"
+            formControlName="endDate"
+            class="mt-1 block w-full rounded-md border border-input bg-canvas-soft px-3 py-2 text-sm text-ink placeholder-ink-mute focus-ring-primary"
+          />
+        </div>
+      </div>
+
+      <div>
         <label for="description" class="block text-sm font-medium text-ink">Description</label>
         <textarea
           id="description"
@@ -50,42 +97,8 @@
           placeholder="What will participants learn?"
         ></textarea>
         @if (form.get('description')?.invalid && form.get('description')?.touched) {
-          <p class="mt-1 text-sm text-red-600">Description must be 500 characters or less.</p>
+          <p class="text-red-600 mt-1 text-sm">Description must be 500 characters or less.</p>
         }
-      </div>
-
-      <div>
-        <label for="coverImageUrl" class="block text-sm font-medium text-ink"
-          >Cover image URL</label
-        >
-        <input
-          id="coverImageUrl"
-          type="url"
-          formControlName="coverImageUrl"
-          class="mt-1 block w-full rounded-md border border-input bg-canvas-soft px-3 py-2 text-sm text-ink placeholder-ink-mute focus-ring-primary"
-          placeholder="https://example.com/image.png"
-        />
-      </div>
-
-      <div class="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label for="startDate" class="block text-sm font-medium text-ink">Start date</label>
-          <input
-            id="startDate"
-            type="date"
-            formControlName="startDate"
-            class="mt-1 block w-full rounded-md border border-input bg-canvas-soft px-3 py-2 text-sm text-ink placeholder-ink-mute focus-ring-primary"
-          />
-        </div>
-        <div>
-          <label for="endDate" class="block text-sm font-medium text-ink">End date</label>
-          <input
-            id="endDate"
-            type="date"
-            formControlName="endDate"
-            class="mt-1 block w-full rounded-md border border-input bg-canvas-soft px-3 py-2 text-sm text-ink placeholder-ink-mute focus-ring-primary"
-          />
-        </div>
       </div>
 
       <div class="flex justify-end gap-3">
@@ -101,4 +114,27 @@
       </div>
     </form>
   </app-card>
+
+  <div class="mt-8">
+    <app-card>
+      <h3 class="text-lg font-semibold text-red-600">Danger zone</h3>
+      <p class="mt-1 text-sm text-ink-mute">
+        Deleting this program will permanently remove all associated resources, quizzes,
+        enrollments, and data. This action cannot be undone.
+      </p>
+      <div class="mt-4">
+        <app-button variant="danger" (clicked)="openDeleteDialog()">Delete program</app-button>
+      </div>
+    </app-card>
+  </div>
 }
+
+<app-confirm-dialog
+  [open]="showDeleteDialog()"
+  title="Delete program?"
+  message="Are you sure you want to delete this program? All resources, quizzes, and enrollment data will be permanently removed."
+  confirmText="Delete"
+  confirmVariant="danger"
+  (cancel)="closeDeleteDialog()"
+  (confirm)="deleteProgram()"
+/>

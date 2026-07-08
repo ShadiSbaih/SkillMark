@@ -1,56 +1,90 @@
-<app-page-header
-  title="Program statistics"
-  subtitle="Enrollment, resource, quiz, and certificate metrics."
-  [hasActions]="true"
->
-  <ng-container actions>
-    <app-button variant="secondary" (clicked)="router.navigate(['/programs', programId()])"
-      >Back</app-button
-    >
-  </ng-container>
-</app-page-header>
-
-@if (statsQuery.isPending()) {
-  <app-loading-state message="Loading statistics..." />
-} @else if (statsQuery.isError()) {
+@if (programQuery.isPending() || organizationQuery.isPending()) {
+  <app-loading-state message="Loading program..." />
+} @else if (programQuery.isError()) {
   <app-error-state
-    [message]="statsQuery.error()?.message ?? 'Failed to load statistics'"
-    (retry)="statsQuery.refetch()"
+    [message]="programQuery.error()?.message ?? 'Failed to load program'"
+    (retry)="programQuery.refetch()"
+  />
+} @else if (organizationQuery.isError()) {
+  <app-error-state
+    [message]="organizationQuery.error()?.message ?? 'Failed to load organization'"
+    (retry)="organizationQuery.refetch()"
   />
 } @else {
-  @let stats = statsQuery.data();
+  @let program = programQuery.data();
+  @let organization = organizationQuery.data();
 
-  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-    <app-card>
-      <p class="text-sm text-ink-mute">Enrollments</p>
-      <p class="mt-2 text-2xl font-semibold text-ink">{{ stats?.totalEnrollments ?? 0 }}</p>
-    </app-card>
+  <app-breadcrumb
+    [items]="[
+      { label: 'Organizations', route: ['/organizations'] },
+      { label: organization?.name ?? 'Organization', route: ['/organizations', program?.organizationId ?? ''] },
+      { label: program?.title ?? 'Program', route: ['/programs', programId() ?? ''] },
+      { label: 'Stats' }
+    ]"
+  />
 
-    <app-card>
-      <p class="text-sm text-ink-mute">Resources</p>
-      <p class="mt-2 text-2xl font-semibold text-ink">{{ stats?.resourcesCount ?? 0 }}</p>
-    </app-card>
+  <app-page-header
+    title="Program stats"
+    subtitle="Enrollment, resource, quiz, and certificate metrics."
+    [hasActions]="true"
+  >
+    <ng-container actions>
+      <app-button variant="secondary" (clicked)="router.navigate(['/programs', programId()])"
+        >Back</app-button
+      >
+    </ng-container>
+  </app-page-header>
 
-    <app-card>
-      <p class="text-sm text-ink-mute">Quizzes</p>
-      <p class="mt-2 text-2xl font-semibold text-ink">{{ stats?.quizzesCount ?? 0 }}</p>
-    </app-card>
+  @if (statsQuery.isPending()) {
+    <app-loading-state message="Loading statistics..." />
+  } @else if (statsQuery.isError()) {
+    <app-error-state
+      [message]="statsQuery.error()?.message ?? 'Failed to load statistics'"
+      (retry)="statsQuery.refetch()"
+    />
+  } @else {
+    @let stats = statsQuery.data();
 
-    <app-card>
-      <p class="text-sm text-ink-mute">Certificates</p>
-      <p class="mt-2 text-2xl font-semibold text-ink">{{ stats?.certificatesIssued ?? 0 }}</p>
-    </app-card>
-  </div>
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <app-card>
+        <p class="text-sm text-ink-mute">Total enrollments</p>
+        <p class="mt-2 text-2xl font-semibold text-ink">{{ stats?.totalEnrollments ?? 0 }}</p>
+      </app-card>
 
-  <div class="mt-6 grid gap-4 sm:grid-cols-2">
-    <app-card>
-      <p class="text-sm text-ink-mute">Average Score</p>
-      <p class="mt-2 text-2xl font-semibold text-ink">{{ averageScore() }}%</p>
-    </app-card>
+      <app-card>
+        <p class="text-sm text-ink-mute">Active enrollments</p>
+        <p class="mt-2 text-2xl font-semibold text-ink">{{ stats?.activeEnrollments ?? 0 }}</p>
+      </app-card>
 
-    <app-card>
-      <p class="text-sm text-ink-mute">Pass Rate</p>
-      <p class="mt-2 text-2xl font-semibold text-ink">{{ passRate() }}%</p>
-    </app-card>
-  </div>
+      <app-card>
+        <p class="text-sm text-ink-mute">Resources</p>
+        <p class="mt-2 text-2xl font-semibold text-ink">{{ stats?.resourcesCount ?? 0 }}</p>
+      </app-card>
+
+      <app-card>
+        <p class="text-sm text-ink-mute">Quizzes</p>
+        <p class="mt-2 text-2xl font-semibold text-ink">{{ stats?.quizzesCount ?? 0 }}</p>
+      </app-card>
+
+      <app-card>
+        <p class="text-sm text-ink-mute">Attempts</p>
+        <p class="mt-2 text-2xl font-semibold text-ink">{{ stats?.attemptsCount ?? 0 }}</p>
+      </app-card>
+
+      <app-card>
+        <p class="text-sm text-ink-mute">Passed participants</p>
+        <p class="mt-2 text-2xl font-semibold text-ink">{{ stats?.passedParticipants ?? 0 }}</p>
+      </app-card>
+
+      <app-card>
+        <p class="text-sm text-ink-mute">Certificates issued</p>
+        <p class="mt-2 text-2xl font-semibold text-ink">{{ stats?.certificatesIssued ?? 0 }}</p>
+      </app-card>
+
+      <app-card>
+        <p class="text-sm text-ink-mute">Average score</p>
+        <p class="mt-2 text-2xl font-semibold text-ink">{{ averageScore() }}%</p>
+      </app-card>
+    </div>
+  }
 }

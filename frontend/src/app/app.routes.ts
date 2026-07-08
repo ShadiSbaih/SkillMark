@@ -19,6 +19,7 @@ import { ProgramResourcesComponent } from './pages/program-resources/program-res
 import { QuizAttemptComponent } from './pages/quiz-attempt/quiz-attempt.component';
 import { QuizBuilderComponent } from './pages/quiz-builder/quiz-builder.component';
 import { VerifyCertificateComponent } from './pages/verify-certificate/verify-certificate.component';
+import { ProgramsComponent } from './pages/programs/programs.component';
 
 // Dedicated components generated to eliminate route-to-component reuse
 import { Profile as ProfileComponent } from './pages/profile/profile';
@@ -60,6 +61,7 @@ export const routes: Routes = [
       { path: 'dashboard', component: DashboardComponent },
       { path: 'profile', component: ProfileComponent },
       { path: 'join/:code', component: JoinComponent },
+      { path: 'programs', component: ProgramsComponent },
       {
         path: 'organizations',
         children: [
