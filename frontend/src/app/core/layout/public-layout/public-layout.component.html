@@ -1,15 +1,20 @@
-<div class="public-shell">
-  <header class="public-nav">
+<header class="public-header">
+  <div class="public-header-inner">
     <a class="brand" routerLink="/">
       <span class="brand-mark">S</span>
       <span>Skillmark</span>
     </a>
-    <nav aria-label="Public navigation">
-      <a routerLink="/verify/A3FX9KL2MN8PQR7Z">Verify</a>
+    <nav>
       <a routerLink="/sign-in">Sign in</a>
-      <a class="button button-primary" routerLink="/dashboard">Open dashboard</a>
+      <a class="button button-primary" routerLink="/sign-up">Get started</a>
     </nav>
-  </header>
+  </div>
+</header>
 
+<main class="public-main">
   <router-outlet />
-</div>
+</main>
+
+<footer class="public-footer">
+  <p>&copy; {{ currentYear }} Skillmark. All rights reserved.</p>
+</footer>

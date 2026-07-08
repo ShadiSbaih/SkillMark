@@ -1,76 +1,110 @@
-<div class="flex h-screen w-full overflow-x-hidden bg-canvas-soft text-ink">
+<div class="dashboard-shell">
   <!-- Sidebar -->
   <aside
-    class="dashboard-sidebar fixed inset-y-0 z-40 w-64 border-r border-input bg-white transition-transform duration-200 ease-in-out lg:static lg:translate-x-0"
-    [class.-translate-x-full]="!mobileOpen()"
+    class="dashboard-sidebar"
+    [class.open]="mobileOpen()"
+    aria-label="Dashboard navigation"
   >
-    <div class="sidebar-header flex h-16 items-center border-b border-input">
-      <a class="flex items-center gap-2 font-semibold text-primary" routerLink="/">
-        <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white">S</span>
+    <div class="sidebar-header">
+      <a class="brand" routerLink="/dashboard">
+        <span class="brand-mark">S</span>
         <span>Skillmark</span>
       </a>
     </div>
 
-    <nav class="nav-section flex flex-col gap-1" aria-label="Owner navigation">
-      <p class="px-3 text-xs font-semibold uppercase tracking-wider text-ink-mute">Owner</p>
-      @for (link of ownerLinks; track link.route) {
-        <a
-          [routerLink]="link.route"
-          routerLinkActive="active"
-          [routerLinkActiveOptions]="{ exact: true }"
-          class="nav-link text-sm font-medium text-ink-mute hover:bg-canvas-soft hover:text-ink"
-          (click)="closeMobile()"
-        >
-          {{ link.label }}
-        </a>
-      }
-    </nav>
+    <div class="sidebar-body">
+      <nav aria-label="Owner navigation">
+        <p class="nav-group-title">Owner</p>
+        @for (link of ownerLinks(); track link.route) {
+          <a
+            [routerLink]="link.route"
+            routerLinkActive="active"
+            [routerLinkActiveOptions]="{
+              exact: link.route === '/dashboard' || link.route === '/organizations'
+            }"
+            class="nav-link"
+            (click)="closeMobile()"
+          >
+            {{ link.label }}
+          </a>
+        }
+      </nav>
 
-    <nav class="nav-section no-pt flex flex-col gap-1" aria-label="Participant navigation">
-      <p class="px-3 text-xs font-semibold uppercase tracking-wider text-ink-mute">Participant</p>
-      @for (link of participantLinks; track link.route) {
-        <a
-          [routerLink]="link.route"
-          routerLinkActive="active"
-          class="nav-link text-sm font-medium text-ink-mute hover:bg-canvas-soft hover:text-ink"
-          (click)="closeMobile()"
-        >
-          {{ link.label }}
-        </a>
-      }
-    </nav>
+      <nav aria-label="Participant navigation">
+        <p class="nav-group-title">Participant</p>
+        @for (link of participantLinks; track link.route) {
+          <a
+            [routerLink]="link.route"
+            routerLinkActive="active"
+            [routerLinkActiveOptions]="{ exact: link.route === '/dashboard' }"
+            class="nav-link"
+            (click)="closeMobile()"
+          >
+            {{ link.label }}
+          </a>
+        }
+      </nav>
+
+      <nav aria-label="Account navigation">
+        <p class="nav-group-title">Account</p>
+        @for (link of accountLinks; track link.route) {
+          <a
+            [routerLink]="link.route"
+            routerLinkActive="active"
+            class="nav-link"
+            (click)="closeMobile()"
+          >
+            {{ link.label }}
+          </a>
+        }
+      </nav>
+    </div>
   </aside>
 
-  <!-- Mobile overlay -->
+  <!-- Mobile drawer backdrop -->
   @if (mobileOpen()) {
-    <div class="fixed inset-0 z-30 backdrop-dark lg:hidden" (click)="closeMobile()"></div>
+    <div
+      class="sidebar-backdrop"
+      (click)="closeMobile()"
+      aria-hidden="true"
+    ></div>
   }
 
   <!-- Main area -->
-  <div class="flex min-w-0 flex-1 flex-col">
-    <!-- Top bar -->
-    <header class="flex h-16 items-center justify-between border-b border-input bg-white px-4 lg:px-6">
-      <div class="flex items-center gap-3">
+  <div class="dashboard-main">
+    <header class="dashboard-topbar">
+      <div class="topbar-left">
         <button
-          class="rounded-md p-2 text-ink-mute hover:bg-canvas-soft lg:hidden"
+          class="menu-button"
+          type="button"
           (click)="toggleMobile()"
           aria-label="Toggle navigation"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
 
-        <div class="hidden items-center gap-2 sm:flex">
-          <label class="text-sm font-medium text-ink-mute" for="org-select">Organization</label>
+        <div class="org-switcher">
+          <label for="org-select">Organization</label>
           @if (listQuery.isLoading()) {
-            <span class="text-sm text-ink-mute">Loading…</span>
+            <span class="org-state">Loading…</span>
           } @else if (listQuery.error()) {
-            <span class="text-sm text-red-700">Failed to load</span>
+            <span class="org-state org-error">Failed to load</span>
           } @else {
             <select
               id="org-select"
-              class="select rounded-md border-input bg-canvas-soft px-3 py-1-5 text-sm text-ink focus-ring-primary"
               [value]="selectedOrganizationId() ?? ''"
               (change)="onOrganizationChange($event)"
             >
@@ -83,19 +117,12 @@
         </div>
       </div>
 
-      <div class="flex items-center gap-4">
-        <a
-          class="text-sm font-medium text-ink-mute hover:text-ink"
-          routerLink="/verify"
-        >
-          Verify
-        </a>
+      <div class="topbar-right">
         <clerk-user-button />
       </div>
     </header>
 
-    <!-- Workspace -->
-    <main class="flex-1 overflow-auto p-4 lg:p-8">
+    <main class="dashboard-content">
       <router-outlet />
     </main>
   </div>

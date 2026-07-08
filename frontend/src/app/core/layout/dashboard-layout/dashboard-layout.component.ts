@@ -1,24 +1,20 @@
+import { Component, computed, effect, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import {
-  Component,
-  computed,
-  effect,
-  inject,
-  signal,
-} from '@angular/core';
-import {
+  NavigationEnd,
   Router,
   RouterLink,
   RouterLinkActive,
   RouterOutlet,
 } from '@angular/router';
-import { ClerkService, ClerkUserButtonComponent } from 'ngx-clerk';
+import { filter, map, startWith } from 'rxjs';
+import { ClerkUserButtonComponent } from 'ngx-clerk';
 import { OrganizationsService } from '../../../services/organizations.service';
 import { OrganizationResponse } from '../../models/organization.model';
 
 interface NavLink {
   label: string;
   route: string;
-  roles: ('owner' | 'participant')[];
 }
 
 @Component({
@@ -30,7 +26,6 @@ interface NavLink {
 })
 export class DashboardLayoutComponent {
   private readonly router = inject(Router);
-  readonly clerk = inject(ClerkService);
   private readonly organizationsService = inject(OrganizationsService);
 
   readonly mobileOpen = signal(false);
@@ -42,27 +37,59 @@ export class DashboardLayoutComponent {
     return data?.items ?? [];
   });
 
-  readonly userName = computed(() => {
-    const user = this.clerk.user();
-    return user?.firstName ?? user?.username ?? 'User';
+  readonly currentUrl = toSignal(
+    this.router.events.pipe(
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+      map((event) => event.urlAfterRedirects),
+      startWith(this.router.url)
+    ),
+    { initialValue: this.router.url }
+  );
+
+  readonly currentOrganizationId = computed(() => {
+    const match = this.currentUrl().match(/\/organizations\/([a-zA-Z0-9-]+)/);
+    return match?.[1] ?? null;
   });
 
-  readonly navLinks: NavLink[] = [
-    { label: 'Dashboard', route: '/dashboard', roles: ['owner', 'participant'] },
-    { label: 'My Organizations', route: '/organizations', roles: ['owner'] },
-    { label: 'My Programs', route: '/my-enrollments', roles: ['participant'] },
-    { label: 'My Attempts', route: '/my-attempts', roles: ['participant'] },
-    { label: 'My Certificates', route: '/my-certificates', roles: ['participant', 'owner'] },
+  readonly ownerLinks = computed<NavLink[]>(() => {
+    const links: NavLink[] = [
+      { label: 'Dashboard', route: '/dashboard' },
+      { label: 'My Organizations', route: '/organizations' },
+    ];
+
+    const orgId = this.currentOrganizationId();
+    if (orgId) {
+      links.push(
+        { label: 'Overview', route: `/organizations/${orgId}` },
+        { label: 'Members', route: `/organizations/${orgId}/members` },
+        { label: 'Settings', route: `/organizations/${orgId}/settings` },
+        { label: 'Stats', route: `/organizations/${orgId}/stats` },
+        { label: 'Audit Logs', route: `/organizations/${orgId}/audit-logs` },
+        { label: 'Certificates', route: `/organizations/${orgId}/certificates` }
+      );
+    }
+
+    return links;
+  });
+
+  readonly participantLinks: NavLink[] = [
+    { label: 'Dashboard', route: '/dashboard' },
+    { label: 'My Programs', route: '/my-enrollments' },
+    { label: 'My Attempts', route: '/my-attempts' },
+    { label: 'My Certificates', route: '/my-certificates' },
   ];
 
-  readonly ownerLinks = this.navLinks.filter((link) => link.roles.includes('owner'));
-  readonly participantLinks = this.navLinks.filter((link) => link.roles.includes('participant'));
+  readonly accountLinks: NavLink[] = [{ label: 'Profile', route: '/profile' }];
 
   constructor() {
     effect(() => {
+      const currentOrg = this.currentOrganizationId();
       const orgs = this.organizations();
-      const current = this.selectedOrganizationId();
-      if (orgs.length > 0 && !current) {
+      const selected = this.selectedOrganizationId();
+
+      if (currentOrg) {
+        this.selectedOrganizationId.set(currentOrg);
+      } else if (orgs.length > 0 && !selected) {
         this.selectedOrganizationId.set(orgs[0].id);
       }
     });
@@ -80,6 +107,7 @@ export class DashboardLayoutComponent {
     const select = event.target as HTMLSelectElement;
     const id = select.value;
     this.selectedOrganizationId.set(id || null);
+
     if (id) {
       void this.router.navigate(['/organizations', id]);
     }
