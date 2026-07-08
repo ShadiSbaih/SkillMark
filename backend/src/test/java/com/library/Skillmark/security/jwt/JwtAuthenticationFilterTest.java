@@ -15,10 +15,16 @@ import static org.mockito.Mockito.*;
 
 class JwtAuthenticationFilterTest {
 
-    private final JwtService jwtService = new JwtService(
-            "SRzg2FX+wiw82zSXR1sCh+8O0kfCgOuuldMdJwMZabvaPehN/IFT99TTxmajaMq5uDFjddyj90DyQ9S5eTyKpg==",
-            86400000,
-            new MockEnvironment().addActiveProfile("test"));
+    private final JwtService jwtService = createJwtService();
+
+    private static JwtService createJwtService() {
+        MockEnvironment environment = new MockEnvironment();
+        environment.addActiveProfile("test");
+        return new JwtService(
+                "SRzg2FX+wiw82zSXR1sCh+8O0kfCgOuuldMdJwMZabvaPehN/IFT99TTxmajaMq5uDFjddyj90DyQ9S5eTyKpg==",
+                86400000,
+                environment);
+    }
 
     private final JwtAuthenticationFilter filter = new JwtAuthenticationFilter(jwtService);
 
