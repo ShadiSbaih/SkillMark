@@ -17,3 +17,9 @@
 	background: var(--primary);
 }
 
+.certificate-section {
+	display: grid;
+	gap: 8px;
+	justify-items: start;
+}
+

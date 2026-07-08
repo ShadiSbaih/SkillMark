@@ -1,6 +1,6 @@
 import { Component, computed, inject } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { AttemptsService } from '../../services/attempts.service';
@@ -23,6 +23,7 @@ import { PageHeaderComponent } from '../../shared/components/page-header/page-he
     ErrorStateComponent,
     LoadingStateComponent,
     PageHeaderComponent,
+    RouterLink,
   ],
   templateUrl: './attempt-result.component.html',
   styleUrl: './attempt-result.component.scss',
@@ -42,6 +43,26 @@ export class AttemptResultComponent {
 
   readonly quizId = computed(() => this.attemptQuery.data()?.quizId ?? null);
   readonly quizQuery = this.quizzesService.getQuizQuery(() => this.quizId());
+
+  issueCertificate(): void {
+    const attemptId = this.attemptId();
+    if (!attemptId) return;
+
+    this.attemptsService.issueCertificateForAttempt.mutate(
+      { attemptId },
+      {
+        onSuccess: (certificate) => {
+          if (certificate?.id) {
+            void this.router.navigate(['/certificates', certificate.id]);
+          }
+        },
+      }
+    );
+  }
+
+  viewCertificate(certificateId: string): void {
+    void this.router.navigate(['/certificates', certificateId]);
+  }
 
   backToAttempts(): void {
     if (window.history.length > 1) {

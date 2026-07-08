@@ -22,6 +22,8 @@ export interface AttemptResponse {
   status: AttemptStatus;
   startedAt: string;
   submittedAt: string | null;
+  certificateIssued: boolean;
+  certificateId: string | null;
 }
 
 export interface AttemptResultResponse {

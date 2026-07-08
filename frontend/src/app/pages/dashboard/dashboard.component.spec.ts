@@ -195,6 +195,8 @@ describe('DashboardComponent', () => {
     status: 'SUBMITTED',
     startedAt: '2026-07-04T10:00:00Z',
     submittedAt: '2026-07-04T11:00:00Z',
+    certificateIssued: true,
+    certificateId: 'cert-1',
   };
 
   beforeEach(async () => {

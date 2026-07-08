@@ -19,7 +19,6 @@ import { QuizzesService } from '../../services/quizzes.service';
 import { AttemptsService } from '../../services/attempts.service';
 import { BadgeComponent } from '../../shared/components/badge/badge.component';
 import { ButtonComponent } from '../../shared/components/button/button.component';
-import { CardComponent } from '../../shared/components/card/card.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { ErrorStateComponent } from '../../shared/components/error-state/error-state.component';
 import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
@@ -55,7 +54,7 @@ export class QuizAttemptComponent implements OnInit {
 
   readonly attemptId = signal<string | null>(null);
   readonly expiresAt = signal<Date | null>(null);
-  readonly answers = signal<Map<string, string>>(new Map());
+  readonly answers = signal<Record<string, string>>({});
   readonly currentQuestionIndex = signal(0);
   readonly timeRemainingMs = signal(0);
   readonly showSubmitModal = signal(false);
@@ -76,7 +75,7 @@ export class QuizAttemptComponent implements OnInit {
     () => this.currentQuestionIndex() === this.totalQuestions() - 1
   );
 
-  readonly answeredCount = computed(() => this.answers().size);
+  readonly answeredCount = computed(() => Object.keys(this.answers()).length);
 
   readonly timerDisplay = computed(() => {
     const ms = Math.max(0, this.timeRemainingMs());
@@ -149,7 +148,7 @@ export class QuizAttemptComponent implements OnInit {
   }
 
   selectOption(questionId: string, optionId: string): void {
-    this.answers.update((map) => new Map(map).set(questionId, optionId));
+    this.answers.update((prev) => ({ ...prev, [questionId]: optionId }));
   }
 
   goToQuestion(index: number): void {
@@ -189,7 +188,7 @@ export class QuizAttemptComponent implements OnInit {
     if (!attemptId) return;
 
     const request: SubmitAttemptRequest = {
-      answers: Array.from(this.answers()).map(([questionId, selectedOptionId]) => ({
+      answers: Object.entries(this.answers()).map(([questionId, selectedOptionId]) => ({
         questionId,
         selectedOptionId,
       })),
@@ -213,11 +212,11 @@ export class QuizAttemptComponent implements OnInit {
   }
 
   isAnswered(questionId: string): boolean {
-    return this.answers().has(questionId);
+    return questionId in this.answers();
   }
 
   getSelectedOption(questionId: string): string | undefined {
-    return this.answers().get(questionId);
+    return this.answers()[questionId];
   }
 
   retryLoad(): void {

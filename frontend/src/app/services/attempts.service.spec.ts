@@ -48,6 +48,8 @@ describe('AttemptsService', () => {
     status: 'SUBMITTED',
     startedAt: '2026-07-03T10:00:00Z',
     submittedAt: '2026-07-03T10:30:00Z',
+    certificateIssued: false,
+    certificateId: null,
   };
 
   const resultResponse: AttemptResultResponse = {

@@ -16,12 +16,15 @@
         }
       </div>
       <div class="flex gap-3">
-        <app-button type="button" variant="secondary" [routerLink]="['/quizzes', quiz.id]">
+        <a class="button button-secondary" [routerLink]="['/quizzes', quiz.id]">
           Back to overview
-        </app-button>
-        <app-button type="button" [routerLink]="['/quizzes', quiz.id, 'attempt']">
+        </a>
+        <a class="button button-secondary" [routerLink]="['/quizzes', quiz.id, 'builder']">
+          Edit quiz
+        </a>
+        <a class="button button-primary" [routerLink]="['/quizzes', quiz.id, 'attempt']">
           Start attempt
-        </app-button>
+        </a>
       </div>
     </header>
 

@@ -4,7 +4,6 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs/operators';
 import { DecimalPipe } from '@angular/common';
 import { QuizzesService } from '../../services/quizzes.service';
-import { ButtonComponent } from '../../shared/components/button/button.component';
 import { CardComponent } from '../../shared/components/card/card.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { ErrorStateComponent } from '../../shared/components/error-state/error-state.component';
@@ -16,7 +15,6 @@ import { LoadingStateComponent } from '../../shared/components/loading-state/loa
   imports: [
     RouterLink,
     DecimalPipe,
-    ButtonComponent,
     CardComponent,
     EmptyStateComponent,
     ErrorStateComponent,
@@ -35,7 +33,7 @@ export class QuizView {
     { initialValue: this.route.snapshot.paramMap.get('quizId') }
   );
 
-  readonly quizQuery = this.quizzesService.getQuizQuery(this.quizId);
+  readonly quizQuery = this.quizzesService.getQuizQuery(() => this.quizId());
   readonly quiz = computed(() => this.quizQuery.data());
   readonly totalPoints = computed(() =>
     (this.quiz()?.questions ?? []).reduce((sum, q) => sum + (q.points ?? 0), 0)
