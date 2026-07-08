@@ -25,7 +25,7 @@ public class OpenApiConfig {
                 .info(new Info()
                         .title("Skillmark Backend API")
                         .description("""
-                                API-first training, assessment, and certification backend with Clerk authentication,
+                                API-first training, assessment, and certification backend with JWT authentication,
                                 organization-scoped permissions, program enrollments, resources, quizzes,
                                 automatic scoring, certificates, revocation, and public verification.
                                 """)
@@ -34,7 +34,7 @@ public class OpenApiConfig {
                         .license(new License().name("Proprietary")))
                 .servers(List.of(new Server().url("/").description("Current server")))
                 .tags(List.of(
-                        new Tag().name("Users").description("Current authenticated Clerk user profile and backend sync."),
+                        new Tag().name("Users").description("Current authenticated user profile and backend sync."),
                         new Tag().name("Organizations").description("Organization creation, lookup, update, and soft deletion."),
                         new Tag().name("Memberships").description("Organization-scoped OWNER/PARTICIPANT membership management."),
                         new Tag().name("Programs").description("Program/workshop creation, publishing, archiving, and lookup."),
@@ -51,8 +51,8 @@ public class OpenApiConfig {
                         new SecurityScheme()
                                 .type(SecurityScheme.Type.HTTP)
                                 .scheme("bearer")
-                                .bearerFormat("Clerk")
-                                .description("Clerk session token supplied as Authorization: Bearer <token>")))
+                                .bearerFormat("JWT")
+                                .description("Skillmark access token supplied as Authorization: Bearer <token> or access_token cookie")))
                 .externalDocs(new ExternalDocumentation()
                         .description("Skillmark backend documentation")
                         .url("/swagger-ui.html"));

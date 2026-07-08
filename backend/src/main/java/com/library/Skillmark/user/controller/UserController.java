@@ -39,7 +39,7 @@ public class UserController {
     }
 
     @PostMapping("/sync")
-    @Operation(summary = "Sync current Clerk user", description = "Compatibility alias for updating the local user profile.")
+    @Operation(summary = "Sync current user", description = "Compatibility alias for updating the local user profile.")
     ApiResponse<UserResponse> sync(@RequestBody(required = false) SyncUserRequest request, AuthUser currentUser) {
         return ApiResponse.success("User profile synced successfully",
                 request == null
