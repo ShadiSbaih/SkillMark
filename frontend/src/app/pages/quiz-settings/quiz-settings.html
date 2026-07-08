@@ -11,13 +11,11 @@
   @if (!quiz) {
     <app-empty-state title="Quiz not found" description="This quiz could not be loaded." />
   } @else {
+    <app-breadcrumb [items]="breadcrumbs()" />
+
     <app-page-header title="Quiz settings" [subtitle]="'Manage ' + quiz.title" [hasActions]="true">
       <ng-container actions>
         <app-button variant="secondary" (clicked)="goBack()">Back</app-button>
-        @if (!isArchived()) {
-          <app-button variant="danger" (clicked)="openArchiveModal()">Archive</app-button>
-        }
-        <app-button variant="danger" (clicked)="openDeleteModal()">Delete</app-button>
       </ng-container>
     </app-page-header>
 
@@ -29,15 +27,10 @@
       <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-panel">
         <label>
           <span>Title *</span>
-          <input formControlName="title" maxlength="120" />
+          <input formControlName="title" placeholder="e.g. Git Basics Quiz" maxlength="120" />
           @if (form.get('title')?.invalid && form.get('title')?.touched) {
             <p class="text-sm text-danger">Title is required.</p>
           }
-        </label>
-
-        <label>
-          <span>Description</span>
-          <textarea formControlName="description" rows="4"></textarea>
         </label>
 
         <div class="form-grid">
@@ -56,6 +49,16 @@
             <input type="number" formControlName="maxAttempts" min="1" />
           </label>
         </div>
+
+        <label>
+          <span>Description</span>
+          <textarea formControlName="description" rows="4" placeholder="What is this quiz about?"></textarea>
+        </label>
+
+        <label>
+          <span>Instructions</span>
+          <textarea formControlName="instructions" rows="3" placeholder="Any guidance for participants before they start."></textarea>
+        </label>
 
         <div class="list-row">
           <div>
@@ -88,30 +91,28 @@
         </div>
       </form>
     </app-card>
+
+    <div class="mt-8">
+      <app-card>
+        <h3 class="text-lg font-semibold text-red-600">Danger zone</h3>
+        <p class="mt-1 text-sm text-ink-mute">
+          Deleting this quiz will permanently remove all questions and attempts. This action cannot
+          be undone.
+        </p>
+        <div class="mt-4">
+          <app-button variant="danger" (clicked)="openDeleteDialog()">Delete quiz</app-button>
+        </div>
+      </app-card>
+    </div>
   }
 }
 
-<app-modal
-  [open]="showArchiveModal()"
-  title="Archive quiz?"
-  confirmLabel="Archive"
-  confirmVariant="danger"
-  (close)="closeArchiveModal()"
-  (confirm)="confirmArchive()"
->
-  <p>Archived quizzes are no longer visible to participants. You can still view historical data.</p>
-</app-modal>
-
-<app-modal
-  [open]="showDeleteModal()"
+<app-confirm-dialog
+  [open]="showDeleteDialog()"
   title="Delete quiz?"
-  confirmLabel="Delete"
+  message="Are you sure you want to delete this quiz? All questions and attempts will be permanently removed."
+  confirmText="Delete"
   confirmVariant="danger"
-  (close)="closeDeleteModal()"
-  (confirm)="confirmDelete()"
->
-  <p>
-    Are you sure you want to delete this quiz? All questions and attempts will be removed. This
-    action cannot be undone.
-  </p>
-</app-modal>
+  (cancel)="closeDeleteDialog()"
+  (confirm)="deleteQuiz()"
+/>

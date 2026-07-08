@@ -24,6 +24,7 @@ export interface Quiz {
   organizationId: string;
   title: string;
   description?: string;
+  instructions?: string;
   passingScore: number;
   durationMinutes: number;
   maxAttempts: number;
@@ -49,6 +50,7 @@ export interface CreateQuizRequest {
 export interface UpdateQuizRequest {
   title: string;
   description?: string;
+  instructions?: string;
   passingScore: number;
   durationMinutes: number;
   maxAttempts: number;

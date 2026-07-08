@@ -4,7 +4,9 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { toast } from 'ngx-sonner';
 import { QuizzesService } from '../../services/quizzes.service';
+import { StatsService } from '../../services/stats.service';
 import { BadgeComponent } from '../../shared/components/badge/badge.component';
+import { BreadcrumbComponent } from '../../shared/components/breadcrumb/breadcrumb.component';
 import { ButtonComponent } from '../../shared/components/button/button.component';
 import { CardComponent } from '../../shared/components/card/card.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
@@ -18,6 +20,7 @@ import { PageHeaderComponent } from '../../shared/components/page-header/page-he
   standalone: true,
   imports: [
     BadgeComponent,
+    BreadcrumbComponent,
     ButtonComponent,
     CardComponent,
     EmptyStateComponent,
@@ -33,6 +36,7 @@ export class QuizOverview {
   private readonly route = inject(ActivatedRoute);
   readonly router = inject(Router);
   readonly quizzesService = inject(QuizzesService);
+  readonly statsService = inject(StatsService);
 
   readonly quizId = toSignal(
     this.route.paramMap.pipe(map((params) => params.get('quizId'))),
@@ -40,8 +44,17 @@ export class QuizOverview {
   );
 
   readonly quizQuery = this.quizzesService.getQuizQuery(() => this.quizId());
+  readonly statsQuery = this.statsService.getQuizStatsQuery(() => this.quizId());
   readonly showPublishModal = signal(false);
-  readonly showVisibilityModal = signal(false);
+
+  readonly breadcrumbs = computed(() => {
+    const quiz = this.quizQuery.data();
+    return [
+      { label: 'Programs', route: ['/programs'] },
+      { label: 'Program', route: quiz?.programId ? ['/programs', quiz.programId] : undefined },
+      { label: quiz?.title ?? 'Quiz' },
+    ];
+  });
 
   readonly statusBadgeVariant = computed(() => {
     switch (this.quizQuery.data()?.status) {
@@ -54,20 +67,10 @@ export class QuizOverview {
     }
   });
 
-  readonly visibilityBadgeVariant = computed(() =>
-    this.quizQuery.data()?.visibleToParticipants ? 'success' : 'default'
+  readonly previewQuestions = computed(() => this.quizQuery.data()?.questions.slice(0, 5) ?? []);
+  readonly hasMoreQuestions = computed(
+    () => (this.quizQuery.data()?.questions.length ?? 0) > 5
   );
-
-  readonly isPublished = computed(() => this.quizQuery.data()?.status === 'PUBLISHED');
-
-  goBack(): void {
-    const quiz = this.quizQuery.data();
-    if (quiz?.programId) {
-      void this.router.navigate(['/programs', quiz.programId]);
-    } else {
-      void this.router.navigate(['/dashboard']);
-    }
-  }
 
   navigateToBuilder(): void {
     const id = this.quizId();
@@ -79,14 +82,9 @@ export class QuizOverview {
     if (id) void this.router.navigate(['/quizzes', id, 'settings']);
   }
 
-  navigateToStats(): void {
+  navigateToPreview(): void {
     const id = this.quizId();
-    if (id) void this.router.navigate(['/quizzes', id, 'stats']);
-  }
-
-  navigateToAttempts(): void {
-    const id = this.quizId();
-    if (id) void this.router.navigate(['/quizzes', id, 'attempts']);
+    if (id) void this.router.navigate(['/quizzes', id, 'view']);
   }
 
   openPublishModal(): void {
@@ -110,23 +108,5 @@ export class QuizOverview {
         toast.error(error?.message ?? 'Failed to publish quiz.');
       },
     });
-  }
-
-  toggleVisibility(): void {
-    const quiz = this.quizQuery.data();
-    const id = this.quizId();
-    if (!quiz || !id) return;
-    const nextValue = !quiz.visibleToParticipants;
-    this.quizzesService.updateVisibilityMutation.mutate(
-      { quizId: id, visibleToParticipants: nextValue },
-      {
-        onSuccess: () => {
-          toast.success(nextValue ? 'Quiz is now visible to participants.' : 'Quiz hidden from participants.');
-        },
-        onError: (error) => {
-          toast.error(error?.message ?? 'Failed to update visibility.');
-        },
-      }
-    );
   }
 }

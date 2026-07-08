@@ -6,12 +6,13 @@ import { map } from 'rxjs';
 import { toast } from 'ngx-sonner';
 import { QuizzesService } from '../../services/quizzes.service';
 import { BadgeComponent } from '../../shared/components/badge/badge.component';
+import { BreadcrumbComponent } from '../../shared/components/breadcrumb/breadcrumb.component';
 import { ButtonComponent } from '../../shared/components/button/button.component';
 import { CardComponent } from '../../shared/components/card/card.component';
+import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { ErrorStateComponent } from '../../shared/components/error-state/error-state.component';
 import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
-import { ModalComponent } from '../../shared/components/modal/modal.component';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { CertificateIssueMode, UpdateQuizRequest } from '../../core/models/quiz.model';
 
@@ -21,12 +22,13 @@ import { CertificateIssueMode, UpdateQuizRequest } from '../../core/models/quiz.
   imports: [
     ReactiveFormsModule,
     BadgeComponent,
+    BreadcrumbComponent,
     ButtonComponent,
     CardComponent,
+    ConfirmDialogComponent,
     EmptyStateComponent,
     ErrorStateComponent,
     LoadingStateComponent,
-    ModalComponent,
     PageHeaderComponent,
   ],
   templateUrl: './quiz-settings.html',
@@ -45,12 +47,12 @@ export class QuizSettings {
 
   readonly quizQuery = this.quizzesService.getQuizQuery(() => this.quizId());
   readonly loadedOnce = signal(false);
-  readonly showDeleteModal = signal(false);
-  readonly showArchiveModal = signal(false);
+  readonly showDeleteDialog = signal(false);
 
   readonly form = this.fb.group({
     title: ['', [Validators.required, Validators.maxLength(120)]],
     description: [''],
+    instructions: [''],
     passingScore: [70, [Validators.required, Validators.min(0), Validators.max(100)]],
     durationMinutes: [30, [Validators.required, Validators.min(1)]],
     maxAttempts: [1, [Validators.required, Validators.min(1)]],
@@ -60,7 +62,16 @@ export class QuizSettings {
 
   readonly certificateEnabled = computed(() => this.form.value.certificateEnabled);
   readonly isPublished = computed(() => this.quizQuery.data()?.status === 'PUBLISHED');
-  readonly isArchived = computed(() => this.quizQuery.data()?.status === 'ARCHIVED');
+
+  readonly breadcrumbs = computed(() => {
+    const quiz = this.quizQuery.data();
+    return [
+      { label: 'Programs', route: ['/programs'] },
+      { label: 'Program', route: quiz?.programId ? ['/programs', quiz.programId] : undefined },
+      { label: quiz?.title ?? 'Quiz', route: quiz ? ['/quizzes', quiz.id] : undefined },
+      { label: 'Settings' },
+    ];
+  });
 
   readonly statusVariant = computed(() => {
     switch (this.quizQuery.data()?.status) {
@@ -81,6 +92,7 @@ export class QuizSettings {
         this.form.patchValue({
           title: quiz.title,
           description: quiz.description ?? '',
+          instructions: quiz.instructions ?? '',
           passingScore: quiz.passingScore,
           durationMinutes: quiz.durationMinutes,
           maxAttempts: quiz.maxAttempts,
@@ -105,6 +117,7 @@ export class QuizSettings {
     const request: UpdateQuizRequest = {
       title: value.title ?? '',
       description: value.description || undefined,
+      instructions: value.instructions || undefined,
       passingScore: value.passingScore ?? 70,
       durationMinutes: value.durationMinutes ?? 30,
       maxAttempts: value.maxAttempts ?? 1,
@@ -121,52 +134,26 @@ export class QuizSettings {
     );
   }
 
-  openArchiveModal(): void {
-    this.showArchiveModal.set(true);
+  openDeleteDialog(): void {
+    this.showDeleteDialog.set(true);
   }
 
-  closeArchiveModal(): void {
-    this.showArchiveModal.set(false);
+  closeDeleteDialog(): void {
+    this.showDeleteDialog.set(false);
   }
 
-  confirmArchive(): void {
+  deleteQuiz(): void {
     const id = this.quizId();
     if (!id) return;
-    this.quizzesService.archiveMutation.mutate(
-      { quizId: id, status: 'ARCHIVED' },
-      {
-        onSuccess: () => {
-          this.showArchiveModal.set(false);
-          toast.success('Quiz archived.');
-        },
-        onError: (error) => {
-          this.showArchiveModal.set(false);
-          toast.error(error?.message ?? 'Failed to archive quiz.');
-        },
-      }
-    );
-  }
 
-  openDeleteModal(): void {
-    this.showDeleteModal.set(true);
-  }
-
-  closeDeleteModal(): void {
-    this.showDeleteModal.set(false);
-  }
-
-  confirmDelete(): void {
-    const id = this.quizId();
-    if (!id) return;
     this.quizzesService.deleteMutation.mutate(id, {
       onSuccess: () => {
-        this.showDeleteModal.set(false);
         toast.success('Quiz deleted.');
         const programId = this.quizQuery.data()?.programId;
-        void this.router.navigate(programId ? ['/programs', programId, 'quizzes'] : ['/programs']);
+        void this.router.navigate(programId ? ['/programs', programId] : ['/programs']);
       },
       onError: (error) => {
-        this.showDeleteModal.set(false);
+        this.showDeleteDialog.set(false);
         toast.error(error?.message ?? 'Failed to delete quiz.');
       },
     });
