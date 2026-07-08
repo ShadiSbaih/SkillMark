@@ -1,8 +1,10 @@
-<section class="auth-page">
-  <div class="auth-card">
+<section class="auth-layout">
+  <div class="auth-content">
     @if (!isSuccess()) {
-      <h1>Create your account</h1>
-      <p class="auth-subtitle">Join Skillmark and start tracking skills.</p>
+      <div class="auth-header">
+        <h1>Create your account</h1>
+        <p class="auth-subtitle">Join Skillmark and start tracking skills.</p>
+      </div>
 
       <div class="role-selector" role="group" aria-label="Account type">
         <button
@@ -43,11 +45,12 @@
             formControlName="name"
             placeholder="Jane Doe"
             autocomplete="name"
+            class="input"
           />
         </app-form-field>
 
         <app-form-field
-          label="Email"
+          label="Email address"
           id="email"
           [error]="form.get('email')?.touched && form.get('email')?.invalid ? 'Please enter a valid email.' : undefined"
         >
@@ -57,36 +60,41 @@
             formControlName="email"
             placeholder="you@example.com"
             autocomplete="email"
+            class="input"
           />
         </app-form-field>
 
-        <app-form-field
-          label="Password"
-          id="password"
-          [error]="form.get('password')?.touched && form.get('password')?.invalid ? 'Password must be at least 8 characters.' : undefined"
-        >
-          <input
+        <div class="grid grid-cols-2 gap-4">
+          <app-form-field
+            label="Password"
             id="password"
-            type="password"
-            formControlName="password"
-            placeholder="••••••••"
-            autocomplete="new-password"
-          />
-        </app-form-field>
+            [error]="form.get('password')?.touched && form.get('password')?.invalid ? 'Password must be at least 8 characters.' : undefined"
+          >
+            <input
+              id="password"
+              type="password"
+              formControlName="password"
+              placeholder="••••••••"
+              autocomplete="new-password"
+              class="input"
+            />
+          </app-form-field>
 
-        <app-form-field
-          label="Confirm password"
-          id="confirmPassword"
-          [error]="form.get('confirmPassword')?.touched && form.get('confirmPassword')?.invalid ? 'Please confirm your password.' : undefined"
-        >
-          <input
+          <app-form-field
+            label="Confirm"
             id="confirmPassword"
-            type="password"
-            formControlName="confirmPassword"
-            placeholder="••••••••"
-            autocomplete="new-password"
-          />
-        </app-form-field>
+            [error]="form.get('confirmPassword')?.touched && form.get('confirmPassword')?.invalid ? 'Please confirm your password.' : undefined"
+          >
+            <input
+              id="confirmPassword"
+              type="password"
+              formControlName="confirmPassword"
+              placeholder="••••••••"
+              autocomplete="new-password"
+              class="input"
+            />
+          </app-form-field>
+        </div>
 
         @if (isOwner()) {
           <app-form-field
@@ -99,6 +107,7 @@
               type="text"
               formControlName="organizationName"
               placeholder="Acme Inc"
+              class="input"
             />
           </app-form-field>
         } @else {
@@ -112,6 +121,7 @@
               type="text"
               formControlName="inviteCode"
               placeholder="A1B2C3D4E5F6"
+              class="input"
             />
           </app-form-field>
         }
@@ -120,22 +130,41 @@
           <div class="auth-error">{{ error() }}</div>
         }
 
-        <app-button type="submit" variant="primary" [loading]="isLoading()" [disabled]="isLoading()">
-          Create account
-        </app-button>
+        <div class="mt-2">
+          <app-button type="submit" variant="primary" [loading]="isLoading()" [disabled]="isLoading()" [fullWidth]="true">
+            Create account
+          </app-button>
+        </div>
       </form>
 
-      <div class="auth-links">
+      <div class="auth-footer">
         <span>Already have an account? <a routerLink="/sign-in">Sign in</a></span>
       </div>
     } @else {
-      <h1>Verify your email</h1>
-      <p class="auth-subtitle">
-        Thanks for signing up! Check your email and click the verification link to activate your account.
-      </p>
-      <div class="auth-links">
+      <div class="auth-header text-center" style="text-align: center;">
+        <div style="width: 48px; height: 48px; background: var(--success-bg); color: var(--success); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px auto;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </div>
+        <h1>Verify your email</h1>
+        <p class="auth-subtitle" style="margin-top: 16px;">
+          Thanks for signing up! Check your email and click the verification link to activate your account.
+        </p>
+      </div>
+      <div class="auth-footer mt-8">
         <span>Already verified? <a routerLink="/sign-in">Sign in</a></span>
       </div>
     }
+  </div>
+
+  <div class="auth-visual">
+    <div class="auth-visual-quote">
+      <blockquote>
+        "An absolutely essential tool for running a modern engineering organization. The clarity it brings is unmatched."
+      </blockquote>
+      <cite>
+        <div style="width: 32px; height: 32px; border-radius: 9999px; background: var(--primary); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 12px;">MD</div>
+        <span>Marcus D., Director of Platform</span>
+      </cite>
+    </div>
   </div>
 </section>

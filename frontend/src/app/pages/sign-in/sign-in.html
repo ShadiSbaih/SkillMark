@@ -1,11 +1,13 @@
-<section class="auth-page">
-  <div class="auth-card">
-    <h1>Welcome back</h1>
-    <p class="auth-subtitle">Sign in to continue your Skillmark journey.</p>
+<section class="auth-layout">
+  <div class="auth-content">
+    <div class="auth-header">
+      <h1>Welcome back</h1>
+      <p class="auth-subtitle">Sign in to continue your Skillmark journey.</p>
+    </div>
 
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="auth-form">
       <app-form-field
-        label="Email"
+        label="Email address"
         id="email"
         [error]="form.get('email')?.touched && form.get('email')?.invalid ? 'Please enter a valid email.' : undefined"
       >
@@ -15,6 +17,7 @@
           formControlName="email"
           placeholder="you@example.com"
           autocomplete="email"
+          class="input"
         />
       </app-form-field>
 
@@ -29,6 +32,7 @@
           formControlName="password"
           placeholder="••••••••"
           autocomplete="current-password"
+          class="input"
         />
       </app-form-field>
 
@@ -36,14 +40,30 @@
         <div class="auth-error">{{ error() }}</div>
       }
 
-      <app-button type="submit" variant="primary" [loading]="isLoading()" [disabled]="isLoading()">
-        Sign in
-      </app-button>
+      <div class="mt-2">
+        <app-button type="submit" variant="primary" [loading]="isLoading()" [disabled]="isLoading()" [fullWidth]="true">
+          Sign in
+        </app-button>
+      </div>
     </form>
 
-    <div class="auth-links">
-      <a routerLink="/forgot-password">Forgot password?</a>
+    <div class="auth-footer">
+      <div class="mb-4">
+        <a routerLink="/forgot-password">Forgot password?</a>
+      </div>
       <span>Don't have an account? <a routerLink="/sign-up">Sign up</a></span>
+    </div>
+  </div>
+
+  <div class="auth-visual">
+    <div class="auth-visual-quote">
+      <blockquote>
+        "Skillmark has completely transformed how we track and evaluate our team's engineering competencies."
+      </blockquote>
+      <cite>
+        <div style="width: 32px; height: 32px; border-radius: 9999px; background: var(--primary); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 12px;">SL</div>
+        <span>Sarah L., VP of Engineering</span>
+      </cite>
     </div>
   </div>
 </section>
