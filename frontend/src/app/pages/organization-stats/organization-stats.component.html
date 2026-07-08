@@ -1,90 +1,36 @@
-@if (statsQuery.isPending()) {
+@if (statsQuery.isPending() || organizationQuery.isPending()) {
   <app-loading-state message="Loading statistics..." />
 }
 
-@if (statsQuery.error()) {
+@if (statsQuery.error() || organizationQuery.error()) {
   <app-error-state
-    [message]="statsQuery.error()?.message ?? 'Failed to load statistics'"
-    (retry)="statsQuery.refetch()"
+    [message]="(statsQuery.error()?.message ?? organizationQuery.error()?.message) || 'Failed to load statistics'"
+    (retry)="statsQuery.refetch(); organizationQuery.refetch()"
   />
 }
 
-@if (stats(); as stats) {
-  <header class="mb-6">
-    <p class="text-xs font-medium uppercase text-ink-mute">Statistics</p>
-    <h1 class="text-2xl font-bold text-ink">Performance statistics</h1>
-    <p class="text-sm text-ink-mute">Enrollment, attempt, score, and certificate outcomes for this organization.</p>
-  </header>
+@if (!statsQuery.isPending() && !statsQuery.error() && !organizationQuery.isPending() && !organizationQuery.error() && organization(); as org) {
+  <app-breadcrumb
+    [items]="[
+      { label: 'Organizations', route: ['/organizations'] },
+      { label: org.name, route: ['/organizations', organizationId()!] },
+      { label: 'Stats' }
+    ]"
+  />
 
-  <div class="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-    <div class="rounded-xl border border-light bg-white p-4">
-      <p class="text-xs font-medium uppercase text-ink-mute">Programs</p>
-      <p class="mt-1 text-2xl font-bold text-ink">{{ stats.totalPrograms }}</p>
-    </div>
-    <div class="rounded-xl border border-light bg-white p-4">
-      <p class="text-xs font-medium uppercase text-ink-mute">Members</p>
-      <p class="mt-1 text-2xl font-bold text-ink">{{ stats.totalMembers }}</p>
-    </div>
-    <div class="rounded-xl border border-light bg-white p-4">
-      <p class="text-xs font-medium uppercase text-ink-mute">Certificates</p>
-      <p class="mt-1 text-2xl font-bold text-ink">{{ stats.totalCertificates }}</p>
-    </div>
-    <div class="rounded-xl border border-light bg-white p-4">
-      <p class="text-xs font-medium uppercase text-ink-mute">Average score</p>
-      <p class="mt-1 text-2xl font-bold text-ink">{{ stats.averageScore | number:'1.0-1' }}%</p>
-    </div>
-  </div>
+  <app-page-header
+    title="Organization stats"
+    subtitle="Performance statistics for {{ org.name }}."
+  />
 
-  <div class="mb-6 grid gap-6 lg:grid-cols-2">
-    <app-card>
-      <div class="mb-4 flex items-center justify-between">
-        <h2 class="text-lg font-semibold text-ink">Pass vs fail</h2>
-        <span class="pass-rate-badge">
-          {{ stats.passRate | number:'1.0-1' }}% pass rate
-        </span>
-      </div>
-      <div class="pass-rate-chart-wrapper">
-        <svg viewBox="0 0 120 120" class="pass-rate-chart">
-          <circle cx="60" cy="60" r="50" fill="none" stroke="#e1ebf5" stroke-width="12" />
-          <circle
-            cx="60" cy="60" r="50" fill="none" stroke="#2ec27e" stroke-width="12"
-            [attr.stroke-dasharray]="passRateDash() + ' ' + (339.292 - passRateDash())"
-            stroke-dashoffset="0"
-          />
-        </svg>
-        <span class="pass-rate-percentage">{{ stats.passRate | number:'1.0-1' }}%</span>
-      </div>
-    </app-card>
-
-    <app-card>
-      <div class="mb-4 flex items-center justify-between">
-        <h2 class="text-lg font-semibold text-ink">Program rollup</h2>
-      </div>
-      <div class="grid gap-4 sm:grid-cols-2">
-        <div class="rounded-lg border border-light p-3">
-          <p class="text-xs text-ink-mute">Enrollments</p>
-          <p class="text-xl font-semibold text-ink">{{ stats.totalEnrolledParticipants }}</p>
-        </div>
-        <div class="rounded-lg border border-light p-3">
-          <p class="text-xs text-ink-mute">Quizzes</p>
-          <p class="text-xl font-semibold text-ink">{{ stats.totalQuizzes }}</p>
-        </div>
-      </div>
-      @if (programs().length > 0) {
-        <div class="mt-4 space-y-2">
-          @for (program of programs().slice(0, 5); track program.id) {
-            <a
-              [routerLink]="['/programs', program.id]"
-              class="flex items-center justify-between rounded-lg border border-light p-3 hover:bg-canvas-soft"
-            >
-              <span class="font-medium text-ink">{{ program.title }}</span>
-              <span class="text-sm text-ink-mute">{{ program.status }}</span>
-            </a>
-          }
-        </div>
-      } @else {
-        <app-empty-state class="mt-4" message="No programs found." />
-      }
-    </app-card>
+  <div class="metric-grid mt-6">
+    @for (metric of metrics(); track metric.label) {
+      <app-card>
+        <p class="metric-label">{{ metric.label }}</p>
+        <p class="metric-value">
+          {{ metric.value | number:'1.0-1' }}{{ metric.suffix ?? '' }}
+        </p>
+      </app-card>
+    }
   </div>
 }

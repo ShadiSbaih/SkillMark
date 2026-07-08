@@ -1,35 +1,46 @@
-@if (certificatesQuery.isPending()) {
+@if (certificatesQuery.isPending() || organizationQuery.isPending()) {
   <app-loading-state message="Loading certificates..." />
 }
 
-@if (certificatesQuery.error()) {
+@if (certificatesQuery.error() || organizationQuery.error()) {
   <app-error-state
-    [message]="certificatesQuery.error()?.message ?? 'Failed to load certificates'"
-    (retry)="certificatesQuery.refetch()"
+    [message]="(certificatesQuery.error()?.message ?? organizationQuery.error()?.message) || 'Failed to load certificates'"
+    (retry)="certificatesQuery.refetch(); organizationQuery.refetch()"
   />
 }
 
-@if (!certificatesQuery.isPending() && !certificatesQuery.error()) {
-  <header class="mb-6">
-    <p class="text-xs font-medium uppercase text-ink-mute">Organization</p>
-    <h1 class="text-2xl font-bold text-ink">Certificates</h1>
-    <p class="text-sm text-ink-mute">Manage certificates issued within this organization.</p>
-  </header>
+@if (!certificatesQuery.isPending() && !certificatesQuery.error() && !organizationQuery.isPending() && !organizationQuery.error() && organization(); as org) {
+  <app-breadcrumb
+    [items]="[
+      { label: 'Organizations', route: ['/organizations'] },
+      { label: org.name, route: ['/organizations', organizationId()!] },
+      { label: 'Certificates' }
+    ]"
+  />
 
-  <app-card>
+  <app-page-header
+    title="Certificates"
+    subtitle="Certificates issued by {{ org.name }}."
+  />
+
+  <app-card class="mt-6 block">
     @if (certificates().length === 0) {
-      <app-empty-state message="No certificates have been issued yet." />
+      <app-empty-state
+        title="No certificates"
+        description="No certificates have been issued for this organization yet."
+      />
     } @else {
       <div class="table-wrap">
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b border-light">
               <th class="py-2 text-left font-medium text-ink-mute">Number</th>
-              <th class="py-2 text-left font-medium text-ink-mute">Participant</th>
-              <th class="py-2 text-left font-medium text-ink-mute">Quiz</th>
-              <th class="py-2 text-left font-medium text-ink-mute">Issued</th>
+              <th class="py-2 text-left font-medium text-ink-mute">Recipient</th>
+              <th class="py-2 text-left font-medium text-ink-mute">Program</th>
+              <th class="py-2 text-left font-medium text-ink-mute">Score</th>
               <th class="py-2 text-left font-medium text-ink-mute">Status</th>
-              <th class="py-2 text-right font-medium text-ink-mute">Actions</th>
+              <th class="py-2 text-left font-medium text-ink-mute">Issued</th>
+              <th class="py-2 text-right font-medium text-ink-mute">PDF</th>
             </tr>
           </thead>
           <tbody>
@@ -41,22 +52,24 @@
                   </a>
                 </td>
                 <td class="py-3 text-ink">{{ certificate.participantNameSnapshot }}</td>
-                <td class="py-3 text-ink-mute">{{ certificate.quizTitleSnapshot }}</td>
-                <td class="py-3 text-ink-mute">{{ certificate.issuedAt | date:'mediumDate' }}</td>
+                <td class="py-3 text-ink-mute">{{ certificate.programTitleSnapshot }}</td>
+                <td class="py-3 text-ink-mute">—</td>
                 <td class="py-3">
-                  <span
-                    class="status"
-                    [class.status-published]="certificate.status === 'ACTIVE'"
-                    [class.status-revoked]="certificate.status === 'REVOKED'"
-                  >
-                    {{ certificate.status }}
-                  </span>
+                  <app-status-badge [status]="certificate.status" entity="certificate" />
                 </td>
+                <td class="py-3 text-ink-mute">{{ certificate.issuedAt | date:'mediumDate' }}</td>
                 <td class="py-3 text-right">
-                  @if (certificate.status === 'ACTIVE') {
-                    <app-button type="button" variant="danger" size="sm" (clicked)="revoke(certificate)">
-                      Revoke
-                    </app-button>
+                  @if (certificate.pdfUrl) {
+                    <a
+                      [href]="certificate.pdfUrl"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-primary hover:underline"
+                    >
+                      Download
+                    </a>
+                  } @else {
+                    —
                   }
                 </td>
               </tr>
@@ -64,25 +77,17 @@
           </tbody>
         </table>
       </div>
-      <div class="cert-pagination">
-        <button
-          type="button"
-          class="cert-page-btn"
-          [disabled]="page() === 0"
-          (click)="previousPage()"
-        >
-          Previous
-        </button>
-        <span class="text-sm text-ink-mute">Page {{ page() + 1 }} of {{ totalPages() || 1 }}</span>
-        <button
-          type="button"
-          class="cert-page-btn"
-          [disabled]="page() >= totalPages() - 1"
-          (click)="nextPage()"
-        >
-          Next
-        </button>
-      </div>
+
+      <app-pagination
+        class="mt-4 block"
+        [page]="pageInfo().page"
+        [size]="pageInfo().size"
+        [totalElements]="pageInfo().totalElements"
+        [totalPages]="pageInfo().totalPages"
+        [hasNext]="pageInfo().hasNext"
+        [hasPrevious]="pageInfo().hasPrevious"
+        (pageChange)="goToPage($event)"
+      />
     }
   </app-card>
 }

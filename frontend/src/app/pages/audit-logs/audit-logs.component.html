@@ -1,61 +1,83 @@
-<section class="page">
-  <header class="page-heading">
-    <div>
-      <p class="breadcrumb">Organization / Audit logs</p>
-      <h1>Audit logs</h1>
-      <p>Review organization activity across certificates, quizzes, attempts, programs, and memberships.</p>
-    </div>
-  </header>
+@if (auditLogsQuery.isPending() || organizationQuery.isPending()) {
+  <app-loading-state message="Loading audit logs..." />
+}
 
-  <div class="mb-6 flex flex-wrap items-end gap-4 rounded-lg border border-light bg-white p-4">
-    <label class="block">
-      <span class="mb-1 block text-sm font-medium text-ink">Action</span>
-      <select class="rounded-md border border-input px-3 py-2 text-sm">
-        @for (action of actions; track action) {
-          <option [value]="action">{{ action }}</option>
-        }
-      </select>
-    </label>
-    <label class="block">
-      <span class="mb-1 block text-sm font-medium text-ink">Date range</span>
-      <input type="date" value="2026-05-18" class="rounded-md border border-input px-3 py-2 text-sm" />
-    </label>
-  </div>
+@if (auditLogsQuery.error() || organizationQuery.error()) {
+  <app-error-state
+    [message]="(auditLogsQuery.error()?.message ?? organizationQuery.error()?.message) || 'Failed to load audit logs'"
+    (retry)="auditLogsQuery.refetch(); organizationQuery.refetch()"
+  />
+}
 
-  <div class="overflow-hidden rounded-lg border border-light bg-white">
-    <div class="overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead class="bg-canvas-soft">
-          <tr>
-            <th class="px-4 py-3 text-left font-medium text-ink-mute">Time</th>
-            <th class="px-4 py-3 text-left font-medium text-ink-mute">Actor</th>
-            <th class="px-4 py-3 text-left font-medium text-ink-mute">Action</th>
-            <th class="px-4 py-3 text-left font-medium text-ink-mute">Entity</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (log of auditLogs; track log.id) {
-            <tr class="border-t border-light">
-              <td class="px-4 py-3 text-ink">{{ log.time }}</td>
-              <td class="px-4 py-3 text-ink">{{ log.actor }}</td>
-              <td class="px-4 py-3">
-                <span class="inline-flex rounded-full bg-gray-light px-2 py-1 text-xs font-medium text-ink">
-                  {{ log.action }}
-                </span>
-              </td>
-              <td class="px-4 py-3 text-ink-mute">{{ log.entity }}</td>
+@if (!auditLogsQuery.isPending() && !auditLogsQuery.error() && !organizationQuery.isPending() && !organizationQuery.error() && organization(); as org) {
+  <app-breadcrumb
+    [items]="[
+      { label: 'Organizations', route: ['/organizations'] },
+      { label: org.name, route: ['/organizations', organizationId()!] },
+      { label: 'Audit logs' }
+    ]"
+  />
+
+  <app-page-header
+    title="Audit logs"
+    subtitle="Review organization activity for {{ org.name }}."
+  />
+
+  <app-card class="mt-6 block">
+    @if (auditLogs().length === 0) {
+      <app-empty-state
+        title="No audit logs"
+        description="There is no activity recorded for this organization yet."
+      />
+    } @else {
+      <div class="table-wrap">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-light">
+              <th class="py-2 text-left font-medium text-ink-mute">Time</th>
+              <th class="py-2 text-left font-medium text-ink-mute">Action</th>
+              <th class="py-2 text-left font-medium text-ink-mute">Entity</th>
+              <th class="py-2 text-left font-medium text-ink-mute">User</th>
             </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-    <div class="flex items-center justify-between border-t border-light px-4 py-3">
-      <button type="button" class="rounded-md border border-input px-3 py-1-5 text-sm text-ink hover:bg-canvas-soft">Prev</button>
-      <div class="flex gap-2 text-sm">
-        <span class="rounded-md bg-ink px-3 py-1-5 font-medium text-white">1</span>
-        <button type="button" class="rounded-md px-3 py-1-5 text-ink-mute hover:bg-canvas-soft">2</button>
+          </thead>
+          <tbody>
+            @for (log of auditLogs(); track log.id) {
+              <tr class="border-b border-light last:border-b-0">
+                <td class="py-3 text-ink">{{ log.createdAt | date:'medium' }}</td>
+                <td class="py-3 text-ink">{{ log.action }}</td>
+                <td class="py-3 text-ink-mute">
+                  @if (log.entityType) {
+                    {{ log.entityType }}
+                    @if (log.entityId) {
+                      <span class="ml-1 text-ink-faint">({{ log.entityId }})</span>
+                    }
+                  } @else {
+                    —
+                  }
+                </td>
+                <td class="py-3 text-ink-mute">
+                  @if (log.userId) {
+                    {{ log.userId }}
+                  } @else {
+                    —
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
       </div>
-      <button type="button" class="rounded-md border border-input px-3 py-1-5 text-sm text-ink hover:bg-canvas-soft">Next</button>
-    </div>
-  </div>
-</section>
+
+      <app-pagination
+        class="mt-4 block"
+        [page]="pageInfo().page"
+        [size]="pageInfo().size"
+        [totalElements]="pageInfo().totalElements"
+        [totalPages]="pageInfo().totalPages"
+        [hasNext]="pageInfo().hasNext"
+        [hasPrevious]="pageInfo().hasPrevious"
+        (pageChange)="goToPage($event)"
+      />
+    }
+  </app-card>
+}

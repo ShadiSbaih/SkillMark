@@ -6,6 +6,7 @@ import {
 } from '@tanstack/angular-query-experimental';
 import { lastValueFrom } from 'rxjs';
 import { ApiClientService } from '../core/api/api-client.service';
+import { AuditLogResponse } from '../core/models/audit-log.model';
 import {
   CreateOrganizationRequest,
   OrganizationResponse,
@@ -36,6 +37,24 @@ export class OrganizationsService {
       queryFn: () =>
         lastValueFrom(
           this.api.get<OrganizationResponse>(`organizations/${organizationId()}`)
+        ),
+      enabled: !!organizationId(),
+    }));
+  }
+
+  auditLogsQuery(
+    organizationId: () => string | null,
+    page: () => number,
+    size: () => number
+  ) {
+    return injectQuery(() => ({
+      queryKey: ['audit-logs', organizationId(), page(), size()] as const,
+      queryFn: () =>
+        lastValueFrom(
+          this.api.getPage<AuditLogResponse>(`organizations/${organizationId()}/audit-logs`, {
+            page: page(),
+            size: size(),
+          })
         ),
       enabled: !!organizationId(),
     }));

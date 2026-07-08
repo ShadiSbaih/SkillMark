@@ -2,33 +2,17 @@
   display: block;
 }
 
-.pass-rate-badge {
-  display: inline-flex;
-  align-items: center;
-  border-radius: var(--radius-pill);
-  background: var(--success-bg);
-  color: var(--success);
-  padding: 4px 8px;
-  font-size: 12px;
-  font-weight: 500;
+.metric-label {
+  margin: 0;
+  color: var(--ink-mute);
+  font-size: 13px;
 }
 
-.pass-rate-chart-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.pass-rate-chart {
-  width: 160px;
-  height: 160px;
-  transform: rotate(-90deg);
-}
-
-.pass-rate-percentage {
-  position: absolute;
-  font-size: 24px;
-  font-weight: 700;
+.metric-value {
+  margin: 6px 0 0;
   color: var(--ink);
+  font-size: 30px;
+  font-feature-settings: 'tnum';
+  font-variant-numeric: tabular-nums;
+  font-weight: 300;
 }

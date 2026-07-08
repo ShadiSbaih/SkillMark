@@ -4,9 +4,10 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs/operators';
 import { DecimalPipe } from '@angular/common';
 import { StatsService } from '../../services/stats.service';
-import { ProgramsService } from '../../services/programs.service';
+import { OrganizationsService } from '../../services/organizations.service';
 import { CardComponent } from '../../shared/components/card/card.component';
-import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
+import { BreadcrumbComponent } from '../../shared/components/breadcrumb/breadcrumb.component';
+import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { ErrorStateComponent } from '../../shared/components/error-state/error-state.component';
 import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
 
@@ -17,7 +18,8 @@ import { LoadingStateComponent } from '../../shared/components/loading-state/loa
     RouterLink,
     DecimalPipe,
     CardComponent,
-    EmptyStateComponent,
+    BreadcrumbComponent,
+    PageHeaderComponent,
     ErrorStateComponent,
     LoadingStateComponent,
   ],
@@ -27,28 +29,30 @@ import { LoadingStateComponent } from '../../shared/components/loading-state/loa
 export class OrganizationStatsComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly statsService = inject(StatsService);
-  private readonly programsService = inject(ProgramsService);
+  private readonly organizationsService = inject(OrganizationsService);
 
   readonly organizationId = toSignal(
     this.route.paramMap.pipe(map((params) => params.get('orgId'))),
     { initialValue: this.route.snapshot.paramMap.get('orgId') }
   );
 
+  readonly organizationQuery = this.organizationsService.getOrganizationQuery(this.organizationId);
   readonly statsQuery = this.statsService.getOrganizationStatsQuery(this.organizationId);
   readonly stats = computed(() => this.statsQuery.data());
+  readonly organization = computed(() => this.organizationQuery.data());
 
-  readonly programs = computed(() => this.programsService.programsQuery.data()?.items ?? []);
-
-  constructor() {
-    this.programsService.listParams.set({
-      organizationId: this.organizationId(),
-      page: 0,
-      size: 100,
-    });
-  }
-
-  readonly passRateDash = computed(() => {
-    const rate = this.stats()?.passRate ?? 0;
-    return 339.292 * (rate / 100);
+  readonly metrics = computed(() => {
+    const stats = this.stats();
+    if (!stats) return [];
+    return [
+      { label: 'Programs', value: stats.totalPrograms },
+      { label: 'Members', value: stats.totalMembers },
+      { label: 'Enrolled participants', value: stats.totalEnrolledParticipants },
+      { label: 'Quizzes', value: stats.totalQuizzes },
+      { label: 'Attempts', value: stats.totalAttempts },
+      { label: 'Certificates', value: stats.totalCertificates },
+      { label: 'Average score', value: stats.averageScore, suffix: '%' },
+      { label: 'Pass rate', value: stats.passRate, suffix: '%' },
+    ];
   });
 }
