@@ -5,6 +5,8 @@ export interface Enrollment {
   programId: string;
   userId: string;
   userName: string;
+  userEmail?: string | null;
+  userAvatarUrl?: string | null;
   status: EnrollmentStatus;
   enrolledAt: string;
 }

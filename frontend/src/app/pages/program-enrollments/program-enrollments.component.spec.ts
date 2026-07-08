@@ -1,27 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, ActivatedRoute } from '@angular/router';
-import {
-  provideQueryClient,
-  QueryClient,
-} from '@tanstack/angular-query-experimental';
+import { provideQueryClient, QueryClient } from '@tanstack/angular-query-experimental';
 import { signal } from '@angular/core';
 import { of } from 'rxjs';
 import { vi } from 'vitest';
 import { ProgramEnrollmentsComponent } from './program-enrollments.component';
 import { EnrollmentsService } from '../../services/enrollments.service';
-import { Enrollment, EnrollmentStatus } from '../../core/models/enrollment.model';
+import { ProgramsService } from '../../services/programs.service';
+import { Enrollment } from '../../core/models/enrollment.model';
+import { ProgramResponse } from '../../core/models/program.model';
 import { PageResponse } from '../../core/api/api-response.model';
 
 class FakeEnrollmentsService {
   private readonly refetchSpy = vi.fn();
-  readonly queryState = signal({
-    status: 'pending' as 'pending' | 'error' | 'success',
-    isPending: true,
-    isError: false,
-    data: null as PageResponse<Enrollment> | null,
-    error: null as Error | null,
-    refetch: this.refetchSpy,
-  });
 
   readonly listParams = signal<{
     programId: string | null;
@@ -33,6 +24,15 @@ class FakeEnrollmentsService {
     size: 10,
   });
 
+  readonly queryState = signal({
+    status: 'pending' as 'pending' | 'error' | 'success',
+    isPending: true,
+    isError: false,
+    data: null as PageResponse<Enrollment> | null,
+    error: null as Error | null,
+    refetch: this.refetchSpy,
+  });
+
   readonly programEnrollmentsQuery = {
     status: () => this.queryState().status,
     isPending: () => this.queryState().isPending,
@@ -40,13 +40,6 @@ class FakeEnrollmentsService {
     data: () => this.queryState().data,
     error: () => this.queryState().error,
     refetch: this.refetchSpy,
-  };
-
-  readonly createMutation = {
-    isPending: signal(false),
-    mutate: vi.fn((_vars: unknown, options?: { onSuccess?: () => void }) => {
-      options?.onSuccess?.();
-    }),
   };
 
   readonly removeMutation = {
@@ -90,22 +83,71 @@ class FakeEnrollmentsService {
   }
 }
 
+class FakeProgramsService {
+  private readonly refetchSpy = vi.fn();
+  readonly queryState = signal({
+    isPending: false,
+    isError: false,
+    data: null as ProgramResponse | null,
+    error: null as Error | null,
+    refetch: this.refetchSpy,
+  });
+
+  getProgramQuery(_programId: () => string | null) {
+    return {
+      isPending: () => this.queryState().isPending,
+      isError: () => this.queryState().isError,
+      data: () => this.queryState().data,
+      error: () => this.queryState().error,
+      refetch: this.refetchSpy,
+    };
+  }
+
+  setProgram(program: ProgramResponse) {
+    this.queryState.set({
+      isPending: false,
+      isError: false,
+      data: program,
+      error: null,
+      refetch: this.refetchSpy,
+    });
+  }
+}
+
 describe('ProgramEnrollmentsComponent', () => {
   let component: ProgramEnrollmentsComponent;
   let fixture: ComponentFixture<ProgramEnrollmentsComponent>;
   let enrollmentsService: FakeEnrollmentsService;
+  let programsService: FakeProgramsService;
+
+  const program: ProgramResponse = {
+    id: 'program-1',
+    organizationId: 'org-1',
+    title: 'Foundations of Testing',
+    description: null,
+    coverImageUrl: null,
+    status: 'PUBLISHED',
+    isPublished: true,
+    startDate: null,
+    endDate: null,
+    createdAt: '2026-01-01T00:00:00Z',
+  };
 
   const enrollment: Enrollment = {
     id: 'enrollment-1',
     programId: 'program-1',
     userId: 'user-1',
     userName: 'Ada Lovelace',
+    userEmail: 'ada@example.com',
+    userAvatarUrl: null,
     status: 'ACTIVE',
     enrolledAt: '2026-02-14T10:00:00Z',
   };
 
   beforeEach(async () => {
     enrollmentsService = new FakeEnrollmentsService();
+    programsService = new FakeProgramsService();
+    programsService.setProgram(program);
 
     await TestBed.configureTestingModule({
       imports: [ProgramEnrollmentsComponent],
@@ -113,12 +155,12 @@ describe('ProgramEnrollmentsComponent', () => {
         provideRouter([]),
         provideQueryClient(new QueryClient()),
         { provide: EnrollmentsService, useValue: enrollmentsService },
+        { provide: ProgramsService, useValue: programsService },
         {
           provide: ActivatedRoute,
           useValue: {
             paramMap: of({
-              get: (key: string) =>
-                key === 'programId' ? 'program-1' : null,
+              get: (key: string) => (key === 'programId' ? 'program-1' : null),
             }),
           },
         },
@@ -144,13 +186,17 @@ describe('ProgramEnrollmentsComponent', () => {
     });
   });
 
+  it('should show the program title in the header', () => {
+    fixture.detectChanges();
+    expect(component.pageTitle()).toBe('Enrollments: Foundations of Testing');
+    expect(fixture.nativeElement.textContent).toContain('Enrollments: Foundations of Testing');
+  });
+
   it('should show loading state while fetching', () => {
     enrollmentsService.setPending();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain(
-      'Loading enrollments...'
-    );
+    expect(fixture.nativeElement.textContent).toContain('Loading enrollments...');
   });
 
   it('should show error state with retry', () => {
@@ -160,9 +206,7 @@ describe('ProgramEnrollmentsComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Something went wrong');
     expect(fixture.nativeElement.textContent).toContain('Network error');
 
-    const retryButton = fixture.nativeElement.querySelector(
-      'app-error-state button'
-    );
+    const retryButton = fixture.nativeElement.querySelector('app-error-state button');
     retryButton.click();
     expect(enrollmentsService.programEnrollmentsQuery.refetch).toHaveBeenCalled();
   });
@@ -180,7 +224,7 @@ describe('ProgramEnrollmentsComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('No enrollments yet');
   });
 
-  it('should render enrollment table with status badge and remove button', () => {
+  it('should render enrollment table with participant and remove button', () => {
     enrollmentsService.setData({
       items: [enrollment],
       page: 0,
@@ -191,52 +235,8 @@ describe('ProgramEnrollmentsComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Ada Lovelace');
-    expect(fixture.nativeElement.textContent).toContain('ACTIVE');
-    expect(fixture.nativeElement.querySelector('app-button')).toBeTruthy();
-  });
-
-  it('should map status to badge variants', () => {
-    const cases: {
-      status: EnrollmentStatus;
-      variant: 'default' | 'success' | 'warning' | 'danger' | 'info';
-    }[] = [
-      { status: 'ACTIVE', variant: 'success' },
-      { status: 'COMPLETED', variant: 'info' },
-      { status: 'REMOVED', variant: 'danger' },
-    ];
-
-    cases.forEach(({ status, variant }) => {
-      expect(component.statusVariant(status)).toBe(variant);
-    });
-  });
-
-  it('should open and close the enroll modal', () => {
-    enrollmentsService.setData({
-      items: [],
-      page: 0,
-      size: 10,
-      totalElements: 0,
-      totalPages: 0,
-    });
-    fixture.detectChanges();
-
-    expect(component.showEnrollModal()).toBe(false);
-    component.openEnrollModal();
-    expect(component.showEnrollModal()).toBe(true);
-    component.closeEnrollModal();
-    expect(component.showEnrollModal()).toBe(false);
-  });
-
-  it('should call create mutation when enrolling a user', () => {
-    fixture.detectChanges();
-    component.openEnrollModal();
-    component.enrollForm.setValue({ userId: 'user-2' });
-    component.enrollUser();
-
-    expect(enrollmentsService.createMutation.mutate).toHaveBeenCalledWith(
-      { programId: 'program-1', request: { userId: 'user-2' } },
-      expect.any(Object)
-    );
+    expect(fixture.nativeElement.textContent).toContain('ada@example.com');
+    expect(fixture.nativeElement.textContent).toContain('Remove');
   });
 
   it('should confirm and remove an enrollment', () => {

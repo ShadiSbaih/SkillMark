@@ -1,23 +1,7 @@
 <section class="page">
   <p class="breadcrumb">Program / Enrollments</p>
-  <app-page-header
-    title="Enrollments"
-    subtitle="Manage participants enrolled in this program."
-    [hasActions]="true"
-  >
-    <ng-container actions>
-      <app-button (clicked)="openEnrollModal()">Enroll user</app-button>
-    </ng-container>
-  </app-page-header>
 
-  <app-card class="mb-6 block">
-    <div class="flex items-center justify-between">
-      <p class="text-sm text-ink-mute">Use the enroll button to add a participant by user ID.</p>
-      <app-button type="button" variant="secondary" (clicked)="openEnrollModal()">
-        Enroll user
-      </app-button>
-    </div>
-  </app-card>
+  <app-page-header [title]="pageTitle()" />
 
   @switch (enrollmentsQuery.status()) {
     @case ('pending') {
@@ -34,9 +18,7 @@
         <app-card>
           <app-empty-state
             title="No enrollments yet"
-            description="Enroll participants to give them access to this program."
-            actionLabel="Enroll user"
-            (action)="openEnrollModal()"
+            description="There are no participants enrolled in this program."
           />
         </app-card>
       } @else {
@@ -45,32 +27,39 @@
             <table>
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Status</th>
-                  <th>Enrolled at</th>
+                  <th>Participant</th>
+                  <th>Enrolled date</th>
                   <th class="text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                @for (enrollment of filteredEnrollments(); track enrollment.id) {
+                @for (enrollment of filteredEnrollments(); track trackById($index, enrollment)) {
                   <tr>
-                    <td>{{ enrollment.userName }}</td>
                     <td>
-                      <app-badge [variant]="statusVariant(enrollment.status)">
-                        {{ enrollment.status }}
-                      </app-badge>
+                      <div class="flex items-center gap-3">
+                        <app-avatar
+                          [name]="enrollment.userName"
+                          [fallback]="enrollment.userEmail ?? enrollment.userId"
+                          [src]="enrollment.userAvatarUrl ?? undefined"
+                          size="sm"
+                        />
+                        <div>
+                          <p class="font-medium text-ink">{{ enrollment.userName }}</p>
+                          @if (enrollment.userEmail) {
+                            <p class="text-sm text-ink-mute">{{ enrollment.userEmail }}</p>
+                          }
+                        </div>
+                      </div>
                     </td>
                     <td>{{ enrollment.enrolledAt | date: 'mediumDate' }}</td>
                     <td class="text-right">
-                      @if (enrollment.status !== 'REMOVED') {
-                        <app-button
-                          variant="danger"
-                          size="sm"
-                          (clicked)="confirmRemove(enrollment.userId)"
-                        >
-                          Remove
-                        </app-button>
-                      }
+                      <app-button
+                        variant="danger"
+                        size="sm"
+                        (clicked)="confirmRemove(enrollment.userId)"
+                      >
+                        Remove
+                      </app-button>
                     </td>
                   </tr>
                 }
@@ -78,76 +67,21 @@
             </table>
           </div>
 
-          @if (pageInfo().totalPages > 1) {
-            <div class="pagination">
-              <app-button
-                variant="ghost"
-                size="sm"
-                [disabled]="pageInfo().page === 0"
-                (clicked)="goToPage(pageInfo().page - 1)"
-              >
-                Previous
-              </app-button>
-              <span class="flex items-center px-3 text-sm text-ink-mute">
-                Page {{ pageInfo().page + 1 }} of {{ pageInfo().totalPages }}
-              </span>
-              <app-button
-                variant="ghost"
-                size="sm"
-                [disabled]="pageInfo().page + 1 >= pageInfo().totalPages"
-                (clicked)="goToPage(pageInfo().page + 1)"
-              >
-                Next
-              </app-button>
-            </div>
-          }
+          <app-pagination
+            class="mt-4 block"
+            [page]="pageInfo().page"
+            [size]="pageInfo().size"
+            [totalElements]="pageInfo().totalElements"
+            [totalPages]="pageInfo().totalPages"
+            [hasNext]="pageInfo().hasNext"
+            [hasPrevious]="pageInfo().hasPrevious"
+            (pageChange)="goToPage($event)"
+          />
         </app-card>
       }
     }
   }
 </section>
-
-@if (showEnrollModal()) {
-  <div
-    class="fixed inset-0 z-50 flex items-center justify-center backdrop-dark p-4"
-    (click)="closeEnrollModal()"
-  >
-    <app-card class="w-full max-w-md" (click)="$event.stopPropagation()">
-      <div class="mb-4 flex items-center justify-between">
-        <h3 class="text-lg font-medium text-ink">Enroll user</h3>
-        <app-button variant="ghost" size="sm" (clicked)="closeEnrollModal()">Close</app-button>
-      </div>
-
-      <form [formGroup]="enrollForm" (ngSubmit)="enrollUser()" class="space-y-4">
-        <div>
-          <label for="userId" class="mb-1 block text-sm font-medium text-ink">
-            User ID
-          </label>
-          <input
-            id="userId"
-            formControlName="userId"
-            type="text"
-            placeholder="Paste the user ID"
-            class="block w-full rounded-md border border-input px-3 py-2 text-sm"
-          />
-        </div>
-
-        <div class="flex justify-end gap-3 pt-2">
-          <app-button type="button" variant="secondary" (clicked)="closeEnrollModal()">
-            Cancel
-          </app-button>
-          <app-button
-            type="submit"
-            [disabled]="enrollForm.invalid || enrollmentsService.createMutation.isPending()"
-            [loading]="enrollmentsService.createMutation.isPending()"
-          >
-            Enroll user
-          </app-button>
-        </div>
-      </form>
-    </app-card>
-  </div>
-}
 
 <app-modal
   [open]="removingUserId() !== null"

@@ -3,11 +3,14 @@ import { DatePipe } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
+import { toast } from 'ngx-sonner';
 import { InvitationsService } from '../../services/invitations.service';
+import { ProgramsService } from '../../services/programs.service';
 import { Invitation, InvitationStatus } from '../../core/models/invitation.model';
 import { BadgeComponent } from '../../shared/components/badge/badge.component';
 import { ButtonComponent } from '../../shared/components/button/button.component';
 import { CardComponent } from '../../shared/components/card/card.component';
+import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { ErrorStateComponent } from '../../shared/components/error-state/error-state.component';
 import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
@@ -21,6 +24,7 @@ import { PageHeaderComponent } from '../../shared/components/page-header/page-he
     ButtonComponent,
     CardComponent,
     DatePipe,
+    PaginationComponent,
     EmptyStateComponent,
     ErrorStateComponent,
     LoadingStateComponent,
@@ -32,18 +36,38 @@ import { PageHeaderComponent } from '../../shared/components/page-header/page-he
 export class ProgramInvitationsComponent {
   private readonly route = inject(ActivatedRoute);
   readonly invitationsService = inject(InvitationsService);
+  readonly programsService = inject(ProgramsService);
 
   readonly programId = toSignal(
     this.route.paramMap.pipe(map((params) => params.get('programId'))),
     { initialValue: null }
   );
 
-  readonly invitationsQuery = this.invitationsService.invitationsQuery;
+  readonly programQuery = this.programsService.getProgramQuery(() => this.programId());
 
-  readonly showCreateForm = signal(false);
-  readonly description = signal('');
+  readonly pageTitle = computed(() => {
+    const title = this.programQuery.data()?.title;
+    return title ? `Invitations: ${title}` : 'Invitations';
+  });
+
+  readonly invitationsQuery = this.invitationsService.invitationsQuery;
   readonly maxUses = signal<number | null>(100);
-  readonly expiresAt = signal('');
+
+  readonly isCreating = computed(() => this.invitationsService.createMutation.isPending());
+
+  readonly pageInfo = computed(() => {
+    const data = this.invitationsQuery.data();
+    const page = data?.page ?? 0;
+    const totalPages = data?.totalPages ?? 0;
+    return {
+      page,
+      size: data?.size ?? 10,
+      totalElements: data?.totalElements ?? 0,
+      totalPages,
+      hasNext: page + 1 < totalPages,
+      hasPrevious: page > 0,
+    };
+  });
 
   constructor() {
     effect(() => {
@@ -55,8 +79,6 @@ export class ProgramInvitationsComponent {
       });
     });
   }
-
-  readonly isCreating = computed(() => this.invitationsService.createMutation.isPending());
 
   badgeVariant(status: InvitationStatus) {
     switch (status) {
@@ -77,9 +99,10 @@ export class ProgramInvitationsComponent {
 
   copyCode(code: string): void {
     const url = this.joinUrl(code);
-    navigator.clipboard.writeText(url).catch(() => {
-      // Silently ignore clipboard errors.
-    });
+    navigator.clipboard.writeText(url).then(
+      () => toast.success('Invitation link copied'),
+      () => toast.error('Failed to copy link')
+    );
   }
 
   createInvitation(): void {
@@ -88,29 +111,42 @@ export class ProgramInvitationsComponent {
 
     const max = this.maxUses();
     const request = {
-      description: this.description().trim() || null,
+      description: null,
       maxUses: max !== null && !Number.isNaN(max) ? max : null,
-      expiresAt: this.expiresAt() || null,
+      expiresAt: null,
     };
 
     this.invitationsService.createMutation.mutate(
       { programId, request },
       {
         onSuccess: () => {
-          this.description.set('');
+          toast.success('Invitation created');
           this.maxUses.set(100);
-          this.expiresAt.set('');
-          this.showCreateForm.set(false);
+        },
+        onError: (error) => {
+          toast.error(error.message ?? 'Failed to create invitation');
         },
       }
     );
   }
 
   disable(invitationId: string): void {
-    this.invitationsService.disableMutation.mutate(invitationId);
+    this.invitationsService.disableMutation.mutate(invitationId, {
+      onSuccess: () => toast.success('Invitation disabled'),
+      onError: (error) => toast.error(error.message ?? 'Failed to disable invitation'),
+    });
   }
 
-  toggleCreateForm(): void {
-    this.showCreateForm.update((value) => !value);
+  goToPage(page: number): void {
+    const id = this.programId();
+    this.invitationsService.listParams.update((params) => ({
+      ...params,
+      programId: id ?? null,
+      page,
+    }));
+  }
+
+  trackById(_index: number, invitation: Invitation): string {
+    return invitation.id;
   }
 }

@@ -1,161 +1,125 @@
-<app-page-header
-  title="Invitations"
-  subtitle="Create and manage join links for participants."
-  [hasActions]="true"
->
-  <ng-container actions>
-    <app-button
-      [variant]="showCreateForm() ? 'secondary' : 'primary'"
-      (clicked)="toggleCreateForm()"
-    >
-      {{ showCreateForm() ? 'Cancel' : 'Create link' }}
-    </app-button>
-  </ng-container>
-</app-page-header>
+<section class="page">
+  <p class="breadcrumb">Program / Invitations</p>
 
-@if (showCreateForm()) {
-  <app-card class="mb-8 block">
-    <h2 class="mb-4 text-lg font-semibold text-ink">New invitation</h2>
+  <app-page-header [title]="pageTitle()" />
+
+  <app-card class="mb-6 block">
     <form
-      class="space-y-4"
+      class="flex flex-col items-end gap-4 sm:flex-row sm:items-end"
       (submit)="$event.preventDefault(); createInvitation()"
     >
-      <div>
-        <label for="description" class="mb-1 block text-sm font-medium text-ink">
-          Description
+      <div class="w-full sm:w-auto sm:min-w-48">
+        <label for="maxUses" class="mb-1 block text-sm font-medium text-ink">
+          Max uses
         </label>
         <input
-          id="description"
-          type="text"
-          [value]="description()"
-          (input)="description.set($any($event.target).value)"
-          placeholder="e.g. Spring cohort invite"
+          id="maxUses"
+          type="number"
+          min="1"
+          [value]="maxUses()"
+          (input)="maxUses.set($any($event.target).valueAsNumber)"
+          placeholder="Unlimited"
           class="block w-full rounded-md border border-input px-3 py-2 text-sm text-ink placeholder-ink-mute focus-ring-primary"
         />
       </div>
 
-      <div class="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label for="maxUses" class="mb-1 block text-sm font-medium text-ink">
-            Max uses
-          </label>
-          <input
-            id="maxUses"
-            type="number"
-            min="1"
-            [value]="maxUses()"
-            (input)="maxUses.set($any($event.target).valueAsNumber)"
-            class="block w-full rounded-md border border-input px-3 py-2 text-sm text-ink placeholder-ink-mute focus-ring-primary"
-          />
-        </div>
-
-        <div>
-          <label for="expiresAt" class="mb-1 block text-sm font-medium text-ink">
-            Expires at
-          </label>
-          <input
-            id="expiresAt"
-            type="datetime-local"
-            [value]="expiresAt()"
-            (input)="expiresAt.set($any($event.target).value)"
-            class="block w-full rounded-md border border-input px-3 py-2 text-sm text-ink placeholder-ink-mute focus-ring-primary"
-          />
-        </div>
-      </div>
-
-      <div class="flex items-center justify-end gap-3 pt-2">
-        <app-button variant="secondary" type="button" (clicked)="toggleCreateForm()">
-          Cancel
-        </app-button>
-        <app-button
-          type="submit"
-          [loading]="isCreating()"
-          [disabled]="!programId()"
-        >
-          Create invitation
-        </app-button>
-      </div>
+      <app-button
+        type="submit"
+        [loading]="isCreating()"
+        [disabled]="!programId() || isCreating()"
+      >
+        Create invitation
+      </app-button>
     </form>
   </app-card>
-}
 
-@if (invitationsQuery.isPending()) {
-  <app-loading-state message="Loading invitations..." />
-} @else if (invitationsQuery.isError()) {
-  <app-error-state
-    [message]="invitationsQuery.error()?.message ?? 'Failed to load invitations'"
-    (retry)="invitationsQuery.refetch()"
-  />
-} @else {
-  @let invitations = invitationsQuery.data()?.items ?? [];
-
-  @if (invitations.length === 0) {
-    <app-card>
-      <app-empty-state
-        title="No invitations yet"
-        description="Create your first invitation link so participants can join the program."
-        actionLabel="Create link"
-        (action)="showCreateForm.set(true)"
+  @switch (invitationsQuery.status()) {
+    @case ('pending') {
+      <app-loading-state message="Loading invitations..." />
+    }
+    @case ('error') {
+      <app-error-state
+        [message]="invitationsQuery.error()?.message ?? 'Failed to load invitations'"
+        (retry)="invitationsQuery.refetch()"
       />
-    </app-card>
-  } @else {
-    <app-card>
-      <div class="overflow-x-auto">
-        <table class="w-full min-w-640 text-left text-sm">
-          <thead>
-            <tr class="border-b border-input">
-              <th class="pb-3 font-semibold text-ink">Code</th>
-              <th class="pb-3 font-semibold text-ink">Uses / Max</th>
-              <th class="pb-3 font-semibold text-ink">Expires</th>
-              <th class="pb-3 font-semibold text-ink">Status</th>
-              <th class="pb-3 text-right font-semibold text-ink">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (invitation of invitations; track invitation.id) {
-              <tr class="border-b border-light last:border-b-0">
-                <td class="py-3 font-medium text-ink">
-                  {{ invitation.code }}
-                </td>
-                <td class="py-3 text-ink-mute">
-                  {{ invitation.usedCount }} / {{ invitation.maxUses ?? '∞' }}
-                </td>
-                <td class="py-3 text-ink-mute">
-                  @if (invitation.expiresAt) {
-                    {{ invitation.expiresAt | date:'medium' }}
-                  } @else {
-                    <span>Never</span>
-                  }
-                </td>
-                <td class="py-3">
-                  <app-badge [variant]="badgeVariant(invitation.status)">
-                    {{ invitation.status }}
-                  </app-badge>
-                </td>
-                <td class="py-3 text-right">
-                  <div class="flex items-center justify-end gap-2">
-                    <app-button
-                      variant="secondary"
-                      size="sm"
-                      (clicked)="copyCode(invitation.code)"
-                    >
-                      Copy
-                    </app-button>
-                    <app-button
-                      variant="danger"
-                      size="sm"
-                      [disabled]="invitation.status !== 'ACTIVE'"
-                      (clicked)="disable(invitation.id)"
-                    >
-                      Disable
-                    </app-button>
-                  </div>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    </app-card>
+    }
+    @default {
+      @let invitations = invitationsQuery.data()?.items ?? [];
+
+      @if (invitations.length === 0) {
+        <app-card>
+          <app-empty-state
+            title="No invitations yet"
+            description="Create an invitation link so participants can join the program."
+          />
+        </app-card>
+      } @else {
+        <app-card>
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-640 text-left text-sm">
+              <thead>
+                <tr class="border-b border-input">
+                  <th class="pb-3 font-semibold text-ink">Code</th>
+                  <th class="pb-3 font-semibold text-ink">Uses</th>
+                  <th class="pb-3 font-semibold text-ink">Status</th>
+                  <th class="pb-3 font-semibold text-ink">Created</th>
+                  <th class="pb-3 text-right font-semibold text-ink">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (invitation of invitations; track trackById($index, invitation)) {
+                  <tr class="border-b border-light last:border-b-0">
+                    <td class="py-3 font-medium text-ink">
+                      {{ invitation.code }}
+                    </td>
+                    <td class="py-3 text-ink-mute">
+                      {{ invitation.usedCount }} / {{ invitation.maxUses ?? '∞' }}
+                    </td>
+                    <td class="py-3">
+                      <app-badge [variant]="badgeVariant(invitation.status)">
+                        {{ invitation.status }}
+                      </app-badge>
+                    </td>
+                    <td class="py-3 text-ink-mute">
+                      {{ invitation.createdAt | date:'mediumDate' }}
+                    </td>
+                    <td class="py-3 text-right">
+                      <div class="flex items-center justify-end gap-2">
+                        <app-button
+                          variant="secondary"
+                          size="sm"
+                          (clicked)="copyCode(invitation.code)"
+                        >
+                          Copy
+                        </app-button>
+                        <app-button
+                          variant="danger"
+                          size="sm"
+                          [disabled]="invitation.status !== 'ACTIVE'"
+                          (clicked)="disable(invitation.id)"
+                        >
+                          Disable
+                        </app-button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <app-pagination
+            class="mt-4 block"
+            [page]="pageInfo().page"
+            [size]="pageInfo().size"
+            [totalElements]="pageInfo().totalElements"
+            [totalPages]="pageInfo().totalPages"
+            [hasNext]="pageInfo().hasNext"
+            [hasPrevious]="pageInfo().hasPrevious"
+            (pageChange)="goToPage($event)"
+          />
+        </app-card>
+      }
+    }
   }
-}
+</section>

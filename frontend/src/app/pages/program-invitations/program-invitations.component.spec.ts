@@ -1,13 +1,14 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
-import { ActivatedRoute } from '@angular/router';
+import { provideRouter, ActivatedRoute } from '@angular/router';
 import { provideQueryClient, QueryClient } from '@tanstack/angular-query-experimental';
 import { signal } from '@angular/core';
 import { of } from 'rxjs';
 import { vi } from 'vitest';
 import { ProgramInvitationsComponent } from './program-invitations.component';
 import { InvitationsService } from '../../services/invitations.service';
+import { ProgramsService } from '../../services/programs.service';
 import { Invitation } from '../../core/models/invitation.model';
+import { ProgramResponse } from '../../core/models/program.model';
 import { PageResponse } from '../../core/api/api-response.model';
 
 class FakeInvitationsService {
@@ -17,18 +18,21 @@ class FakeInvitationsService {
     size: 10,
   });
 
+  private readonly refetchSpy = vi.fn();
   readonly queryState = signal({
     isPending: false,
     isError: false,
     data: null as PageResponse<Invitation> | null,
     error: null as Error | null,
-    refetch: vi.fn(),
+    refetch: this.refetchSpy,
   });
 
   readonly createMutate = vi.fn((_vars: unknown, options?: { onSuccess?: () => void }) => {
     options?.onSuccess?.();
   });
-  readonly disableMutate = vi.fn();
+  readonly disableMutate = vi.fn((_vars: string, options?: { onSuccess?: () => void }) => {
+    options?.onSuccess?.();
+  });
 
   readonly invitationsQuery = {
     isPending: () => this.queryState().isPending,
@@ -36,6 +40,7 @@ class FakeInvitationsService {
     data: () => this.queryState().data,
     error: () => this.queryState().error,
     refetch: this.queryState().refetch,
+    status: () => (this.queryState().isPending ? 'pending' : this.queryState().isError ? 'error' : 'success'),
   };
 
   readonly createMutation = {
@@ -79,10 +84,55 @@ class FakeInvitationsService {
   }
 }
 
+class FakeProgramsService {
+  private readonly refetchSpy = vi.fn();
+  readonly queryState = signal({
+    isPending: false,
+    isError: false,
+    data: null as ProgramResponse | null,
+    error: null as Error | null,
+    refetch: this.refetchSpy,
+  });
+
+  getProgramQuery(_programId: () => string | null) {
+    return {
+      isPending: () => this.queryState().isPending,
+      isError: () => this.queryState().isError,
+      data: () => this.queryState().data,
+      error: () => this.queryState().error,
+      refetch: this.refetchSpy,
+    };
+  }
+
+  setProgram(program: ProgramResponse) {
+    this.queryState.set({
+      isPending: false,
+      isError: false,
+      data: program,
+      error: null,
+      refetch: this.refetchSpy,
+    });
+  }
+}
+
 describe('ProgramInvitationsComponent', () => {
   let component: ProgramInvitationsComponent;
   let fixture: ComponentFixture<ProgramInvitationsComponent>;
   let invitationsService: FakeInvitationsService;
+  let programsService: FakeProgramsService;
+
+  const program: ProgramResponse = {
+    id: 'program-1',
+    organizationId: 'org-1',
+    title: 'Foundations of Testing',
+    description: null,
+    coverImageUrl: null,
+    status: 'PUBLISHED',
+    isPublished: true,
+    startDate: null,
+    endDate: null,
+    createdAt: '2026-01-01T00:00:00Z',
+  };
 
   const invitations: Invitation[] = [
     {
@@ -90,10 +140,10 @@ describe('ProgramInvitationsComponent', () => {
       organizationId: 'org-1',
       programId: 'program-1',
       code: 'SPRING-2026',
-      description: 'Spring cohort',
+      description: null,
       maxUses: 100,
       usedCount: 42,
-      expiresAt: '2026-12-31T23:59:00Z',
+      expiresAt: null,
       status: 'ACTIVE',
       disabledAt: null,
       createdAt: '2026-01-01T00:00:00Z',
@@ -123,6 +173,8 @@ describe('ProgramInvitationsComponent', () => {
 
   beforeEach(async () => {
     invitationsService = new FakeInvitationsService();
+    programsService = new FakeProgramsService();
+    programsService.setProgram(program);
 
     await TestBed.configureTestingModule({
       imports: [ProgramInvitationsComponent],
@@ -130,6 +182,7 @@ describe('ProgramInvitationsComponent', () => {
         provideRouter([]),
         provideQueryClient(new QueryClient()),
         { provide: InvitationsService, useValue: invitationsService },
+        { provide: ProgramsService, useValue: programsService },
         {
           provide: ActivatedRoute,
           useValue: {
@@ -156,6 +209,12 @@ describe('ProgramInvitationsComponent', () => {
       page: 0,
       size: 10,
     });
+  });
+
+  it('should show the program title in the header', () => {
+    fixture.detectChanges();
+    expect(component.pageTitle()).toBe('Invitations: Foundations of Testing');
+    expect(fixture.nativeElement.textContent).toContain('Invitations: Foundations of Testing');
   });
 
   it('should show loading state while fetching', () => {
@@ -216,21 +275,9 @@ describe('ProgramInvitationsComponent', () => {
     expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/join/ABC-123`);
   });
 
-  it('should toggle the create form', () => {
-    invitationsService.setData(pageResponse);
+  it('should call create mutation with max uses', () => {
     fixture.detectChanges();
-
-    expect(component.showCreateForm()).toBe(false);
-    component.toggleCreateForm();
-    expect(component.showCreateForm()).toBe(true);
-  });
-
-  it('should call create mutation and reset the form on success', () => {
-    fixture.detectChanges();
-    component.description.set('Test invite');
     component.maxUses.set(25);
-    component.expiresAt.set('2026-06-15T10:00');
-    component.showCreateForm.set(true);
 
     component.createInvitation();
 
@@ -238,24 +285,19 @@ describe('ProgramInvitationsComponent', () => {
       {
         programId: 'program-1',
         request: {
-          description: 'Test invite',
+          description: null,
           maxUses: 25,
-          expiresAt: '2026-06-15T10:00',
+          expiresAt: null,
         },
       },
       expect.any(Object)
     );
-    expect(component.description()).toBe('');
     expect(component.maxUses()).toBe(100);
-    expect(component.expiresAt()).toBe('');
-    expect(component.showCreateForm()).toBe(false);
   });
 
-  it('should send null values when create form fields are empty', () => {
+  it('should send null max uses when input is empty', () => {
     fixture.detectChanges();
-    component.description.set('');
     component.maxUses.set(NaN);
-    component.expiresAt.set('');
 
     component.createInvitation();
 
@@ -275,6 +317,18 @@ describe('ProgramInvitationsComponent', () => {
   it('should call disable mutation', () => {
     fixture.detectChanges();
     component.disable('inv-1');
-    expect(invitationsService.disableMutate).toHaveBeenCalledWith('inv-1');
+    expect(invitationsService.disableMutate).toHaveBeenCalledWith('inv-1', expect.any(Object));
+  });
+
+  it('should navigate pages', () => {
+    invitationsService.setData({ ...pageResponse, totalElements: 20, totalPages: 2 });
+    fixture.detectChanges();
+
+    component.goToPage(1);
+    expect(invitationsService.listParams()).toEqual({
+      programId: 'program-1',
+      page: 1,
+      size: 10,
+    });
   });
 });
