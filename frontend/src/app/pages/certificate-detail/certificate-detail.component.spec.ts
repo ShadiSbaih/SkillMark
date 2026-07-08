@@ -108,11 +108,12 @@ describe('CertificateDetailComponent', () => {
     quizTitleSnapshot: 'Intro Quiz',
     programTitleSnapshot: 'Intro Program',
     organizationNameSnapshot: 'Acme Inc',
+    scoreSnapshot: 92.5,
     status,
     issuedAt: '2026-07-03T10:00:00Z',
     revokedAt: null,
-    pdfUrl: null,
-    pdfObjectKey: null,
+    pdfUrl: 'https://example.com/cert.pdf',
+    pdfObjectKey: 'cert.pdf',
     qrCodeUrl: null,
     qrCodeObjectKey: null,
   };
@@ -168,20 +169,38 @@ describe('CertificateDetailComponent', () => {
     expect(refetchSpy).toHaveBeenCalled();
   });
 
+  it('should render certificate header as certificate number', () => {
+    certificatesService.setData(certificate);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain(
+      certificate.certificateNumber
+    );
+    expect(fixture.nativeElement.textContent).not.toContain(certificate.title);
+  });
+
   it('should render certificate fields', () => {
     certificatesService.setData(certificate);
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent;
-    expect(text).toContain(certificate.title);
     expect(text).toContain(certificate.certificateNumber);
-    expect(text).toContain(certificate.status);
     expect(text).toContain(certificate.verificationCode);
     expect(text).toContain(certificate.participantNameSnapshot);
     expect(text).toContain(certificate.quizTitleSnapshot);
     expect(text).toContain(certificate.programTitleSnapshot);
     expect(text).toContain(certificate.organizationNameSnapshot);
+    expect(text).toContain('92.5%');
     expect(text).toContain('Jul 3, 2026');
+  });
+
+  it('should show a dash when score is missing', () => {
+    certificatesService.setData({ ...certificate, scoreSnapshot: null });
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('Score');
+    expect(text).toContain('—');
   });
 
   it('should show revoked information when the certificate is revoked', () => {
@@ -209,30 +228,35 @@ describe('CertificateDetailComponent', () => {
     );
   });
 
-  it('should provide a back link and a public verify link', () => {
+  it('should provide download PDF and verify actions', () => {
     certificatesService.setData(certificate);
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent;
-    expect(text).toContain('Back to My Certificates');
-    expect(text).toContain('Verify publicly');
+    expect(text).toContain('Download PDF');
+    expect(text).toContain('Verify');
+    expect(text).not.toContain('Back to My Certificates');
   });
 
-  it('should navigate back to My Certificates when Back is clicked', () => {
+  it('should open the PDF when Download PDF is clicked', () => {
     certificatesService.setData(certificate);
     fixture.detectChanges();
 
-    const backButton = getButtonByText(fixture, 'Back to My Certificates');
-    backButton?.click();
+    const openSpy = vi
+      .spyOn(window, 'open')
+      .mockImplementation(() => null);
 
-    expect(router.navigate).toHaveBeenCalledWith(['/my-certificates']);
+    const downloadButton = getButtonByText(fixture, 'Download PDF');
+    downloadButton?.click();
+
+    expect(openSpy).toHaveBeenCalledWith(certificate.pdfUrl, '_blank');
   });
 
-  it('should navigate to public verification when Verify publicly is clicked', () => {
+  it('should navigate to public verification when Verify is clicked', () => {
     certificatesService.setData(certificate);
     fixture.detectChanges();
 
-    const verifyButton = getButtonByText(fixture, 'Verify publicly');
+    const verifyButton = getButtonByText(fixture, 'Verify');
     verifyButton?.click();
 
     expect(router.navigate).toHaveBeenCalledWith([

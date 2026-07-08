@@ -98,11 +98,12 @@ describe('MyCertificatesComponent', () => {
     quizTitleSnapshot: 'Intro Quiz',
     programTitleSnapshot: 'Intro Program',
     organizationNameSnapshot: 'Acme Inc',
+    scoreSnapshot: 92.5,
     status,
     issuedAt: '2026-07-03T10:00:00Z',
     revokedAt: null,
-    pdfUrl: null,
-    pdfObjectKey: null,
+    pdfUrl: 'https://example.com/cert.pdf',
+    pdfObjectKey: 'cert.pdf',
     qrCodeUrl: null,
     qrCodeObjectKey: null,
   };
@@ -178,34 +179,76 @@ describe('MyCertificatesComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('No certificates');
   });
 
-  it('should render the list of certificates', () => {
+  it('should render the page header', () => {
+    certificatesService.setData(pageResponse);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('My certificates');
+  });
+
+  it('should render the certificates table', () => {
+    certificatesService.setData(pageResponse);
+    fixture.detectChanges();
+
+    const headers = Array.from(
+      fixture.nativeElement.querySelectorAll('th')
+    ).map((th) => (th as HTMLElement).textContent?.trim());
+
+    expect(headers).toEqual([
+      'Number',
+      'Program',
+      'Quiz',
+      'Score',
+      'Status',
+      'PDF',
+    ]);
+  });
+
+  it('should render certificate values and link the number to detail', () => {
     certificatesService.setData(pageResponse);
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent;
-    expect(text).toContain(certificate.title);
     expect(text).toContain(certificate.certificateNumber);
-    expect(text).toContain(certificate.status);
-    expect(text).toContain(certificate.quizTitleSnapshot);
     expect(text).toContain(certificate.programTitleSnapshot);
-    expect(text).toContain(certificate.organizationNameSnapshot);
-    expect(text).toContain('Issued Jul 3, 2026');
+    expect(text).toContain(certificate.quizTitleSnapshot);
+    expect(text).toContain('92.5%');
+    expect(text).toContain(certificate.status);
+    expect(text).toContain('PDF');
+
+    const link = fixture.nativeElement.querySelector('a.link');
+    expect(link?.getAttribute('href')).toBe(`/certificates/${certificate.id}`);
+    expect(link?.textContent?.trim()).toBe(certificate.certificateNumber);
   });
 
-  it('should navigate to certificate detail when the card is clicked', () => {
+  it('should show a dash when score is missing', () => {
+    certificatesService.setData({
+      ...pageResponse,
+      items: [{ ...certificate, scoreSnapshot: null }],
+    });
+    fixture.detectChanges();
+
+    const scoreCell = fixture.nativeElement.querySelectorAll('td')[3];
+    expect(scoreCell.textContent).toContain('—');
+  });
+
+  it('should open the PDF when the PDF button is clicked', () => {
     certificatesService.setData(pageResponse);
     fixture.detectChanges();
 
-    const card = fixture.nativeElement.querySelector('app-card');
-    card?.click();
+    const openSpy = vi
+      .spyOn(window, 'open')
+      .mockImplementation(() => null);
 
-    expect(router.navigate).toHaveBeenCalledWith([
-      '/certificates',
-      certificate.id,
-    ]);
+    const pdfButton = Array.from<HTMLButtonElement>(
+      fixture.nativeElement.querySelectorAll('button')
+    ).find((button) => button.textContent?.trim() === 'PDF');
+    pdfButton?.click();
+
+    expect(openSpy).toHaveBeenCalledWith(certificate.pdfUrl, '_blank');
   });
 
-  it('should disable Previous on the first page and enable Next when another page exists', () => {
+  it('should navigate to the next and previous pages', () => {
     certificatesService.setData({
       items: [certificate],
       page: 0,
@@ -215,12 +258,7 @@ describe('MyCertificatesComponent', () => {
     });
     fixture.detectChanges();
 
-    let previousButton = getButtonByText(fixture, 'Previous');
-    let nextButton = getButtonByText(fixture, 'Next');
-
-    expect(previousButton?.disabled).toBe(true);
-    expect(nextButton?.disabled).toBe(false);
-
+    const nextButton = getButtonByText(fixture, 'Next');
     nextButton?.click();
     fixture.detectChanges();
 
@@ -229,7 +267,7 @@ describe('MyCertificatesComponent', () => {
       size: 10,
     });
 
-    previousButton = getButtonByText(fixture, 'Previous');
+    const previousButton = getButtonByText(fixture, 'Previous');
     previousButton?.click();
     fixture.detectChanges();
 

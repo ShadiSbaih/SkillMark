@@ -1,80 +1,79 @@
-<app-page-header title="My Certificates" subtitle="Browse your issued certificates, status, and verification details." />
+<app-page-header title="My certificates" subtitle="Browse your issued certificates, status, and verification details." />
 
 @if (query.isPending()) {
   <app-loading-state message="Loading certificates..." />
 } @else if (query.isError()) {
   <app-error-state [message]="query.error()?.message ?? 'Failed to load certificates'" (retry)="query.refetch()" />
-} @else if (data()?.items?.length === 0) {
-  <app-card>
-    <app-empty-state
-      title="No certificates"
-      description="You have not received any certificates yet."
-    />
-  </app-card>
 } @else {
-  <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-    @for (certificate of data()?.items; track certificate.id) {
-      <app-card [interactive]="true" (click)="router.navigate(['/certificates', certificate.id])">
-        <div class="flex flex-col justify-between h-full min-h-[160px]">
-          <div>
-            <div class="flex items-start justify-between">
-              <div>
-                <p class="text-xs font-semibold uppercase tracking-wider text-ink-mute">{{ certificate.certificateNumber }}</p>
-                <h3 class="text-lg font-semibold text-ink mt-1">{{ certificate.title }}</h3>
-              </div>
-              <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-                [class]="certificate.status === 'ACTIVE' ? 'badge-subtle-green' : 'badge-subtle-red'">
-                {{ certificate.status }}
-              </span>
-            </div>
+  @let pageData = data();
 
-            <div class="mt-4 space-y-1 text-sm text-ink-mute">
-              <p><span class="font-medium text-ink">Quiz:</span> {{ certificate.quizTitleSnapshot }}</p>
-              <p><span class="font-medium text-ink">Program:</span> {{ certificate.programTitleSnapshot }}</p>
-              <p><span class="font-medium text-ink">Org:</span> {{ certificate.organizationNameSnapshot }}</p>
-            </div>
-          </div>
+  @if (!pageData || pageData.items.length === 0) {
+    <app-card>
+      <app-empty-state
+        title="No certificates"
+        description="You have not received any certificates yet."
+      />
+    </app-card>
+  } @else {
+    <app-card>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Number</th>
+              <th>Program</th>
+              <th>Quiz</th>
+              <th>Score</th>
+              <th>Status</th>
+              <th>PDF</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (certificate of pageData.items; track certificate.id) {
+              <tr>
+                <td>
+                  <a class="link" [routerLink]="['/certificates', certificate.id]">
+                    {{ certificate.certificateNumber }}
+                  </a>
+                </td>
+                <td>{{ certificate.programTitleSnapshot }}</td>
+                <td>{{ certificate.quizTitleSnapshot }}</td>
+                <td class="tabular-nums">
+                  @if (certificate.scoreSnapshot != null) {
+                    {{ certificate.scoreSnapshot | number:'1.1-1' }}%
+                  } @else {
+                    <span class="muted">—</span>
+                  }
+                </td>
+                <td>
+                  <app-status-badge entity="certificate" [status]="certificate.status" />
+                </td>
+                <td>
+                  @if (certificate.pdfUrl) {
+                    <app-button size="sm" (clicked)="openPdf(certificate.pdfUrl)">
+                      PDF
+                    </app-button>
+                  } @else {
+                    <span class="muted">—</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
 
-          <div class="flex items-center justify-between mt-auto pt-4 border-t border-light">
-            <span class="text-xs text-ink-mute">Issued {{ certificate.issuedAt | date:'mediumDate' }}</span>
-            <div class="flex items-center gap-2">
-              @if (certificate.pdfUrl) {
-                <app-button size="sm" (clicked)="$event.stopPropagation(); openPdf(certificate.pdfUrl)">
-                  Download
-                </app-button>
-              }
-              <span class="text-xs text-primary font-semibold flex items-center gap-1">
-                View
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
-                </svg>
-              </span>
-            </div>
-          </div>
-        </div>
-      </app-card>
-    }
-  </div>
-
-  @if (totalPages() > 1) {
-    <div class="mt-6 flex items-center justify-between">
-      <app-button
-        variant="secondary"
-        size="sm"
-        [disabled]="!hasPrevious()"
-        (clicked)="goToPrevious()"
-      >
-        Previous
-      </app-button>
-      <span class="text-sm text-ink-mute">Page {{ page() + 1 }} of {{ totalPages() }}</span>
-      <app-button
-        variant="secondary"
-        size="sm"
-        [disabled]="!hasNext()"
-        (clicked)="goToNext()"
-      >
-        Next
-      </app-button>
-    </div>
+      @if (pageData.totalPages > 1) {
+        <app-pagination
+          [page]="page() + 1"
+          [size]="pageData.size"
+          [totalElements]="pageData.totalElements"
+          [totalPages]="pageData.totalPages"
+          [hasPrevious]="page() > 0"
+          [hasNext]="page() < pageData.totalPages - 1"
+          (pageChange)="onPageChange($event)"
+        />
+      }
+    </app-card>
   }
 }

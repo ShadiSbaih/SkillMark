@@ -14,6 +14,7 @@ export interface CertificateResponse {
   quizTitleSnapshot: string;
   programTitleSnapshot: string;
   organizationNameSnapshot: string;
+  scoreSnapshot?: number | null;
   status: CertificateStatus;
   issuedAt: string;
   revokedAt: string | null;
