@@ -19,6 +19,9 @@ import com.library.Skillmark.common.util.TokenGenerator;
 import com.library.Skillmark.quiz.enums.CertificateIssueMode;
 import com.library.Skillmark.quiz.entity.Quiz;
 import com.library.Skillmark.quiz.repository.QuizRepository;
+import com.library.Skillmark.membership.enums.MembershipRole;
+import com.library.Skillmark.membership.enums.MembershipStatus;
+import com.library.Skillmark.membership.repository.OrganizationMembershipRepository;
 import com.library.Skillmark.security.service.AuthorizationService;
 import com.library.Skillmark.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -39,19 +42,22 @@ public class CertificateService {
     private final QuizAttemptRepository attemptRepository;
     private final AuthorizationService authorizationService;
     private final AuditLogService auditLogService;
+    private final OrganizationMembershipRepository membershipRepository;
 
     public CertificateService(CertificateRepository certificateRepository,
                               QuizRepository quizRepository,
                               UserRepository userRepository,
                               QuizAttemptRepository attemptRepository,
                               AuthorizationService authorizationService,
-                              AuditLogService auditLogService) {
+                              AuditLogService auditLogService,
+                              OrganizationMembershipRepository membershipRepository) {
         this.certificateRepository = certificateRepository;
         this.quizRepository = quizRepository;
         this.userRepository = userRepository;
         this.attemptRepository = attemptRepository;
         this.authorizationService = authorizationService;
         this.auditLogService = auditLogService;
+        this.membershipRepository = membershipRepository;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -176,6 +182,16 @@ public class CertificateService {
         certificate.setQuizTitleSnapshot(quiz.getTitle());
         certificate.setProgramTitleSnapshot(quiz.getProgram().getTitle());
         certificate.setOrganizationNameSnapshot(quiz.getProgram().getOrganization().getName());
+        // Snapshot the first active owner's name
+        String ownerName = membershipRepository
+                .findByOrganizationIdAndRoleAndStatus(
+                        quiz.getProgram().getOrganization().getId(),
+                        MembershipRole.OWNER,
+                        MembershipStatus.ACTIVE)
+                .stream().findFirst()
+                .map(m -> m.getUser().getName())
+                .orElse(null);
+        certificate.setOwnerNameSnapshot(ownerName);
         return certificateRepository.save(certificate);
     }
 

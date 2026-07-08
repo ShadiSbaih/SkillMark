@@ -89,26 +89,46 @@
 
               <div class="space-y-2">
                 @for (option of options(); track trackByOption($index); let i = $index) {
-                  <div class="option-card flex items-center gap-3">
+                  <div
+                    class="group relative flex items-center gap-3 rounded-lg border px-4 py-3 transition-all focus-within:ring-2 focus-within:ring-primary/20"
+                    [class.border-primary]="option.isCorrect"
+                    [class.bg-canvas-soft]="option.isCorrect"
+                    [class.border-hairline]="!option.isCorrect"
+                  >
+                    <label class="relative flex cursor-pointer items-center justify-center">
+                      <input
+                        type="radio"
+                        name="correctOption"
+                        class="peer sr-only"
+                        [checked]="option.isCorrect"
+                        (change)="setCorrectOption(i)"
+                        [disabled]="isPublished()"
+                        title="Mark as correct"
+                      />
+                      <div
+                        class="flex h-5 w-5 items-center justify-center rounded-full border-2 transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-1"
+                        [class.border-primary]="option.isCorrect"
+                        [class.border-ink-mute]="!option.isCorrect"
+                      >
+                        @if (option.isCorrect) {
+                          <div class="h-2.5 w-2.5 rounded-full bg-primary"></div>
+                        }
+                      </div>
+                    </label>
+
                     <input
-                      type="radio"
-                      name="correctOption"
-                      [checked]="option.isCorrect"
-                      (change)="setCorrectOption(i)"
-                      [disabled]="isPublished()"
-                      title="Mark as correct"
-                    />
-                    <input
-                      class="flex-1"
+                      class="flex-1 bg-transparent p-0 text-sm focus:ring-0 focus-visible:outline-none placeholder:text-ink-mute"
                       type="text"
                       [ngModel]="option.text"
                       (ngModelChange)="updateOptionText(i, $event)"
-                      placeholder="Option text"
+                      placeholder="Enter option text..."
                       [disabled]="isPublished()"
+                      style="border: none !important; box-shadow: none !important; outline: none !important; background: transparent !important;"
                     />
+
                     <button
                       type="button"
-                      class="icon-button"
+                      class="icon-button group-hover:opacity-100 focus:opacity-100 disabled:opacity-50"
                       (click)="removeOption(i)"
                       [disabled]="isPublished()"
                       title="Remove option"
@@ -262,14 +282,6 @@
             >
               <span>{{ publishChecklist().hasTitle ? '✓' : '○' }}</span>
               <span>Quiz has a title</span>
-            </li>
-            <li
-              class="flex items-center gap-2"
-              [class.text-success]="publishChecklist().hasDescription"
-              [class.text-ink-mute]="!publishChecklist().hasDescription"
-            >
-              <span>{{ publishChecklist().hasDescription ? '✓' : '○' }}</span>
-              <span>Quiz has a description</span>
             </li>
             <li
               class="flex items-center gap-2"

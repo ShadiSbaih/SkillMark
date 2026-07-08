@@ -56,7 +56,7 @@ public class ResourceService {
         resource.setUrl(request.url());
         resource.setStorageProvider(request.storageProvider() == null ? StorageProvider.EXTERNAL : request.storageProvider());
         resource.setObjectKey(request.objectKey());
-        resource.setPosition(request.position());
+        resource.setPosition(request.position() == null ? 0 : request.position());
         ProgramResource saved = resourceRepository.save(resource);
         auditLogService.record(actorId, program.getOrganization().getId(), AuditAction.RESOURCE_CREATED, "ProgramResource", saved.getId());
         return ResourceResponse.from(saved);
@@ -98,7 +98,7 @@ public class ResourceService {
         resource.setUrl(request.url());
         resource.setStorageProvider(request.storageProvider() == null ? StorageProvider.EXTERNAL : request.storageProvider());
         resource.setObjectKey(request.objectKey());
-        resource.setPosition(request.position());
+        resource.setPosition(request.position() == null ? 0 : request.position());
         auditLogService.record(actorId, resource.getProgram().getOrganization().getId(), AuditAction.RESOURCE_UPDATED, "ProgramResource", resourceId);
         return ResourceResponse.from(resource);
     }

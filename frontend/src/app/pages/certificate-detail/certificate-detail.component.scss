@@ -1,5 +1,257 @@
-.detail-grid {
-  display: grid;
-  gap: 24px;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+.certificate-container {
+  display: flex;
+  justify-content: center;
+  background: var(--canvas-soft);
+  overflow-x: auto;
+}
+
+.certificate-paper {
+  position: relative;
+  width: 900px;
+  min-height: 640px;
+  background: #ffffff;
+  border: 1px solid var(--hairline);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+  padding: 32px;
+  /* Premium certificate styling */
+  background-image: 
+    linear-gradient(to right, rgba(83, 58, 253, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(83, 58, 253, 0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.certificate-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border: 8px solid var(--primary);
+  padding: 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+/* -------------------------------------- */
+/* Header */
+/* -------------------------------------- */
+.cert-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.cert-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.cert-header h1 {
+  font-family: "Georgia", serif;
+  font-size: 48px;
+  color: var(--ink);
+  margin: 0 0 16px;
+  font-weight: normal;
+  letter-spacing: 0.02em;
+}
+
+.cert-subtitle {
+  font-size: 16px;
+  color: var(--ink-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+}
+
+/* -------------------------------------- */
+/* Body */
+/* -------------------------------------- */
+.cert-body {
+  text-align: center;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.cert-recipient {
+  font-family: "Georgia", serif;
+  font-size: 42px;
+  color: var(--primary);
+  margin: 0 0 32px;
+  font-style: italic;
+  border-bottom: 1px solid var(--hairline-input);
+  display: inline-block;
+  padding: 0 40px 10px;
+  align-self: center;
+}
+
+.cert-description {
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.cert-program {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 12px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cert-description strong {
+  font-weight: 600;
+  color: var(--ink-secondary);
+}
+
+/* -------------------------------------- */
+/* Footer */
+/* -------------------------------------- */
+.cert-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: 60px;
+}
+
+.cert-signature {
+  width: 200px;
+  text-align: center;
+}
+
+.signature-line {
+  border-bottom: 1px solid var(--ink);
+  margin-bottom: 8px;
+}
+
+.owner-name {
+  font-family: "Georgia", serif;
+  font-size: 18px;
+  color: var(--ink);
+  margin: 0 0 4px;
+  font-style: italic;
+}
+
+.cert-signature p {
+  font-size: 14px;
+  color: var(--ink-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cert-seal {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 10px 20px rgba(83, 58, 253, 0.3);
+}
+
+.seal-inner {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 1px dashed rgba(255, 255, 255, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.seal-inner span {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  transform: rotate(-15deg);
+}
+
+.cert-meta {
+  width: 200px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--ink-mute);
+  line-height: 1.8;
+}
+
+.cert-meta strong {
+  color: var(--ink-secondary);
+  font-weight: 500;
+}
+
+/* -------------------------------------- */
+/* Print Styles */
+/* -------------------------------------- */
+@media print {
+  ::ng-deep {
+    /* Hide everything globally */
+    body * {
+      visibility: hidden !important;
+    }
+
+    /* Force landscape and zero margins */
+    @page {
+      size: landscape;
+      margin: 0;
+    }
+
+    .certificate-container, 
+    .certificate-container * {
+      visibility: visible !important;
+    }
+
+    .certificate-container {
+      position: absolute !important;
+      left: 0 !important;
+      top: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      background: white !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      z-index: 9999 !important;
+    }
+
+    .certificate-paper {
+      width: 1056px !important; /* US Letter landscape roughly */
+      height: 816px !important;
+      box-shadow: none !important;
+      border: none !important;
+      padding: 40px !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    .certificate-inner {
+      border-width: 12px !important;
+      padding: 60px !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    .cert-seal {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    /* Hide the "no-print" actions */
+    .no-print, .no-print * {
+      display: none !important;
+      visibility: hidden !important;
+    }
+  }
 }

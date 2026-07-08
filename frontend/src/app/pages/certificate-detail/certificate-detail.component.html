@@ -12,7 +12,7 @@
       [hasActions]="true"
     >
       <ng-container actions>
-        <app-button (clicked)="openPdf(cert.pdfUrl)">
+        <app-button class="no-print" (clicked)="openPdf()">
           Download PDF
         </app-button>
         <app-button (clicked)="router.navigate(['/verify', cert.verificationCode])">
@@ -21,57 +21,57 @@
       </ng-container>
     </app-page-header>
 
-    <app-card>
-      <div class="detail-grid">
-        <div>
-          <p class="text-sm text-ink-mute">Recipient</p>
-          <p class="mt-1 font-medium text-ink">{{ cert.participantNameSnapshot }}</p>
-        </div>
-        <div>
-          <p class="text-sm text-ink-mute">Program</p>
-          <p class="mt-1 font-medium text-ink">{{ cert.programTitleSnapshot }}</p>
-        </div>
-        <div>
-          <p class="text-sm text-ink-mute">Organization</p>
-          <p class="mt-1 font-medium text-ink">{{ cert.organizationNameSnapshot }}</p>
-        </div>
-        <div>
-          <p class="text-sm text-ink-mute">Quiz</p>
-          <p class="mt-1 font-medium text-ink">{{ cert.quizTitleSnapshot }}</p>
-        </div>
-        <div>
-          <p class="text-sm text-ink-mute">Score</p>
-          <p class="mt-1 font-medium text-ink">
-            @if (cert.scoreSnapshot != null) {
-              {{ cert.scoreSnapshot | number:'1.1-1' }}%
-            } @else {
-              <span class="muted">—</span>
-            }
-          </p>
-        </div>
-        <div>
-          <p class="text-sm text-ink-mute">Issued date</p>
-          <p class="mt-1 font-medium text-ink">{{ cert.issuedAt | date:'medium' }}</p>
-        </div>
-        <div>
-          <p class="text-sm text-ink-mute">Status</p>
-          <div class="mt-1">
-            <app-status-badge entity="certificate" [status]="cert.status" />
+    <div class="certificate-container">
+      <div class="certificate-paper">
+        <div class="certificate-inner">
+          <div class="cert-header">
+            <div class="cert-logo">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></svg>
+              <span>{{ cert.organizationNameSnapshot }}</span>
+            </div>
+            <h1>Certificate of Completion</h1>
+            <p class="cert-subtitle">This is to proudly certify that</p>
+          </div>
+          
+          <div class="cert-body">
+            <h2 class="cert-recipient">{{ cert.participantNameSnapshot }}</h2>
+            <div class="cert-description">
+              <p>has successfully completed the program</p>
+              <h3 class="cert-program">{{ cert.programTitleSnapshot }}</h3>
+              <p>including the final assessment <strong>{{ cert.quizTitleSnapshot }}</strong></p>
+              @if (cert.scoreSnapshot != null) {
+                <p>with an outstanding score of <strong>{{ cert.scoreSnapshot | number:'1.1-1' }}%</strong></p>
+              }
+            </div>
+          </div>
+
+          <div class="cert-footer">
+            <div class="cert-signature">
+              <div class="signature-line"></div>
+              @if (cert.ownerNameSnapshot) {
+                <p class="owner-name">{{ cert.ownerNameSnapshot }}</p>
+              }
+              @else {
+                <b> No use found</b>
+              }
+              <p>Authorized Signature</p>
+            </div>
+            
+            <div class="cert-seal">
+              <div class="seal-inner">
+                <span>VERIFIED</span>
+              </div>
+            </div>
+
+            <div class="cert-meta">
+              <p><strong>Issued On:</strong> {{ cert.issuedAt | date:'longDate' }}</p>
+              <p><strong>Certificate ID:</strong> {{ cert.certificateNumber }}</p>
+              <p><strong>Verification:</strong> {{ cert.verificationCode }}</p>
+            </div>
           </div>
         </div>
-        <div>
-          <p class="text-sm text-ink-mute">Verification code</p>
-          <p class="mt-1 font-medium text-ink">{{ cert.verificationCode }}</p>
-        </div>
       </div>
-
-      @if (cert.revokedAt) {
-        <div class="mt-6 pt-6 border-t border-hairline">
-          <p class="text-sm text-ink-mute">Revoked at</p>
-          <p class="mt-1 font-medium text-red-600">{{ cert.revokedAt | date:'medium' }}</p>
-        </div>
-      }
-    </app-card>
+    </div>
   } @else {
     <app-page-header title="Certificate not found" />
 

@@ -32,13 +32,19 @@
           <p>{{ quiz.description ?? 'Answer all questions before time runs out.' }}</p>
         </div>
         <div class="timer-card" [class.warning]="timerWarning()">
-          <span>Remaining</span>
-          <strong class="numeric">{{ timerDisplay() }}</strong>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="timer-icon">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <div class="timer-text">
+            <span>Remaining</span>
+            <strong>{{ timerDisplay() }}</strong>
+          </div>
         </div>
       </header>
 
-      <div class="flex flex-col gap-5 lg:flex-row">
-        <div class="stack min-w-0 w-full lg:w-60">
+      <div class="attempt-layout">
+        <div class="attempt-main">
           @let question = currentQuestion();
           @if (question) {
             <article class="panel question-card">
@@ -46,19 +52,25 @@
                 <h2>{{ currentQuestionIndex() + 1 }}. {{ question.text }}</h2>
                 <app-badge variant="info">{{ question.points }} pts</app-badge>
               </div>
-              <div class="option-grid">
+              <div class="option-list">
                 @for (option of question.options; track option.id) {
                   <label
-                    class="option-card"
+                    class="option-item"
                     [class.selected]="getSelectedOption(question.id) === option.id"
                   >
                     <input
                       type="radio"
                       [name]="question.id"
+                      class="sr-only"
                       [checked]="getSelectedOption(question.id) === option.id"
                       (change)="selectOption(question.id, option.id)"
                     />
-                    <span>{{ option.text }}</span>
+                    <div class="custom-radio">
+                      @if (getSelectedOption(question.id) === option.id) {
+                        <div class="custom-radio-inner"></div>
+                      }
+                    </div>
+                    <span class="option-text">{{ option.text }}</span>
                   </label>
                 }
               </div>

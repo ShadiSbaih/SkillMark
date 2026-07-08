@@ -64,6 +64,9 @@ public class Certificate {
     @Column(name = "organization_name_snapshot", nullable = false, length = 200)
     private String organizationNameSnapshot;
 
+    @Column(name = "owner_name_snapshot", length = 150)
+    private String ownerNameSnapshot;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private CertificateStatus status = CertificateStatus.ACTIVE;
@@ -135,6 +138,8 @@ public class Certificate {
     public void setProgramTitleSnapshot(String programTitleSnapshot) { this.programTitleSnapshot = programTitleSnapshot; }
     public String getOrganizationNameSnapshot() { return organizationNameSnapshot; }
     public void setOrganizationNameSnapshot(String organizationNameSnapshot) { this.organizationNameSnapshot = organizationNameSnapshot; }
+    public String getOwnerNameSnapshot() { return ownerNameSnapshot; }
+    public void setOwnerNameSnapshot(String ownerNameSnapshot) { this.ownerNameSnapshot = ownerNameSnapshot; }
     public CertificateStatus getStatus() { return status; }
     public void setStatus(CertificateStatus status) { this.status = status; }
     public Instant getIssuedAt() { return issuedAt; }

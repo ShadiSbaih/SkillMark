@@ -100,6 +100,12 @@ public class AuthorizationService {
     }
 
     public void ensureProgramEnrollment(UUID programId, UUID userId) {
+        Program program = programRepository.findById(programId)
+                .orElseThrow(() -> new NotFoundException("Program not found"));
+        if (membershipRepository.existsByOrganizationIdAndUserIdAndRoleAndStatus(
+                program.getOrganization().getId(), userId, MembershipRole.OWNER, MembershipStatus.ACTIVE)) {
+            return;
+        }
         if (!enrollmentRepository.existsByProgramIdAndUserIdAndStatus(programId, userId, EnrollmentStatus.ACTIVE)) {
             throw new ForbiddenException("Active program enrollment is required");
         }

@@ -84,7 +84,7 @@ public class QuizAttemptService {
                 inProgress.setStatus(AttemptStatus.EXPIRED);
                 attemptRepository.save(inProgress);
             } else {
-                throw new ConflictException("An in-progress attempt already exists for this quiz");
+                return StartAttemptResponse.from(inProgress);
             }
         }
         long priorAttempts = attemptRepository.countByQuizIdAndUserId(quizId, userId);

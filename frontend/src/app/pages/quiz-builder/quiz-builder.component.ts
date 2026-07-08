@@ -105,7 +105,6 @@ export class QuizBuilderComponent {
     const questions = quiz?.questions ?? [];
     return {
       hasTitle: !!quiz?.title?.trim(),
-      hasDescription: !!quiz?.description?.trim(),
       hasQuestions: questions.length > 0,
       allQuestionsHaveOptions: questions.every((q) => q.options.length > 0),
       allQuestionsHaveCorrectAnswer: questions.every((q) =>
@@ -120,7 +119,6 @@ export class QuizBuilderComponent {
     const checks = this.publishChecklist();
     return (
       checks.hasTitle &&
-      checks.hasDescription &&
       checks.hasQuestions &&
       checks.allQuestionsHaveOptions &&
       checks.allQuestionsHaveCorrectAnswer &&
@@ -292,7 +290,15 @@ export class QuizBuilderComponent {
     const id = this.quizId();
     if (!id) return;
     this.quizzesService.publishMutation.mutate(id, {
-      onSuccess: () => toast.success('Quiz published successfully.'),
+      onSuccess: () => {
+        toast.success('Quiz published successfully.');
+        const programId = this.quizQuery.data()?.programId;
+        if (programId) {
+          void this.router.navigate(['/programs', programId, 'quizzes', id]);
+        } else {
+          void this.router.navigate(['/quizzes', id]);
+        }
+      },
       onError: (error) => toast.error(error?.message ?? 'Failed to publish quiz.'),
     });
   }

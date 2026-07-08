@@ -4,7 +4,7 @@ import {
   provideZoneChangeDetection,
 } from '@angular/core';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { provideQueryClient, QueryClient } from '@tanstack/angular-query-experimental';
 import { provideClerk } from 'ngx-clerk';
 
@@ -17,7 +17,7 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
-    provideRouter(routes),
+    provideRouter(routes, withComponentInputBinding()),
     provideHttpClient(withInterceptors([authInterceptor, errorInterceptor])),
     provideQueryClient(new QueryClient()),
     provideClerk({ publishableKey: environment.clerkPublishableKey }),
