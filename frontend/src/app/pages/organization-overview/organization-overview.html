@@ -42,16 +42,36 @@
 
   <div class="metric-grid compact mt-6">
     <app-card>
-      <p class="metric-label">Members</p>
-      <p class="metric-value">{{ stats()?.totalMembers ?? 0 }}</p>
-    </app-card>
-    <app-card>
       <p class="metric-label">Programs</p>
       <p class="metric-value">{{ stats()?.totalPrograms ?? 0 }}</p>
     </app-card>
     <app-card>
+      <p class="metric-label">Members</p>
+      <p class="metric-value">{{ stats()?.totalMembers ?? 0 }}</p>
+    </app-card>
+    <app-card>
+      <p class="metric-label">Enrolled participants</p>
+      <p class="metric-value">{{ stats()?.totalEnrolledParticipants ?? 0 }}</p>
+    </app-card>
+    <app-card>
+      <p class="metric-label">Quizzes</p>
+      <p class="metric-value">{{ stats()?.totalQuizzes ?? 0 }}</p>
+    </app-card>
+    <app-card>
+      <p class="metric-label">Attempts</p>
+      <p class="metric-value">{{ stats()?.totalAttempts ?? 0 }}</p>
+    </app-card>
+    <app-card>
       <p class="metric-label">Certificates</p>
       <p class="metric-value">{{ stats()?.totalCertificates ?? 0 }}</p>
+    </app-card>
+    <app-card>
+      <p class="metric-label">Avg. score</p>
+      <p class="metric-value">{{ stats()?.averageScore ?? 0 }}%</p>
+    </app-card>
+    <app-card>
+      <p class="metric-label">Pass rate</p>
+      <p class="metric-value">{{ stats()?.passRate ?? 0 }}%</p>
     </app-card>
   </div>
 

@@ -21,12 +21,40 @@
       <p class="metric-value"><app-status-badge entity="program" [status]="program().status" /></p>
     </app-card>
     <app-card>
+      <p class="metric-label">Enrollments</p>
+      <p class="metric-value">{{ stats()?.totalEnrollments ?? 0 }}</p>
+    </app-card>
+    <app-card>
+      <p class="metric-label">Active enrollments</p>
+      <p class="metric-value">{{ stats()?.activeEnrollments ?? 0 }}</p>
+    </app-card>
+    <app-card>
       <p class="metric-label">Resources</p>
       <p class="metric-value">{{ stats()?.resourcesCount ?? resources().length }}</p>
     </app-card>
     <app-card>
       <p class="metric-label">Quizzes</p>
       <p class="metric-value">{{ stats()?.quizzesCount ?? quizzes().length }}</p>
+    </app-card>
+    <app-card>
+      <p class="metric-label">Attempts</p>
+      <p class="metric-value">{{ stats()?.attemptsCount ?? 0 }}</p>
+    </app-card>
+    <app-card>
+      <p class="metric-label">Passed participants</p>
+      <p class="metric-value">{{ stats()?.passedParticipants ?? 0 }}</p>
+    </app-card>
+    <app-card>
+      <p class="metric-label">Certificates issued</p>
+      <p class="metric-value">{{ stats()?.certificatesIssued ?? 0 }}</p>
+    </app-card>
+    <app-card>
+      <p class="metric-label">Average score</p>
+      <p class="metric-value">{{ averageScore() }}%</p>
+    </app-card>
+    <app-card>
+      <p class="metric-label">Pass rate</p>
+      <p class="metric-value">{{ passRate() }}%</p>
     </app-card>
   </div>
 

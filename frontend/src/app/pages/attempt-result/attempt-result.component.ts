@@ -34,7 +34,7 @@ export class AttemptResultComponent {
   readonly quizzesService = inject(QuizzesService);
   readonly router = inject(Router);
 
-  readonly attemptId = toSignal(
+  private readonly attemptId = toSignal(
     this.route.paramMap.pipe(map((params) => params.get('attemptId'))),
     { initialValue: null }
   );
@@ -43,22 +43,6 @@ export class AttemptResultComponent {
 
   readonly quizId = computed(() => this.attemptQuery.data()?.quizId ?? null);
   readonly quizQuery = this.quizzesService.getQuizQuery(() => this.quizId());
-
-  issueCertificate(): void {
-    const attemptId = this.attemptId();
-    if (!attemptId) return;
-
-    this.attemptsService.issueCertificateForAttempt.mutate(
-      { attemptId },
-      {
-        onSuccess: (certificate) => {
-          if (certificate?.id) {
-            void this.router.navigate(['/certificates', certificate.id]);
-          }
-        },
-      }
-    );
-  }
 
   viewCertificate(certificateId: string): void {
     void this.router.navigate(['/certificates', certificateId]);

@@ -281,7 +281,7 @@ describe('AttemptResultComponent', () => {
     expect(router.navigate).toHaveBeenCalledWith(['/certificates', 'cert-1']);
   });
 
-  it('should show issue certificate button when passed but no certificate exists', () => {
+  it('should hide certificate section when passed but certificate is not ready yet', () => {
     attemptsService.setData({
       ...baseAttempt,
       certificateIssued: false,
@@ -292,55 +292,7 @@ describe('AttemptResultComponent', () => {
 
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('Passed');
-    expect(text).toContain('Issue certificate');
+    expect(text).not.toContain('Issue certificate');
     expect(text).not.toContain('View certificate');
-  });
-
-  it('should issue certificate and navigate on success', () => {
-    attemptsService.setData({
-      ...baseAttempt,
-      certificateIssued: false,
-      certificateId: null,
-    });
-    quizzesService.setData(baseQuiz);
-    fixture.detectChanges();
-
-    const certificate: CertificateResponse = {
-      id: 'cert-2',
-      certificateNumber: 'CERT-002',
-      verificationCode: 'verify-2',
-      organizationId: 'org-1',
-      programId: 'program-1',
-      quizId: 'quiz-1',
-      userId: 'user-1',
-      attemptId: 'attempt-1',
-      title: 'Sample Quiz Certificate',
-      participantNameSnapshot: 'Test User',
-    ownerNameSnapshot: 'Owner Name',
-      quizTitleSnapshot: 'Sample Quiz',
-      programTitleSnapshot: 'Program',
-      organizationNameSnapshot: 'Org',
-      status: 'ACTIVE',
-      issuedAt: '2026-01-01T02:00:00Z',
-      revokedAt: null,
-      pdfUrl: null,
-      pdfObjectKey: null,
-      qrCodeUrl: null,
-      qrCodeObjectKey: null,
-    };
-
-    attemptsService.issueCertificateMutate.mockImplementation(
-      (_vars, options) => {
-        options?.onSuccess?.(certificate);
-      }
-    );
-
-    component.issueCertificate();
-
-    expect(attemptsService.issueCertificateMutate).toHaveBeenCalledWith(
-      expect.objectContaining({ attemptId: 'attempt-1' }),
-      expect.any(Object)
-    );
-    expect(router.navigate).toHaveBeenCalledWith(['/certificates', 'cert-2']);
   });
 });

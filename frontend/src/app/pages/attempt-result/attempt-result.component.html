@@ -78,33 +78,20 @@
       </div>
     </app-card>
 
-    @if (attempt.passed) {
+    @if (attempt.passed && attempt.certificateId) {
       <div class="mt-6">
         <app-card>
           <div class="certificate-section">
             <h3 class="text-lg font-semibold text-ink">Certificate</h3>
-            @if (attempt.certificateId) {
-              <p class="mt-1 text-sm text-ink-mute">
-                Your certificate has been issued.
-              </p>
-              <a
-                class="button button-primary mt-4 inline-flex"
-                [routerLink]="['/certificates', attempt.certificateId]"
-              >
-                View certificate
-              </a>
-            } @else {
-              <p class="mt-1 text-sm text-ink-mute">
-                You passed! Issue your certificate now.
-              </p>
-              <app-button
-                class="mt-4"
-                [loading]="attemptsService.issueCertificateForAttempt.isPending()"
-                (clicked)="issueCertificate()"
-              >
-                Issue certificate
-              </app-button>
-            }
+            <p class="mt-1 text-sm text-ink-mute">
+              Your certificate has been issued.
+            </p>
+            <a
+              class="button button-primary mt-4 inline-flex"
+              [routerLink]="['/certificates', attempt.certificateId]"
+            >
+              View certificate
+            </a>
           </div>
         </app-card>
       </div>

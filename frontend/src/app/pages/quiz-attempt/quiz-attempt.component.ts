@@ -23,6 +23,7 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
 import { ErrorStateComponent } from '../../shared/components/error-state/error-state.component';
 import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
 import { ModalComponent } from '../../shared/components/modal/modal.component';
+import { AttemptStorageService } from '../../core/services/attempt-storage.service';
 
 @Component({
   selector: 'app-quiz-attempt',
@@ -44,6 +45,7 @@ export class QuizAttemptComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly quizzesService = inject(QuizzesService);
   private readonly attemptsService = inject(AttemptsService);
+  private readonly attemptStorage = inject(AttemptStorageService);
 
   readonly quizId = toSignal(
     this.route.paramMap.pipe(map((params) => params.get('quizId'))),
@@ -110,6 +112,8 @@ export class QuizAttemptComponent implements OnInit {
         onSuccess: (response: StartAttemptResponse) => {
           this.attemptId.set(response.attemptId);
           this.expiresAt.set(new Date(response.expiresAt));
+          const saved = this.attemptStorage.load(response.attemptId);
+          if (saved) this.answers.set(saved);
           this.updateTimeRemaining();
         },
       },
@@ -148,7 +152,15 @@ export class QuizAttemptComponent implements OnInit {
   }
 
   selectOption(questionId: string, optionId: string): void {
-    this.answers.update((prev) => ({ ...prev, [questionId]: optionId }));
+    this.answers.update((prev) => {
+      const next = { ...prev, [questionId]: optionId };
+      const attemptId = this.attemptId();
+      const quizId = this.quizId();
+      if (attemptId && quizId) {
+        this.attemptStorage.save(attemptId, quizId, next);
+      }
+      return next;
+    });
   }
 
   goToQuestion(index: number): void {
@@ -198,6 +210,7 @@ export class QuizAttemptComponent implements OnInit {
       { attemptId, request },
       {
         onSuccess: () => {
+          this.attemptStorage.clear(attemptId);
           this.router.navigate(['/attempts', attemptId, 'result']);
         },
         onError: (error) => {

@@ -38,6 +38,17 @@ export class ProgramOverview {
   readonly resources = computed(() => this.resourcesService.resourcesQuery.data()?.items ?? []);
   readonly quizzes = computed(() => this.quizzesService.quizzesQuery.data()?.items ?? []);
 
+  readonly passRate = computed(() => {
+    const stats = this.stats();
+    const attempts = stats?.attemptsCount ?? 0;
+    return attempts > 0 ? Math.round(((stats?.passedParticipants ?? 0) / attempts) * 100) : 0;
+  });
+
+  readonly averageScore = computed(() => {
+    const avg = this.stats()?.averageScore;
+    return avg !== undefined ? Math.round(avg * 100) / 100 : 0;
+  });
+
   constructor() {
     effect(() => {
       const id = this.programId();

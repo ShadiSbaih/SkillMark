@@ -284,12 +284,22 @@ describe('QuizOverview', () => {
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent;
-    expect(text).toContain('Attempts');
+    expect(text).toContain('Total attempts');
+    expect(text).toContain('Submitted');
+    expect(text).toContain('Passed');
+    expect(text).toContain('Failed');
     expect(text).toContain('Pass rate');
     expect(text).toContain('Average score');
+    expect(text).toContain('Highest score');
+    expect(text).toContain('Lowest score');
     expect(text).toContain('12');
+    expect(text).toContain('10');
+    expect(text).toContain('8');
+    expect(text).toContain('2');
     expect(text).toContain('80%');
     expect(text).toContain('82.5%');
+    expect(text).toContain('100.0%');
+    expect(text).toContain('40.0%');
   });
 
   it('should render at most 5 preview questions', () => {

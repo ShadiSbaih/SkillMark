@@ -10,7 +10,6 @@ import { JoinComponent } from './pages/join/join.component';
 import { LandingComponent } from './pages/landing/landing.component';
 import { MyCertificatesComponent } from './pages/my-certificates/my-certificates.component';
 import { OrganizationMembersComponent } from './pages/organization-members/organization-members.component';
-import { OrganizationStatsComponent } from './pages/organization-stats/organization-stats.component';
 import { OrganizationsComponent } from './pages/organizations/organizations.component';
 import { ProgramEnrollmentsComponent } from './pages/program-enrollments/program-enrollments.component';
 import { ProgramInvitationsComponent } from './pages/program-invitations/program-invitations.component';
@@ -27,14 +26,12 @@ import { OrganizationOverview as OrganizationOverviewComponent } from './pages/o
 import { OrganizationSettings as OrganizationSettingsComponent } from './pages/organization-settings/organization-settings';
 import { OrganizationCertificates as OrganizationCertificatesComponent } from './pages/organization-certificates/organization-certificates';
 import { ProgramQuizzes as ProgramQuizzesComponent } from './pages/program-quizzes/program-quizzes';
-import { ProgramStats as ProgramStatsComponent } from './pages/program-stats/program-stats';
 import { ProgramSettings as ProgramSettingsComponent } from './pages/program-settings/program-settings';
 import { ProgramLearn as ProgramLearnComponent } from './pages/program-learn/program-learn';
 import { CreateQuiz as CreateQuizComponent } from './pages/create-quiz/create-quiz';
 import { QuizOverview as QuizOverviewComponent } from './pages/quiz-overview/quiz-overview';
 import { QuizView as QuizViewComponent } from './pages/quiz-view/quiz-view';
 import { QuizAttempts as QuizAttemptsComponent } from './pages/quiz-attempts/quiz-attempts';
-import { QuizStats as QuizStatsComponent } from './pages/quiz-stats/quiz-stats';
 import { QuizSettings as QuizSettingsComponent } from './pages/quiz-settings/quiz-settings';
 import { MyEnrollments as MyEnrollmentsComponent } from './pages/my-enrollments/my-enrollments';
 import { MyAttempts as MyAttemptsComponent } from './pages/my-attempts/my-attempts';
@@ -83,7 +80,6 @@ export const routes: Routes = [
           { path: ':orgId', component: OrganizationOverviewComponent },
           { path: ':orgId/members', component: OrganizationMembersComponent },
           { path: ':orgId/settings', component: OrganizationSettingsComponent },
-          { path: ':orgId/stats', component: OrganizationStatsComponent },
           { path: ':orgId/audit-logs', component: AuditLogsComponent },
           { path: ':orgId/certificates', component: OrganizationCertificatesComponent },
           {
@@ -100,23 +96,14 @@ export const routes: Routes = [
       { path: 'programs/:programId/invitations', component: ProgramInvitationsComponent },
       { path: 'programs/:programId/resources', component: ProgramResourcesComponent },
       { path: 'programs/:programId/quizzes', component: ProgramQuizzesComponent },
-      { path: 'programs/:programId/stats', component: ProgramStatsComponent },
       { path: 'programs/:programId/settings', component: ProgramSettingsComponent },
       { path: 'programs/:programId/learn', component: ProgramLearnComponent },
       { path: 'programs/:programId/quizzes/new', component: CreateQuizComponent },
-      { path: 'programs/:programId/quizzes/:quizId', component: QuizOverviewComponent },
-      { path: 'programs/:programId/quizzes/:quizId/settings', component: QuizSettingsComponent },
-      { path: 'programs/:programId/quizzes/:quizId/builder', component: QuizBuilderComponent },
-      { path: 'programs/:programId/quizzes/:quizId/attempts', component: QuizAttemptsComponent },
-      { path: 'programs/:programId/quizzes/:quizId/stats', component: QuizStatsComponent },
-      { path: 'programs/:programId/quizzes/:quizId/preview', component: QuizViewComponent },
       { path: 'quizzes/:quizId', component: QuizOverviewComponent },
       { path: 'quizzes/:quizId/builder', component: QuizBuilderComponent },
       { path: 'quizzes/:quizId/view', component: QuizViewComponent },
-      { path: 'quizzes/:quizId/preview', component: QuizViewComponent },
       { path: 'quizzes/:quizId/attempt', component: QuizAttemptComponent },
       { path: 'quizzes/:quizId/attempts', component: QuizAttemptsComponent },
-      { path: 'quizzes/:quizId/stats', component: QuizStatsComponent },
       { path: 'quizzes/:quizId/settings', component: QuizSettingsComponent },
       { path: 'attempts/:attemptId/result', component: AttemptResultComponent },
       { path: 'my-enrollments', component: MyEnrollmentsComponent },

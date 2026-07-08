@@ -47,6 +47,12 @@ export class QuizOverview {
   readonly statsQuery = this.statsService.getQuizStatsQuery(() => this.quizId());
   readonly showPublishModal = signal(false);
 
+  readonly submittedAttempts = computed(() => this.statsQuery.data()?.submittedAttempts ?? 0);
+  readonly passCount = computed(() => this.statsQuery.data()?.passCount ?? 0);
+  readonly failCount = computed(() => this.statsQuery.data()?.failCount ?? 0);
+  readonly highestScore = computed(() => this.statsQuery.data()?.highestScore ?? 0);
+  readonly lowestScore = computed(() => this.statsQuery.data()?.lowestScore ?? 0);
+
   readonly breadcrumbs = computed(() => {
     const quiz = this.quizQuery.data();
     return [

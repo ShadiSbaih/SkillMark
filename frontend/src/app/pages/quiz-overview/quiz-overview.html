@@ -52,8 +52,23 @@
       @if (!statsQuery.isPending() && !statsQuery.isError() && statsQuery.data()) {
         @let stats = statsQuery.data();
         <app-card>
-          <p class="metric-label">Attempts</p>
+          <p class="metric-label">Total attempts</p>
           <p class="metric-value">{{ stats?.attemptsCount ?? 0 }}</p>
+        </app-card>
+
+        <app-card>
+          <p class="metric-label">Submitted</p>
+          <p class="metric-value">{{ submittedAttempts() }}</p>
+        </app-card>
+
+        <app-card>
+          <p class="metric-label">Passed</p>
+          <p class="metric-value">{{ passCount() }}</p>
+        </app-card>
+
+        <app-card>
+          <p class="metric-label">Failed</p>
+          <p class="metric-value">{{ failCount() }}</p>
         </app-card>
 
         <app-card>
@@ -64,6 +79,16 @@
         <app-card>
           <p class="metric-label">Average score</p>
           <p class="metric-value">{{ (stats?.averageScore ?? 0).toFixed(1) }}%</p>
+        </app-card>
+
+        <app-card>
+          <p class="metric-label">Highest score</p>
+          <p class="metric-value">{{ highestScore().toFixed(1) }}%</p>
+        </app-card>
+
+        <app-card>
+          <p class="metric-label">Lowest score</p>
+          <p class="metric-value">{{ lowestScore().toFixed(1) }}%</p>
         </app-card>
       }
     </div>
