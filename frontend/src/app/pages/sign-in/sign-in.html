@@ -2,6 +2,48 @@
   <div class="auth-card">
     <h1>Welcome back</h1>
     <p class="auth-subtitle">Sign in to continue your Skillmark journey.</p>
-    <clerk-sign-in [props]="signInProps" />
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="auth-form">
+      <app-form-field
+        label="Email"
+        id="email"
+        [error]="form.get('email')?.touched && form.get('email')?.invalid ? 'Please enter a valid email.' : undefined"
+      >
+        <input
+          id="email"
+          type="email"
+          formControlName="email"
+          placeholder="you@example.com"
+          autocomplete="email"
+        />
+      </app-form-field>
+
+      <app-form-field
+        label="Password"
+        id="password"
+        [error]="form.get('password')?.touched && form.get('password')?.invalid ? 'Password must be at least 8 characters.' : undefined"
+      >
+        <input
+          id="password"
+          type="password"
+          formControlName="password"
+          placeholder="••••••••"
+          autocomplete="current-password"
+        />
+      </app-form-field>
+
+      @if (error()) {
+        <div class="auth-error">{{ error() }}</div>
+      }
+
+      <app-button type="submit" variant="primary" [loading]="isLoading()" [disabled]="isLoading()">
+        Sign in
+      </app-button>
+    </form>
+
+    <div class="auth-links">
+      <a routerLink="/forgot-password">Forgot password?</a>
+      <span>Don't have an account? <a routerLink="/sign-up">Sign up</a></span>
+    </div>
   </div>
 </section>

@@ -8,6 +8,5 @@ export const environment = {
   apiBaseUrl: isLocalHost ? localApiBaseUrl : deployedApiBaseUrl,
   localApiBaseUrl,
   deployedApiBaseUrl,
-  clerkPublishableKey: 'pk_test_bG92ZWQtdHVydGxlLTE4LmNsZXJrLmFjY291bnRzLmRldiQ',
   appBaseUrl: isBrowser ? window.location.origin : 'http://localhost:4200',
 };

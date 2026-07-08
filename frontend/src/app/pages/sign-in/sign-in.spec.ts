@@ -1,29 +1,33 @@
-import { Component, Input } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { signal } from '@angular/core';
+import { vi } from 'vitest';
 import { SignIn } from './sign-in';
+import { AuthService } from '../../core/auth/auth.service';
 
-@Component({
-  selector: 'clerk-sign-in',
-  standalone: true,
-  template: '<div class="clerk-sign-in-stub">clerk-sign-in</div>',
-})
-class ClerkSignInStubComponent {
-  @Input() props?: Record<string, unknown>;
+class FakeAuthService {
+  readonly user = signal(null);
+  readonly isSignedIn = signal(false);
+  readonly isLoaded = signal(true);
+
+  login = vi.fn().mockResolvedValue(undefined);
+  logout = vi.fn().mockResolvedValue(undefined);
 }
 
 describe('SignIn', () => {
   let component: SignIn;
   let fixture: ComponentFixture<SignIn>;
+  let authService: FakeAuthService;
 
   beforeEach(async () => {
-    TestBed.overrideComponent(SignIn, {
-      set: { imports: [ClerkSignInStubComponent] },
-    });
+    authService = new FakeAuthService();
 
     await TestBed.configureTestingModule({
       imports: [SignIn],
-      providers: [provideRouter([])],
+      providers: [
+        provideRouter([]),
+        { provide: AuthService, useValue: authService },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(SignIn);
@@ -40,16 +44,38 @@ describe('SignIn', () => {
     expect(fixture.nativeElement.textContent).toContain('Welcome back');
   });
 
-  it('should render the clerk sign-in component', () => {
+  it('should render email and password fields', () => {
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('clerk-sign-in');
+    expect(fixture.nativeElement.querySelector('input[type="email"]')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('input[type="password"]')).toBeTruthy();
   });
 
-  it('should pass sign-in props to the clerk component', () => {
+  it('should call AuthService.login on valid submit', async () => {
     fixture.detectChanges();
-    const clerkComponent = fixture.nativeElement.querySelector('clerk-sign-in');
-    expect(clerkComponent).toBeTruthy();
-    expect(component.signInProps.signUpUrl).toBe('/sign-up');
-    expect(component.signInProps.afterSignInUrl).toBe('/dashboard');
+
+    component.form.setValue({
+      email: 'alice@example.com',
+      password: 'password123',
+    });
+
+    await component.onSubmit();
+
+    expect(authService.login).toHaveBeenCalledWith({
+      email: 'alice@example.com',
+      password: 'password123',
+    });
+  });
+
+  it('should not submit when form is invalid', async () => {
+    fixture.detectChanges();
+
+    component.form.setValue({
+      email: '',
+      password: '',
+    });
+
+    await component.onSubmit();
+
+    expect(authService.login).not.toHaveBeenCalled();
   });
 });

@@ -3,9 +3,9 @@ import { provideQueryClient, QueryClient } from '@tanstack/angular-query-experim
 import { provideRouter } from '@angular/router';
 import { By } from '@angular/platform-browser';
 import { signal } from '@angular/core';
-import { ClerkService } from 'ngx-clerk';
 import { vi } from 'vitest';
 import { Profile } from './profile';
+import { AuthService } from '../../core/auth/auth.service';
 import { UsersService } from '../../services/users.service';
 import { UserResponse } from '../../core/models/user.model';
 
@@ -24,9 +24,11 @@ class FakeUsersService {
   };
 }
 
-function createFakeClerkService(user: Partial<{ imageUrl: string; fullName: string; primaryEmailAddress: { emailAddress: string } }> = {}) {
+function createFakeAuthService(user: Partial<UserResponse> | null = null) {
   return {
     user: signal(user),
+    isSignedIn: signal(user !== null),
+    isLoaded: signal(true),
   };
 }
 
@@ -34,7 +36,7 @@ describe('Profile', () => {
   let component: Profile;
   let fixture: ComponentFixture<Profile>;
   let usersService: FakeUsersService;
-  let clerkService: ReturnType<typeof createFakeClerkService>;
+  let authService: ReturnType<typeof createFakeAuthService>;
 
   const mockUser: UserResponse = {
     id: 'user-1',
@@ -48,11 +50,7 @@ describe('Profile', () => {
 
   beforeEach(async () => {
     usersService = new FakeUsersService();
-    clerkService = createFakeClerkService({
-      imageUrl: 'https://clerk.com/avatar.png',
-      fullName: 'Alice Doe',
-      primaryEmailAddress: { emailAddress: 'alice@example.com' },
-    });
+    authService = createFakeAuthService(mockUser);
 
     await TestBed.configureTestingModule({
       imports: [Profile],
@@ -60,7 +58,7 @@ describe('Profile', () => {
         provideRouter([]),
         provideQueryClient(new QueryClient()),
         { provide: UsersService, useValue: usersService },
-        { provide: ClerkService, useValue: clerkService },
+        { provide: AuthService, useValue: authService },
       ],
     }).compileComponents();
 
@@ -115,11 +113,11 @@ describe('Profile', () => {
     });
   });
 
-  it('should use Clerk avatar URL', () => {
+  it('should use user avatar URL', () => {
     usersService.meQuery.data = () => mockUser;
     fixture.detectChanges();
 
-    expect(component.avatarUrl()).toBe('https://clerk.com/avatar.png');
+    expect(component.avatarUrl()).toBe('https://example.com/avatar.png');
   });
 
   it('should not submit when form is invalid', () => {

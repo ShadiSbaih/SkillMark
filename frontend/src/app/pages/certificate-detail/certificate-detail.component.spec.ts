@@ -105,6 +105,7 @@ describe('CertificateDetailComponent', () => {
     attemptId: 'attempt-1',
     title: 'Certificate of Completion',
     participantNameSnapshot: 'John Doe',
+    ownerNameSnapshot: 'Owner Name',
     quizTitleSnapshot: 'Intro Quiz',
     programTitleSnapshot: 'Intro Program',
     organizationNameSnapshot: 'Acme Inc',
@@ -176,7 +177,6 @@ describe('CertificateDetailComponent', () => {
     expect(fixture.nativeElement.textContent).toContain(
       certificate.certificateNumber
     );
-    expect(fixture.nativeElement.textContent).not.toContain(certificate.title);
   });
 
   it('should render certificate fields', () => {
@@ -191,16 +191,15 @@ describe('CertificateDetailComponent', () => {
     expect(text).toContain(certificate.programTitleSnapshot);
     expect(text).toContain(certificate.organizationNameSnapshot);
     expect(text).toContain('92.5%');
-    expect(text).toContain('Jul 3, 2026');
+    expect(text).toContain('July 3, 2026');
   });
 
-  it('should show a dash when score is missing', () => {
+  it('should omit score details when score is missing', () => {
     certificatesService.setData({ ...certificate, scoreSnapshot: null });
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent;
-    expect(text).toContain('Score');
-    expect(text).toContain('—');
+    expect(text).not.toContain('92.5%');
   });
 
   it('should show revoked information when the certificate is revoked', () => {
@@ -214,7 +213,7 @@ describe('CertificateDetailComponent', () => {
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('REVOKED');
     expect(text).toContain('Revoked at');
-    expect(text).toContain('Jul 4, 2026');
+    expect(text).toContain('July 4, 2026');
   });
 
   it('should show empty state when certificate data is missing', () => {

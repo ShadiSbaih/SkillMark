@@ -7,6 +7,7 @@ import com.library.Skillmark.user.enums.*;
 import com.library.Skillmark.user.repository.*;
 import com.library.Skillmark.user.service.*;
 public enum UserStatus {
+    PENDING_VERIFICATION,
     ACTIVE,
     INACTIVE,
     SUSPENDED,

@@ -1,7 +1,7 @@
 import { Component, computed, inject, input } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
-import { ClerkService } from 'ngx-clerk';
+import { AuthService } from '../../core/auth/auth.service';
 import { CertificatesService } from '../../services/certificates.service';
 import { ButtonComponent } from '../../shared/components/button/button.component';
 import { CardComponent } from '../../shared/components/card/card.component';
@@ -31,7 +31,7 @@ import { StatusBadgeComponent } from '../../shared/components/status-badge/statu
 })
 export class CertificateDetailComponent {
   private readonly certificatesService = inject(CertificatesService);
-  private readonly clerk = inject(ClerkService);
+  private readonly auth = inject(AuthService);
   readonly router = inject(Router);
 
   readonly certificateId = input<string | null>(null);
@@ -40,20 +40,19 @@ export class CertificateDetailComponent {
   readonly certificate = computed(() => {
     const cert = this.query.data();
     if (!cert) return null;
-    
-    // If this certificate belongs to the current user, use their Clerk profile name for a better display
-    const clerkUser = this.clerk.user();
-    if (clerkUser && clerkUser.id === cert.userId) {
-      const bestName = clerkUser.fullName || clerkUser.username;
-      if (bestName) {
-        return { ...cert, participantNameSnapshot: bestName };
-      }
+
+    const authUser = this.auth.user();
+    if (authUser && authUser.id === cert.userId && authUser.name) {
+      return { ...cert, participantNameSnapshot: authUser.name };
     }
-    
+
     return cert;
   });
 
   openPdf(): void {
-    window.print();
+    const cert = this.certificate();
+    if (cert?.pdfUrl) {
+      window.open(cert.pdfUrl, '_blank');
+    }
   }
 }

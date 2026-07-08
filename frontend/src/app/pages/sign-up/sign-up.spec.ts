@@ -1,29 +1,33 @@
-import { Component, Input } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { signal } from '@angular/core';
+import { vi } from 'vitest';
 import { SignUp } from './sign-up';
+import { AuthService } from '../../core/auth/auth.service';
 
-@Component({
-  selector: 'clerk-sign-up',
-  standalone: true,
-  template: '<div class="clerk-sign-up-stub">clerk-sign-up</div>',
-})
-class ClerkSignUpStubComponent {
-  @Input() props?: Record<string, unknown>;
+class FakeAuthService {
+  readonly user = signal(null);
+  readonly isSignedIn = signal(false);
+  readonly isLoaded = signal(true);
+
+  register = vi.fn().mockResolvedValue(undefined);
+  logout = vi.fn().mockResolvedValue(undefined);
 }
 
 describe('SignUp', () => {
   let component: SignUp;
   let fixture: ComponentFixture<SignUp>;
+  let authService: FakeAuthService;
 
   beforeEach(async () => {
-    TestBed.overrideComponent(SignUp, {
-      set: { imports: [ClerkSignUpStubComponent] },
-    });
+    authService = new FakeAuthService();
 
     await TestBed.configureTestingModule({
       imports: [SignUp],
-      providers: [provideRouter([])],
+      providers: [
+        provideRouter([]),
+        { provide: AuthService, useValue: authService },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(SignUp);
@@ -40,16 +44,101 @@ describe('SignUp', () => {
     expect(fixture.nativeElement.textContent).toContain('Create your account');
   });
 
-  it('should render the clerk sign-up component', () => {
+  it('should default to owner role and show organization name field', () => {
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('clerk-sign-up');
+    expect(component.isOwner()).toBe(true);
+    expect(fixture.nativeElement.querySelector('input[formControlName="organizationName"]')).toBeTruthy();
   });
 
-  it('should pass sign-up props to the clerk component', () => {
+  it('should switch to member role and show invite code field', () => {
     fixture.detectChanges();
-    const clerkComponent = fixture.nativeElement.querySelector('clerk-sign-up');
-    expect(clerkComponent).toBeTruthy();
-    expect(component.signUpProps.signInUrl).toBe('/sign-in');
-    expect(component.signUpProps.afterSignUpUrl).toBe('/dashboard');
+
+    component.setRole('MEMBER');
+    fixture.detectChanges();
+
+    expect(component.isOwner()).toBe(false);
+    expect(fixture.nativeElement.querySelector('input[formControlName="inviteCode"]')).toBeTruthy();
+  });
+
+  it('should register an owner with organization name', async () => {
+    fixture.detectChanges();
+
+    component.form.setValue({
+      name: 'Alice Smith',
+      email: 'alice@example.com',
+      password: 'password123',
+      confirmPassword: 'password123',
+      organizationName: 'Acme Inc',
+      inviteCode: '',
+    });
+
+    await component.onSubmit();
+
+    expect(authService.register).toHaveBeenCalledWith({
+      name: 'Alice Smith',
+      email: 'alice@example.com',
+      password: 'password123',
+      role: 'OWNER',
+      organizationName: 'Acme Inc',
+    });
+  });
+
+  it('should register a member with invite code', async () => {
+    fixture.detectChanges();
+
+    component.setRole('MEMBER');
+    component.form.setValue({
+      name: 'Bob Jones',
+      email: 'bob@example.com',
+      password: 'password123',
+      confirmPassword: 'password123',
+      organizationName: '',
+      inviteCode: 'A1B2C3D4E5F6',
+    });
+
+    await component.onSubmit();
+
+    expect(authService.register).toHaveBeenCalledWith({
+      name: 'Bob Jones',
+      email: 'bob@example.com',
+      password: 'password123',
+      role: 'MEMBER',
+      inviteCode: 'A1B2C3D4E5F6',
+    });
+  });
+
+  it('should show an error when passwords do not match', async () => {
+    fixture.detectChanges();
+
+    component.form.setValue({
+      name: 'Alice Smith',
+      email: 'alice@example.com',
+      password: 'password123',
+      confirmPassword: 'different',
+      organizationName: 'Acme Inc',
+      inviteCode: '',
+    });
+
+    await component.onSubmit();
+
+    expect(component.error()).toBe('Passwords do not match.');
+    expect(authService.register).not.toHaveBeenCalled();
+  });
+
+  it('should not submit when form is invalid', async () => {
+    fixture.detectChanges();
+
+    component.form.setValue({
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      organizationName: '',
+      inviteCode: '',
+    });
+
+    await component.onSubmit();
+
+    expect(authService.register).not.toHaveBeenCalled();
   });
 });

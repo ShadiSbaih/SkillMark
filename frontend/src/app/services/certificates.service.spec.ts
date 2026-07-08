@@ -33,6 +33,7 @@ describe('CertificatesService', () => {
     attemptId: 'attempt-1',
     title: 'Certificate of Completion',
     participantNameSnapshot: 'John Doe',
+    ownerNameSnapshot: 'Owner Name',
     quizTitleSnapshot: 'Intro Quiz',
     programTitleSnapshot: 'Intro Program',
     organizationNameSnapshot: 'Acme Inc',

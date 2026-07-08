@@ -58,13 +58,16 @@
             </div>
             
             <div class="cert-seal">
-              <div class="seal-inner">
-                <span>VERIFIED</span>
+              <div class="seal-inner" [class.revoked]="cert.status === 'REVOKED'">
+                <span>{{ cert.status === 'REVOKED' ? 'REVOKED' : 'VERIFIED' }}</span>
               </div>
             </div>
 
             <div class="cert-meta">
               <p><strong>Issued On:</strong> {{ cert.issuedAt | date:'longDate' }}</p>
+              @if (cert.status === 'REVOKED' && cert.revokedAt) {
+                <p><strong>Revoked at:</strong> {{ cert.revokedAt | date:'longDate' }}</p>
+              }
               <p><strong>Certificate ID:</strong> {{ cert.certificateNumber }}</p>
               <p><strong>Verification:</strong> {{ cert.verificationCode }}</p>
             </div>

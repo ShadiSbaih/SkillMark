@@ -316,6 +316,7 @@ describe('AttemptResultComponent', () => {
       attemptId: 'attempt-1',
       title: 'Sample Quiz Certificate',
       participantNameSnapshot: 'Test User',
+    ownerNameSnapshot: 'Owner Name',
       quizTitleSnapshot: 'Sample Quiz',
       programTitleSnapshot: 'Program',
       organizationNameSnapshot: 'Org',

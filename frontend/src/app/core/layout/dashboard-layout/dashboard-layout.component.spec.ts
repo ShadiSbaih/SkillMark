@@ -2,17 +2,23 @@ import { Component, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { AuthService } from '../../auth/auth.service';
 import { OrganizationsService } from '../../../services/organizations.service';
 import { OrganizationResponse } from '../../models/organization.model';
 import { PageResponse } from '../../api/api-response.model';
 import { DashboardLayoutComponent } from './dashboard-layout.component';
 
-@Component({
-  selector: 'clerk-user-button',
-  standalone: true,
-  template: '',
-})
-class ClerkUserButtonStub {}
+class FakeAuthService {
+  readonly user = signal<{ id: string; name: string; email: string } | null>({
+    id: 'user-1',
+    name: 'Alice Doe',
+    email: 'alice@example.com',
+  });
+  readonly isSignedIn = signal(true);
+  readonly isLoaded = signal(true);
+
+  logout = vi.fn().mockResolvedValue(undefined);
+}
 
 @Component({
   selector: 'app-blank',
@@ -57,6 +63,7 @@ describe('DashboardLayoutComponent', () => {
   let fixture: ComponentFixture<DashboardLayoutComponent>;
   let component: DashboardLayoutComponent;
   let organizationsService: FakeOrganizationsService;
+  let authService: FakeAuthService;
   let router: Router;
 
   const orgA: OrganizationResponse = {
@@ -81,12 +88,14 @@ describe('DashboardLayoutComponent', () => {
 
   beforeEach(async () => {
     organizationsService = new FakeOrganizationsService();
+    authService = new FakeAuthService();
 
     await TestBed.configureTestingModule({
-      imports: [DashboardLayoutComponent, ClerkUserButtonStub, BlankComponent],
+      imports: [DashboardLayoutComponent, BlankComponent],
       providers: [
         provideRouter([{ path: '**', component: BlankComponent }]),
         { provide: OrganizationsService, useValue: organizationsService },
+        { provide: AuthService, useValue: authService },
       ],
     })
       .overrideComponent(DashboardLayoutComponent, {
@@ -95,7 +104,6 @@ describe('DashboardLayoutComponent', () => {
             RouterLink,
             RouterLinkActive,
             RouterOutlet,
-            ClerkUserButtonStub,
           ],
         },
       })
@@ -138,6 +146,24 @@ describe('DashboardLayoutComponent', () => {
     expect(links).toContain('My Attempts');
     expect(links).toContain('My Certificates');
     expect(links).toContain('Profile');
+  });
+
+  it('should render user name and logout button', () => {
+    organizationsService.setLoading();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Alice Doe');
+    expect(fixture.nativeElement.querySelector('.logout-button')?.textContent?.trim()).toBe('Log out');
+  });
+
+  it('should call auth logout when logout button is clicked', () => {
+    organizationsService.setLoading();
+    fixture.detectChanges();
+
+    const logoutButton = fixture.nativeElement.querySelector('.logout-button') as HTMLButtonElement;
+    logoutButton.click();
+
+    expect(authService.logout).toHaveBeenCalled();
   });
 
   it('shows loading state in the organization switcher', () => {

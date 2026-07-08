@@ -118,7 +118,18 @@
       </div>
 
       <div class="topbar-right">
-        <clerk-user-button />
+        @if (user(); as currentUser) {
+          <div class="user-menu">
+            <span class="user-name">{{ currentUser.name || currentUser.email }}</span>
+            <button
+              type="button"
+              class="logout-button"
+              (click)="logout()"
+            >
+              Log out
+            </button>
+          </div>
+        }
       </div>
     </header>
 

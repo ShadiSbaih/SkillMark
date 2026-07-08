@@ -8,7 +8,7 @@ import {
   RouterOutlet,
 } from '@angular/router';
 import { filter, map, startWith } from 'rxjs';
-import { ClerkUserButtonComponent } from 'ngx-clerk';
+import { AuthService } from '../../auth/auth.service';
 import { OrganizationsService } from '../../../services/organizations.service';
 import { OrganizationResponse } from '../../models/organization.model';
 
@@ -20,13 +20,16 @@ interface NavLink {
 @Component({
   selector: 'app-dashboard-layout',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, ClerkUserButtonComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet],
   templateUrl: './dashboard-layout.component.html',
   styleUrl: './dashboard-layout.component.scss',
 })
 export class DashboardLayoutComponent {
   private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
   private readonly organizationsService = inject(OrganizationsService);
+
+  readonly user = this.auth.user;
 
   readonly mobileOpen = signal(false);
   readonly selectedOrganizationId = signal<string | null>(null);
@@ -93,6 +96,10 @@ export class DashboardLayoutComponent {
         this.selectedOrganizationId.set(orgs[0].id);
       }
     });
+  }
+
+  async logout(): Promise<void> {
+    await this.auth.logout();
   }
 
   toggleMobile(): void {

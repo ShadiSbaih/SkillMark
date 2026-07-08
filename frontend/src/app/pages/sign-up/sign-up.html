@@ -1,7 +1,141 @@
 <section class="auth-page">
   <div class="auth-card">
-    <h1>Create your account</h1>
-    <p class="auth-subtitle">Join Skillmark and start tracking skills.</p>
-    <clerk-sign-up [props]="signUpProps" />
+    @if (!isSuccess()) {
+      <h1>Create your account</h1>
+      <p class="auth-subtitle">Join Skillmark and start tracking skills.</p>
+
+      <div class="role-selector" role="group" aria-label="Account type">
+        <button
+          type="button"
+          class="role-option"
+          [class.active]="isOwner()"
+          (click)="setRole('OWNER')"
+        >
+          Owner
+        </button>
+        <button
+          type="button"
+          class="role-option"
+          [class.active]="!isOwner()"
+          (click)="setRole('MEMBER')"
+        >
+          Member
+        </button>
+      </div>
+
+      <p class="role-hint">
+        @if (isOwner()) {
+          Create a new organization.
+        } @else {
+          Join an organization with an invite code.
+        }
+      </p>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="auth-form">
+        <app-form-field
+          label="Full name"
+          id="name"
+          [error]="form.get('name')?.touched && form.get('name')?.invalid ? 'Name is required.' : undefined"
+        >
+          <input
+            id="name"
+            type="text"
+            formControlName="name"
+            placeholder="Jane Doe"
+            autocomplete="name"
+          />
+        </app-form-field>
+
+        <app-form-field
+          label="Email"
+          id="email"
+          [error]="form.get('email')?.touched && form.get('email')?.invalid ? 'Please enter a valid email.' : undefined"
+        >
+          <input
+            id="email"
+            type="email"
+            formControlName="email"
+            placeholder="you@example.com"
+            autocomplete="email"
+          />
+        </app-form-field>
+
+        <app-form-field
+          label="Password"
+          id="password"
+          [error]="form.get('password')?.touched && form.get('password')?.invalid ? 'Password must be at least 8 characters.' : undefined"
+        >
+          <input
+            id="password"
+            type="password"
+            formControlName="password"
+            placeholder="••••••••"
+            autocomplete="new-password"
+          />
+        </app-form-field>
+
+        <app-form-field
+          label="Confirm password"
+          id="confirmPassword"
+          [error]="form.get('confirmPassword')?.touched && form.get('confirmPassword')?.invalid ? 'Please confirm your password.' : undefined"
+        >
+          <input
+            id="confirmPassword"
+            type="password"
+            formControlName="confirmPassword"
+            placeholder="••••••••"
+            autocomplete="new-password"
+          />
+        </app-form-field>
+
+        @if (isOwner()) {
+          <app-form-field
+            label="Organization name"
+            id="organizationName"
+            [error]="form.get('organizationName')?.touched && !form.get('organizationName')?.value?.trim() ? 'Organization name is required.' : undefined"
+          >
+            <input
+              id="organizationName"
+              type="text"
+              formControlName="organizationName"
+              placeholder="Acme Inc"
+            />
+          </app-form-field>
+        } @else {
+          <app-form-field
+            label="Invite code"
+            id="inviteCode"
+            [error]="form.get('inviteCode')?.touched && !form.get('inviteCode')?.value?.trim() ? 'Invite code is required.' : undefined"
+          >
+            <input
+              id="inviteCode"
+              type="text"
+              formControlName="inviteCode"
+              placeholder="A1B2C3D4E5F6"
+            />
+          </app-form-field>
+        }
+
+        @if (error()) {
+          <div class="auth-error">{{ error() }}</div>
+        }
+
+        <app-button type="submit" variant="primary" [loading]="isLoading()" [disabled]="isLoading()">
+          Create account
+        </app-button>
+      </form>
+
+      <div class="auth-links">
+        <span>Already have an account? <a routerLink="/sign-in">Sign in</a></span>
+      </div>
+    } @else {
+      <h1>Verify your email</h1>
+      <p class="auth-subtitle">
+        Thanks for signing up! Check your email and click the verification link to activate your account.
+      </p>
+      <div class="auth-links">
+        <span>Already verified? <a routerLink="/sign-in">Sign in</a></span>
+      </div>
+    }
   </div>
 </section>

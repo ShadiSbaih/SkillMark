@@ -1,7 +1,7 @@
 import { Component, computed, effect, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ClerkService } from 'ngx-clerk';
 import { toast } from 'ngx-sonner';
+import { AuthService } from '../../core/auth/auth.service';
 import { UsersService } from '../../services/users.service';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 import { ButtonComponent } from '../../shared/components/button/button.component';
@@ -35,15 +35,15 @@ import { PageHeaderComponent } from '../../shared/components/page-header/page-he
 })
 export class Profile {
   private readonly fb = inject(FormBuilder);
-  private readonly clerk = inject(ClerkService);
+  private readonly auth = inject(AuthService);
   readonly usersService = inject(UsersService);
 
   readonly meQuery = this.usersService.meQuery;
 
-  readonly clerkUser = this.clerk.user;
-  readonly avatarUrl = computed(() => this.clerkUser()?.imageUrl);
-  readonly displayName = computed(() => this.meQuery.data()?.name ?? this.clerkUser()?.fullName ?? '');
-  readonly email = computed(() => this.meQuery.data()?.email ?? this.clerkUser()?.primaryEmailAddress?.emailAddress ?? '');
+  readonly authUser = this.auth.user;
+  readonly avatarUrl = computed(() => this.meQuery.data()?.avatarUrl ?? undefined);
+  readonly displayName = computed(() => this.meQuery.data()?.name ?? this.authUser()?.name ?? '');
+  readonly email = computed(() => this.meQuery.data()?.email ?? this.authUser()?.email ?? '');
 
   readonly form = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(100)]],

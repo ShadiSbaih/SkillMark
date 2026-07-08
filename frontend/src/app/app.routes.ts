@@ -40,6 +40,9 @@ import { MyEnrollments as MyEnrollmentsComponent } from './pages/my-enrollments/
 import { MyAttempts as MyAttemptsComponent } from './pages/my-attempts/my-attempts';
 import { SignIn as SignInComponent } from './pages/sign-in/sign-in';
 import { SignUp as SignUpComponent } from './pages/sign-up/sign-up';
+import { VerifyEmail as VerifyEmailComponent } from './pages/verify-email/verify-email';
+import { ForgotPassword as ForgotPasswordComponent } from './pages/forgot-password/forgot-password';
+import { ResetPassword as ResetPasswordComponent } from './pages/reset-password/reset-password';
 
 export const routes: Routes = [
   {
@@ -49,6 +52,9 @@ export const routes: Routes = [
       { path: '', component: LandingComponent },
       { path: 'sign-in', component: SignInComponent },
       { path: 'sign-up', component: SignUpComponent },
+      { path: 'verify-email', component: VerifyEmailComponent },
+      { path: 'forgot-password', component: ForgotPasswordComponent },
+      { path: 'reset-password', component: ResetPasswordComponent },
       { path: 'verify', component: VerifyCertificateComponent },
       { path: 'verify/:code', component: VerifyCertificateComponent },
     ],
