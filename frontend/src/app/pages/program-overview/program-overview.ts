@@ -10,7 +10,6 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
 import { ErrorStateComponent } from '../../shared/components/error-state/error-state.component';
 import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
-import { ButtonComponent } from '../../shared/components/button/button.component';
 import { StatusBadgeComponent } from '../../shared/components/status-badge/status-badge';
 import { BreadcrumbComponent } from '../../shared/components/breadcrumb/breadcrumb.component';
 
@@ -19,7 +18,7 @@ import { BreadcrumbComponent } from '../../shared/components/breadcrumb/breadcru
   standalone: true,
   imports: [
     RouterLink, CardComponent, EmptyStateComponent, ErrorStateComponent,
-    LoadingStateComponent, PageHeaderComponent, ButtonComponent, StatusBadgeComponent, BreadcrumbComponent,
+    LoadingStateComponent, PageHeaderComponent, StatusBadgeComponent, BreadcrumbComponent,
   ],
   templateUrl: './program-overview.html',
 })

@@ -77,7 +77,7 @@ function createActivatedRouteStub(code: string | null = null): ActivatedRoute {
     snapshot: {
       paramMap: {
         get: vi.fn().mockImplementation((key: string) =>
-          key === 'verificationCode' ? code : null
+          key === 'code' ? code : null
         ),
       },
     },

@@ -37,7 +37,7 @@ export class VerifyCertificateComponent {
   readonly submittedCode = signal<string | null>(null);
 
   readonly routeCode = computed(() => {
-    const code = this.route.snapshot.paramMap.get('verificationCode');
+    const code = this.route.snapshot.paramMap.get('code');
     return code?.trim() ? code.trim().toUpperCase() : null;
   });
 
