@@ -8,10 +8,13 @@ import { ProgramOverviewComponent } from './program-overview.component';
 import { ProgramsService } from '../../services/programs.service';
 import { QuizzesService } from '../../services/quizzes.service';
 import { ResourcesService } from '../../services/resources.service';
-import { EnrollmentsService } from '../../services/enrollments.service';
 import { StatsService } from '../../services/stats.service';
+import { OrganizationsService } from '../../services/organizations.service';
 import { ProgramResponse } from '../../core/models/program.model';
+import { OrganizationResponse } from '../../core/models/organization.model';
 import { PageResponse } from '../../core/api/api-response.model';
+import { Quiz } from '../../core/models/quiz.model';
+import { ResourceResponse } from '../../core/models/resource.model';
 
 interface QueryState<T> {
   isPending: boolean;
@@ -34,21 +37,6 @@ function createQueryState<T>(): QueryState<T> {
 class FakeProgramsService {
   private readonly _refetchSpy = vi.fn();
   private queryState = signal<QueryState<ProgramResponse>>(createQueryState<ProgramResponse>());
-
-  readonly publishMutation = {
-    isPending: () => false,
-    mutate: vi.fn(),
-  };
-
-  readonly archiveMutation = {
-    isPending: () => false,
-    mutate: vi.fn(),
-  };
-
-  readonly deleteMutation = {
-    isPending: () => false,
-    mutate: vi.fn(),
-  };
 
   get refetchSpy() {
     return this._refetchSpy;
@@ -77,6 +65,24 @@ class FakeProgramsService {
   }
 }
 
+class FakeOrganizationsService {
+  private queryState = signal<QueryState<OrganizationResponse>>(createQueryState<OrganizationResponse>());
+
+  getOrganizationQuery() {
+    return {
+      isPending: () => this.queryState().isPending,
+      isError: () => this.queryState().isError,
+      data: () => this.queryState().data,
+      error: () => this.queryState().error,
+      refetch: vi.fn(),
+    };
+  }
+
+  setData(data: OrganizationResponse) {
+    this.queryState.set({ ...createQueryState<OrganizationResponse>(), data });
+  }
+}
+
 class FakeQuizzesService {
   readonly listParams = signal<{ programId: string | null; page: number; size: number }>({
     programId: null,
@@ -84,7 +90,7 @@ class FakeQuizzesService {
     size: 10,
   });
 
-  private queryState = signal<QueryState<PageResponse<unknown>>>(createQueryState<PageResponse<unknown>>());
+  private queryState = signal<QueryState<PageResponse<Quiz>>>(createQueryState<PageResponse<Quiz>>());
 
   readonly quizzesQuery = {
     isPending: () => this.queryState().isPending,
@@ -93,6 +99,18 @@ class FakeQuizzesService {
     error: () => this.queryState().error,
     refetch: vi.fn(),
   };
+
+  setData(items: Quiz[]) {
+    this.queryState.set({ ...createQueryState<PageResponse<Quiz>>(), data: { items, page: 0, totalElements: items.length, size: 10, totalPages: 1 } });
+  }
+
+  setPending() {
+    this.queryState.set({ ...createQueryState<PageResponse<Quiz>>(), isPending: true });
+  }
+
+  setError(error: Error) {
+    this.queryState.set({ ...createQueryState<PageResponse<Quiz>>(), isError: true, error });
+  }
 }
 
 class FakeResourcesService {
@@ -102,7 +120,7 @@ class FakeResourcesService {
     size: 50,
   });
 
-  private queryState = signal<QueryState<PageResponse<unknown>>>(createQueryState<PageResponse<unknown>>());
+  private queryState = signal<QueryState<PageResponse<ResourceResponse>>>(createQueryState<PageResponse<ResourceResponse>>());
 
   readonly resourcesQuery = {
     isPending: () => this.queryState().isPending,
@@ -111,19 +129,23 @@ class FakeResourcesService {
     error: () => this.queryState().error,
     refetch: vi.fn(),
   };
-}
 
-class FakeEnrollmentsService {
-  readonly listParams = signal<{ programId: string | null; page: number; size: number }>({
-    programId: null,
-    page: 0,
-    size: 10,
-  });
+  setData(items: ResourceResponse[]) {
+    this.queryState.set({ ...createQueryState<PageResponse<ResourceResponse>>(), data: { items, page: 0, totalElements: items.length, size: 50, totalPages: 1 } });
+  }
+
+  setPending() {
+    this.queryState.set({ ...createQueryState<PageResponse<ResourceResponse>>(), isPending: true });
+  }
+
+  setError(error: Error) {
+    this.queryState.set({ ...createQueryState<PageResponse<ResourceResponse>>(), isError: true, error });
+  }
 }
 
 class FakeStatsService {
-  private queryState = signal<QueryState<{ totalEnrollments: number; resourcesCount: number; quizzesCount: number }>>(
-    createQueryState<{ totalEnrollments: number; resourcesCount: number; quizzesCount: number }>()
+  private queryState = signal<QueryState<{ resourcesCount: number; quizzesCount: number }>>(
+    createQueryState<{ resourcesCount: number; quizzesCount: number }>()
   );
 
   getProgramStatsQuery() {
@@ -136,7 +158,7 @@ class FakeStatsService {
     };
   }
 
-  setData(data: { totalEnrollments: number; resourcesCount: number; quizzesCount: number }) {
+  setData(data: { resourcesCount: number; quizzesCount: number }) {
     this.queryState.set({ ...this.queryState(), data });
   }
 }
@@ -145,8 +167,22 @@ describe('ProgramOverviewComponent', () => {
   let component: ProgramOverviewComponent;
   let fixture: ComponentFixture<ProgramOverviewComponent>;
   let programsService: FakeProgramsService;
+  let organizationsService: FakeOrganizationsService;
+  let resourcesService: FakeResourcesService;
+  let quizzesService: FakeQuizzesService;
   let statsService: FakeStatsService;
   let router: Router;
+
+  const organization: OrganizationResponse = {
+    id: 'org-1',
+    name: 'Acme Corp',
+    slug: 'acme-corp',
+    description: null,
+    logoUrl: null,
+    ownerId: 'user-1',
+    status: 'ACTIVE',
+    createdAt: '2026-01-01T00:00:00Z',
+  };
 
   const program: ProgramResponse = {
     id: 'program-1',
@@ -154,15 +190,51 @@ describe('ProgramOverviewComponent', () => {
     title: 'Git Fundamentals',
     description: 'Learn the basics of Git.',
     coverImageUrl: null,
-    status: 'DRAFT',
-    isPublished: false,
+    status: 'PUBLISHED',
+    isPublished: true,
     startDate: null,
     endDate: null,
     createdAt: '2026-01-15T10:00:00Z',
   };
 
+  const resource: ResourceResponse = {
+    id: 'resource-1',
+    programId: 'program-1',
+    title: 'Git Cheat Sheet',
+    description: null,
+    type: 'LINK',
+    url: 'https://example.com/git',
+    storageProvider: null,
+    objectKey: null,
+    visibleToParticipants: true,
+    status: 'ACTIVE',
+    position: 0,
+    createdAt: '2026-01-15T10:00:00Z',
+  };
+
+  const quiz: Quiz = {
+    id: 'quiz-1',
+    programId: 'program-1',
+    organizationId: 'org-1',
+    title: 'Git Basics Quiz',
+    description: 'Test your Git knowledge.',
+    passingScore: 70,
+    durationMinutes: 15,
+    maxAttempts: 3,
+    certificateEnabled: false,
+    certificateIssueMode: 'NONE',
+    visibleToParticipants: true,
+    isPublished: true,
+    status: 'PUBLISHED',
+    createdAt: '2026-01-15T10:00:00Z',
+    questions: [],
+  };
+
   beforeEach(async () => {
     programsService = new FakeProgramsService();
+    organizationsService = new FakeOrganizationsService();
+    resourcesService = new FakeResourcesService();
+    quizzesService = new FakeQuizzesService();
     statsService = new FakeStatsService();
 
     await TestBed.configureTestingModule({
@@ -171,9 +243,9 @@ describe('ProgramOverviewComponent', () => {
         provideRouter([]),
         provideQueryClient(new QueryClient()),
         { provide: ProgramsService, useValue: programsService },
-        { provide: QuizzesService, useValue: new FakeQuizzesService() },
-        { provide: ResourcesService, useValue: new FakeResourcesService() },
-        { provide: EnrollmentsService, useValue: new FakeEnrollmentsService() },
+        { provide: OrganizationsService, useValue: organizationsService },
+        { provide: QuizzesService, useValue: quizzesService },
+        { provide: ResourcesService, useValue: resourcesService },
         { provide: StatsService, useValue: statsService },
         {
           provide: ActivatedRoute,
@@ -196,7 +268,7 @@ describe('ProgramOverviewComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should show loading state while fetching', () => {
+  it('should show loading state while fetching program', () => {
     programsService.setPending();
     fixture.detectChanges();
 
@@ -215,71 +287,83 @@ describe('ProgramOverviewComponent', () => {
     expect(programsService.refetchSpy).toHaveBeenCalled();
   });
 
-  it('should display program details and stats', () => {
+  it('should display program title, description, and breadcrumb', () => {
     programsService.setData(program);
-    statsService.setData({ totalEnrollments: 5, resourcesCount: 3, quizzesCount: 2 });
+    organizationsService.setData(organization);
+    statsService.setData({ resourcesCount: 3, quizzesCount: 2 });
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Git Fundamentals');
     expect(fixture.nativeElement.textContent).toContain('Learn the basics of Git.');
-    expect(fixture.nativeElement.textContent).toContain('DRAFT');
+    expect(fixture.nativeElement.textContent).toContain('Acme Corp');
+    expect(fixture.nativeElement.textContent).toContain('Organizations');
+  });
+
+  it('should display metric counts', () => {
+    programsService.setData(program);
+    organizationsService.setData(organization);
+    statsService.setData({ resourcesCount: 3, quizzesCount: 2 });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Resources');
     expect(fixture.nativeElement.textContent).toContain('Quizzes');
-    expect(fixture.nativeElement.textContent).toContain('Enrollments');
+    expect(fixture.nativeElement.textContent).toContain('3');
+    expect(fixture.nativeElement.textContent).toContain('2');
   });
 
-  it('should enable publish when status is DRAFT', () => {
+  it('should list resources and quizzes with links', () => {
     programsService.setData(program);
+    organizationsService.setData(organization);
+    statsService.setData({ resourcesCount: 1, quizzesCount: 1 });
+    resourcesService.setData([resource]);
+    quizzesService.setData([quiz]);
     fixture.detectChanges();
 
-    expect(component.canPublish()).toBe(true);
-    expect(component.canArchive()).toBe(true);
+    expect(fixture.nativeElement.textContent).toContain('Git Cheat Sheet');
+    expect(fixture.nativeElement.textContent).toContain('Git Basics Quiz');
+
+    const links = fixture.nativeElement.querySelectorAll('a');
+    expect(links.length).toBeGreaterThanOrEqual(2);
   });
 
-  it('should disable publish when status is PUBLISHED', () => {
-    programsService.setData({ ...program, status: 'PUBLISHED', isPublished: true });
-    fixture.detectChanges();
-
-    expect(component.canPublish()).toBe(false);
-    expect(component.canArchive()).toBe(true);
-  });
-
-  it('should disable archive when status is ARCHIVED', () => {
-    programsService.setData({ ...program, status: 'ARCHIVED' });
-    fixture.detectChanges();
-
-    expect(component.canPublish()).toBe(false);
-    expect(component.canArchive()).toBe(false);
-  });
-
-  it('should call publish mutation', () => {
+  it('should cap resources and quizzes at five items', () => {
     programsService.setData(program);
+    organizationsService.setData(organization);
+    statsService.setData({ resourcesCount: 6, quizzesCount: 6 });
+    resourcesService.setData(Array.from({ length: 6 }, (_, i) => ({ ...resource, id: `resource-${i}`, title: `Resource ${i}` })));
+    quizzesService.setData(Array.from({ length: 6 }, (_, i) => ({ ...quiz, id: `quiz-${i}`, title: `Quiz ${i}` })));
     fixture.detectChanges();
 
-    component.publish();
-    expect(programsService.publishMutation.mutate).toHaveBeenCalledWith('program-1', expect.any(Object));
+    expect(component.resources().length).toBe(5);
+    expect(component.quizzes().length).toBe(5);
   });
 
-  it('should call archive mutation', () => {
+  it('should navigate to settings when settings button is clicked', () => {
     programsService.setData(program);
+    organizationsService.setData(organization);
     fixture.detectChanges();
 
-    component.archive();
-    expect(programsService.archiveMutation.mutate).toHaveBeenCalledWith('program-1', expect.any(Object));
+    component.router.navigate(['/programs', 'program-1', 'settings']);
+    expect(router.navigate).toHaveBeenCalledWith(['/programs', 'program-1', 'settings']);
   });
 
-  it('should navigate back', () => {
+  it('should navigate to learn page when start learning button is clicked', () => {
     programsService.setData(program);
+    organizationsService.setData(organization);
     fixture.detectChanges();
 
-    component.goBack();
-    expect(router.navigate).toHaveBeenCalledWith(['/organizations']);
+    component.router.navigate(['/programs', 'program-1', 'learn']);
+    expect(router.navigate).toHaveBeenCalledWith(['/programs', 'program-1', 'learn']);
   });
 
-  it('should navigate to quick action routes', () => {
-    programsService.setData(program);
-    fixture.detectChanges();
+  it('should compute quiz subtitle', () => {
+    expect(component.quizSubtitle(quiz)).toBe('0 questions · 70% to pass');
+  });
 
-    component.router.navigate(['/programs', 'program-1', 'quizzes']);
-    expect(router.navigate).toHaveBeenCalledWith(['/programs', 'program-1', 'quizzes']);
+  it('should return type icons', () => {
+    expect(component.typeIcon('LINK')).toBe('🔗');
+    expect(component.typeIcon('FILE')).toBe('📄');
+    expect(component.typeIcon('IMAGE')).toBe('🖼️');
+    expect(component.typeIcon('VIDEO_LINK')).toBe('🎬');
   });
 });

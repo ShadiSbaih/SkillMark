@@ -1,6 +1,6 @@
 import { Component, computed, effect, inject } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
 import { DatePipe } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { ProgramsService } from '../../services/programs.service';
@@ -13,6 +13,8 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
 import { ErrorStateComponent } from '../../shared/components/error-state/error-state.component';
 import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
+import { ResourceResponse, ResourceType } from '../../core/models/resource.model';
+import { Quiz } from '../../core/models/quiz.model';
 
 @Component({
   selector: 'app-program-learn',
@@ -28,7 +30,40 @@ import { PageHeaderComponent } from '../../shared/components/page-header/page-he
     PageHeaderComponent,
   ],
   templateUrl: './program-learn.html',
-  styles: ``,
+  styles: `
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .panel-header h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .list-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-md);
+      padding: 12px;
+    }
+
+    .list-row p {
+      margin: 0;
+    }
+  `,
 })
 export class ProgramLearn {
   private readonly route = inject(ActivatedRoute);
@@ -55,20 +90,47 @@ export class ProgramLearn {
   }
 
   readonly visibleResources = computed(
-    () => this.resourcesQuery.data()?.items?.filter((r) => r.visibleToParticipants && r.status === 'ACTIVE') ?? []
+    () =>
+      this.resourcesQuery
+        .data()
+        ?.items?.filter((r) => r.visibleToParticipants && r.status === 'ACTIVE') ?? []
   );
 
   readonly visibleQuizzes = computed(
-    () => this.quizzesQuery.data()?.items?.filter((q) => q.visibleToParticipants && q.status === 'PUBLISHED') ?? []
+    () =>
+      this.quizzesQuery
+        .data()
+        ?.items?.filter((q) => q.visibleToParticipants && q.status === 'PUBLISHED') ?? []
   );
 
-  typeIcon(type: string): string {
+  readonly title = computed(() => {
+    const programTitle = this.programQuery.data()?.title;
+    return programTitle ? `Learn: ${programTitle}` : 'Learn';
+  });
+
+  typeIcon(type: ResourceType): string {
     switch (type) {
-      case 'LINK': return '🔗';
-      case 'FILE': return '📄';
-      case 'IMAGE': return '🖼️';
-      case 'VIDEO_LINK': return '🎬';
-      default: return '📎';
+      case 'LINK':
+        return '🔗';
+      case 'FILE':
+        return '📄';
+      case 'IMAGE':
+        return '🖼️';
+      case 'VIDEO_LINK':
+        return '🎬';
+      default:
+        return '📎';
     }
+  }
+
+  openResource(resource: ResourceResponse): void {
+    if (resource.url) {
+      window.open(resource.url, '_blank', 'noopener,noreferrer');
+    }
+  }
+
+  quizSubtitle(quiz: Quiz): string {
+    const questions = quiz.questions?.length ?? 0;
+    return `${questions} question${questions === 1 ? '' : 's'} · ${quiz.passingScore}% to pass · ${quiz.durationMinutes} min`;
   }
 }
