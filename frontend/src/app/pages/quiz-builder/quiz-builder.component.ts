@@ -5,19 +5,14 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import {
-  FormArray,
-  FormBuilder,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators,
-} from '@angular/forms';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { toast } from 'ngx-sonner';
 import {
   CreateQuestionRequest,
+  Option,
   Question,
   Quiz,
 } from '../../core/models/quiz.model';
@@ -27,9 +22,14 @@ import { ButtonComponent } from '../../shared/components/button/button.component
 import { CardComponent } from '../../shared/components/card/card.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { ErrorStateComponent } from '../../shared/components/error-state/error-state.component';
+import { FormFieldComponent } from '../../shared/components/form-field/form-field.component';
 import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
-import { ModalComponent } from '../../shared/components/modal/modal.component';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
+
+interface EditorOption {
+  text: string;
+  isCorrect: boolean;
+}
 
 @Component({
   selector: 'app-quiz-builder',
@@ -40,10 +40,10 @@ import { PageHeaderComponent } from '../../shared/components/page-header/page-he
     CardComponent,
     EmptyStateComponent,
     ErrorStateComponent,
+    FormFieldComponent,
     LoadingStateComponent,
-    ModalComponent,
     PageHeaderComponent,
-    ReactiveFormsModule,
+    FormsModule,
   ],
   templateUrl: './quiz-builder.component.html',
   styleUrl: './quiz-builder.component.scss',
@@ -51,7 +51,6 @@ import { PageHeaderComponent } from '../../shared/components/page-header/page-he
 export class QuizBuilderComponent {
   private readonly route = inject(ActivatedRoute);
   readonly router = inject(Router);
-  private readonly fb = inject(FormBuilder);
   readonly quizzesService = inject(QuizzesService);
 
   readonly quizId = toSignal(
@@ -60,18 +59,15 @@ export class QuizBuilderComponent {
   );
 
   readonly quizQuery = this.quizzesService.getQuizQuery(() => this.quizId());
-  readonly loadedOnce = signal(false);
 
-  readonly showQuestionModal = signal(false);
-  readonly editingQuestionIndex = signal<number | null>(null);
-  readonly showDeleteModal = signal(false);
-  readonly deletingQuestionIndex = signal<number | null>(null);
-
-  readonly questionForm = this.fb.group({
-    text: ['', Validators.required],
-    points: [1, [Validators.required, Validators.min(1)]],
-    options: this.fb.array<FormGroup>([]),
-  });
+  readonly editingQuestionId = signal<string | null>(null);
+  readonly questionText = signal('');
+  readonly questionPoints = signal(1);
+  readonly options = signal<EditorOption[]>([
+    { text: '', isCorrect: true },
+    { text: '', isCorrect: false },
+  ]);
+  readonly touched = signal(false);
 
   readonly badgeVariant = computed(() => {
     switch (this.quizQuery.data()?.status) {
@@ -87,6 +83,22 @@ export class QuizBuilderComponent {
   });
 
   readonly isPublished = computed(() => this.quizQuery.data()?.status === 'PUBLISHED');
+
+  readonly isQuestionTextInvalid = computed(() => this.touched() && !this.questionText().trim());
+  readonly isOptionsInvalid = computed(
+    () => this.touched() && this.options().some((o) => !o.text.trim())
+  );
+  readonly hasCorrectOption = computed(() => this.options().some((o) => o.isCorrect));
+  readonly canSaveQuestion = computed(() => {
+    const text = this.questionText().trim();
+    const opts = this.options();
+    return (
+      !!text &&
+      opts.length > 0 &&
+      opts.every((o) => o.text.trim()) &&
+      opts.some((o) => o.isCorrect)
+    );
+  });
 
   readonly publishChecklist = computed(() => {
     const quiz = this.quizQuery.data();
@@ -120,118 +132,137 @@ export class QuizBuilderComponent {
 
   constructor() {
     effect(() => {
-      const quiz = this.quizQuery.data();
-      if (quiz && !this.loadedOnce()) {
-        this.loadedOnce.set(true);
+      const id = this.quizId();
+      if (!id) {
+        void this.router.navigate(['/dashboard']);
       }
     });
   }
 
-  get optionsArray(): FormArray<FormGroup> {
-    return this.questionForm.get('options') as FormArray<FormGroup>;
+  updateQuestionText(value: string): void {
+    this.questionText.set(value);
   }
 
-  private createOptionGroup(text = '', isCorrect = false): FormGroup {
-    return this.fb.group({
-      text: [text, Validators.required],
-      isCorrect: [isCorrect],
+  updateQuestionPoints(value: number): void {
+    this.questionPoints.set(value);
+  }
+
+  updateOptionText(index: number, value: string): void {
+    this.options.update((opts) => {
+      const next = [...opts];
+      next[index] = { ...next[index], text: value };
+      return next;
     });
-  }
-
-  openAddQuestion(): void {
-    this.editingQuestionIndex.set(null);
-    this.questionForm.reset({ text: '', points: 1 });
-    this.optionsArray.clear();
-    this.optionsArray.push(this.createOptionGroup('', true));
-    this.optionsArray.push(this.createOptionGroup());
-    this.showQuestionModal.set(true);
-  }
-
-  openEditQuestion(index: number): void {
-    const quiz = this.quizQuery.data();
-    const question = quiz?.questions[index];
-    if (!question) return;
-
-    this.editingQuestionIndex.set(index);
-    this.questionForm.reset({ text: question.text, points: question.points });
-    this.optionsArray.clear();
-    for (const option of question.options) {
-      this.optionsArray.push(this.createOptionGroup(option.text, option.isCorrect));
-    }
-    this.showQuestionModal.set(true);
-  }
-
-  closeQuestionModal(): void {
-    this.showQuestionModal.set(false);
-  }
-
-  addOption(): void {
-    this.optionsArray.push(this.createOptionGroup());
-  }
-
-  removeOption(index: number): void {
-    this.optionsArray.removeAt(index);
-    if (this.optionsArray.length === 0) {
-      this.optionsArray.push(this.createOptionGroup('', true));
-    }
   }
 
   setCorrectOption(index: number): void {
-    this.optionsArray.controls.forEach((group, i) => {
-      group.patchValue({ isCorrect: i === index });
+    this.options.update((opts) =>
+      opts.map((o, i) => ({ ...o, isCorrect: i === index }))
+    );
+  }
+
+  addOption(): void {
+    this.options.update((opts) => [...opts, { text: '', isCorrect: false }]);
+  }
+
+  removeOption(index: number): void {
+    this.options.update((opts) => {
+      const next = opts.filter((_, i) => i !== index);
+      if (next.length === 0) {
+        return [{ text: '', isCorrect: true }];
+      }
+      if (!next.some((o) => o.isCorrect)) {
+        next[0] = { ...next[0], isCorrect: true };
+      }
+      return next;
     });
   }
 
+  resetEditor(): void {
+    this.editingQuestionId.set(null);
+    this.questionText.set('');
+    this.questionPoints.set(1);
+    this.options.set([
+      { text: '', isCorrect: true },
+      { text: '', isCorrect: false },
+    ]);
+    this.touched.set(false);
+  }
+
+  editQuestion(question: Question): void {
+    this.editingQuestionId.set(question.id);
+    this.questionText.set(question.text);
+    this.questionPoints.set(question.points);
+    this.options.set(
+      question.options.map((o) => ({ text: o.text, isCorrect: o.isCorrect }))
+    );
+    this.touched.set(false);
+  }
+
+  deleteQuestion(question: Question): void {
+    const quizId = this.quizId();
+    if (!quizId) return;
+
+    this.quizzesService.deleteQuestionMutation.mutate(
+      { questionId: question.id, quizId },
+      {
+        onSuccess: () => toast.success('Question deleted.'),
+        onError: (error) => toast.error(error?.message ?? 'Failed to delete question.'),
+      }
+    );
+  }
+
   saveQuestion(): void {
-    if (this.questionForm.invalid) {
-      this.questionForm.markAllAsTouched();
-      toast.error('Please fill in the question and all options.');
-      return;
-    }
+    this.touched.set(true);
 
     const quizId = this.quizId();
     if (!quizId) return;
 
-    const formValue = this.questionForm.getRawValue();
-    const rawOptions = (formValue.options ?? []) as Array<{ text: string; isCorrect: boolean }>;
-    const options = rawOptions.map((o, i) => ({
-      text: o['text'],
-      isCorrect: o['isCorrect'],
-      position: i + 1,
-    }));
+    const text = this.questionText().trim();
+    const points = this.questionPoints();
+    const rawOptions = this.options();
 
-    if (options.length === 0) {
+    if (!text) {
+      toast.error('Question text is required.');
+      return;
+    }
+
+    if (rawOptions.length === 0) {
       toast.error('A question needs at least one option.');
       return;
     }
 
-    if (!options.some((o) => o.isCorrect)) {
+    if (rawOptions.some((o) => !o.text.trim())) {
+      toast.error('All options need text.');
+      return;
+    }
+
+    if (!rawOptions.some((o) => o.isCorrect)) {
       toast.error('Please mark at least one option as correct.');
       return;
     }
 
     const request: CreateQuestionRequest = {
-      text: formValue.text ?? '',
+      text,
       type: 'SINGLE_CHOICE',
-      points: formValue.points ?? 1,
+      points,
       position: 0,
-      options,
+      options: rawOptions.map((o, i) => ({
+        text: o.text.trim(),
+        isCorrect: o.isCorrect,
+        position: i,
+      })),
     };
 
-    const editingIndex = this.editingQuestionIndex();
-    if (editingIndex !== null) {
-      const quiz = this.quizQuery.data();
-      const question = quiz?.questions[editingIndex];
-      if (!question) {
-        this.showQuestionModal.set(false);
-        return;
-      }
-      request.position = question.position;
+    const editingId = this.editingQuestionId();
+    if (editingId) {
+      const question = this.findQuestionById(editingId);
+      request.position = question?.position ?? 0;
       this.quizzesService.updateQuestionMutation.mutate(
-        { questionId: question.id, quizId, request },
+        { questionId: editingId, quizId, request },
         {
           onSuccess: () => {
-            this.showQuestionModal.set(false);
+            this.resetEditor();
             toast.success('Question updated.');
           },
           onError: (error) => {
@@ -241,12 +272,12 @@ export class QuizBuilderComponent {
       );
     } else {
       const quiz = this.quizQuery.data();
-      request.position = (quiz?.questions.length ?? 0) + 1;
+      request.position = quiz?.questions.length ?? 0;
       this.quizzesService.addQuestionMutation.mutate(
         { quizId, request },
         {
           onSuccess: () => {
-            this.showQuestionModal.set(false);
+            this.resetEditor();
             toast.success('Question added.');
           },
           onError: (error) => {
@@ -255,40 +286,6 @@ export class QuizBuilderComponent {
         }
       );
     }
-  }
-
-  openDeleteQuestion(index: number): void {
-    this.deletingQuestionIndex.set(index);
-    this.showDeleteModal.set(true);
-  }
-
-  closeDeleteModal(): void {
-    this.showDeleteModal.set(false);
-  }
-
-  confirmDeleteQuestion(): void {
-    const quizId = this.quizId();
-    const index = this.deletingQuestionIndex();
-    const quiz = this.quizQuery.data();
-    const question = quiz?.questions[index ?? -1];
-    if (!quizId || !question) {
-      this.showDeleteModal.set(false);
-      return;
-    }
-
-    this.quizzesService.deleteQuestionMutation.mutate(
-      { questionId: question.id, quizId },
-      {
-        onSuccess: () => {
-          this.showDeleteModal.set(false);
-          toast.success('Question deleted.');
-        },
-        onError: (error) => {
-          this.showDeleteModal.set(false);
-          toast.error(error?.message ?? 'Failed to delete question.');
-        },
-      }
-    );
   }
 
   publish(): void {
@@ -307,5 +304,17 @@ export class QuizBuilderComponent {
     } else {
       void this.router.navigate(['/dashboard']);
     }
+  }
+
+  private findQuestionById(id: string): Question | undefined {
+    return this.quizQuery.data()?.questions.find((q) => q.id === id);
+  }
+
+  trackByQuestion(_index: number, question: Question): string {
+    return question.id;
+  }
+
+  trackByOption(index: number): number {
+    return index;
   }
 }
