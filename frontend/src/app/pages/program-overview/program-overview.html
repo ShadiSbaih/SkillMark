@@ -1,0 +1,77 @@
+@if (programQuery.error()) {
+  <app-error-state [message]="programQuery.error()?.message ?? 'Failed to load program'" (retry)="programQuery.refetch()" />
+} @else if (programQuery.isPending()) {
+  <app-loading-state message="Loading program..." />
+} @else {
+  <app-breadcrumb [items]="[
+    { label: 'Organizations', route: ['/organizations'] },
+    { label: program().title }
+  ]" />
+
+  <app-page-header [title]="program().title" [subtitle]="program().description || 'Program overview'">
+    <div actions class="button-row">
+      <a class="button button-secondary" [routerLink]="['/programs', programId(), 'settings']">Settings</a>
+      <a class="button button-primary" [routerLink]="['/programs', programId(), 'learn']">Start learning</a>
+    </div>
+  </app-page-header>
+
+  <div class="metric-grid compact">
+    <app-card>
+      <p class="metric-label">Status</p>
+      <p class="metric-value"><app-status-badge entity="program" [status]="program().status" /></p>
+    </app-card>
+    <app-card>
+      <p class="metric-label">Resources</p>
+      <p class="metric-value">{{ stats()?.resourcesCount ?? resources().length }}</p>
+    </app-card>
+    <app-card>
+      <p class="metric-label">Quizzes</p>
+      <p class="metric-value">{{ stats()?.quizzesCount ?? quizzes().length }}</p>
+    </app-card>
+  </div>
+
+  <div class="two-column mt-6">
+    <app-card>
+      <div class="panel-header">
+        <h2>Resources</h2>
+        <a class="link" [routerLink]="['/programs', programId(), 'resources']">View all</a>
+      </div>
+      @if (resources().length === 0) {
+        <app-empty-state message="No resources yet." />
+      } @else {
+        <div class="stack">
+          @for (r of resources().slice(0, 5); track r.id) {
+            <div class="list-row-link">
+              <div>
+                <p class="font-medium">{{ r.title }}</p>
+                <p class="text-sm text-ink-mute">{{ r.type }}</p>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </app-card>
+
+    <app-card>
+      <div class="panel-header">
+        <h2>Quizzes</h2>
+        <a class="link" [routerLink]="['/programs', programId(), 'quizzes']">View all</a>
+      </div>
+      @if (quizzes().length === 0) {
+        <app-empty-state message="No quizzes yet." />
+      } @else {
+        <div class="stack">
+          @for (q of quizzes().slice(0, 5); track q.id) {
+            <a [routerLink]="['/quizzes', q.id]" class="list-row-link">
+              <div>
+                <p class="font-medium">{{ q.title }}</p>
+                <p class="text-sm text-ink-mute">Passing: {{ q.passingScore }}%</p>
+              </div>
+              <app-status-badge entity="quiz" [status]="q.status" />
+            </a>
+          }
+        </div>
+      }
+    </app-card>
+  </div>
+}
