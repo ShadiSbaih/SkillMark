@@ -1,68 +1,63 @@
-<app-page-header title="My Programs" subtitle="Programs you are enrolled in as a participant." />
+<section class="page">
+  <app-page-header title="My programs" subtitle="Programs you are enrolled in." />
 
-@if (query.isPending()) {
-  <app-loading-state message="Loading enrollments..." />
-} @else if (query.isError()) {
-  <app-error-state [message]="query.error()?.message ?? 'Failed to load enrollments'" (retry)="query.refetch()" />
-} @else if (data()?.items?.length === 0) {
-  <app-card>
-    <app-empty-state
-      title="No enrollments"
-      description="You are not enrolled in any programs yet."
-    />
-  </app-card>
-} @else {
-  <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-    @for (enrollment of data()?.items; track enrollment.id) {
-      <app-card [interactive]="true" (click)="router.navigate(['/programs', enrollment.programId, 'learn'])">
-        <div class="flex flex-col justify-between h-full min-h-[140px]">
-          <div>
-            <div class="flex items-start justify-between">
-              <div>
-                <p class="text-xs font-semibold uppercase tracking-wider text-ink-mute">Participant</p>
-                <h3 class="text-lg font-semibold text-ink mt-1">{{ enrollment.userName }}</h3>
-              </div>
-              <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-                [class]="enrollment.status === 'ACTIVE' ? 'badge-subtle-green' : (enrollment.status === 'COMPLETED' ? 'badge-subtle-amber' : 'badge-subtle-red')">
-                {{ enrollment.status }}
-              </span>
-            </div>
-            <p class="text-xs text-ink-mute mt-3">Enrolled: {{ enrollment.enrolledAt | date:'mediumDate' }}</p>
-          </div>
-
-          <div class="flex items-center justify-between mt-auto pt-4 border-t border-light">
-            <span class="text-xs text-ink-mute">Program ID: {{ enrollment.programId }}</span>
-            <span class="text-xs text-primary font-semibold flex items-center gap-1">
-              Start learning
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
-              </svg>
-            </span>
-          </div>
-        </div>
-      </app-card>
+  @switch (query.status()) {
+    @case ('pending') {
+      <app-loading-state message="Loading enrollments..." />
     }
-  </div>
+    @case ('error') {
+      <app-error-state
+        [message]="query.error()?.message ?? 'Failed to load enrollments'"
+        (retry)="query.refetch()"
+      />
+    }
+    @default {
+      @if (enrollments().length === 0) {
+        <app-card>
+          <app-empty-state
+            title="No enrollments"
+            description="You are not enrolled in any programs yet."
+          />
+        </app-card>
+      } @else {
+        <div class="space-y-4">
+          @for (enrollment of enrollments(); track enrollment.id) {
+            <a
+              [routerLink]="['/programs', enrollment.programId, 'learn']"
+              class="block"
+            >
+              <app-card [interactive]="true">
+                <div
+                  class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+                >
+                  <div>
+                    <h3 class="text-lg font-semibold text-ink">
+                      {{ enrollment.programTitle || enrollment.programId }}
+                    </h3>
+                    <p class="text-sm text-ink-mute mt-1">
+                      {{ enrollment.organizationName || 'Unknown organization' }}
+                    </p>
+                  </div>
+                  <div class="text-sm text-ink-mute">
+                    Enrolled {{ enrollment.enrolledAt | date: 'mediumDate' }}
+                  </div>
+                </div>
+              </app-card>
+            </a>
+          }
+        </div>
 
-  @if (totalPages() > 1) {
-    <div class="mt-6 flex items-center justify-between">
-      <app-button
-        variant="secondary"
-        size="sm"
-        [disabled]="!hasPrevious()"
-        (clicked)="goToPrevious()"
-      >
-        Previous
-      </app-button>
-      <span class="text-sm text-ink-mute">Page {{ page() + 1 }} of {{ totalPages() }}</span>
-      <app-button
-        variant="secondary"
-        size="sm"
-        [disabled]="!hasNext()"
-        (clicked)="goToNext()"
-      >
-        Next
-      </app-button>
-    </div>
+        <app-pagination
+          class="mt-6 block"
+          [page]="page()"
+          [size]="size()"
+          [totalElements]="totalElements()"
+          [totalPages]="totalPages()"
+          [hasPrevious]="hasPrevious()"
+          [hasNext]="hasNext()"
+          (pageChange)="goToPage($event)"
+        />
+      }
+    }
   }
-}
+</section>
