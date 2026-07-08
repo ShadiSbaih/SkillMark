@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { provideQueryClient, QueryClient } from '@tanstack/angular-query-experimental';
 import { signal } from '@angular/core';
@@ -31,6 +32,7 @@ class FakeInvitationsService {
   );
 
   readonly isPending = signal(false);
+  readonly previewCode = signal<string | null>(null);
   nextError: Error | null = null;
   nextInvitation: Invitation = {
     id: 'inv-1',
@@ -50,54 +52,70 @@ class FakeInvitationsService {
     isPending: () => this.isPending(),
     mutate: this.joinMutate,
   };
+
+  readonly previewQuery = {
+    isPending: () => false,
+    isError: () => false,
+    data: () => this.nextInvitation,
+  };
+}
+
+async function setupFixture(paramCode: string | null) {
+  const invitationsService = new FakeInvitationsService();
+
+  await TestBed.configureTestingModule({
+    imports: [JoinComponent],
+    providers: [
+      provideQueryClient(new QueryClient()),
+      { provide: InvitationsService, useValue: invitationsService },
+      {
+        provide: ActivatedRoute,
+        useValue: {
+          paramMap: of({ get: () => paramCode }),
+        },
+      },
+    ],
+  }).compileComponents();
+
+  const fixture = TestBed.createComponent(JoinComponent);
+  const component = fixture.componentInstance;
+  const router = TestBed.inject(Router);
+  vi.spyOn(router, 'navigate');
+
+  return { fixture, component, invitationsService, router };
 }
 
 describe('JoinComponent', () => {
-  let component: JoinComponent;
-  let fixture: ComponentFixture<JoinComponent>;
-  let invitationsService: FakeInvitationsService;
-  let router: Router;
-
-  beforeEach(async () => {
-    invitationsService = new FakeInvitationsService();
-
-    await TestBed.configureTestingModule({
-      imports: [JoinComponent],
-      providers: [
-        provideQueryClient(new QueryClient()),
-        { provide: InvitationsService, useValue: invitationsService },
-        {
-          provide: ActivatedRoute,
-          useValue: {
-            paramMap: of({ get: () => 'JOIN-CODE' }),
-          },
-        },
-      ],
-    }).compileComponents();
-
-    fixture = TestBed.createComponent(JoinComponent);
-    component = fixture.componentInstance;
-    router = TestBed.inject(Router);
-    vi.spyOn(router, 'navigate');
-  });
-
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it('should create', () => {
+  it('should create', async () => {
+    const { fixture, component } = await setupFixture('JOIN-CODE');
     fixture.detectChanges();
     expect(component).toBeTruthy();
   });
 
-  it('should read the join code from the route', () => {
+  it('should read the join code from the route', async () => {
+    const { fixture, component } = await setupFixture('JOIN-CODE');
     fixture.detectChanges();
     expect(component.code()).toBe('JOIN-CODE');
   });
 
-  it('should call joinMutation with the route code on init', async () => {
+  it('should set preview code on the service', async () => {
+    const { fixture, invitationsService } = await setupFixture('JOIN-CODE');
     fixture.detectChanges();
+    expect(invitationsService.previewCode()).toBe('JOIN-CODE');
+  });
+
+  it('should accept invitation when the accept button is clicked', async () => {
+    const { fixture, invitationsService } = await setupFixture('JOIN-CODE');
+    fixture.detectChanges();
+
+    const button = fixture.debugElement.query(By.css('app-button'));
+    button.triggerEventHandler('clicked', undefined);
     await fixture.whenStable();
+
     expect(invitationsService.joinMutate).toHaveBeenCalledWith(
       'JOIN-CODE',
       expect.any(Object)
@@ -105,8 +123,13 @@ describe('JoinComponent', () => {
   });
 
   it('should navigate to the program learn page on success', async () => {
+    const { fixture, router } = await setupFixture('JOIN-CODE');
     fixture.detectChanges();
+
+    const button = fixture.debugElement.query(By.css('app-button'));
+    button.triggerEventHandler('clicked', undefined);
     await fixture.whenStable();
+
     expect(router.navigate).toHaveBeenCalledWith([
       '/programs',
       'program-1',
@@ -114,64 +137,83 @@ describe('JoinComponent', () => {
     ]);
   });
 
+  it('should navigate to organizations when programId is absent', async () => {
+    const { fixture, invitationsService, router } = await setupFixture('JOIN-CODE');
+    invitationsService.nextInvitation = {
+      ...invitationsService.nextInvitation,
+      programId: '',
+    };
+    fixture.detectChanges();
+
+    const button = fixture.debugElement.query(By.css('app-button'));
+    button.triggerEventHandler('clicked', undefined);
+    await fixture.whenStable();
+
+    expect(router.navigate).toHaveBeenCalledWith(['/organizations']);
+  });
+
   it('should display an error message when joining fails', async () => {
+    const { fixture, invitationsService } = await setupFixture('JOIN-CODE');
     invitationsService.nextError = new Error('Invitation expired');
     fixture.detectChanges();
+
+    const button = fixture.debugElement.query(By.css('app-button'));
+    button.triggerEventHandler('clicked', undefined);
     await fixture.whenStable();
-    expect(component.error()).toBe('Invitation expired');
+
+    expect(fixture.componentInstance.error()).toBe('Invitation expired');
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Could not join');
     expect(fixture.nativeElement.textContent).toContain('Invitation expired');
   });
 
   it('should retry joining when the retry button is clicked', async () => {
+    const { fixture, invitationsService } = await setupFixture('JOIN-CODE');
     invitationsService.nextError = new Error('Invitation expired');
     fixture.detectChanges();
+
+    const button = fixture.debugElement.query(By.css('app-button'));
+    button.triggerEventHandler('clicked', undefined);
     await fixture.whenStable();
     expect(invitationsService.joinMutate).toHaveBeenCalledTimes(1);
 
     invitationsService.nextError = null;
-    component.retry();
+    const retryButton = fixture.debugElement.query(By.css('app-error-state app-button'));
+    retryButton.triggerEventHandler('clicked', undefined);
     await fixture.whenStable();
+
     expect(invitationsService.joinMutate).toHaveBeenCalledTimes(2);
+  });
+
+  it('should show input form when no invitation code is provided', async () => {
+    const { fixture, component } = await setupFixture(null);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('Invitation code');
+    expect(component.code()).toBeNull();
+  });
+
+  it('should join from input code', async () => {
+    const { fixture, component, invitationsService, router } = await setupFixture(null);
+    fixture.detectChanges();
+
+    component.inputCode.set('TYPED-CODE');
+    fixture.detectChanges();
+
+    const form = fixture.nativeElement.querySelector('form');
+    form.dispatchEvent(new Event('submit'));
+    await fixture.whenStable();
+
+    expect(invitationsService.joinMutate).toHaveBeenCalledWith(
+      'TYPED-CODE',
+      expect.any(Object)
+    );
     expect(router.navigate).toHaveBeenCalledWith([
       '/programs',
       'program-1',
       'learn',
     ]);
-  });
-
-  it('should show loading state while joining is pending', async () => {
-    invitationsService.isPending.set(true);
-    fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Joining program...');
-  });
-
-  it('should show empty state when no invitation code is provided', async () => {
-    await TestBed.resetTestingModule();
-    invitationsService = new FakeInvitationsService();
-
-    await TestBed.configureTestingModule({
-      imports: [JoinComponent],
-      providers: [
-        provideQueryClient(new QueryClient()),
-        { provide: InvitationsService, useValue: invitationsService },
-        {
-          provide: ActivatedRoute,
-          useValue: {
-            paramMap: of({ get: () => null }),
-          },
-        },
-      ],
-    }).compileComponents();
-
-    const noCodeFixture = TestBed.createComponent(JoinComponent);
-    noCodeFixture.detectChanges();
-    await noCodeFixture.whenStable();
-
-    const text = noCodeFixture.nativeElement.textContent;
-    expect(text).toContain('No invitation code');
-    expect(text).toContain('Invitation code missing');
-    expect(text).toContain('Ask the program owner for a valid join link.');
   });
 });

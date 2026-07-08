@@ -13,67 +13,56 @@
     (action)="meQuery.refetch()"
   />
 } @else {
-  <app-page-header
-    title="Profile"
-    subtitle="Manage your account"
-  />
+  <app-page-header title="Profile" subtitle="Manage your account" />
 
   <app-card>
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
       <div class="flex items-center gap-4">
         <app-avatar
-          [src]="form.value.avatarUrl || meQuery.data()?.avatarUrl || undefined"
-          [fallback]="form.value.name || meQuery.data()?.name || meQuery.data()?.email"
+          [src]="avatarUrl()"
+          [name]="displayName()"
+          [fallback]="displayName()"
           size="xl"
         />
         <div>
-          <p class="text-lg font-medium text-ink">{{ meQuery.data()?.name || 'Your profile' }}</p>
-          <p class="text-sm text-ink-mute">{{ meQuery.data()?.email }}</p>
+          <p class="text-lg font-medium text-ink">{{ displayName() || 'Your profile' }}</p>
+          <p class="text-sm text-ink-mute">{{ email() }}</p>
         </div>
       </div>
 
-      <div>
-        <label for="name" class="block text-sm font-medium text-ink">Name</label>
+      <app-form-field
+        id="name"
+        label="Display name"
+        [error]="form.get('name')?.invalid && form.get('name')?.touched ? 'Name is required and must be 100 characters or less.' : ''"
+      >
         <input
           id="name"
           type="text"
           formControlName="name"
-          class="mt-1 block w-full rounded-md border border-input bg-canvas-soft px-3 py-2 text-sm text-ink placeholder-ink-mute focus-ring-primary"
+          class="form-input"
           placeholder="Your name"
         />
-        @if (form.get('name')?.invalid && form.get('name')?.touched) {
-          <p class="mt-1 text-sm text-red-600">Name is required and must be 100 characters or less.</p>
-        }
-      </div>
+      </app-form-field>
 
-      <div>
-        <label for="avatarUrl" class="block text-sm font-medium text-ink">Avatar URL</label>
-        <input
-          id="avatarUrl"
-          type="url"
-          formControlName="avatarUrl"
-          class="mt-1 block w-full rounded-md border border-input bg-canvas-soft px-3 py-2 text-sm text-ink placeholder-ink-mute focus-ring-primary"
-          placeholder="https://example.com/avatar.png"
-        />
-      </div>
-
-      <div>
-        <label for="email" class="block text-sm font-medium text-ink">Email</label>
+      <app-form-field
+        id="email"
+        label="Email"
+        hint="Your email is managed through your authentication provider."
+      >
         <input
           id="email"
           type="email"
-          [value]="meQuery.data()?.email"
+          [value]="email()"
           disabled
-          class="mt-1 block w-full rounded-md border border-input bg-canvas-soft px-3 py-2 text-sm text-ink-mute focus-ring-primary cursor-not-allowed"
+          class="form-input cursor-not-allowed"
         />
-        <p class="mt-1 text-sm text-ink-mute">Your email is managed through your authentication provider.</p>
-      </div>
+      </app-form-field>
 
       <div class="flex justify-end gap-3">
         <app-button
           type="button"
           variant="ghost"
-          (clicked)="form.reset({ name: meQuery.data()?.name ?? '', avatarUrl: meQuery.data()?.avatarUrl ?? '' })"
+          (clicked)="form.reset({ name: meQuery.data()?.name ?? '' })"
           [disabled]="usersService.updateMeMutation.isPending()"
         >
           Reset

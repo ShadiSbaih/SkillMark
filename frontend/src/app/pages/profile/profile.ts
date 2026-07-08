@@ -1,5 +1,6 @@
-import { Component, effect, inject } from '@angular/core';
+import { Component, computed, effect, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ClerkService } from 'ngx-clerk';
 import { toast } from 'ngx-sonner';
 import { UsersService } from '../../services/users.service';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
@@ -7,6 +8,7 @@ import { ButtonComponent } from '../../shared/components/button/button.component
 import { CardComponent } from '../../shared/components/card/card.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { ErrorStateComponent } from '../../shared/components/error-state/error-state.component';
+import { FormFieldComponent } from '../../shared/components/form-field/form-field.component';
 import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 
@@ -20,6 +22,7 @@ import { PageHeaderComponent } from '../../shared/components/page-header/page-he
     CardComponent,
     EmptyStateComponent,
     ErrorStateComponent,
+    FormFieldComponent,
     LoadingStateComponent,
     PageHeaderComponent,
   ],
@@ -32,13 +35,18 @@ import { PageHeaderComponent } from '../../shared/components/page-header/page-he
 })
 export class Profile {
   private readonly fb = inject(FormBuilder);
+  private readonly clerk = inject(ClerkService);
   readonly usersService = inject(UsersService);
 
   readonly meQuery = this.usersService.meQuery;
 
+  readonly clerkUser = this.clerk.user;
+  readonly avatarUrl = computed(() => this.clerkUser()?.imageUrl);
+  readonly displayName = computed(() => this.meQuery.data()?.name ?? this.clerkUser()?.fullName ?? '');
+  readonly email = computed(() => this.meQuery.data()?.email ?? this.clerkUser()?.primaryEmailAddress?.emailAddress ?? '');
+
   readonly form = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(100)]],
-    avatarUrl: [''],
   });
 
   constructor() {
@@ -47,7 +55,6 @@ export class Profile {
       if (user) {
         this.form.patchValue({
           name: user.name ?? '',
-          avatarUrl: user.avatarUrl ?? '',
         });
       }
     });
@@ -63,7 +70,6 @@ export class Profile {
     this.usersService.updateMeMutation.mutate(
       {
         name: value.name ?? '',
-        avatarUrl: value.avatarUrl || undefined,
       },
       {
         onSuccess: () => toast.success('Profile updated'),

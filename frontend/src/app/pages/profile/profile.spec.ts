@@ -2,6 +2,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideQueryClient, QueryClient } from '@tanstack/angular-query-experimental';
 import { provideRouter } from '@angular/router';
 import { By } from '@angular/platform-browser';
+import { signal } from '@angular/core';
+import { ClerkService } from 'ngx-clerk';
 import { vi } from 'vitest';
 import { Profile } from './profile';
 import { UsersService } from '../../services/users.service';
@@ -22,10 +24,17 @@ class FakeUsersService {
   };
 }
 
+function createFakeClerkService(user: Partial<{ imageUrl: string; fullName: string; primaryEmailAddress: { emailAddress: string } }> = {}) {
+  return {
+    user: signal(user),
+  };
+}
+
 describe('Profile', () => {
   let component: Profile;
   let fixture: ComponentFixture<Profile>;
   let usersService: FakeUsersService;
+  let clerkService: ReturnType<typeof createFakeClerkService>;
 
   const mockUser: UserResponse = {
     id: 'user-1',
@@ -39,6 +48,11 @@ describe('Profile', () => {
 
   beforeEach(async () => {
     usersService = new FakeUsersService();
+    clerkService = createFakeClerkService({
+      imageUrl: 'https://clerk.com/avatar.png',
+      fullName: 'Alice Doe',
+      primaryEmailAddress: { emailAddress: 'alice@example.com' },
+    });
 
     await TestBed.configureTestingModule({
       imports: [Profile],
@@ -46,6 +60,7 @@ describe('Profile', () => {
         provideRouter([]),
         provideQueryClient(new QueryClient()),
         { provide: UsersService, useValue: usersService },
+        { provide: ClerkService, useValue: clerkService },
       ],
     }).compileComponents();
 
@@ -97,53 +112,38 @@ describe('Profile', () => {
 
     expect(component.form.value).toEqual({
       name: 'Alice Doe',
-      avatarUrl: 'https://example.com/avatar.png',
     });
+  });
+
+  it('should use Clerk avatar URL', () => {
+    usersService.meQuery.data = () => mockUser;
+    fixture.detectChanges();
+
+    expect(component.avatarUrl()).toBe('https://clerk.com/avatar.png');
   });
 
   it('should not submit when form is invalid', () => {
     usersService.meQuery.data = () => mockUser;
     fixture.detectChanges();
 
-    component.form.patchValue({ name: '', avatarUrl: '' });
+    component.form.patchValue({ name: '' });
     component.onSubmit();
 
     expect(usersService.updateMeMutation.mutate).not.toHaveBeenCalled();
   });
 
-  it('should submit update with current form values', () => {
+  it('should submit update with display name', () => {
     usersService.meQuery.data = () => mockUser;
     fixture.detectChanges();
 
     component.form.setValue({
       name: 'Alice Smith',
-      avatarUrl: 'https://example.com/new-avatar.png',
     });
     component.onSubmit();
 
     expect(usersService.updateMeMutation.mutate).toHaveBeenCalledWith(
       {
         name: 'Alice Smith',
-        avatarUrl: 'https://example.com/new-avatar.png',
-      },
-      expect.any(Object)
-    );
-  });
-
-  it('should omit empty avatarUrl from update request', () => {
-    usersService.meQuery.data = () => mockUser;
-    fixture.detectChanges();
-
-    component.form.setValue({
-      name: 'Alice Smith',
-      avatarUrl: '',
-    });
-    component.onSubmit();
-
-    expect(usersService.updateMeMutation.mutate).toHaveBeenCalledWith(
-      {
-        name: 'Alice Smith',
-        avatarUrl: undefined,
       },
       expect.any(Object)
     );

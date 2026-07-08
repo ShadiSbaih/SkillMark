@@ -89,6 +89,18 @@ export class InvitationsService {
     },
   }));
 
+  readonly previewCode = signal<string | null>(null);
+
+  readonly previewQuery = injectQuery(() => {
+    const code = this.previewCode();
+    return {
+      queryKey: ['invitations', code, 'preview'] as const,
+      queryFn: () =>
+        lastValueFrom(this.api.get<Invitation>(`invitations/${code}/preview`)),
+      enabled: !!code,
+    };
+  });
+
   readonly joinMutation = injectMutation(() => ({
     mutationFn: (code: string) =>
       lastValueFrom(

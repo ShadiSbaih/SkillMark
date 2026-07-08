@@ -1,25 +1,73 @@
-<div class="flex min-h-60vh items-center justify-center">
+<app-page-header title="Join" subtitle="Accept an invitation to join a program or organization" />
+
+<div class="flex items-start justify-center">
   <app-card class="w-full max-w-md">
-    <div class="text-center">
-      @if (invitationsService.joinMutation.isPending()) {
-        <h1 class="mb-4 text-xl font-semibold text-ink">Joining program...</h1>
-        <app-loading-state message="Joining program, please wait..." />
-      } @else if (error()) {
-        <h1 class="mb-4 text-xl font-semibold text-ink">Could not join</h1>
+    @if (error()) {
+      <div class="mb-6">
+        <h2 class="mb-2 text-lg font-semibold text-ink">Could not join</h2>
         <app-error-state
           [message]="error() ?? 'Failed to join the program.'"
           (retry)="retry()"
         />
-      } @else if (code()) {
-        <h1 class="mb-4 text-xl font-semibold text-ink">Joining program...</h1>
-        <app-loading-state message="Preparing your invitation..." />
+      </div>
+    }
+
+    @if (code()) {
+      @if (invitationsService.previewQuery.isPending()) {
+        <app-loading-state message="Loading invitation..." />
+      } @else if (invitationsService.previewQuery.isError()) {
+        <div class="text-center">
+          <h2 class="mb-2 text-lg font-semibold text-ink">Invitation code</h2>
+          <p class="mb-6 font-mono text-2xl text-primary">{{ code() }}</p>
+          <app-button
+            [loading]="invitationsService.joinMutation.isPending()"
+            (clicked)="accept()"
+          >
+            Accept invitation
+          </app-button>
+        </div>
       } @else {
-        <h1 class="mb-4 text-xl font-semibold text-ink">No invitation code</h1>
-        <app-empty-state
-          title="Invitation code missing"
-          description="Ask the program owner for a valid join link."
-        />
+        <div class="text-center">
+          <h2 class="mb-2 text-lg font-semibold text-ink">You're invited</h2>
+          <p class="mb-6 text-ink-mute">
+            Join program
+            <span class="font-medium text-ink">{{ invitationsService.previewQuery.data()?.programId }}</span>
+          </p>
+          <app-button
+            [loading]="invitationsService.joinMutation.isPending()"
+            (clicked)="accept()"
+          >
+            Accept invitation
+          </app-button>
+        </div>
       }
-    </div>
+    } @else {
+      <form (ngSubmit)="submitInput()" class="space-y-4">
+        <app-form-field
+          id="code"
+          label="Invitation code"
+          hint="Enter the code from your invitation link."
+        >
+          <input
+            id="code"
+            type="text"
+            [(ngModel)]="inputCode"
+            name="code"
+            class="form-input"
+            placeholder="e.g. SUMMER-2026"
+            required
+          />
+        </app-form-field>
+
+        <app-button
+          type="submit"
+          [fullWidth]="true"
+          [loading]="invitationsService.joinMutation.isPending()"
+          [disabled]="!inputCode().trim() || invitationsService.joinMutation.isPending()"
+        >
+          Join
+        </app-button>
+      </form>
+    }
   </app-card>
 </div>
