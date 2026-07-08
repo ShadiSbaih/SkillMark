@@ -1,13 +1,11 @@
 export interface CloudinarySignatureRequest {
-  organizationId: string;
-  programId: string;
-  params?: Record<string, string>;
+  folder?: string;
+  publicId?: string;
 }
 
 export interface CloudinarySignatureResponse {
-  cloudName: string;
-  apiKey: string;
-  timestamp: number;
   signature: string;
-  signedParams: Record<string, string>;
+  timestamp: number;
+  apiKey: string;
+  cloudName: string;
 }

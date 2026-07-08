@@ -144,8 +144,6 @@ describe('AttemptResultComponent', () => {
     status: 'SUBMITTED',
     startedAt: '2026-01-01T00:00:00Z',
     submittedAt: '2026-01-01T01:00:00Z',
-    certificateIssued: false,
-    certificateId: null,
   };
 
   const baseQuiz: Quiz = {
@@ -226,55 +224,12 @@ describe('AttemptResultComponent', () => {
     expect(refetchSpy).toHaveBeenCalled();
   });
 
-  it('should render passed badge, score, and certificate link when certificate is issued', () => {
-    attemptsService.setData({
-      ...baseAttempt,
-      passed: true,
-      certificateIssued: true,
-      certificateId: 'cert-1',
-    });
-    quizzesService.setData(baseQuiz);
-    fixture.detectChanges();
-
-    const text = fixture.nativeElement.textContent;
-    expect(text).toContain('Passed');
-    expect(text).toContain('8 / 10');
-    expect(text).toContain('(80%)');
-    expect(text).toContain('Certificate issued');
-    expect(text).toContain('View Certificate');
-  });
-
-  it('should navigate to certificate when View Certificate is clicked', () => {
-    attemptsService.setData({
-      ...baseAttempt,
-      passed: true,
-      certificateIssued: true,
-      certificateId: 'cert-1',
-    });
-    quizzesService.setData(baseQuiz);
-    fixture.detectChanges();
-
-    const viewCertificateButton = Array.from<HTMLButtonElement>(
-      fixture.nativeElement.querySelectorAll('button')
-    ).find((button) =>
-      button.textContent?.trim().includes('View Certificate')
-    );
-    viewCertificateButton?.click();
-
-    expect(router.navigate).toHaveBeenCalledWith([
-      '/certificates',
-      'cert-1',
-    ]);
-  });
-
   it('should render failed badge and no certificate section for a failed attempt', () => {
     attemptsService.setData({
       ...baseAttempt,
       earnedPoints: 4,
       scorePercentage: 40,
       passed: false,
-      certificateIssued: false,
-      certificateId: null,
     });
     quizzesService.setData(baseQuiz);
     fixture.detectChanges();
@@ -283,17 +238,13 @@ describe('AttemptResultComponent', () => {
     expect(text).toContain('Failed');
     expect(text).toContain('4 / 10');
     expect(text).toContain('(40%)');
-    expect(text).not.toContain('Certificate issued');
     expect(text).not.toContain('Certificate pending');
-    expect(text).not.toContain('View Certificate');
   });
 
   it('should render pending certificate note when passed but certificate not issued', () => {
     attemptsService.setData({
       ...baseAttempt,
       passed: true,
-      certificateIssued: false,
-      certificateId: null,
     });
     quizzesService.setData(baseQuiz);
     fixture.detectChanges();
@@ -304,15 +255,12 @@ describe('AttemptResultComponent', () => {
     expect(text).toContain(
       'You passed, but your certificate has not been issued yet.'
     );
-    expect(text).not.toContain('View Certificate');
   });
 
   it('should not render certificate pending note when certificate issue mode is NONE', () => {
     attemptsService.setData({
       ...baseAttempt,
       passed: true,
-      certificateIssued: false,
-      certificateId: null,
     });
     quizzesService.setData({ ...baseQuiz, certificateIssueMode: 'NONE' });
     fixture.detectChanges();
@@ -320,6 +268,5 @@ describe('AttemptResultComponent', () => {
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('Passed');
     expect(text).not.toContain('Certificate pending');
-    expect(text).not.toContain('View Certificate');
   });
 });

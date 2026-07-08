@@ -23,7 +23,7 @@ export class UsersService {
   }));
 
   readonly updateMeMutation = injectMutation(() => ({
-    mutationFn: (request: Partial<UserResponse>) =>
+    mutationFn: (request: Partial<SyncUserRequest>) =>
       lastValueFrom(this.api.patch<UserResponse>('users/me', request)),
     onSuccess: () => {
       this.queryClient.invalidateQueries({ queryKey: ['users', 'me'] });

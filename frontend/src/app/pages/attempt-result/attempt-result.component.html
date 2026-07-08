@@ -78,30 +78,14 @@
       </div>
     </app-card>
 
-    @if (attempt.passed) {
+    @if (attempt.passed && quiz && quiz.certificateIssueMode !== 'NONE') {
       <div class="mt-6">
-        @if (attempt.certificateIssued && attempt.certificateId) {
-          <app-card>
-            <h3 class="text-lg font-semibold text-ink">Certificate issued</h3>
-            <p class="mt-1 text-sm text-ink-mute">
-              Your certificate has been issued and is ready to view.
-            </p>
-            <div class="mt-4">
-              <app-button
-                (clicked)="router.navigate(['/certificates', attempt.certificateId])"
-              >
-                View Certificate
-              </app-button>
-            </div>
-          </app-card>
-        } @else if (quiz && quiz.certificateIssueMode !== 'NONE') {
-          <app-card>
-            <h3 class="text-lg font-semibold text-ink">Certificate pending</h3>
-            <p class="mt-1 text-sm text-ink-mute">
-              You passed, but your certificate has not been issued yet.
-            </p>
-          </app-card>
-        }
+        <app-card>
+          <h3 class="text-lg font-semibold text-ink">Certificate pending</h3>
+          <p class="mt-1 text-sm text-ink-mute">
+            You passed, but your certificate has not been issued yet.
+          </p>
+        </app-card>
       </div>
     }
   }

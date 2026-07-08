@@ -1,12 +1,11 @@
 export interface R2UploadUrlRequest {
-  programId: string;
-  objectKey: string;
-  contentType?: string;
+  fileName: string;
+  contentType: string;
+  fileSize: number;
 }
 
 export interface R2UploadUrlResponse {
   uploadUrl: string;
-  objectKey: string;
   publicUrl: string;
-  expiresAt: string;
+  storageKey: string;
 }

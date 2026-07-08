@@ -50,3 +50,8 @@ export interface ManualCertificateRequest {
 export interface RevokeCertificateRequest {
   reason: string;
 }
+
+export interface UpdateCertificateStatusRequest {
+  status: CertificateStatus;
+  reason?: string;
+}

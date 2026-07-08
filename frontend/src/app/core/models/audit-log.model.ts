@@ -1,12 +1,12 @@
 export interface AuditLogResponse {
   id: string;
-  actorUserId: string;
-  organizationId: string;
+  organizationId: string | null;
+  userId: string | null;
   action: string;
-  entityType: string;
-  entityId: string;
+  entityType: string | null;
+  entityId: string | null;
+  metadata: Record<string, unknown> | null;
   ipAddress: string | null;
   userAgent: string | null;
-  metadata: Record<string, unknown> | null;
   createdAt: string;
 }
