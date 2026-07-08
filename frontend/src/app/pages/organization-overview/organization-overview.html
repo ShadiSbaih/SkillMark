@@ -5,116 +5,111 @@
     [message]="organizationQuery.error()?.message ?? 'Failed to load organization'"
     (retry)="retry()"
   />
+} @else if (!org()) {
+  <app-empty-state
+    title="Organization not found"
+    description="The organization you are looking for does not exist or has been removed."
+    actionLabel="Back to organizations"
+    (action)="router.navigate(['/organizations'])"
+  />
 } @else {
-  @let org = organizationQuery.data();
+  @let organization = org()!;
+
+  <app-breadcrumb
+    [items]="[
+      { label: 'Organizations', route: ['/organizations'] },
+      { label: organization.name }
+    ]"
+  />
 
   <app-page-header
-    [title]="org?.name ?? 'Organization'"
-    [subtitle]="org?.description ?? 'Overview'"
+    [title]="organization.name"
+    [subtitle]="organization.description ?? 'Organization overview'"
     [hasActions]="true"
   >
     <ng-container actions>
-      <app-button variant="secondary" (clicked)="router.navigate(['/organizations'])">Back</app-button>
-      <app-button variant="secondary" (clicked)="router.navigate(['/organizations', orgId(), 'members'])">Members</app-button>
-      <app-button variant="secondary" (clicked)="router.navigate(['/organizations', orgId(), 'settings'])">Settings</app-button>
-      <app-button (clicked)="router.navigate(['/organizations', orgId(), 'programs', 'new'])">New program</app-button>
+      <app-button
+        variant="secondary"
+        (clicked)="router.navigate(['/organizations', orgId(), 'settings'])"
+      >
+        Settings
+      </app-button>
+      <app-button (clicked)="router.navigate(['/organizations', orgId(), 'programs', 'new'])">
+        New program
+      </app-button>
     </ng-container>
   </app-page-header>
 
-  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  <div class="metric-grid compact mt-6">
     <app-card>
-      <p class="text-xs font-medium uppercase text-ink-mute">Status</p>
-      <div class="mt-2">
-        <app-status-badge [status]="org?.status ?? ''" />
-      </div>
+      <p class="metric-label">Members</p>
+      <p class="metric-value">{{ stats()?.totalMembers ?? 0 }}</p>
     </app-card>
     <app-card>
-      <p class="text-xs font-medium uppercase text-ink-mute">Created</p>
-      <p class="mt-2 text-sm font-medium text-ink">{{ org?.createdAt | date:'mediumDate' }}</p>
+      <p class="metric-label">Programs</p>
+      <p class="metric-value">{{ stats()?.totalPrograms ?? 0 }}</p>
+    </app-card>
+    <app-card>
+      <p class="metric-label">Certificates</p>
+      <p class="metric-value">{{ stats()?.totalCertificates ?? 0 }}</p>
     </app-card>
   </div>
 
-  <div class="mt-8">
-    <div class="mb-4 flex items-center justify-between">
-      <h2 class="text-lg font-semibold text-ink">Members</h2>
-      <a (click)="router.navigate(['/organizations', orgId(), 'members'])" class="text-sm font-medium text-primary hover:underline cursor-pointer">Manage members</a>
-    </div>
+  <div class="two-column mt-8">
+    <app-card>
+      <div class="panel-header">
+        <h2>Programs</h2>
+        <a class="link" [routerLink]="['/organizations', orgId(), 'programs']">View all</a>
+      </div>
 
-    @if (membershipsQuery.isPending()) {
-      <app-loading-state message="Loading members..." />
-    } @else if (membershipsQuery.isError()) {
-      <app-error-state
-        [message]="membershipsQuery.error()?.message ?? 'Failed to load members'"
-        (retry)="retry()"
-      />
-    } @else if (membershipsQuery.data()?.items?.length === 0) {
-      <app-card>
-        <app-empty-state
-          title="No members"
-          description="There are no members in this organization yet."
+      @if (programsQuery.isPending()) {
+        <app-loading-state message="Loading programs..." />
+      } @else if (programsQuery.isError()) {
+        <app-error-state
+          [message]="programsQuery.error()?.message ?? 'Failed to load programs'"
+          (retry)="programsQuery.refetch()"
         />
-      </app-card>
-    } @else {
-      <div class="grid gap-4">
-        @for (member of membershipsQuery.data()?.items; track member.id) {
-          <app-card>
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="font-semibold text-ink">{{ member.userName }}</p>
-                <p class="text-sm text-ink-mute">{{ member.userEmail }}</p>
-              </div>
-              <app-status-badge [status]="member.role" />
-            </div>
-          </app-card>
-        }
-      </div>
-    }
-  </div>
-
-  <div class="mt-8">
-    <div class="mb-4 flex items-center justify-between">
-      <h2 class="text-lg font-semibold text-ink">Programs</h2>
-      <app-button variant="secondary" size="sm" (clicked)="router.navigate(['/organizations', orgId(), 'programs', 'new'])">New Program</app-button>
-    </div>
-
-    @if (programsQuery.isPending()) {
-      <app-loading-state message="Loading programs..." />
-    } @else if (programsQuery.isError()) {
-      <app-error-state
-        [message]="programsQuery.error()?.message ?? 'Failed to load programs'"
-        (retry)="retry()"
-      />
-    } @else if (programsQuery.data()?.items?.length === 0) {
-      <app-card>
+      } @else if (programs().length === 0) {
         <app-empty-state
           title="No programs"
           description="No programs have been created for this organization yet."
+          actionLabel="Create program"
+          (action)="router.navigate(['/organizations', orgId(), 'programs', 'new'])"
         />
-      </app-card>
-    } @else {
-      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        @for (program of programsQuery.data()?.items; track program.id) {
-          <app-card [interactive]="true" (click)="router.navigate(['/programs', program.id])">
-            <div class="flex flex-col justify-between h-full min-h-[140px]">
+      } @else {
+        <div class="stack">
+          @for (program of programs().slice(0, 5); track program.id) {
+            <a
+              [routerLink]="['/programs', program.id]"
+              class="list-row-link"
+            >
               <div>
-                <h3 class="text-lg font-semibold text-ink mb-1">{{ program.title }}</h3>
-                @if (program.description) {
-                  <p class="line-clamp-2 text-sm text-ink-mute mb-4">{{ program.description }}</p>
-                }
+                <p class="font-medium">{{ program.title }}</p>
+                <p class="text-sm text-ink-mute">{{ program.status }}</p>
               </div>
-              <div class="flex items-center justify-between mt-auto pt-4 border-t border-light">
-                <app-status-badge [status]="program.status" />
-                <span class="text-xs text-primary font-semibold flex items-center gap-1">
-                  Manage
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
-                  </svg>
-                </span>
-              </div>
-            </div>
-          </app-card>
-        }
-      </div>
-    }
+              <app-status-badge [status]="program.status" entity="program" />
+            </a>
+          }
+        </div>
+      }
+    </app-card>
+
+    <app-card>
+      <h2 class="panel-title">Details</h2>
+      <dl class="detail-grid single">
+        <div>
+          <dt>Slug</dt>
+          <dd>{{ organization.slug ?? organization.id }}</dd>
+        </div>
+        <div>
+          <dt>Created</dt>
+          <dd>{{ organization.createdAt | date:'medium' }}</dd>
+        </div>
+        <div>
+          <dt>Created by</dt>
+          <dd>{{ organization.createdBy ?? organization.ownerId }}</dd>
+        </div>
+      </dl>
+    </app-card>
   </div>
 }

@@ -1,4 +1,4 @@
-import { Component, effect, inject } from '@angular/core';
+import { Component, effect, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -11,6 +11,7 @@ import { LoadingStateComponent } from '../../shared/components/loading-state/loa
 import { ErrorStateComponent } from '../../shared/components/error-state/error-state.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
+import { ModalComponent } from '../../shared/components/modal/modal.component';
 
 @Component({
   selector: 'app-organization-settings',
@@ -23,6 +24,7 @@ import { PageHeaderComponent } from '../../shared/components/page-header/page-he
     ErrorStateComponent,
     EmptyStateComponent,
     PageHeaderComponent,
+    ModalComponent,
   ],
   templateUrl: './organization-settings.html',
   styles: ``,
@@ -34,16 +36,16 @@ export class OrganizationSettings {
   readonly organizationsService = inject(OrganizationsService);
 
   readonly organizationId = toSignal(
-    this.route.paramMap.pipe(map((params) => params.get('organizationId'))),
+    this.route.paramMap.pipe(map((params) => params.get('orgId'))),
     { initialValue: null }
   );
 
   readonly organizationQuery = this.organizationsService.getOrganizationQuery(() => this.organizationId());
+  readonly showDeleteModal = signal(false);
 
   readonly form = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(100)]],
     description: ['', Validators.maxLength(500)],
-    logoUrl: [''],
   });
 
   constructor() {
@@ -53,7 +55,6 @@ export class OrganizationSettings {
         this.form.patchValue({
           name: organization.name,
           description: organization.description ?? '',
-          logoUrl: organization.logoUrl ?? '',
         });
       }
     });
@@ -73,7 +74,6 @@ export class OrganizationSettings {
         request: {
           name: value.name ?? '',
           description: value.description || undefined,
-          logoUrl: value.logoUrl || undefined,
         },
       },
       {
@@ -81,5 +81,26 @@ export class OrganizationSettings {
         onError: (error: Error) => toast.error(error.message || 'Failed to update organization'),
       }
     );
+  }
+
+  openDeleteModal(): void {
+    this.showDeleteModal.set(true);
+  }
+
+  closeDeleteModal(): void {
+    this.showDeleteModal.set(false);
+  }
+
+  deleteOrganization(): void {
+    const id = this.organizationId();
+    if (!id) return;
+
+    this.organizationsService.deleteMutation.mutate(id, {
+      onSuccess: () => {
+        toast.success('Organization deleted');
+        this.router.navigate(['/organizations']);
+      },
+      onError: (error: Error) => toast.error(error.message || 'Failed to delete organization'),
+    });
   }
 }

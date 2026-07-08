@@ -72,7 +72,7 @@ describe('ConfirmDialogComponent', () => {
   it('should pass confirmVariant to modal', () => {
     host.confirmVariant.set('primary');
     fixture.detectChanges();
-    const confirmButton = fixture.debugElement.query(By.css('app-button:last-child'));
-    expect(confirmButton.attributes['ng-reflect-variant']).toBe('primary');
+    const confirmButton = fixture.debugElement.query(By.css('app-button:last-child button'));
+    expect(confirmButton.nativeElement.classList).toContain('app-button-primary');
   });
 });

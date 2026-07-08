@@ -1,29 +1,47 @@
 <section class="page">
-  <p class="breadcrumb">Organization / Members</p>
+  <p class="breadcrumb mb-4">Organization / Members</p>
+
   <app-page-header
     title="Members"
     subtitle="Add owners and participants, review membership status, and remove inactive users."
     [hasActions]="true"
   >
     <ng-container actions>
-      <app-button (clicked)="openAddModal()">Add member</app-button>
+      <app-button (clicked)="router.navigate(['/organizations', organizationId()])">Back to organization</app-button>
     </ng-container>
   </app-page-header>
 
   <app-card class="mb-6 block">
-    <form [formGroup]="filterForm" class="filter-bar">
-      <label>
-        <span>Search</span>
-        <input formControlName="search" type="text" placeholder="Name or email" />
-      </label>
-      <label>
-        <span>Role</span>
-        <select formControlName="role">
-          <option value="ALL">All roles</option>
-          <option value="OWNER">Owner</option>
-          <option value="PARTICIPANT">Participant</option>
+    <form [formGroup]="addForm" (ngSubmit)="addMember()" class="flex flex-col gap-4 sm:flex-row sm:items-end">
+      <div class="flex-1">
+        <label for="userId" class="mb-1 block text-sm font-medium text-ink">
+          User ID
+        </label>
+        <input
+          id="userId"
+          formControlName="userId"
+          type="text"
+          placeholder="Paste the user ID"
+          class="member-form-control"
+        />
+      </div>
+
+      <div>
+        <label for="role" class="mb-1 block text-sm font-medium text-ink">Role</label>
+        <select id="role" formControlName="role" class="member-form-control">
+          @for (role of roles; track role) {
+            <option [value]="role">{{ role }}</option>
+          }
         </select>
-      </label>
+      </div>
+
+      <app-button
+        type="submit"
+        [disabled]="addForm.invalid || membershipsService.addMutation.isPending()"
+        [loading]="membershipsService.addMutation.isPending()"
+      >
+        Add member
+      </app-button>
     </form>
   </app-card>
 
@@ -38,13 +56,11 @@
       />
     }
     @default {
-      @if (filteredMemberships().length === 0) {
+      @if (membershipsQuery.data()?.items?.length === 0) {
         <app-card>
           <app-empty-state
             title="No members found"
-            description="Try adjusting your filters or add a new member."
-            actionLabel="Add member"
-            (action)="openAddModal()"
+            description="There are no members in this organization yet."
           />
         </app-card>
       } @else {
@@ -53,30 +69,34 @@
             <table>
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Email</th>
+                  <th>Member</th>
                   <th>Role</th>
                   <th>Status</th>
-                  <th>Joined</th>
                   <th class="text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                @for (member of filteredMemberships(); track member.id) {
+                @for (member of membershipsQuery.data()?.items; track trackById($index, member)) {
                   <tr>
-                    <td>{{ member.userName }}</td>
-                    <td>{{ member.userEmail }}</td>
                     <td>
-                      <app-badge [variant]="roleVariant(member.role)">
-                        {{ member.role }}
-                      </app-badge>
+                      <div class="flex items-center gap-3">
+                        <app-avatar
+                          [name]="member.userName"
+                          [fallback]="member.userEmail"
+                          size="sm"
+                        />
+                        <div>
+                          <p class="font-medium text-ink">{{ member.userName }}</p>
+                          <p class="text-sm text-ink-mute">{{ member.userEmail }}</p>
+                        </div>
+                      </div>
                     </td>
                     <td>
-                      <app-badge [variant]="statusVariant(member.status)">
-                        {{ member.status }}
-                      </app-badge>
+                      <app-status-badge [status]="member.role" entity="membership" />
                     </td>
-                    <td>{{ member.joinedAt ?? member.createdAt | date: 'mediumDate' }}</td>
+                    <td>
+                      <app-status-badge [status]="member.status" />
+                    </td>
                     <td class="text-right">
                       @if (member.status !== 'REMOVED') {
                         <app-button
@@ -94,89 +114,21 @@
             </table>
           </div>
 
-          @if (pageInfo().totalPages > 1) {
-            <div class="pagination">
-              <app-button
-                variant="ghost"
-                size="sm"
-                [disabled]="pageInfo().page === 0"
-                (clicked)="goToPage(pageInfo().page - 1)"
-              >
-                Previous
-              </app-button>
-              <span class="flex items-center px-3 text-sm text-ink-mute">
-                Page {{ pageInfo().page + 1 }} of {{ pageInfo().totalPages }}
-              </span>
-              <app-button
-                variant="ghost"
-                size="sm"
-                [disabled]="pageInfo().page + 1 >= pageInfo().totalPages"
-                (clicked)="goToPage(pageInfo().page + 1)"
-              >
-                Next
-              </app-button>
-            </div>
-          }
+          <app-pagination
+            class="mt-4 block"
+            [page]="pageInfo().page"
+            [size]="pageInfo().size"
+            [totalElements]="pageInfo().totalElements"
+            [totalPages]="pageInfo().totalPages"
+            [hasNext]="pageInfo().hasNext"
+            [hasPrevious]="pageInfo().hasPrevious"
+            (pageChange)="goToPage($event)"
+          />
         </app-card>
       }
     }
   }
 </section>
-
-@if (showAddModal()) {
-  <div
-    class="fixed inset-0 z-50 flex items-center justify-center backdrop-dark p-4"
-    (click)="closeAddModal()"
-  >
-    <app-card class="w-full max-w-md" (click)="$event.stopPropagation()">
-      <div class="mb-4 flex items-center justify-between">
-        <h3 class="text-lg font-medium text-ink">Add member</h3>
-        <app-button variant="ghost" size="sm" (clicked)="closeAddModal()">Close</app-button>
-      </div>
-
-      <form [formGroup]="addForm" (ngSubmit)="addMember()" class="space-y-4">
-        <div>
-          <label for="userId" class="mb-1 block text-sm font-medium text-ink">
-            User ID
-          </label>
-          <input
-            id="userId"
-            formControlName="userId"
-            type="text"
-            placeholder="Paste the user ID"
-            class="member-form-control"
-          />
-        </div>
-
-        <div>
-          <label for="role" class="mb-1 block text-sm font-medium text-ink">Role</label>
-          <select
-            id="role"
-            formControlName="role"
-            class="member-form-control"
-          >
-            @for (role of roles; track role) {
-              <option [value]="role">{{ role }}</option>
-            }
-          </select>
-        </div>
-
-        <div class="modal-form-actions">
-          <app-button type="button" variant="secondary" (clicked)="closeAddModal()">
-            Cancel
-          </app-button>
-          <app-button
-            type="submit"
-            [disabled]="addForm.invalid || membershipsService.addMutation.isPending()"
-            [loading]="membershipsService.addMutation.isPending()"
-          >
-            Add member
-          </app-button>
-        </div>
-      </form>
-    </app-card>
-  </div>
-}
 
 <app-modal
   [open]="removingUserId() !== null"

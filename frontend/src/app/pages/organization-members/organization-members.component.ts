@@ -1,7 +1,6 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
-import { DatePipe } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { toast } from 'ngx-sonner';
@@ -10,7 +9,9 @@ import { MembershipResponse, MembershipRole } from '../../core/models/membership
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { ButtonComponent } from '../../shared/components/button/button.component';
 import { CardComponent } from '../../shared/components/card/card.component';
-import { BadgeComponent } from '../../shared/components/badge/badge.component';
+import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
+import { StatusBadgeComponent } from '../../shared/components/status-badge/status-badge';
+import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { ErrorStateComponent } from '../../shared/components/error-state/error-state.component';
 import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
@@ -21,11 +22,12 @@ import { ModalComponent } from '../../shared/components/modal/modal.component';
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    DatePipe,
     PageHeaderComponent,
     ButtonComponent,
     CardComponent,
-    BadgeComponent,
+    AvatarComponent,
+    StatusBadgeComponent,
+    PaginationComponent,
     EmptyStateComponent,
     ErrorStateComponent,
     LoadingStateComponent,
@@ -36,6 +38,7 @@ import { ModalComponent } from '../../shared/components/modal/modal.component';
 })
 export class OrganizationMembersComponent {
   private readonly route = inject(ActivatedRoute);
+  readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
   readonly membershipsService = inject(MembershipsService);
 
@@ -44,13 +47,7 @@ export class OrganizationMembersComponent {
     { initialValue: null }
   );
 
-  readonly showAddModal = signal(false);
   readonly removingUserId = signal<string | null>(null);
-
-  readonly filterForm = this.fb.group({
-    search: [''],
-    role: ['ALL'],
-  });
 
   readonly addForm = this.fb.group({
     userId: ['', [Validators.required]],
@@ -58,30 +55,17 @@ export class OrganizationMembersComponent {
   });
 
   readonly roles: MembershipRole[] = ['OWNER', 'PARTICIPANT'];
-
   readonly membershipsQuery = this.membershipsService.membershipsQuery;
-
-  readonly filteredMemberships = computed(() => {
-    const data = this.membershipsQuery.data();
-    if (!data) return [];
-    const search = (this.filterForm.value.search ?? '').toLowerCase();
-    const role = this.filterForm.value.role ?? 'ALL';
-    return data.items.filter((m) => {
-      const matchesSearch =
-        !search ||
-        m.userName.toLowerCase().includes(search) ||
-        m.userEmail.toLowerCase().includes(search);
-      const matchesRole = role === 'ALL' || m.role === role;
-      return matchesSearch && matchesRole;
-    });
-  });
 
   readonly pageInfo = computed(() => {
     const data = this.membershipsQuery.data();
     return {
       page: data?.page ?? 0,
-      totalPages: data?.totalPages ?? 0,
+      size: data?.size ?? 10,
       totalElements: data?.totalElements ?? 0,
+      totalPages: data?.totalPages ?? 0,
+      hasNext: (data?.page ?? 0) + 1 < (data?.totalPages ?? 0),
+      hasPrevious: (data?.page ?? 0) > 0,
     };
   });
 
@@ -96,28 +80,22 @@ export class OrganizationMembersComponent {
     });
   }
 
-  openAddModal(): void {
-    this.addForm.reset({ userId: '', role: 'PARTICIPANT' });
-    this.showAddModal.set(true);
-  }
-
-  closeAddModal(): void {
-    this.showAddModal.set(false);
-  }
-
   addMember(): void {
     if (this.addForm.invalid) return;
+
     const orgId = this.organizationId();
     if (!orgId) return;
+
     const userId = this.addForm.value.userId;
     const role = this.addForm.value.role as MembershipRole;
     if (!userId) return;
+
     this.membershipsService.addMutation.mutate(
       { organizationId: orgId, request: { userId, role } },
       {
         onSuccess: () => {
           toast.success('Member added successfully');
-          this.closeAddModal();
+          this.addForm.reset({ userId: '', role: 'PARTICIPANT' });
         },
         onError: (error) => {
           toast.error(error.message ?? 'Failed to add member');
@@ -138,6 +116,7 @@ export class OrganizationMembersComponent {
     const orgId = this.organizationId();
     const userId = this.removingUserId();
     if (!orgId || !userId) return;
+
     this.membershipsService.removeMutation.mutate(
       { organizationId: orgId, userId },
       {
@@ -161,20 +140,7 @@ export class OrganizationMembersComponent {
     }));
   }
 
-  roleVariant(role: MembershipRole) {
-    return role === 'OWNER' ? 'warning' : 'default';
-  }
-
-  statusVariant(status: MembershipResponse['status']) {
-    switch (status) {
-      case 'ACTIVE':
-        return 'success';
-      case 'INVITED':
-        return 'info';
-      case 'REMOVED':
-        return 'danger';
-      default:
-        return 'default';
-    }
+  trackById(_index: number, member: MembershipResponse): string {
+    return member.id;
   }
 }

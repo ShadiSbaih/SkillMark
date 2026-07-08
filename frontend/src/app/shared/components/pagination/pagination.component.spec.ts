@@ -73,8 +73,8 @@ describe('PaginationComponent', () => {
   it('should disable previous button when hasPrevious is false', () => {
     host.hasPrevious.set(false);
     fixture.detectChanges();
-    const buttons = fixture.debugElement.queryAll(By.css('app-button'));
-    expect(buttons[0].attributes['ng-reflect-disabled']).toBe('true');
+    const buttons = fixture.debugElement.queryAll(By.css('app-button button'));
+    expect(buttons[0].nativeElement.disabled).toBe(true);
   });
 
   it('should not render pagination when there is only one page', () => {
