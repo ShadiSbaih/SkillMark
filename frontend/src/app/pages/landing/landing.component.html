@@ -8,9 +8,22 @@
         and issue verifiable certificates from one calm workspace.
       </p>
       <div class="button-row">
-        <a class="button button-primary" routerLink="/dashboard">Get started</a>
-        <a class="button button-secondary" routerLink="/verify/A3FX9KL2MN8PQR7Z">Verify a certificate</a>
+        <a class="button button-primary" routerLink="/sign-up">Get started</a>
+        <a class="button button-secondary" routerLink="/sign-in">Sign in</a>
       </div>
+
+      <form class="verify-form" (ngSubmit)="verify()">
+        <app-form-field label="Verify a certificate" id="verify-code">
+          <input
+            id="verify-code"
+            name="verificationCode"
+            type="text"
+            [(ngModel)]="verificationCode"
+            placeholder="Enter verification code (e.g. A3FX9KL2MN8PQR7Z)"
+          />
+        </app-form-field>
+        <app-button type="submit">Verify</app-button>
+      </form>
     </div>
 
     <div class="dashboard-mockup" aria-label="Skillmark product preview">
@@ -47,21 +60,21 @@
     <h2>Everything a learning owner needs on launch day.</h2>
   </div>
   <div class="feature-grid">
-    <article class="feature-card">
+    <app-card class="feature-card">
       <span class="feature-icon">01</span>
       <h3>Manage programs</h3>
       <p>Create organizations, programs, resources, memberships, and invitation links with clear status tracking.</p>
-    </article>
-    <article class="feature-card">
+    </app-card>
+    <app-card class="feature-card">
       <span class="feature-icon">02</span>
       <h3>Run quizzes</h3>
       <p>Publish timed assessments, collect attempts, enforce attempt limits, and review pass/fail outcomes.</p>
-    </article>
-    <article class="feature-card">
+    </app-card>
+    <app-card class="feature-card">
       <span class="feature-icon">03</span>
       <h3>Issue certificates</h3>
       <p>Generate active or revoked certificates with public verification codes for external trust checks.</p>
-    </article>
+    </app-card>
   </div>
 </section>
 

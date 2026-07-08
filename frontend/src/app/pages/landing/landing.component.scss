@@ -9,17 +9,14 @@
 	inset: -140px -10% auto;
 	height: 480px;
 	background:
-		radial-gradient(circle at 12% 35%, rgba(99, 102, 241, 0.15) 0, transparent 40%),
-		radial-gradient(circle at 35% 20%, rgba(244, 63, 94, 0.12) 0, transparent 35%),
-		radial-gradient(circle at 60% 40%, rgba(217, 70, 239, 0.1) 0, transparent 45%),
-		radial-gradient(circle at 85% 15%, rgba(79, 70, 229, 0.15) 0, transparent 40%);
+		radial-gradient(circle at 12% 35%, rgba(99,102,241,.15), transparent 40%),
+		radial-gradient(circle at 35% 20%, rgba(244,63,94,.12), transparent 35%),
+		radial-gradient(circle at 60% 40%, rgba(217,70,239,.1), transparent 45%);
 	filter: blur(80px);
-	opacity: 0.85;
 }
 
 .hero-content {
 	position: relative;
-	z-index: 1;
 	display: grid;
 	grid-template-columns: minmax(0, 1.2fr) minmax(360px, 540px);
 	gap: 64px;
@@ -45,25 +42,30 @@
 	margin-bottom: 32px;
 }
 
-.dashboard-mockup {
-	border: 1px solid var(--hairline);
-	border-radius: var(--radius-xl);
-	background: rgba(255, 255, 255, 0.85);
-	backdrop-filter: blur(12px);
-	box-shadow: var(--shadow-xl);
-	padding: 24px;
-	transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-	animation: float 6s ease-in-out infinite;
+.verify-form {
+	display: flex;
+	align-items: flex-end;
+	gap: 12px;
+	margin-top: 28px;
+	padding-top: 28px;
+	border-top: 1px solid var(--hairline);
 
-	&:hover {
-		transform: translateY(-4px);
-		box-shadow: 0 30px 60px -15px rgba(15, 23, 42, 0.12);
+	app-form-field {
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+
+	@media (max-width: 640px) {
+		flex-direction: column;
+		align-items: stretch;
 	}
 }
 
-@keyframes float {
-	0%, 100% { transform: translateY(0); }
-	50% { transform: translateY(-8px); }
+.dashboard-mockup {
+	border: 1px solid var(--hairline);
+	border-radius: var(--radius-xl);
+	background: rgba(255,255,255,.85);
+	padding: 24px;
 }
 
 .mockup-header {
@@ -120,7 +122,6 @@
 }
 
 .mini-table b {
-	font-feature-settings: "tnum";
 	font-weight: 500;
 	color: var(--ink-secondary);
 }
@@ -149,18 +150,8 @@
 }
 
 .feature-card {
-	border: 1px solid var(--hairline);
 	border-radius: var(--radius-xl);
-	background: var(--canvas);
-	box-shadow: var(--shadow-1);
 	padding: 32px;
-	transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-
-	&:hover {
-		transform: translateY(-2px);
-		box-shadow: var(--shadow-3);
-		border-color: var(--primary-bg-subdued-hover);
-	}
 }
 
 .feature-icon {
@@ -198,7 +189,6 @@
 	border-radius: var(--radius-xl);
 	background: var(--brand-dark);
 	padding: 48px;
-	box-shadow: var(--shadow-xl);
 
 	h2 {
 		color: white;
@@ -209,7 +199,7 @@
 	}
 
 	p.eyebrow {
-		color: rgba(255, 255, 255, 0.6);
+		color: rgba(255,255,255,.6);
 		margin-bottom: 8px;
 	}
 }
@@ -253,4 +243,3 @@
 		}
 	}
 }
-
