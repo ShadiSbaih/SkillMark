@@ -3,6 +3,7 @@ import { injectQuery, injectMutation, QueryClient } from '@tanstack/angular-quer
 import { lastValueFrom } from 'rxjs';
 import { ApiClientService } from '../core/api/api-client.service';
 import { CreateResourceRequest, ResourceResponse, UpdateResourceVisibilityRequest } from '../core/models/resource.model';
+import { R2UploadUrlRequest, R2UploadUrlResponse } from '../core/models/storage.model';
 
 @Injectable({ providedIn: 'root' })
 export class ResourcesService {
@@ -94,5 +95,10 @@ export class ResourcesService {
     onSuccess: () => {
       this.queryClient.invalidateQueries({ queryKey: ['resources'] });
     },
+  }));
+
+  readonly uploadUrlMutation = injectMutation(() => ({
+    mutationFn: (request: R2UploadUrlRequest) =>
+      lastValueFrom(this.api.post<R2UploadUrlResponse>('storage/upload-urls', request)),
   }));
 }

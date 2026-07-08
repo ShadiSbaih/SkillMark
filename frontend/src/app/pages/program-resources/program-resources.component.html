@@ -1,13 +1,52 @@
-<app-page-header
-  title="Resources"
-  subtitle="Upload files, link videos, arrange the learning path, and control participant visibility."
-  [hasActions]="true"
->
+<app-page-header [title]="pageTitle()" subtitle="Manage learning resources and control participant visibility." [hasActions]="true">
   <ng-container actions>
     <app-button variant="secondary" (clicked)="goBack()">Back</app-button>
-    <app-button (clicked)="openCreate()">Add resource</app-button>
+    <app-button (clicked)="openForm()">Add resource</app-button>
   </ng-container>
 </app-page-header>
+
+@if (showForm()) {
+  <app-card class="mb-6">
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4">
+      <div class="grid gap-4 sm:grid-cols-2">
+        <app-form-field label="Title" id="title" [error]="form.get('title')?.invalid && form.get('title')?.touched ? 'Title is required' : undefined">
+          <input
+            id="title"
+            type="text"
+            formControlName="title"
+            class="block w-full rounded-md border border-input bg-canvas-soft px-3 py-2 text-sm text-ink placeholder-ink-mute focus-ring-primary"
+          />
+        </app-form-field>
+
+        <app-form-field label="Type" id="type">
+          <select
+            id="type"
+            formControlName="type"
+            class="block w-full rounded-md border border-input bg-canvas-soft px-3 py-2 text-sm text-ink focus-ring-primary"
+          >
+            @for (type of resourceTypes; track type) {
+              <option [value]="type">{{ typeLabel(type) }}</option>
+            }
+          </select>
+        </app-form-field>
+      </div>
+
+      <app-form-field label="URL" id="url" [error]="form.get('url')?.invalid && form.get('url')?.touched ? 'URL is required' : undefined">
+        <input
+          id="url"
+          type="url"
+          formControlName="url"
+          class="block w-full rounded-md border border-input bg-canvas-soft px-3 py-2 text-sm text-ink placeholder-ink-mute focus-ring-primary"
+        />
+      </app-form-field>
+
+      <div class="flex justify-end gap-3">
+        <app-button type="button" variant="ghost" (clicked)="closeForm()">Cancel</app-button>
+        <app-button type="submit" [loading]="isSubmitting()">Create resource</app-button>
+      </div>
+    </form>
+  </app-card>
+}
 
 @if (resourcesQuery.isPending()) {
   <app-loading-state message="Loading resources..." />
@@ -25,7 +64,7 @@
         title="No resources yet"
         description="Add your first resource so participants can start learning."
         actionLabel="Add resource"
-        (action)="openCreate()"
+        (action)="openForm()"
       />
     </app-card>
   } @else {
@@ -37,39 +76,19 @@
               <div class="text-2xl">{{ typeIcon(resource.type) }}</div>
               <div>
                 <h3 class="text-lg font-semibold text-ink">{{ resource.title }}</h3>
-                @if (resource.description) {
-                  <p class="mt-1 max-w-2xl text-sm text-ink-mute">{{ resource.description }}</p>
-                }
                 <div class="mt-2 flex flex-wrap items-center gap-2">
-                  <app-badge [variant]="statusVariant(resource.status)">{{ resource.status }}</app-badge>
                   <span class="text-xs text-ink-mute">{{ typeLabel(resource.type) }}</span>
-                  <span class="text-xs text-ink-mute">Position {{ resource.position }}</span>
-                  @if (resource.visibleToParticipants) {
-                    <span class="text-xs text-green-700">Visible to participants</span>
-                  } @else {
-                    <span class="text-xs text-ink-mute">Hidden from participants</span>
-                  }
+                  <app-status-badge [status]="visibilityStatus(resource)" />
                 </div>
-                @if (resource.url) {
-                  <a
-                    [href]="resource.url"
-                    target="_blank"
-                    rel="noopener"
-                    class="mt-2 inline-block text-sm text-primary hover:underline"
-                  >
-                    {{ resource.url }}
-                  </a>
-                }
-                @if (resource.storageProvider) {
-                  <p class="mt-1 text-xs text-ink-mute">Provider: {{ resource.storageProvider }}</p>
-                }
               </div>
             </div>
             <div class="flex flex-wrap items-center gap-2">
               <app-button variant="secondary" size="sm" (clicked)="toggleVisibility(resource)">
                 {{ resource.visibleToParticipants ? 'Hide' : 'Show' }}
               </app-button>
-              <app-button variant="secondary" size="sm" (clicked)="openEdit(resource)">Edit</app-button>
+              @if (resource.url) {
+                <app-button variant="secondary" size="sm" (clicked)="openLink(resource)">Open</app-button>
+              }
               <app-button variant="danger" size="sm" (clicked)="deleteResource(resource)">Delete</app-button>
             </div>
           </div>
@@ -77,117 +96,4 @@
       }
     </div>
   }
-}
-
-@if (showModal()) {
-  <div class="fixed inset-0 z-50 flex items-center justify-center backdrop-dark p-4" (click)="closeModal()">
-    <div class="w-full max-w-lg rounded-lg bg-white p-6 shadow-xl" (click)="$event.stopPropagation()">
-      <h3 class="text-lg font-semibold text-ink">
-        {{ editingResource() ? 'Edit resource' : 'Add resource' }}
-      </h3>
-
-      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="mt-4 space-y-4">
-        <div>
-          <label for="title" class="block text-sm font-medium text-ink">Title</label>
-          <input
-            id="title"
-            type="text"
-            formControlName="title"
-            class="mt-1 block w-full rounded-md border border-input bg-canvas-soft px-3 py-2 text-sm text-ink placeholder-ink-mute focus-ring-primary"
-          />
-        </div>
-
-        <div>
-          <label for="type" class="block text-sm font-medium text-ink">Type</label>
-          <select
-            id="type"
-            formControlName="type"
-            class="mt-1 block w-full rounded-md border border-input bg-canvas-soft px-3 py-2 text-sm text-ink focus-ring-primary"
-          >
-            @for (type of resourceTypes; track type) {
-              <option [value]="type">{{ typeLabel(type) }}</option>
-            }
-          </select>
-        </div>
-
-        @if (isLinkType()) {
-          <div>
-            <label for="url" class="block text-sm font-medium text-ink">URL</label>
-            <input
-              id="url"
-              type="url"
-              formControlName="url"
-              class="mt-1 block w-full rounded-md border border-input bg-canvas-soft px-3 py-2 text-sm text-ink placeholder-ink-mute focus-ring-primary"
-            />
-          </div>
-        } @else {
-          <div>
-            <label for="file" class="block text-sm font-medium text-ink">
-              {{ form.value.type === 'IMAGE' ? 'Upload image' : 'Upload file' }}
-            </label>
-            <input
-              id="file"
-              type="file"
-              class="mt-1 block w-full text-sm text-ink"
-              (change)="onFileSelected($event, form.value.type === 'IMAGE' ? 'IMAGE' : 'FILE')"
-            />
-            @if (selectedFile()) {
-              <p class="mt-1 text-xs text-ink-mute">Selected: {{ selectedFile()?.name }}</p>
-            }
-          </div>
-
-          <div class="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label for="storageProvider" class="block text-sm font-medium text-ink">Provider</label>
-              <select
-                id="storageProvider"
-                formControlName="storageProvider"
-                class="mt-1 block w-full rounded-md border border-input bg-canvas-soft px-3 py-2 text-sm text-ink focus-ring-primary"
-              >
-                <option value="R2">R2</option>
-                <option value="CLOUDINARY">Cloudinary</option>
-                <option value="EXTERNAL">External</option>
-              </select>
-            </div>
-            <div>
-              <label for="objectKey" class="block text-sm font-medium text-ink">Object key</label>
-              <input
-                id="objectKey"
-                type="text"
-                formControlName="objectKey"
-                class="mt-1 block w-full rounded-md border border-input bg-canvas-soft px-3 py-2 text-sm text-ink placeholder-ink-mute focus-ring-primary"
-              />
-            </div>
-          </div>
-        }
-
-        <div>
-          <label for="description" class="block text-sm font-medium text-ink">Description</label>
-          <textarea
-            id="description"
-            formControlName="description"
-            rows="3"
-            class="mt-1 block w-full rounded-md border border-input bg-canvas-soft px-3 py-2 text-sm text-ink placeholder-ink-mute focus-ring-primary"
-          ></textarea>
-        </div>
-
-        <div class="flex items-center gap-2">
-          <input
-            id="visibleToParticipants"
-            type="checkbox"
-            formControlName="visibleToParticipants"
-            class="h-4 w-4 rounded border-input text-primary focus-ring-primary"
-          />
-          <label for="visibleToParticipants" class="text-sm text-ink">Visible to participants</label>
-        </div>
-
-        <div class="flex justify-end gap-3 pt-2">
-          <app-button type="button" variant="ghost" (clicked)="closeModal()">Cancel</app-button>
-          <app-button type="submit" [loading]="isSubmitting()">
-            {{ editingResource() ? 'Save changes' : 'Create resource' }}
-          </app-button>
-        </div>
-      </form>
-    </div>
-  </div>
 }
