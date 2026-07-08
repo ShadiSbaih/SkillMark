@@ -99,7 +99,7 @@
         <div class="org-switcher">
           <label for="org-select">Organization</label>
           @if (listQuery.isLoading()) {
-            <span class="org-state">Loading…</span>
+            <app-loading-state class="org-state" message="Loading teams…" />
           } @else if (listQuery.error()) {
             <span class="org-state org-error">Failed to load</span>
           } @else {

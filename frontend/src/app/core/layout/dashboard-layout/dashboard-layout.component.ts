@@ -11,6 +11,7 @@ import { filter, map, startWith } from 'rxjs';
 import { AuthService } from '../../auth/auth.service';
 import { OrganizationsService } from '../../../services/organizations.service';
 import { OrganizationResponse } from '../../models/organization.model';
+import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state.component';
 
 interface NavLink {
   label: string;
@@ -20,7 +21,7 @@ interface NavLink {
 @Component({
   selector: 'app-dashboard-layout',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, LoadingStateComponent],
   templateUrl: './dashboard-layout.component.html',
   styleUrl: './dashboard-layout.component.scss',
 })

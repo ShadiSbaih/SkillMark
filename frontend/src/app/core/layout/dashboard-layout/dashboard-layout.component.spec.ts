@@ -6,6 +6,7 @@ import { AuthService } from '../../auth/auth.service';
 import { OrganizationsService } from '../../../services/organizations.service';
 import { OrganizationResponse } from '../../models/organization.model';
 import { PageResponse } from '../../api/api-response.model';
+import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state.component';
 import { DashboardLayoutComponent } from './dashboard-layout.component';
 
 class FakeAuthService {
@@ -104,6 +105,7 @@ describe('DashboardLayoutComponent', () => {
             RouterLink,
             RouterLinkActive,
             RouterOutlet,
+            LoadingStateComponent,
           ],
         },
       })
@@ -170,7 +172,7 @@ describe('DashboardLayoutComponent', () => {
     organizationsService.setLoading();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Loading…');
+    expect(fixture.nativeElement.textContent).toContain('Loading teams…');
   });
 
   it('shows error state in the organization switcher', () => {
