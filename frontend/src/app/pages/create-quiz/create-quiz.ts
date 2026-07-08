@@ -8,7 +8,7 @@ import { QuizzesService } from '../../services/quizzes.service';
 import { ButtonComponent } from '../../shared/components/button/button.component';
 import { CardComponent } from '../../shared/components/card/card.component';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
-import { CertificateIssueMode, CreateQuizRequest } from '../../core/models/quiz.model';
+import { CreateQuizRequest } from '../../core/models/quiz.model';
 
 @Component({
   selector: 'app-create-quiz',
@@ -40,7 +40,6 @@ export class CreateQuiz {
     durationMinutes: [30, [Validators.required, Validators.min(1)]],
     maxAttempts: [1, [Validators.required, Validators.min(1)]],
     certificateEnabled: [true],
-    certificateIssueMode: ['AUTO' as CertificateIssueMode],
   });
 
   readonly certificateEnabled = computed(() => this.form.value.certificateEnabled);
@@ -66,7 +65,7 @@ export class CreateQuiz {
       durationMinutes: value.durationMinutes ?? 30,
       maxAttempts: value.maxAttempts ?? 1,
       certificateEnabled: value.certificateEnabled ?? true,
-      certificateIssueMode: value.certificateEnabled ? (value.certificateIssueMode ?? 'AUTO') : 'NONE',
+      certificateIssueMode: value.certificateEnabled ? 'AUTO' : 'NONE',
     };
 
     this.quizzesService.createMutation.mutate(

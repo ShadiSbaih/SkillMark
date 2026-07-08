@@ -3,8 +3,8 @@ import { DatePipe } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
+import { ProgramsService } from '../../services/programs.service';
 import { QuizzesService } from '../../services/quizzes.service';
-import { BadgeComponent } from '../../shared/components/badge/badge.component';
 import { ButtonComponent } from '../../shared/components/button/button.component';
 import { CardComponent } from '../../shared/components/card/card.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
@@ -18,7 +18,6 @@ import { QuizStatus } from '../../core/models/quiz.model';
   standalone: true,
   imports: [
     DatePipe,
-    BadgeComponent,
     ButtonComponent,
     CardComponent,
     EmptyStateComponent,
@@ -32,7 +31,14 @@ import { QuizStatus } from '../../core/models/quiz.model';
 export class ProgramQuizzes {
   private readonly route = inject(ActivatedRoute);
   readonly router = inject(Router);
+  readonly programsService = inject(ProgramsService);
   readonly quizzesService = inject(QuizzesService);
+
+  readonly programQuery = this.programsService.getProgramQuery(() => this.programId());
+  readonly pageTitle = computed(() => {
+    const title = this.programQuery.data()?.title;
+    return title ? `Quizzes: ${title}` : 'Quizzes';
+  });
 
   readonly programId = toSignal(
     this.route.paramMap.pipe(map((params) => params.get('programId'))),
@@ -66,6 +72,6 @@ export class ProgramQuizzes {
   }
 
   goBack(): void {
-    this.router.navigate(['/programs', this.programId()]);
+    void this.router.navigate(['/programs', this.programId()]);
   }
 }

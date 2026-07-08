@@ -43,16 +43,6 @@
       <input type="checkbox" formControlName="certificateEnabled" class="!w-auto" />
     </div>
 
-    @if (certificateEnabled()) {
-      <label>
-        <span>Certificate issue mode</span>
-        <select formControlName="certificateIssueMode">
-          <option value="AUTO">Automatic</option>
-          <option value="MANUAL">Manual</option>
-        </select>
-      </label>
-    }
-
     <div class="button-row">
       <app-button
         type="submit"
