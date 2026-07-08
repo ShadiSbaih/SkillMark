@@ -1,95 +1,45 @@
-@if (programQuery.isPending()) {
+@if (programQuery.error()) {
+  <app-error-state [message]="programQuery.error()?.message ?? 'Failed to load program'" (retry)="programQuery.refetch()" />
+} @else if (programQuery.isPending()) {
   <app-loading-state message="Loading program..." />
-} @else if (programQuery.isError()) {
-  <app-error-state
-    [message]="programQuery.error()?.message ?? 'Failed to load program'"
-    (retry)="programQuery.refetch()"
-  />
 } @else {
-  <app-page-header
-    [title]="title()"
-    subtitle="Your learning materials and quizzes."
-  />
+  <app-page-header [title]="'Learn: ' + (programQuery.data()?.title ?? 'Program')" subtitle="Resources and quizzes for this program." />
 
-  <div class="two-column mt-8">
-    <app-card>
-      <div class="panel-header">
-        <h2>Resources</h2>
-      </div>
-
-      @if (resourcesQuery.isPending()) {
-        <app-loading-state message="Loading resources..." />
-      } @else if (resourcesQuery.isError()) {
-        <app-error-state
-          [message]="resourcesQuery.error()?.message ?? 'Failed to load resources'"
-          (retry)="resourcesQuery.refetch()"
-        />
-      } @else if (visibleResources().length === 0) {
-        <app-empty-state
-          title="No resources yet"
-          description="Resources for this program will appear here once added."
-        />
-      } @else {
-        <div class="stack">
-          @for (resource of visibleResources(); track resource.id) {
-            <div class="list-row">
-              <div class="flex items-center gap-3 min-w-0">
-                <span class="text-xl">{{ typeIcon(resource.type) }}</span>
-                <div class="min-w-0">
-                  <p class="font-medium truncate">{{ resource.title }}</p>
-                  @if (resource.description) {
-                    <p class="text-sm text-ink-mute line-clamp-2">{{ resource.description }}</p>
-                  }
-                </div>
-              </div>
-              <app-button
-                size="sm"
-                [disabled]="!resource.url"
-                (clicked)="openResource(resource)"
-              >
-                Open
-              </app-button>
+  <app-card>
+    <h2>Resources</h2>
+    @if (resources().length === 0) {
+      <app-empty-state title="No resources available." />
+    } @else {
+      <div class="stack">
+        @for (r of resources(); track r.id) {
+          <div class="list-row-link">
+            <div>
+              <p class="font-medium">{{ r.title }}</p>
+              <p class="text-sm text-ink-mute">{{ r.description }}</p>
             </div>
-          }
-        </div>
-      }
-    </app-card>
-
-    <app-card>
-      <div class="panel-header">
-        <h2>Quizzes</h2>
+            <a class="button button-secondary" [href]="r.url" target="_blank" rel="noopener">Open</a>
+          </div>
+        }
       </div>
+    }
+  </app-card>
 
-      @if (quizzesQuery.isPending()) {
-        <app-loading-state message="Loading quizzes..." />
-      } @else if (quizzesQuery.isError()) {
-        <app-error-state
-          [message]="quizzesQuery.error()?.message ?? 'Failed to load quizzes'"
-          (retry)="quizzesQuery.refetch()"
-        />
-      } @else if (visibleQuizzes().length === 0) {
-        <app-empty-state
-          title="No quizzes yet"
-          description="Quizzes will appear here once published."
-        />
-      } @else {
-        <div class="stack">
-          @for (quiz of visibleQuizzes(); track quiz.id) {
-            <div class="list-row">
-              <div class="min-w-0">
-                <p class="font-medium">{{ quiz.title }}</p>
-                <p class="text-sm text-ink-mute">{{ quizSubtitle(quiz) }}</p>
-              </div>
-              <app-button
-                size="sm"
-                (clicked)="router.navigate(['/quizzes', quiz.id, 'attempt'])"
-              >
-                Start
-              </app-button>
+  <app-card>
+    <h2>Quizzes</h2>
+    @if (quizzes().length === 0) {
+      <app-empty-state title="No quizzes available." />
+    } @else {
+      <div class="stack">
+        @for (q of quizzes(); track q.id) {
+          <div class="list-row-link">
+            <div>
+              <p class="font-medium">{{ q.title }}</p>
+              <p class="text-sm text-ink-mute">Duration: {{ q.durationMinutes }} min | Passing: {{ q.passingScore }}%</p>
             </div>
-          }
-        </div>
-      }
-    </app-card>
-  </div>
+            <a class="button button-primary" [routerLink]="['/quizzes', q.id, 'attempt']">Start</a>
+          </div>
+        }
+      </div>
+    }
+  </app-card>
 }

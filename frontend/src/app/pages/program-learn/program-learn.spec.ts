@@ -1,8 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter, Router, ActivatedRoute } from '@angular/router';
+import { provideRouter } from '@angular/router';
 import { provideQueryClient, QueryClient } from '@tanstack/angular-query-experimental';
 import { signal } from '@angular/core';
-import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProgramLearn } from './program-learn';
 import { ProgramsService } from '../../services/programs.service';
@@ -39,7 +38,7 @@ class FakeProgramsService {
     return this._refetchSpy;
   }
 
-  getProgramQuery() {
+  getProgramQuery(_programId: () => string | null) {
     return {
       isPending: () => this.queryState().isPending,
       isError: () => this.queryState().isError,
@@ -118,7 +117,6 @@ describe('ProgramLearn', () => {
   let programsService: FakeProgramsService;
   let resourcesService: FakeResourcesService;
   let quizzesService: FakeQuizzesService;
-  let router: Router;
 
   const program: ProgramResponse = {
     id: 'program-1',
@@ -193,20 +191,12 @@ describe('ProgramLearn', () => {
         { provide: ProgramsService, useValue: programsService },
         { provide: ResourcesService, useValue: resourcesService },
         { provide: QuizzesService, useValue: quizzesService },
-        {
-          provide: ActivatedRoute,
-          useValue: {
-            paramMap: of({ get: () => 'program-1' }),
-          },
-        },
       ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ProgramLearn);
     component = fixture.componentInstance;
-    router = TestBed.inject(Router);
-    vi.spyOn(router, 'navigate');
-    vi.spyOn(window, 'open').mockImplementation(() => null);
+    fixture.componentRef.setInput('programId', 'program-1');
   });
 
   it('should create', () => {
@@ -238,78 +228,83 @@ describe('ProgramLearn', () => {
     programsService.setData(program);
     fixture.detectChanges();
 
-    expect(component.title()).toBe('Learn: Git Fundamentals');
     expect(fixture.nativeElement.textContent).toContain('Learn: Git Fundamentals');
+    expect(fixture.nativeElement.textContent).toContain('Resources and quizzes for this program.');
   });
 
-  it('should filter visible active resources', () => {
+  it('should set list params when programId is provided', () => {
+    programsService.setData(program);
+    fixture.detectChanges();
+
+    expect(resourcesService.listParams()).toEqual({ programId: 'program-1', page: 0, size: 50 });
+    expect(quizzesService.listParams()).toEqual({ programId: 'program-1', page: 0, size: 10 });
+  });
+
+  it('should filter visible resources', () => {
     programsService.setData(program);
     resourcesService.setData([activeResource, hiddenResource]);
     quizzesService.setData([]);
     fixture.detectChanges();
 
-    expect(component.visibleResources().length).toBe(1);
-    expect(component.visibleResources()[0].id).toBe('resource-1');
+    expect(component.resources().length).toBe(1);
+    expect(component.resources()[0].id).toBe('resource-1');
   });
 
-  it('should filter published visible quizzes', () => {
+  it('should filter published quizzes', () => {
     programsService.setData(program);
     resourcesService.setData([]);
     quizzesService.setData([publishedQuiz, draftQuiz]);
     fixture.detectChanges();
 
-    expect(component.visibleQuizzes().length).toBe(1);
-    expect(component.visibleQuizzes()[0].id).toBe('quiz-1');
+    expect(component.quizzes().length).toBe(1);
+    expect(component.quizzes()[0].id).toBe('quiz-1');
   });
 
-  it('should render resources with open button', () => {
+  it('should render resources with open link', () => {
     programsService.setData(program);
     resourcesService.setData([activeResource]);
     quizzesService.setData([]);
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Git Cheat Sheet');
-    expect(fixture.nativeElement.textContent).toContain('Open');
+    expect(fixture.nativeElement.textContent).toContain('A helpful cheat sheet.');
+
+    const link = fixture.nativeElement.querySelector('a.button-secondary');
+    expect(link).toBeTruthy();
+    expect(link.getAttribute('href')).toBe('https://example.com/git');
+    expect(link.getAttribute('target')).toBe('_blank');
+    expect(link.getAttribute('rel')).toContain('noopener');
   });
 
-  it('should open resource url when open button is clicked', () => {
+  it('should render empty resource state when no visible resources', () => {
     programsService.setData(program);
-    resourcesService.setData([activeResource]);
+    resourcesService.setData([]);
     quizzesService.setData([]);
     fixture.detectChanges();
 
-    component.openResource(activeResource);
-    expect(window.open).toHaveBeenCalledWith('https://example.com/git', '_blank', 'noopener,noreferrer');
+    expect(fixture.nativeElement.textContent).toContain('No resources available.');
   });
 
-  it('should render quizzes with start button', () => {
+  it('should render quizzes with start link', () => {
     programsService.setData(program);
     resourcesService.setData([]);
     quizzesService.setData([publishedQuiz]);
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Git Basics Quiz');
-    expect(fixture.nativeElement.textContent).toContain('Start');
+    expect(fixture.nativeElement.textContent).toContain('Duration: 15 min | Passing: 70%');
+
+    const link = fixture.nativeElement.querySelector('a.button-primary');
+    expect(link).toBeTruthy();
+    expect(link.getAttribute('href')).toBe('/quizzes/quiz-1/attempt');
   });
 
-  it('should navigate to quiz attempt when start button is clicked', () => {
+  it('should render empty quiz state when no published quizzes', () => {
     programsService.setData(program);
     resourcesService.setData([]);
-    quizzesService.setData([publishedQuiz]);
+    quizzesService.setData([]);
     fixture.detectChanges();
 
-    component.router.navigate(['/quizzes', 'quiz-1', 'attempt']);
-    expect(router.navigate).toHaveBeenCalledWith(['/quizzes', 'quiz-1', 'attempt']);
-  });
-
-  it('should compute quiz subtitle', () => {
-    expect(component.quizSubtitle(publishedQuiz)).toBe('1 question · 70% to pass · 15 min');
-  });
-
-  it('should return type icons', () => {
-    expect(component.typeIcon('LINK')).toBe('🔗');
-    expect(component.typeIcon('FILE')).toBe('📄');
-    expect(component.typeIcon('IMAGE')).toBe('🖼️');
-    expect(component.typeIcon('VIDEO_LINK')).toBe('🎬');
+    expect(fixture.nativeElement.textContent).toContain('No quizzes available.');
   });
 });
