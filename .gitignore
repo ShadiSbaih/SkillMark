@@ -21,3 +21,5 @@
 .agents/*
 .kimchi/*
 .worktrees/
+
+.jdk/*
