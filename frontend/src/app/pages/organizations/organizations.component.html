@@ -1,135 +1,62 @@
-@if (!isOverview()) {
-  <!-- list view -->
-  <app-page-header title="Organizations" subtitle="Manage your learning organizations." [hasActions]="true">
-    <ng-container actions>
-      <app-button (clicked)="router.navigate(['/organizations/new'])">Create organization</app-button>
-    </ng-container>
-  </app-page-header>
+<app-page-header title="My Organizations" subtitle="Organizations you own or participate in." [hasActions]="true">
+  <ng-container actions>
+    <app-button (clicked)="router.navigate(['/organizations/new'])">Create organization</app-button>
+  </ng-container>
+</app-page-header>
 
-  @if (listQuery.isPending()) {
-    <app-loading-state message="Loading organizations..." />
-  } @else if (listQuery.isError()) {
-    <app-error-state [message]="listQuery.error()?.message ?? 'Failed to load organizations'" (retry)="listQuery.refetch()" />
-  } @else if (listQuery.data()?.items?.length === 0) {
-    <app-card>
-      <app-empty-state
-        title="No organizations"
-        description="You have not created any organizations yet."
-        actionLabel="Create organization"
-        (action)="router.navigate(['/organizations/new'])"
-      />
-    </app-card>
-  } @else {
-    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      @for (org of listQuery.data()?.items; track org.id) {
-        <app-card [interactive]="true" (click)="router.navigate(['/organizations', org.id])">
-          <div class="flex flex-col justify-between h-full min-h-[140px]">
-            <div>
-              <h3 class="text-lg font-semibold text-ink mb-1">{{ org.name }}</h3>
-              @if (org.description) {
-                <p class="line-clamp-2 text-sm text-ink-mute mb-4">{{ org.description }}</p>
-              }
-            </div>
-            <div class="flex items-center justify-between mt-auto pt-4 border-t border-light">
-              <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-                [class]="org.status === 'ACTIVE' ? 'badge-subtle-green' : 'badge-subtle-gray'">
-                {{ org.status }}
-              </span>
-              <span class="text-xs text-primary font-semibold flex items-center gap-1">
-                Manage
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
-                </svg>
-              </span>
-            </div>
-          </div>
-        </app-card>
-      }
-    </div>
-  }
+@if (listQuery.isPending()) {
+  <app-loading-state message="Loading organizations..." />
+} @else if (listQuery.isError()) {
+  <app-error-state [message]="listQuery.error()?.message ?? 'Failed to load organizations'" (retry)="listQuery.refetch()" />
+} @else if (listData()?.items?.length === 0) {
+  <app-card>
+    <app-empty-state
+      title="No organizations yet"
+      description="You have not created or joined any organizations yet."
+      actionLabel="Create organization"
+      (action)="router.navigate(['/organizations/new'])"
+    />
+  </app-card>
 } @else {
-  <!-- overview view -->
-  @if (organizationQuery.isPending()) {
-    <app-loading-state message="Loading organization..." />
-  } @else if (organizationQuery.isError()) {
-    <app-error-state [message]="organizationQuery.error()?.message ?? 'Failed to load organization'" (retry)="organizationQuery.refetch()" />
-  } @else {
-    @let org = organizationQuery.data();
-    <app-page-header [title]="org?.name ?? 'Organization'" [subtitle]="org?.description ?? 'Overview'" [hasActions]="true">
-      <ng-container actions>
-        <app-button variant="secondary" (clicked)="router.navigate(['/organizations'])">Back</app-button>
-        <app-button (clicked)="router.navigate(['/organizations', orgId(), 'programs', 'new'])">New program</app-button>
-      </ng-container>
-    </app-page-header>
-
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <app-card>
-        <p class="text-xs font-medium uppercase text-ink-mute">Status</p>
-        <div class="mt-2">
-          <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-            [class]="org?.status === 'ACTIVE' ? 'badge-subtle-green' : 'badge-subtle-gray'">
-            {{ org?.status }}
-          </span>
-        </div>
-      </app-card>
-      <app-card>
-        <p class="text-xs font-medium uppercase text-ink-mute">Programs</p>
-        <p class="mt-1 text-2xl font-bold text-ink">{{ programsQuery.data()?.totalElements ?? 0 }}</p>
-      </app-card>
-      <app-card>
-        <p class="text-xs font-medium uppercase text-ink-mute">Members</p>
-        <p class="mt-1 text-2xl font-bold text-ink">{{ membershipsQuery.data()?.totalElements ?? 0 }}</p>
-      </app-card>
-      <app-card>
-        <p class="text-xs font-medium uppercase text-ink-mute">Created</p>
-        <p class="mt-2 text-sm font-medium text-ink">{{ org?.createdAt | date:'mediumDate' }}</p>
-      </app-card>
-    </div>
-
-    <div class="mt-8">
-      <h2 class="mb-4 text-lg font-semibold text-ink">Recent programs</h2>
-
-      @if (programsQuery.isPending()) {
-        <app-loading-state message="Loading programs..." />
-      } @else if (programsQuery.isError()) {
-        <app-error-state [message]="programsQuery.error()?.message ?? 'Failed to load programs'" (retry)="programsQuery.refetch()" />
-      } @else if (programsQuery.data()?.items?.length === 0) {
-        <app-card>
-          <app-empty-state
-            title="No programs yet"
-            description="Create your first program to start building quizzes and inviting participants."
-            actionLabel="Create program"
-            (action)="router.navigate(['/organizations', orgId(), 'programs', 'new'])"
-          />
-        </app-card>
-      } @else {
-        <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          @for (program of programsQuery.data()?.items; track program.id) {
-            <app-card [interactive]="true" (click)="router.navigate(['/programs', program.id])">
-              <div class="flex flex-col justify-between h-full min-h-[140px]">
-                <div>
-                  <h3 class="text-lg font-semibold text-ink mb-1">{{ program.title }}</h3>
-                  @if (program.description) {
-                    <p class="line-clamp-2 text-sm text-ink-mute mb-4">{{ program.description }}</p>
-                  }
-                </div>
-                <div class="flex items-center justify-between mt-auto pt-4 border-t border-light">
-                  <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-                    [class]="program.status === 'PUBLISHED' ? 'badge-subtle-green' : 'badge-subtle-gray'">
-                    {{ program.status }}
-                  </span>
-                  <span class="text-xs text-primary font-semibold flex items-center gap-1">
-                    Open
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
-                    </svg>
-                  </span>
-                </div>
-              </div>
-            </app-card>
+  @let data = listData();
+  <app-card>
+    <div class="table-wrap">
+      <table class="w-full text-left text-sm">
+        <thead>
+          <tr class="border-b border-light">
+            <th class="py-3 px-4 font-medium text-ink-mute">Name</th>
+            <th class="py-3 px-4 font-medium text-ink-mute">Slug</th>
+            <th class="py-3 px-4 font-medium text-ink-mute">Role</th>
+            <th class="py-3 px-4 font-medium text-ink-mute">Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (org of data?.items; track trackById($index, org)) {
+            <tr class="border-b border-light last:border-b-0 hover:bg-canvas-soft">
+              <td class="py-3 px-4">
+                <a class="font-medium text-primary hover:underline" [routerLink]="['/organizations', org.id]">{{ org.name }}</a>
+              </td>
+              <td class="py-3 px-4 text-ink-mute">{{ slugFromName(org.name) }}</td>
+              <td class="py-3 px-4">
+                <app-badge variant="default">Owner</app-badge>
+              </td>
+              <td class="py-3 px-4 text-ink-mute">{{ org.createdAt | date:'mediumDate' }}</td>
+            </tr>
           }
-        </div>
-      }
+        </tbody>
+      </table>
     </div>
-  }
+
+    @if (data && data.totalPages > 1) {
+      <app-pagination
+        [page]="data.page"
+        [size]="data.size"
+        [totalElements]="data.totalElements"
+        [totalPages]="data.totalPages"
+        [hasNext]="data.page < data.totalPages - 1"
+        [hasPrevious]="data.page > 0"
+        (pageChange)="onPageChange($event)"
+      />
+    }
+  </app-card>
 }
