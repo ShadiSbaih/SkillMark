@@ -2,7 +2,7 @@ import { Component, effect, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { toast } from 'ngx-sonner';
 import { UsersService } from '../../services/users.service';
-import { AvatarComponent } from '../../shared/components/avatar/avatar';
+import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 import { ButtonComponent } from '../../shared/components/button/button.component';
 import { CardComponent } from '../../shared/components/card/card.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';

@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { Component, EventEmitter, input, output, Output } from '@angular/core';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type ButtonSize = 'sm' | 'md' | 'lg';
@@ -11,7 +11,7 @@ type ButtonSize = 'sm' | 'md' | 'lg';
       [type]="type()"
       [disabled]="disabled() || loading()"
       [class]="classes()"
-      (click)="clicked.emit($event)"
+      (click)="handleClick($event)"
     >
       @if (loading()) {
         <span class="spinner"></span>
@@ -27,11 +27,20 @@ export class ButtonComponent {
   readonly type = input<'button' | 'submit' | 'reset'>('button');
   readonly disabled = input(false);
   readonly loading = input(false);
+  readonly fullWidth = input(false);
+
   readonly clicked = output<MouseEvent>();
+  @Output('onClick') readonly onClick = new EventEmitter<Event>();
+
+  handleClick(event: MouseEvent): void {
+    this.clicked.emit(event);
+    this.onClick.emit(event);
+  }
 
   readonly classes = () => {
     const variant = `app-button-${this.variant()}`;
     const size = `app-button-${this.size()}`;
-    return `app-button ${variant} ${size}`;
+    const width = this.fullWidth() ? 'app-button-full-width' : '';
+    return `app-button ${variant} ${size} ${width}`.trim();
   };
 }

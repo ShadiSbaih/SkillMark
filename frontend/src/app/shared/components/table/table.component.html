@@ -1,0 +1,40 @@
+<div class="app-table-wrapper">
+  @if (loading()) {
+    <app-loading-state [message]="loadingMessage()" />
+  } @else if (error()) {
+    <app-error-state [message]="error()" (retry)="retry.emit()" />
+  } @else if (items().length === 0) {
+    <app-empty-state title="No data" [description]="emptyMessage()" />
+  } @else {
+    <table class="app-table">
+      <thead>
+        <tr>
+          @for (header of headers(); track header) {
+            <th>{{ header }}</th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of items(); track trackRow($index, item)) {
+          <tr>
+            @for (header of headers(); track header) {
+              <td>
+                @let column = columnTemplateFor(header);
+                @if (column) {
+                  <ng-container
+                    *ngTemplateOutlet="
+                      column.templateRef;
+                      context: { $implicit: item, item: item, value: cellValue(item, header) }
+                    "
+                  />
+                } @else {
+                  {{ cellValue(item, header) }}
+                }
+              </td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>

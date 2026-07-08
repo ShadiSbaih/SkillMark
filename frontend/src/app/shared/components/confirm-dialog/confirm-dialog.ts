@@ -1,28 +1,28 @@
 import { Component, input, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ModalComponent } from '../modal/modal.component';
 
 @Component({
   selector: 'app-confirm-dialog',
   standalone: true,
-  imports: [CommonModule],
+  imports: [ModalComponent],
   templateUrl: './confirm-dialog.html',
-  styles: ``,
 })
-export class ConfirmDialog {
-  title = input<string>('Confirm');
-  message = input<string>('Are you sure?');
-  confirmLabel = input<string>('Confirm');
-  cancelLabel = input<string>('Cancel');
-  isDanger = input<boolean>(false);
+export class ConfirmDialogComponent {
+  readonly open = input.required<boolean>();
+  readonly title = input<string>('Confirm');
+  readonly message = input<string>('Are you sure?');
+  readonly confirmText = input<string>('Confirm');
+  readonly cancelText = input<string>('Cancel');
+  readonly confirmVariant = input<'primary' | 'danger'>('primary');
 
-  confirmed = output<void>();
-  cancelled = output<void>();
+  readonly confirm = output<void>();
+  readonly cancel = output<void>();
 
   onConfirm(): void {
-    this.confirmed.emit();
+    this.confirm.emit();
   }
 
   onCancel(): void {
-    this.cancelled.emit();
+    this.cancel.emit();
   }
 }

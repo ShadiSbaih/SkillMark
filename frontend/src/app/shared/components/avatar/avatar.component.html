@@ -5,7 +5,7 @@
 >
   @if (src() && !imgError()) {
     <img [src]="src()" [alt]="alt()" (error)="onImageError()" />
-  } @else if (fallback()) {
-    <span class="fallback">{{ fallback() }}</span>
+  } @else {
+    <span class="avatar-initials">{{ initials() }}</span>
   }
 </div>

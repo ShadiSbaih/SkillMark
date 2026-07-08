@@ -1,0 +1,40 @@
+.app-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.app-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+}
+
+.app-table thead {
+  background: var(--canvas-soft);
+}
+
+.app-table th,
+.app-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.app-table th {
+  font-weight: 500;
+  color: var(--ink-secondary);
+  font-size: 13px;
+}
+
+.app-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.app-table tbody tr:hover {
+  background: var(--canvas-soft);
+}

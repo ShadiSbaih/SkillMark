@@ -1,0 +1,36 @@
+.app-breadcrumb {
+  font-size: 14px;
+  color: var(--ink-mute);
+}
+
+.app-breadcrumb ol {
+  display: flex;
+  align-items: center;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex-wrap: wrap;
+}
+
+.app-breadcrumb-item {
+  display: inline-flex;
+  align-items: center;
+}
+
+.app-breadcrumb-item a {
+  color: var(--ink-mute);
+  transition: color 0.15s ease;
+}
+
+.app-breadcrumb-item a:hover {
+  color: var(--primary);
+}
+
+.app-breadcrumb-item span {
+  color: var(--ink);
+}
+
+.app-breadcrumb-separator {
+  margin: 0 8px;
+  color: var(--ink-mute);
+}
