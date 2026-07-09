@@ -44,6 +44,7 @@ export class Profile {
   readonly avatarUrl = computed(() => this.meQuery.data()?.avatarUrl ?? undefined);
   readonly displayName = computed(() => this.meQuery.data()?.name ?? this.authUser()?.name ?? '');
   readonly email = computed(() => this.meQuery.data()?.email ?? this.authUser()?.email ?? '');
+  readonly userId = computed(() => this.meQuery.data()?.id ?? '');
 
   readonly form = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(100)]],

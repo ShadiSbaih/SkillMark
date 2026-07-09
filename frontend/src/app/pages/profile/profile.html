@@ -58,6 +58,21 @@
         />
       </app-form-field>
 
+      <app-form-field
+        id="userId"
+        label="User ID"
+        hint="Share this ID with organization owners so they can invite you to their organization."
+      >
+        <input
+          id="userId"
+          type="text"
+          [value]="userId()"
+          readonly
+          class="form-input bg-canvas-soft"
+          onclick="this.select()"
+        />
+      </app-form-field>
+
       <div class="flex justify-end gap-3">
         <app-button
           type="button"
