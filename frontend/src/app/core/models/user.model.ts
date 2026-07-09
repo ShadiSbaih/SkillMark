@@ -1,6 +1,5 @@
 export interface UserResponse {
   id: string;
-  clerkUserId: string;
   email: string;
   name: string | null;
   avatarUrl: string | null;
@@ -8,7 +7,7 @@ export interface UserResponse {
   createdAt: string;
 }
 
-export interface SyncUserRequest {
+export interface UpdateUserProfileRequest {
   email: string;
   name?: string;
   avatarUrl?: string;

@@ -26,7 +26,7 @@ The frontend consumes the Skillmark backend REST API and provides:
 | Angular Router              | Client-side routing                   |
 | Angular Reactive Forms      | Form management and validation        |
 | Angular HTTP Client         | API communication                     |
-| Clerk Angular SDK           | Authentication and session management |
+| Auth Angular SDK           | Authentication and session management |
 | TailwindCSS                 | Utility-first styling                 |
 | Angular Material or PrimeNG | UI component library                  |
 | Chart.js or NgRx Charts     | Statistics charts                     |
@@ -37,9 +37,9 @@ The frontend consumes the Skillmark backend REST API and provides:
 
 ## 1.3 Authentication Strategy
 
-The frontend uses **Clerk** for authentication.
+The frontend uses **Auth** for authentication.
 
-Clerk responsibilities:
+Auth responsibilities:
 
 - sign up page
 - sign in page
@@ -50,8 +50,8 @@ Clerk responsibilities:
 
 Frontend responsibilities:
 
-- attach Clerk JWT token to every API request via HTTP interceptor
-- redirect unauthenticated users to Clerk sign-in
+- attach Auth JWT token to every API request via HTTP interceptor
+- redirect unauthenticated users to Auth sign-in
 - detect session expiry and re-authenticate
 - call backend user sync on first login
 
@@ -182,7 +182,7 @@ It always has:
 Used for:
 
 - Certificate Verification page
-- Sign In / Sign Up pages (Clerk hosted or embedded)
+- Sign In / Sign Up pages (Auth hosted or embedded)
 - 404 page
 - Landing page (optional)
 
@@ -205,8 +205,8 @@ Used for:
 | Page                     | Route                         | Description                          |
 | ------------------------ | ----------------------------- | ------------------------------------ |
 | Landing Page             | `/`                         | Product intro, sign in / sign up CTA |
-| Sign In                  | `/sign-in`                  | Clerk sign in (embedded or hosted)   |
-| Sign Up                  | `/sign-up`                  | Clerk sign up (embedded or hosted)   |
+| Sign In                  | `/sign-in`                  | Auth sign in (embedded or hosted)   |
+| Sign Up                  | `/sign-up`                  | Auth sign up (embedded or hosted)   |
 | Certificate Verification | `/verify/:verificationCode` | Public certificate lookup            |
 | 404 Not Found            | `/**`                       | Fallback not found page              |
 
@@ -1024,14 +1024,14 @@ src/
   app/
     core/
       interceptors/
-        auth.interceptor.ts       ← Attaches Clerk JWT to requests
+        auth.interceptor.ts       ← Attaches Auth JWT to requests
         error.interceptor.ts      ← Global HTTP error handling
       guards/
-        auth.guard.ts             ← Requires Clerk session
+        auth.guard.ts             ← Requires Auth session
         owner.guard.ts            ← Requires OWNER role in org
       services/
         api.service.ts            ← Base HTTP service
-        auth.service.ts           ← Clerk session management
+        auth.service.ts           ← Auth session management
         user.service.ts           ← Current user profile
 
     shared/
@@ -1063,7 +1063,7 @@ src/
 
 | Service                 | Responsibilities                               |
 | ----------------------- | ---------------------------------------------- |
-| `AuthService`         | Clerk sign in, sign out, session, current user |
+| `AuthService`         | Auth sign in, sign out, session, current user |
 | `UserService`         | Backend user profile, sync                     |
 | `OrganizationService` | CRUD for organizations, member management      |
 | `ProgramService`      | CRUD for programs, status changes              |
@@ -1088,8 +1088,8 @@ src/
 ### Auth Interceptor
 
 ```typescript
-// Attaches Clerk JWT token to every outgoing request
-// Reads token from Clerk session
+// Attaches Auth JWT token to every outgoing request
+// Reads token from Auth session
 // Adds Authorization: Bearer <token> header
 ```
 
@@ -1111,7 +1111,7 @@ src/
 ### AuthGuard
 
 ```typescript
-// Checks if user has an active Clerk session
+// Checks if user has an active Auth session
 // Redirects to /sign-in if not authenticated
 ```
 
@@ -1190,7 +1190,7 @@ The quiz attempt timer runs client-side:
 
 ```
 1. Open invitation link
-2. If not logged in → redirected to Clerk sign-in
+2. If not logged in → redirected to Auth sign-in
 3. After login → redirected to invitation join flow
 4. Click [Join Program]
 5. Enrollment created → redirected to program page
@@ -1324,8 +1324,8 @@ All forms must show:
 
 ```
 /                                → Landing Page
-/sign-in                         → Clerk Sign In
-/sign-up                         → Clerk Sign Up
+/sign-in                         → Auth Sign In
+/sign-up                         → Auth Sign Up
 /verify/:code                    → Public Certificate Verification
 
 /dashboard                       → Role-aware Dashboard
@@ -1373,7 +1373,7 @@ All forms must show:
 The Skillmark Angular frontend is designed to:
 
 - consume the Skillmark REST API exclusively
-- use Clerk for all authentication flows
+- use Auth for all authentication flows
 - present different views based on organization role context
 - provide a clean owner management experience
 - provide a simple participant learning experience

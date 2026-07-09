@@ -5,6 +5,7 @@ export interface Invitation {
   organizationId: string;
   programId: string;
   code: string;
+  inviteUrl: string | null;
   description: string | null;
   maxUses: number | null;
   usedCount: number;
@@ -18,6 +19,7 @@ export interface CreateInvitationRequest {
   description: string | null;
   maxUses: number | null;
   expiresAt: string | null;
+  emails?: string[] | null;
 }
 
 export interface UpdateInvitationStatusRequest {

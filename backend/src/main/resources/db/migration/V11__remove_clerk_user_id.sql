@@ -1,2 +1,2 @@
-ALTER TABLE users
-    DROP COLUMN IF EXISTS clerk_user_id;
+-- Native authentication is now the source of identity; the legacy external
+-- identity column was removed when the schema was re-based in V1.

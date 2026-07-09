@@ -19,4 +19,9 @@ public class NoOpEmailService implements EmailService {
     public void sendPasswordResetEmail(String to, String name, String token) {
         logger.info("[NoOpEmail] Password reset email to {}: token={}", to, token);
     }
+
+    @Override
+    public void sendInvitationEmail(String to, String programName, String inviteLink) {
+        logger.info("[NoOpEmail] Invitation email to {} for program '{}': link={}", to, programName, inviteLink);
+    }
 }

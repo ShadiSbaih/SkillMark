@@ -22,7 +22,7 @@
 | Storage | `StorageController` | `/api/v1` |
 | Users (me) | `MeController` | `/api/v1/me` |
 | Users | `UserController` | `/api/v1/users` |
-| Webhooks | `ClerkWebhookController` | `/api/v1/webhooks/clerk` |
+| Webhooks | `AuthWebhookController` | `/api/v1/webhooks/auth` |
 
 ### Endpoints by domain
 
@@ -108,8 +108,7 @@
 
 #### Users
 - `GET /users/me` → `UserResponse`
-- `PATCH /users/me` → `UserResponse` (body: `SyncUserRequest`)
-- `POST /users/sync` → `UserResponse` (body: optional `SyncUserRequest`)
+- `PATCH /users/me` → `UserResponse` (body: `UpdateUserProfileRequest`)
 - Me: `GET /me/attempts` → `PageResponse<AttemptResponse>`
 - Me: `GET /me/certificates` → `PageResponse<CertificateResponse>`
 
@@ -157,7 +156,7 @@ Pages/components still containing `<p>.*works!</p>` or empty class bodies:
 - `shared/components/status-badge/*`
 
 ### Auth
-- `auth.interceptor.ts` already attaches `Authorization: Bearer <token>` from Clerk session.
+- `auth.interceptor.ts` already attaches `Authorization: Bearer <token>` from Auth session.
 - `error.interceptor.ts` must be reviewed for 401/403 handling; this is tracked in Phase 2.
 
 ## Model comparison
@@ -201,14 +200,14 @@ Backend field names differ significantly from the frontend.
 #### `user.model.ts`
 
 **`UserResponse`**
-- Frontend field: `clerkId: string`
-- Backend field: `clerkUserId: UUID`
-- Action: rename frontend `clerkId` → `clerkUserId` and treat as string.
+- Frontend field: `authId: string`
+- Backend field: `authUserId: UUID`
+- Action: rename frontend `authId` → `authUserId` and treat as string.
 
-**`SyncUserRequest`**
-- Frontend: `clerkId`, `email`, `name?`, `avatarUrl?`
-- Backend: `name`, `email`, `avatarUrl` (no `clerkId`)
-- Action: remove `clerkId` from frontend request; backend obtains identity from the authenticated session.
+**`UpdateUserProfileRequest`**
+- Frontend: `email`, `name?`, `avatarUrl?`
+- Backend: `name`, `email`, `avatarUrl`
+- Action: backend obtains identity from the authenticated session; frontend sends profile fields only.
 
 ### Missing frontend models
 
@@ -228,8 +227,8 @@ Backend field names differ significantly from the frontend.
 ### Model gaps
 1. **ManualCertificateRequest** model is missing in `attempt.model.ts`.
 2. **Stats models** (`stats.model.ts`) use wrong field names; must be updated to match backend DTOs.
-3. **User model** (`user.model.ts`) uses `clerkId` instead of backend's `clerkUserId`.
-4. **SyncUserRequest** includes `clerkId` that backend does not accept.
+3. **User model** (`user.model.ts`) uses `authId` instead of backend's `authUserId`.
+4. **SyncUserRequest** includes `authId` that backend does not accept.
 5. **AuditLogResponse**, **R2UploadUrlRequest/Response**, and **CloudinarySignatureRequest/Response** models are missing.
 
 ### Placeholder pages and components
@@ -248,7 +247,7 @@ Pages/components still containing `<p>.*works!</p>` or empty class bodies:
 - `shared/components/status-badge/*`
 
 ### Auth
-- `auth.interceptor.ts` already attaches `Authorization: Bearer <token>` from Clerk session.
+- `auth.interceptor.ts` already attaches `Authorization: Bearer <token>` from Auth session.
 - `error.interceptor.ts` must be reviewed for 401/403 handling; this is tracked in Phase 2.
 
 ## Recommendations

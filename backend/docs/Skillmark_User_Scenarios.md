@@ -151,7 +151,7 @@ Pain Points:
 
 ```
 ┌─────────────┐
-│   Sign Up   │ → Clerk authentication
+│   Sign Up   │ → Auth authentication
 └──────┬──────┘
        │
        ▼
@@ -194,7 +194,7 @@ Pain Points:
 
 ```
 ┌─────────────┐
-│   Sign Up   │ → Clerk authentication
+│   Sign Up   │ → Auth authentication
 └──────┬──────┘
        │
        ▼
@@ -243,7 +243,7 @@ Pain Points:
 Create a new workspace for the Computer Science Club to manage workshops
 
 ### 📋 Preconditions
-- Sarah has created a Clerk account
+- Sarah has created a Auth account
 - Sarah is logged in to the frontend application
 - No existing workspaces created by Sarah
 
@@ -321,8 +321,8 @@ Frontend Action:
     Authorization: Bearer eyJhbGciOiJSUzI1NiIs...
 
 Backend Processing:
-  1. Verify Clerk token ✓
-  2. Extract user from token (clerk_id: user_2a3b4c5d)
+  1. Verify Auth token ✓
+  2. Extract user from token (auth_id: user_2a3b4c5d)
   3. Look up local user → User{id: 123e4567-e89b-12d3-a456-426614174000}
   4. Validate slug uniqueness ✓
   5. Create workspace record
@@ -411,7 +411,7 @@ Frontend Detection:
   
 Frontend Action:
   - Save form data to localStorage
-  - Redirect to Clerk login
+  - Redirect to Auth login
   - After login, restore form data
   - Submit workspace creation
 ```
@@ -783,7 +783,7 @@ Response: 400 Bad Request
 Join the "Introduction to Git & GitHub" workshop using invite code
 
 ### 📋 Preconditions
-- Omar has created Clerk account and logged in
+- Omar has created Auth account and logged in
 - Sarah has published workshop and generated invite code "GIT2024WK1AB"
 - Omar received invite link via WhatsApp
 
@@ -797,7 +797,7 @@ User Action:
 Frontend Action:
   - Extract code from URL: "GIT2024WK1AB"
   - Check if user is authenticated
-  - If not, redirect to Clerk sign-in with returnTo parameter
+  - If not, redirect to Auth sign-in with returnTo parameter
   - If yes, fetch invite preview
 ```
 

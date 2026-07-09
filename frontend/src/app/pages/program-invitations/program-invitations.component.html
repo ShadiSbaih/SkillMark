@@ -5,33 +5,74 @@
 
   <app-card class="mb-6 block">
     <form
-      class="flex flex-col items-end gap-4 sm:flex-row sm:items-end"
+      class="flex flex-col gap-4"
       (submit)="$event.preventDefault(); createInvitation()"
     >
-      <div class="w-full sm:w-auto sm:min-w-48">
-        <label for="maxUses" class="mb-1 block text-sm font-medium text-ink">
-          Max uses
-        </label>
-        <input
-          id="maxUses"
-          type="number"
-          min="1"
-          [value]="maxUses()"
-          (input)="maxUses.set($any($event.target).valueAsNumber)"
-          placeholder="Unlimited"
-          class="block w-full rounded-md border border-input px-3 py-2 text-sm text-ink placeholder-ink-mute focus-ring-primary"
-        />
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div class="w-full">
+          <label for="maxUses" class="mb-1 block text-sm font-medium text-ink">
+            Max uses
+          </label>
+          <input
+            id="maxUses"
+            type="number"
+            min="1"
+            [value]="maxUses()"
+            (input)="maxUses.set($any($event.target).valueAsNumber)"
+            placeholder="Unlimited"
+            class="block w-full rounded-md border border-input px-3 py-2 text-sm text-ink placeholder-ink-mute focus-ring-primary"
+          />
+        </div>
+        <div class="w-full">
+          <label for="emails" class="mb-1 block text-sm font-medium text-ink">
+            Invite by email (optional)
+          </label>
+          <input
+            id="emails"
+            type="text"
+            [value]="emails()"
+            (input)="emails.set($any($event.target).value)"
+            placeholder="alice@acme.com, bob@acme.com"
+            class="block w-full rounded-md border border-input px-3 py-2 text-sm text-ink placeholder-ink-mute focus-ring-primary"
+          />
+        </div>
       </div>
 
-      <app-button
-        type="submit"
-        [loading]="isCreating()"
-        [disabled]="!programId() || isCreating()"
-      >
-        Create invitation
-      </app-button>
+      <div class="flex justify-end">
+        <app-button
+          type="submit"
+          [loading]="isCreating()"
+          [disabled]="!programId() || isCreating()"
+        >
+          Create invitation
+        </app-button>
+      </div>
     </form>
   </app-card>
+
+  @if (lastCreated(); as created) {
+    <app-card class="mb-6 block border-primary/40 bg-primary/5">
+      <p class="mb-2 text-sm font-medium text-ink">Shareable invitation link</p>
+      <div class="flex items-center gap-2">
+        <input
+          type="text"
+          readonly
+          [value]="created.inviteUrl ?? joinUrl(created.code)"
+          class="block w-full rounded-md border border-input bg-surface px-3 py-2 text-sm text-ink"
+        />
+        <app-button
+          variant="secondary"
+          size="sm"
+          (clicked)="copyCode(created.code)"
+        >
+          Copy
+        </app-button>
+      </div>
+      <p class="mt-2 text-xs text-ink-mute">
+        Anyone with this link can join the program. The link was also emailed to the addresses you entered.
+      </p>
+    </app-card>
+  }
 
   @switch (invitationsQuery.status()) {
     @case ('pending') {

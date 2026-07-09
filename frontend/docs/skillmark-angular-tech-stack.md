@@ -6,7 +6,7 @@ Build the Skillmark frontend as a modern Angular dashboard and participant porta
 
 This frontend will support:
 
-- Authentication with Clerk
+- Authentication with Auth
 - Organization owner dashboard
 - Program/workshop management
 - Invitation join flow
@@ -32,7 +32,7 @@ This frontend will support:
 | Server State / Cache | TanStack Query for Angular |
 | Styling | Tailwind CSS |
 | Forms | Angular Reactive Forms |
-| Authentication | Clerk |
+| Authentication | Auth |
 | Icons | lucide-angular |
 | Toasts / Notifications | ngx-sonner or a lightweight Angular toast library |
 | Charts Later | ECharts or ngx-charts |
@@ -71,7 +71,7 @@ Angular Signals
 TanStack Query for Angular
 Tailwind CSS
 Reactive Forms
-Clerk Auth
+Auth Auth
 lucide-angular
 ngx-sonner
 date-fns or Day.js
@@ -144,7 +144,7 @@ frontend/
           audit-logs.api.ts
 
         auth/
-          clerk.service.ts
+          auth.service.ts
           auth.guard.ts
 
         interceptors/
@@ -234,15 +234,15 @@ This keeps the UI consistent without depending on a heavy component library.
 The backend expects:
 
 ```http
-Authorization: Bearer <clerk_token>
+Authorization: Bearer <auth_token>
 ```
 
 Frontend flow:
 
-1. User signs in with Clerk.
-2. Frontend gets the Clerk session token.
+1. User signs in with Auth.
+2. Frontend gets the Auth session token.
 3. Angular HTTP interceptor attaches the token to protected API requests.
-4. Backend verifies the Clerk JWT.
+4. Backend verifies the Auth JWT.
 5. Backend resolves or creates the local user.
 
 Create an auth interceptor:
@@ -253,7 +253,7 @@ auth.interceptor.ts
 
 Responsibilities:
 
-- Get Clerk token.
+- Get Auth token.
 - Add `Authorization` header.
 - Skip auth header for public routes such as certificate verification if needed.
 
@@ -355,7 +355,7 @@ Build the frontend in this order:
 
 ### Phase 2: Auth + API Layer
 
-- Add Clerk auth
+- Add Auth auth
 - Add auth guard
 - Add HTTP interceptor
 - Add API response models
@@ -443,7 +443,7 @@ Angular Signals
 TanStack Query for Angular
 Tailwind CSS
 Reactive Forms
-Clerk Auth
+Auth Auth
 lucide-angular
 ngx-sonner
 date-fns

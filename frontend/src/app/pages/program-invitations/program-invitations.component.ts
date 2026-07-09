@@ -52,6 +52,8 @@ export class ProgramInvitationsComponent {
 
   readonly invitationsQuery = this.invitationsService.invitationsQuery;
   readonly maxUses = signal<number | null>(100);
+  readonly emails = signal<string>('');
+  readonly lastCreated = signal<Invitation | null>(null);
 
   readonly isCreating = computed(() => this.invitationsService.createMutation.isPending());
 
@@ -110,18 +112,26 @@ export class ProgramInvitationsComponent {
     if (!programId) return;
 
     const max = this.maxUses();
+    const rawEmails = this.emails().split(',').map((e) => e.trim()).filter(Boolean);
     const request = {
       description: null,
       maxUses: max !== null && !Number.isNaN(max) ? max : null,
       expiresAt: null,
+      emails: rawEmails.length > 0 ? rawEmails : null,
     };
 
     this.invitationsService.createMutation.mutate(
       { programId, request },
       {
-        onSuccess: () => {
-          toast.success('Invitation created');
+        onSuccess: (created) => {
+          this.lastCreated.set(created);
+          this.emails.set('');
           this.maxUses.set(100);
+          toast.success(
+            rawEmails.length > 0
+              ? 'Invitation created and sent by email'
+              : 'Invitation created'
+          );
         },
         onError: (error) => {
           toast.error(error.message ?? 'Failed to create invitation');

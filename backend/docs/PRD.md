@@ -26,7 +26,7 @@ This redesigned version focuses on:
 ✅ **Better API design** — RESTful, predictable, intuitive  
 ✅ **Cleaner permissions** — Role-based access that makes sense  
 ✅ **Single source of truth** — No duplicate state management  
-✅ **Modern auth** — Clerk integration without the complexity  
+✅ **Modern auth** — Auth integration without the complexity  
 ✅ **Unified storage** — One provider, consistent approach  
 ✅ **Production ready** — Built for real-world deployment  
 
@@ -64,7 +64,7 @@ This redesigned version focuses on:
 ## 2.1 In Scope (MVP)
 
 Core Features:
-- ✅ User authentication (Clerk)
+- ✅ User authentication (Auth)
 - ✅ Organization management
 - ✅ Program creation & management
 - ✅ Participant enrollment via invitation codes
@@ -108,7 +108,7 @@ Testing:       JUnit 5, Testcontainers
 ## 3.2 Infrastructure
 
 ```
-Authentication:  Clerk
+Authentication:  Auth
 Database:        Neon (PostgreSQL 15+)
 Storage:         Cloudflare R2 (S3-compatible)
 Deployment:      Any cloud platform (AWS, GCP, Railway, Render)
@@ -118,7 +118,7 @@ Deployment:      Any cloud platform (AWS, GCP, Railway, Render)
 
 | Service | Reason |
 |---------|--------|
-| **Clerk** | Best-in-class auth, no custom password management |
+| **Auth** | Best-in-class auth, no custom password management |
 | **Neon** | Serverless Postgres, generous free tier, branching |
 | **Cloudflare R2** | Zero egress fees, S3-compatible, global CDN |
 
@@ -129,7 +129,7 @@ Deployment:      Any cloud platform (AWS, GCP, Railway, Render)
 ## 4.1 Entity Model (Simplified)
 
 ```
-User (managed by Clerk, synced locally)
+User (managed by Auth, synced locally)
   └── Organization (organization/institution)
        └── Member (organization membership with role)
        └── Program (training program)
@@ -214,7 +214,7 @@ Instead of complex organization + program permissions, we use **organization-lev
 ```sql
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    clerk_id VARCHAR(255) UNIQUE NOT NULL,
+    auth_id VARCHAR(255) UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     full_name VARCHAR(255) NOT NULL,
     avatar_url TEXT,
@@ -222,14 +222,14 @@ CREATE TABLE users (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_users_clerk_id ON users(clerk_id);
+CREATE INDEX idx_users_auth_id ON users(auth_id);
 CREATE INDEX idx_users_email ON users(email);
 ```
 
 **Notes:**
-- `clerk_id` links to Clerk user identity
+- `auth_id` links to Auth user identity
 - Local copy maintained via webhook sync
-- No password/auth fields (handled by Clerk)
+- No password/auth fields (handled by Auth)
 
 ---
 
@@ -692,10 +692,10 @@ CREATE INDEX idx_activity_logs_entity ON activity_logs(entity_type, entity_id);
 All endpoints except public ones require:
 
 ```
-Authorization: Bearer <clerk_jwt_token>
+Authorization: Bearer <auth_jwt_token>
 ```
 
-Backend validates token using Clerk JWKS, extracts `clerk_id`, looks up local user.
+Backend validates token using Auth JWKS, extracts `auth_id`, looks up local user.
 
 ---
 
@@ -706,7 +706,7 @@ Backend validates token using Clerk JWKS, extracts `clerk_id`, looks up local us
 ```http
 GET    /api/v1/auth/me                    # Current user profile
 PATCH  /api/v1/auth/me                    # Update profile
-POST   /api/v1/webhooks/clerk             # Clerk user sync (no auth)
+POST   /api/v1/webhooks/auth             # Auth user sync (no auth)
 ```
 
 ---
@@ -1161,18 +1161,18 @@ Example: VX8K2MN9PQR7Z3A1B5C7D9E2F4G6H8J0
 ## 9.1 Authentication Flow
 
 ```
-1. Frontend authenticates with Clerk
+1. Frontend authenticates with Auth
 2. Frontend receives JWT token
 3. Frontend sends token in Authorization header:
    Authorization: Bearer <token>
    
 4. Backend filter intercepts request:
    a. Extract token from header
-   b. Fetch JWKS from Clerk (cached)
+   b. Fetch JWKS from Auth (cached)
    c. Validate token signature
    d. Validate claims (exp, iss, nbf)
-   e. Extract clerk_id from sub claim
-   f. Look up user by clerk_id
+   e. Extract auth_id from sub claim
+   f. Look up user by auth_id
    g. If not found: auto-create from token claims
    h. Load user into SecurityContext
    
@@ -1184,7 +1184,7 @@ Example: VX8K2MN9PQR7Z3A1B5C7D9E2F4G6H8J0
 ## 9.2 Webhook Security
 
 ```
-POST /api/v1/webhooks/clerk
+POST /api/v1/webhooks/auth
 
 Verification:
 1. Extract Svix-Signature header
@@ -1200,8 +1200,8 @@ Supported Events:
 
 **Implementation:**
 ```java
-@PostMapping("/webhooks/clerk")
-public ResponseEntity<?> handleClerkWebhook(
+@PostMapping("/webhooks/auth")
+public ResponseEntity<?> handleAuthWebhook(
     @RequestHeader("Svix-Signature") String signature,
     @RequestBody String payload
 ) {
@@ -1282,7 +1282,7 @@ public void checkProgramAccess(UUID programId, User user) {
 
 **Sensitive Data Protection:**
 - ❌ Never log JWT tokens
-- ❌ Never expose Clerk secrets in responses
+- ❌ Never expose Auth secrets in responses
 - ❌ Never expose other users' emails unless OWNER
 - ✅ Redact IP addresses in exported logs
 - ✅ Use HTTPS only in production
@@ -1617,9 +1617,9 @@ APP_VERIFY_BASE_URL=https://verify.skillmark.io
 DATABASE_URL=postgresql://user:pass@host/dbname
 DATABASE_POOL_SIZE=10
 
-# Authentication (Clerk)
-CLERK_ISSUER=https://clerk.yourapp.com
-CLERK_JWKS_URL=https://clerk.yourapp.com/.well-known/jwks.json
+# Authentication (Auth)
+CLERK_ISSUER=https://auth.yourapp.com
+CLERK_JWKS_URL=https://auth.yourapp.com/.well-known/jwks.json
 CLERK_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxx
 
 # Storage (Cloudflare R2)
@@ -1909,7 +1909,7 @@ skillmark-api/
 │   │   │       ├── SkillmarkApplication.java
 │   │   │       │
 │   │   │       ├── auth/
-│   │   │       │   ├── ClerkTokenFilter.java
+│   │   │       │   ├── AuthTokenFilter.java
 │   │   │       │   ├── CurrentUser.java
 │   │   │       │   └── SecurityConfig.java
 │   │   │       │
@@ -2002,7 +2002,7 @@ skillmark-api/
 │   │   │       │       └── SlugGenerator.java
 │   │   │       │
 │   │   │       └── webhook/
-│   │   │           ├── ClerkWebhookController.java
+│   │   │           ├── AuthWebhookController.java
 │   │   │           └── WebhookService.java
 │   │   │
 │   │   └── resources/
@@ -2138,7 +2138,7 @@ GET /api/v1/public/certificates/verify/:code → GET /api/v1/public/verify/:code
 - Java 17+
 - Maven 3.6+
 - Docker & Docker Compose
-- Clerk account (free tier)
+- Auth account (free tier)
 - Cloudflare account (free tier)
 ```
 
@@ -2169,8 +2169,8 @@ open http://localhost:8080/swagger-ui.html
 
 Edit `.env`:
 ```bash
-CLERK_ISSUER=https://your-clerk-domain.clerk.accounts.dev
-CLERK_JWKS_URL=https://your-clerk-domain.clerk.accounts.dev/.well-known/jwks.json
+CLERK_ISSUER=https://your-auth-domain.auth.accounts.dev
+CLERK_JWKS_URL=https://your-auth-domain.auth.accounts.dev/.well-known/jwks.json
 CLERK_WEBHOOK_SECRET=whsec_xxxxxxx
 
 R2_ACCOUNT_ID=your-r2-account-id
@@ -2188,7 +2188,7 @@ This redesigned **Skillmark V3** PRD delivers:
 ✅ **Simpler architecture** — 11 entities vs 15+  
 ✅ **Better API design** — RESTful, intuitive, consistent  
 ✅ **Clearer permissions** — 3 roles instead of complex matrix  
-✅ **Modern stack** — Clerk + Neon + R2  
+✅ **Modern stack** — Auth + Neon + R2  
 ✅ **Production ready** — Security, testing, deployment  
 ✅ **Developer friendly** — Clear structure, good DX  
 

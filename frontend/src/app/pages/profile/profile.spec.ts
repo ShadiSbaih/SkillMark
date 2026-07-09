@@ -40,7 +40,6 @@ describe('Profile', () => {
 
   const mockUser: UserResponse = {
     id: 'user-1',
-    clerkUserId: 'clerk-1',
     email: 'alice@example.com',
     name: 'Alice Doe',
     avatarUrl: 'https://example.com/avatar.png',

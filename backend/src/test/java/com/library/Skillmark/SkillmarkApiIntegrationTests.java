@@ -90,14 +90,14 @@ class SkillmarkApiIntegrationTests {
     }
 
     @Test
-    void devTokenCreatesAndSyncsLocalUserProfile() throws Exception {
+    void devTokenCreatesAndUpdatesLocalUserProfile() throws Exception {
         String token = token("owner_user", "owner@example.com", "Owner_One");
 
         getJson("/api/v1/users/me", token)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.email", is("owner@example.com")));
 
-        postJson("/api/v1/users/sync", token, """
+        patchJson("/api/v1/users/me", token, """
                 {
                   "name": "Owner Updated",
                   "email": "owner.updated@example.com",
@@ -117,7 +117,7 @@ class SkillmarkApiIntegrationTests {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.info.title", is("Skillmark Backend API")))
-                .andExpect(jsonPath("$.paths['/api/v1/users/sync'].post").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/users/me'].patch").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/organizations/{organizationId}/programs'].post").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/programs/{programId}/quizzes'].post").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/storage/upload-urls'].post").exists())

@@ -7,7 +7,6 @@ import com.library.Skillmark.user.enums.*;
 import com.library.Skillmark.user.repository.*;
 import com.library.Skillmark.user.service.*;
 import com.library.Skillmark.common.exception.NotFoundException;
-import com.library.Skillmark.security.AuthUser;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -28,7 +27,7 @@ public class UserService {
     }
 
     @Transactional
-    public UserResponse update(UUID userId, SyncUserRequest request) {
+    public UserResponse update(UUID userId, UpdateUserProfileRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
         if (request != null) {
@@ -42,13 +41,6 @@ public class UserService {
                 user.setAvatarUrl(request.avatarUrl());
             }
         }
-        return UserResponse.from(user);
-    }
-
-    @Transactional
-    public UserResponse sync(AuthUser currentUser) {
-        User user = userRepository.findById(currentUser.id())
-                .orElseThrow(() -> new NotFoundException("User not found"));
         return UserResponse.from(user);
     }
 }

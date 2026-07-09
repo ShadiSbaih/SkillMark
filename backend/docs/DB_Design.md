@@ -6,18 +6,18 @@ This file provides the complete ERD-style database design for the expanded **Ski
 
 Skillmark uses:
 
-*   Clerk for authentication
+*   Auth for authentication
 *   Neon DB as PostgreSQL database
 *   Cloudflare R2 for files and certificate PDFs
 *   Cloudinary for images and media
 
-Because Clerk handles authentication, the backend does **not** need internal tables for:
+Because Auth handles authentication, the backend does **not** need internal tables for:
 
 *   refresh tokens
 *   email verification tokens
 *   password reset tokens
 
-The backend stores only the local user profile and links it to Clerk using `clerk_user_id`.
+The backend stores only the local user profile and links it to Auth using `auth_user_id`.
 
 ---
 
@@ -26,7 +26,7 @@ The backend stores only the local user profile and links it to Clerk using `cler
 ```
 table users {
   id uuid [pk, default: `gen_random_uuid()`]
-  clerk_user_id varchar [unique, not null]
+  auth_user_id varchar [unique, not null]
   name varchar [not null]
   email varchar [unique, not null]
   avatar_url text
@@ -35,7 +35,7 @@ table users {
   updated_at timestamp [not null, default: `now()`]
 
   indexes {
-    clerk_user_id [unique, name: 'uq_users_clerk_user_id']
+    auth_user_id [unique, name: 'uq_users_auth_user_id']
     email [unique, name: 'uq_users_email']
     status [name: 'idx_users_status']
   }
@@ -384,7 +384,7 @@ organization_memberships
 
 Purpose:
 
-*   store local user profiles linked to Clerk via `clerk_user_id`
+*   store local user profiles linked to Auth via `auth_user_id`
 *   manage organizations owned by users
 *   control organization-level permissions through membership roles
 *   track who invited and who removed members
@@ -486,7 +486,7 @@ Purpose:
 ACTIVE       - normal active user
 INACTIVE     - account deactivated
 SUSPENDED    - account suspended by admin
-DELETED      - soft deleted via Clerk webhook user.deleted event
+DELETED      - soft deleted via Auth webhook user.deleted event
 ```
 
 ---
@@ -664,9 +664,9 @@ Reasons:
 
 ---
 
-## 5.2 Clerk Authentication
+## 5.2 Auth Authentication
 
-Since Skillmark uses Clerk, the backend does not need these tables:
+Since Skillmark uses Auth, the backend does not need these tables:
 
 ```
 refresh_tokens
@@ -674,7 +674,7 @@ email_verification_tokens
 password_reset_tokens
 ```
 
-Clerk is responsible for:
+Auth is responsible for:
 
 ```
 user registration
@@ -688,15 +688,15 @@ OAuth/social login
 The backend stores:
 
 ```
-users.clerk_user_id
+users.auth_user_id
 ```
 
-to link the local user profile to Clerk identity.
+to link the local user profile to Auth identity.
 
 User records are created or updated via:
 
 *   auto-creation on first authenticated API request
-*   Clerk webhook events (`user.created`, `user.updated`, `user.deleted`)
+*   Auth webhook events (`user.created`, `user.updated`, `user.deleted`)
 
 ---
 
@@ -897,7 +897,7 @@ object_key       - internal storage key for R2 objects
 
 ```
 ALTER TABLE users
-  ADD CONSTRAINT uq_users_clerk_user_id UNIQUE (clerk_user_id);
+  ADD CONSTRAINT uq_users_auth_user_id UNIQUE (auth_user_id);
 
 ALTER TABLE users
   ADD CONSTRAINT uq_users_email UNIQUE (email);
@@ -953,7 +953,7 @@ ALTER TABLE quizzes
 
 ```
 -- Users
-CREATE UNIQUE INDEX uq_users_clerk_user_id ON users(clerk_user_id);
+CREATE UNIQUE INDEX uq_users_auth_user_id ON users(auth_user_id);
 CREATE UNIQUE INDEX uq_users_email ON users(email);
 CREATE INDEX idx_users_status ON users(status);
 
@@ -1043,8 +1043,8 @@ CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at);
 # 8\. Core Design Rules
 
 ```
-1. Authentication identity comes from Clerk.
-   The backend stores clerk_user_id to link local users to Clerk accounts.
+1. Authentication identity comes from Auth.
+   The backend stores auth_user_id to link local users to Auth accounts.
 
 2. Organization permissions come from organization_memberships.role.
    There are no global user roles on the users table.

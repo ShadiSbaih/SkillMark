@@ -6,6 +6,7 @@ import com.library.Skillmark.common.exception.BusinessRuleException;
 import com.library.Skillmark.common.exception.ConflictException;
 import com.library.Skillmark.common.exception.NotFoundException;
 import com.library.Skillmark.common.response.PageResponse;
+import com.library.Skillmark.email.service.EmailService;
 import com.library.Skillmark.enrollment.entity.ProgramEnrollment;
 import com.library.Skillmark.enrollment.enums.EnrollmentStatus;
 import com.library.Skillmark.enrollment.repository.ProgramEnrollmentRepository;
@@ -22,11 +23,13 @@ import com.library.Skillmark.program.enums.ProgramStatus;
 import com.library.Skillmark.security.service.AuthorizationService;
 import com.library.Skillmark.user.entity.User;
 import com.library.Skillmark.user.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -37,19 +40,29 @@ public class InvitationService {
     private final UserRepository userRepository;
     private final AuthorizationService authorizationService;
     private final AuditLogService auditLogService;
+    private final EmailService emailService;
+    private final String baseUrl;
 
     public InvitationService(InvitationLinkRepository invitationRepository,
                              ProgramEnrollmentRepository enrollmentRepository,
                              OrganizationMembershipRepository membershipRepository,
                              UserRepository userRepository,
                              AuthorizationService authorizationService,
-                             AuditLogService auditLogService) {
+                             AuditLogService auditLogService,
+                             EmailService emailService,
+                             @Value("${app.base-url:}") String baseUrl) {
         this.invitationRepository = invitationRepository;
         this.enrollmentRepository = enrollmentRepository;
         this.membershipRepository = membershipRepository;
         this.userRepository = userRepository;
         this.authorizationService = authorizationService;
         this.auditLogService = auditLogService;
+        this.emailService = emailService;
+        this.baseUrl = baseUrl == null || baseUrl.isBlank() ? "" : baseUrl.replaceAll("/$", "");
+    }
+
+    private String inviteUrl(String code) {
+        return baseUrl + "/join/" + code;
     }
 
     @Transactional
@@ -65,7 +78,18 @@ public class InvitationService {
         invitation.setCreatedBy(userRepository.findById(actorId).orElseThrow(() -> new NotFoundException("User not found")));
         InvitationLink saved = invitationRepository.save(invitation);
         auditLogService.record(actorId, program.getOrganization().getId(), AuditAction.INVITATION_CREATED, "InvitationLink", saved.getId());
-        return InvitationResponse.from(saved);
+        sendInvitationEmails(saved, program.getTitle(), request.emails());
+        return InvitationResponse.from(saved, inviteUrl(saved.getCode()));
+    }
+
+    private void sendInvitationEmails(InvitationLink invitation, String programName, List<String> emails) {
+        if (emails == null || emails.isEmpty()) {
+            return;
+        }
+        String link = inviteUrl(invitation.getCode());
+        for (String email : emails) {
+            emailService.sendInvitationEmail(email, programName, link);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -73,7 +97,7 @@ public class InvitationService {
         authorizationService.ensureProgramOwner(programId, actorId);
         return PageResponse.fromList(invitationRepository.findByProgramId(programId).stream()
                 .sorted(Comparator.comparing(InvitationLink::getCreatedAt).reversed())
-                .map(InvitationResponse::from)
+                .map(invitation -> InvitationResponse.from(invitation, inviteUrl(invitation.getCode())))
                 .toList(), page, size);
     }
 
@@ -93,7 +117,7 @@ public class InvitationService {
         enrollmentRepository.save(enrollment);
         invitation.setUsedCount(invitation.getUsedCount() + 1);
         auditLogService.record(userId, invitation.getOrganization().getId(), AuditAction.USER_ENROLLED, "InvitationLink", invitation.getId());
-        return InvitationResponse.from(invitation);
+        return InvitationResponse.from(invitation, inviteUrl(invitation.getCode()));
     }
 
     @Transactional
@@ -104,7 +128,7 @@ public class InvitationService {
         invitation.setStatus(InvitationStatus.DISABLED);
         invitation.setDisabledAt(Instant.now());
         auditLogService.record(actorId, invitation.getOrganization().getId(), AuditAction.INVITATION_DISABLED, "InvitationLink", invitationId);
-        return InvitationResponse.from(invitation);
+        return InvitationResponse.from(invitation, inviteUrl(invitation.getCode()));
     }
 
     @Transactional

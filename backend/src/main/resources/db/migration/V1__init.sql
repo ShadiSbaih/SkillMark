@@ -2,7 +2,6 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    clerk_user_id VARCHAR(255) NOT NULL UNIQUE,
     name VARCHAR(150) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     avatar_url TEXT,
@@ -202,7 +201,6 @@ CREATE TABLE audit_logs (
 );
 
 CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_clerk_user_id ON users(clerk_user_id);
 CREATE INDEX idx_organizations_owner_id ON organizations(owner_id);
 CREATE INDEX idx_memberships_user_id ON organization_memberships(user_id);
 CREATE INDEX idx_memberships_organization_id ON organization_memberships(organization_id);

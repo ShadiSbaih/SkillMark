@@ -1,13 +1,10 @@
 ALTER TABLE users
-    ALTER COLUMN clerk_user_id DROP NOT NULL,
     ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255),
     ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMPTZ,
     ADD COLUMN IF NOT EXISTS email_verification_token VARCHAR(255),
     ADD COLUMN IF NOT EXISTS email_verification_expires_at TIMESTAMPTZ,
     ADD COLUMN IF NOT EXISTS password_reset_token VARCHAR(255),
     ADD COLUMN IF NOT EXISTS password_reset_expires_at TIMESTAMPTZ;
-
-DROP INDEX IF EXISTS idx_users_clerk_user_id;
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_verification_token
     ON users(email_verification_token) WHERE email_verification_token IS NOT NULL;
