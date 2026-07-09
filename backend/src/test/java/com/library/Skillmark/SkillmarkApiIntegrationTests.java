@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.library.Skillmark.attempt.enums.AttemptStatus;
 import com.library.Skillmark.attempt.repository.QuizAttemptRepository;
-import com.library.Skillmark.user.enums.UserStatus;
 import com.library.Skillmark.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,17 +23,12 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -85,7 +79,7 @@ class SkillmarkApiIntegrationTests {
     }
 
     @Test
-    void protectedEndpointsRequireClerkToken() throws Exception {
+    void protectedEndpointsRequireToken() throws Exception {
         mockMvc.perform(get("/api/v1/organizations"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success", is(false)));
@@ -96,12 +90,11 @@ class SkillmarkApiIntegrationTests {
     }
 
     @Test
-    void devClerkTokenCreatesAndSyncsLocalUserProfile() throws Exception {
-        String token = token("clerk_owner", "owner@example.com", "Owner_One");
+    void devTokenCreatesAndSyncsLocalUserProfile() throws Exception {
+        String token = token("owner_user", "owner@example.com", "Owner_One");
 
         getJson("/api/v1/users/me", token)
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.clerkUserId", is("clerk_owner")))
                 .andExpect(jsonPath("$.data.email", is("owner@example.com")));
 
         postJson("/api/v1/users/sync", token, """
@@ -117,50 +110,24 @@ class SkillmarkApiIntegrationTests {
     }
 
     @Test
-    void clerkWebhookRequiresValidSignatureAndSyncsUserLifecycle() throws Exception {
-        String createPayload = """
-                {
-                  "type": "user.created",
-                  "data": {
-                    "id": "clerk_webhook_user",
-                    "first_name": "Webhook",
-                    "last_name": "User",
-                    "image_url": "https://example.com/webhook.png",
-                    "primary_email_address_id": "email_1",
-                    "email_addresses": [
-                      {"id": "email_1", "email_address": "webhook@example.com"}
-                    ]
-                  }
-                }
-                """;
+    void swaggerEndpointsArePublicAndDescribeApi() throws Exception {
+        mockMvc.perform(get("/swagger-ui.html"))
+                .andExpect(status().is3xxRedirection());
 
-        postWebhook(createPayload, "bad-signature")
-                .andExpect(status().isUnauthorized());
-
-        postWebhook(createPayload, signature("msg_1", "123", createPayload))
+        mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success", is(true)));
-
-        var created = userRepository.findByClerkUserId("clerk_webhook_user").orElseThrow();
-        org.assertj.core.api.Assertions.assertThat(created.getEmail()).isEqualTo("webhook@example.com");
-        org.assertj.core.api.Assertions.assertThat(created.getName()).isEqualTo("Webhook User");
-
-        String deletePayload = """
-                {
-                  "type": "user.deleted",
-                  "data": {"id": "clerk_webhook_user"}
-                }
-                """;
-        postWebhook(deletePayload, signature("msg_1", "123", deletePayload))
-                .andExpect(status().isOk());
-
-        org.assertj.core.api.Assertions.assertThat(userRepository.findByClerkUserId("clerk_webhook_user").orElseThrow().getStatus())
-                .isEqualTo(UserStatus.DELETED);
+                .andExpect(jsonPath("$.info.title", is("Skillmark Backend API")))
+                .andExpect(jsonPath("$.paths['/api/v1/users/sync'].post").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/organizations/{organizationId}/programs'].post").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/programs/{programId}/quizzes'].post").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/storage/upload-urls'].post").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/media/signatures'].post").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/public/certificates/verify/{verificationCode}'].get").exists());
     }
 
     @Test
     void ownerCanCreateProgramInviteParticipantAndShareResource() throws Exception {
-        String ownerToken = token("clerk_owner", "owner@example.com", "Owner_One");
+        String ownerToken = token("owner_user", "owner@example.com", "Owner_One");
         String organizationId = createOrganization(ownerToken, "Computer Science Club");
 
         MvcResult programResult = postJson("/api/v1/organizations/" + organizationId + "/programs", ownerToken, """
@@ -190,7 +157,7 @@ class SkillmarkApiIntegrationTests {
                 .andExpect(status().isCreated())
                 .andReturn(), "/data/code");
 
-        String participantToken = token("clerk_student", "student@example.com", "Jane_Student");
+        String participantToken = token("student_user", "student@example.com", "Jane_Student");
         postJson("/api/v1/invitations/" + invitationCode + "/join", participantToken, "{}")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.usedCount", is(1)));
@@ -216,11 +183,11 @@ class SkillmarkApiIntegrationTests {
 
     @Test
     void fullProgramQuizAttemptCertificateFlowUsesEnrollment() throws Exception {
-        String ownerToken = token("clerk_owner", "owner@example.com", "Owner_One");
+        String ownerToken = token("owner_user", "owner@example.com", "Owner_One");
         String organizationId = createOrganization(ownerToken, "Computer Science Club");
         String programId = createPublishedProgram(ownerToken, organizationId);
 
-        String participantToken = token("clerk_student", "student@example.com", "Jane_Student");
+        String participantToken = token("student_user", "student@example.com", "Jane_Student");
         joinProgram(ownerToken, participantToken, programId);
 
         String quizId = read(postJson("/api/v1/programs/" + programId + "/quizzes", ownerToken, """
@@ -315,10 +282,10 @@ class SkillmarkApiIntegrationTests {
 
     @Test
     void expiredAttemptIsRejectedAndCountsTowardMaxAttempts() throws Exception {
-        String ownerToken = token("clerk_owner", "owner@example.com", "Owner_One");
+        String ownerToken = token("owner_user", "owner@example.com", "Owner_One");
         String organizationId = createOrganization(ownerToken, "Computer Science Club");
         String programId = createPublishedProgram(ownerToken, organizationId);
-        String participantToken = token("clerk_student", "student@example.com", "Jane_Student");
+        String participantToken = token("student_user", "student@example.com", "Jane_Student");
         joinProgram(ownerToken, participantToken, programId);
 
         String quizId = read(postJson("/api/v1/programs/" + programId + "/quizzes", ownerToken, """
@@ -384,7 +351,7 @@ class SkillmarkApiIntegrationTests {
 
     @Test
     void concurrentInvitationJoinsCannotExceedMaxUses() throws Exception {
-        String ownerToken = token("clerk_owner", "owner@example.com", "Owner_One");
+        String ownerToken = token("owner_user", "owner@example.com", "Owner_One");
         String organizationId = createOrganization(ownerToken, "Computer Science Club");
         String programId = createPublishedProgram(ownerToken, organizationId);
         String invitationCode = read(postJson("/api/v1/programs/" + programId + "/invitations", ownerToken, """
@@ -399,8 +366,8 @@ class SkillmarkApiIntegrationTests {
         CountDownLatch ready = new CountDownLatch(2);
         CountDownLatch start = new CountDownLatch(1);
         List<java.util.concurrent.Callable<Integer>> tasks = List.of(
-                () -> joinConcurrently(invitationCode, token("clerk_student_1", "student1@example.com", "Student_One"), ready, start),
-                () -> joinConcurrently(invitationCode, token("clerk_student_2", "student2@example.com", "Student_Two"), ready, start)
+                () -> joinConcurrently(invitationCode, token("student_user_1", "student1@example.com", "Student_One"), ready, start),
+                () -> joinConcurrently(invitationCode, token("student_user_2", "student2@example.com", "Student_Two"), ready, start)
         );
         var futures = tasks.stream().map(executor::submit).toList();
         org.assertj.core.api.Assertions.assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
@@ -423,29 +390,12 @@ class SkillmarkApiIntegrationTests {
     }
 
     @Test
-    void swaggerEndpointsArePublicAndDescribeClerkScopedApi() throws Exception {
-        mockMvc.perform(get("/swagger-ui.html"))
-                .andExpect(status().is3xxRedirection());
-
-        mockMvc.perform(get("/v3/api-docs"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.info.title", is("Skillmark Backend API")))
-                .andExpect(jsonPath("$.info.description", containsString("Clerk")))
-                .andExpect(jsonPath("$.paths['/api/v1/users/sync'].post").exists())
-                .andExpect(jsonPath("$.paths['/api/v1/organizations/{organizationId}/programs'].post").exists())
-                .andExpect(jsonPath("$.paths['/api/v1/programs/{programId}/quizzes'].post").exists())
-                .andExpect(jsonPath("$.paths['/api/v1/storage/upload-urls'].post").exists())
-                .andExpect(jsonPath("$.paths['/api/v1/media/signatures'].post").exists())
-                .andExpect(jsonPath("$.paths['/api/v1/public/certificates/verify/{verificationCode}'].get").exists());
-    }
-
-    @Test
     void ownerCanRevokeCertificate() throws Exception {
-        String ownerToken = token("clerk_owner", "owner@example.com", "Owner_One");
+        String ownerToken = token("owner_user", "owner@example.com", "Owner_One");
         String organizationId = createOrganization(ownerToken, "Computer Science Club");
         String programId = createPublishedProgram(ownerToken, organizationId);
 
-        String participantToken = token("clerk_student", "student@example.com", "Jane_Student");
+        String participantToken = token("student_user", "student@example.com", "Jane_Student");
         joinProgram(ownerToken, participantToken, programId);
 
         String quizId = read(postJson("/api/v1/programs/" + programId + "/quizzes", ownerToken, """
@@ -530,11 +480,11 @@ class SkillmarkApiIntegrationTests {
 
     @Test
     void ownerCanUpdateAndArchiveResource() throws Exception {
-        String ownerToken = token("clerk_owner", "owner@example.com", "Owner_One");
+        String ownerToken = token("owner_user", "owner@example.com", "Owner_One");
         String organizationId = createOrganization(ownerToken, "Computer Science Club");
         String programId = createPublishedProgram(ownerToken, organizationId);
 
-        String participantToken = token("clerk_student", "student@example.com", "Jane_Student");
+        String participantToken = token("student_user", "student@example.com", "Jane_Student");
         joinProgram(ownerToken, participantToken, programId);
 
         String resourceId = read(postJson("/api/v1/programs/" + programId + "/resources", ownerToken, """
@@ -580,10 +530,10 @@ class SkillmarkApiIntegrationTests {
 
     @Test
     void ownerCanAddAndRemoveOrganizationMember() throws Exception {
-        String ownerToken = token("clerk_owner", "owner@example.com", "Owner_One");
+        String ownerToken = token("owner_user", "owner@example.com", "Owner_One");
         String organizationId = createOrganization(ownerToken, "Computer Science Club");
 
-        String participantToken = token("clerk_student", "student@example.com", "Jane_Student");
+        String participantToken = token("student_user", "student@example.com", "Jane_Student");
         String participantUserId = read(getJson("/api/v1/users/me", participantToken)
                 .andExpect(status().isOk())
                 .andReturn(), "/data/id");
@@ -610,11 +560,11 @@ class SkillmarkApiIntegrationTests {
 
     @Test
     void ownerCanToggleQuizVisibility() throws Exception {
-        String ownerToken = token("clerk_owner", "owner@example.com", "Owner_One");
+        String ownerToken = token("owner_user", "owner@example.com", "Owner_One");
         String organizationId = createOrganization(ownerToken, "Computer Science Club");
         String programId = createPublishedProgram(ownerToken, organizationId);
 
-        String participantToken = token("clerk_student", "student@example.com", "Jane_Student");
+        String participantToken = token("student_user", "student@example.com", "Jane_Student");
         joinProgram(ownerToken, participantToken, programId);
 
         String quizId = read(postJson("/api/v1/programs/" + programId + "/quizzes", ownerToken, """
@@ -679,11 +629,11 @@ class SkillmarkApiIntegrationTests {
 
     @Test
     void ownerCanRemoveEnrollment() throws Exception {
-        String ownerToken = token("clerk_owner", "owner@example.com", "Owner_One");
+        String ownerToken = token("owner_user", "owner@example.com", "Owner_One");
         String organizationId = createOrganization(ownerToken, "Computer Science Club");
         String programId = createPublishedProgram(ownerToken, organizationId);
 
-        String participantToken = token("clerk_student", "student@example.com", "Jane_Student");
+        String participantToken = token("student_user", "student@example.com", "Jane_Student");
         joinProgram(ownerToken, participantToken, programId);
 
         String participantUserId = read(getJson("/api/v1/users/me", participantToken)
@@ -699,11 +649,11 @@ class SkillmarkApiIntegrationTests {
 
     @Test
     void joiningInvitationCreatesProgramEnrollmentAndOrganizationMembership() throws Exception {
-        String ownerToken = token("clerk_owner", "owner@example.com", "Owner_One");
+        String ownerToken = token("owner_user", "owner@example.com", "Owner_One");
         String organizationId = createOrganization(ownerToken, "Computer Science Club");
         String programId = createPublishedProgram(ownerToken, organizationId);
 
-        String participantToken = token("clerk_student", "student@example.com", "Jane_Student");
+        String participantToken = token("student_user", "student@example.com", "Jane_Student");
         String participantUserId = read(getJson("/api/v1/users/me", participantToken)
                 .andExpect(status().isOk())
                 .andReturn(), "/data/id");
@@ -731,11 +681,11 @@ class SkillmarkApiIntegrationTests {
 
     @Test
     void passingAutoModeQuizIssuesCertificateImmediately() throws Exception {
-        String ownerToken = token("clerk_owner", "owner@example.com", "Owner_One");
+        String ownerToken = token("owner_user", "owner@example.com", "Owner_One");
         String organizationId = createOrganization(ownerToken, "Computer Science Club");
         String programId = createPublishedProgram(ownerToken, organizationId);
 
-        String participantToken = token("clerk_student", "student@example.com", "Jane_Student");
+        String participantToken = token("student_user", "student@example.com", "Jane_Student");
         joinProgram(ownerToken, participantToken, programId);
 
         String quizId = read(postJson("/api/v1/programs/" + programId + "/quizzes", ownerToken, """
@@ -837,8 +787,8 @@ class SkillmarkApiIntegrationTests {
                 .andExpect(status().isOk());
     }
 
-    private String token(String clerkId, String email, String name) {
-        return "dev:" + clerkId + ":" + email + ":" + name;
+    private String token(String userId, String email, String name) {
+        return "dev:" + userId + ":" + email + ":" + name;
     }
 
     private org.springframework.test.web.servlet.ResultActions postJson(String path, String token, String json) throws Exception {
@@ -855,22 +805,6 @@ class SkillmarkApiIntegrationTests {
             request.header(HttpHeaders.AUTHORIZATION, "Bearer " + token);
         }
         return mockMvc.perform(request);
-    }
-
-    private org.springframework.test.web.servlet.ResultActions postWebhook(String payload, String signature) throws Exception {
-        return mockMvc.perform(post("/api/v1/webhooks/clerk")
-                .contentType(MediaType.APPLICATION_JSON)
-                .header("svix-id", "msg_1")
-                .header("svix-timestamp", "123")
-                .header("svix-signature", signature)
-                .content(payload));
-    }
-
-    private String signature(String id, String timestamp, String payload) throws Exception {
-        Mac mac = Mac.getInstance("HmacSHA256");
-        mac.init(new SecretKeySpec("test-webhook-secret".getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
-        byte[] digest = mac.doFinal((id + "." + timestamp + "." + payload).getBytes(StandardCharsets.UTF_8));
-        return "v1," + Base64.getEncoder().encodeToString(digest);
     }
 
     private org.springframework.test.web.servlet.ResultActions getJson(String path, String token) throws Exception {

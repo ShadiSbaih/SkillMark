@@ -18,9 +18,6 @@ public class User {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "clerk_user_id", unique = true)
-    private String clerkUserId;
-
     @Column(name = "password_hash", length = 255)
     private String passwordHash;
 
@@ -73,8 +70,6 @@ public class User {
     }
 
     public UUID getId() { return id; }
-    public String getClerkUserId() { return clerkUserId; }
-    public void setClerkUserId(String clerkUserId) { this.clerkUserId = clerkUserId; }
     public String getPasswordHash() { return passwordHash; }
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
     public Instant getEmailVerifiedAt() { return emailVerifiedAt; }

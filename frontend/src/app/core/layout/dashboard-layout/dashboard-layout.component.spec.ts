@@ -144,7 +144,7 @@ describe('DashboardLayoutComponent', () => {
 
     expect(links).toContain('Dashboard');
     expect(links).toContain('Teams');
-    expect(links).toContain('My Learning');
+    expect(links).toContain('My Programs');
     expect(links).toContain('Assessments');
     expect(links).toContain('Credentials');
     expect(links).toContain('Profile');

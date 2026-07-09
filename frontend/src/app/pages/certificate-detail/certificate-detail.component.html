@@ -22,54 +22,80 @@
     </app-page-header>
 
     <div class="certificate-container">
-      <div class="certificate-paper">
-        <div class="certificate-inner">
-          <div class="cert-header">
-            <div class="cert-logo">
-              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></svg>
-              <span>{{ cert.organizationNameSnapshot }}</span>
+      <div class="certificate-modern-paper">
+        <div class="cert-sidebar">
+          <div class="cert-brand">
+            <div class="brand-logo">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></svg>
             </div>
-            <h1>Certificate of Completion</h1>
-            <p class="cert-subtitle">This is to proudly certify that</p>
+            <div class="brand-name">{{ cert.organizationNameSnapshot }}</div>
           </div>
           
-          <div class="cert-body">
-            <h2 class="cert-recipient">{{ cert.participantNameSnapshot }}</h2>
-            <div class="cert-description">
-              <p>has successfully completed the program</p>
-              <h3 class="cert-program">{{ cert.programTitleSnapshot }}</h3>
-              <p>including the final assessment <strong>{{ cert.quizTitleSnapshot }}</strong></p>
-              @if (cert.scoreSnapshot != null) {
-                <p>with an outstanding score of <strong>{{ cert.scoreSnapshot | number:'1.1-1' }}%</strong></p>
-              }
-            </div>
+          <div class="cert-seal-badge" [class.revoked]="cert.status === 'REVOKED'">
+            <div class="seal-ring"></div>
+            <span class="seal-text">{{ cert.status === 'REVOKED' ? 'REVOKED' : 'OFFICIAL' }}</span>
           </div>
 
-          <div class="cert-footer">
-            <div class="cert-signature">
-              <div class="signature-line"></div>
-              @if (cert.ownerNameSnapshot) {
-                <p class="owner-name">{{ cert.ownerNameSnapshot }}</p>
-              }
-              @else {
-                <b> No use found</b>
-              }
-              <p>Authorized Signature</p>
+          <div class="cert-meta-list">
+            <div class="meta-item">
+              <span class="meta-label">Issued On</span>
+              <span class="meta-value">{{ cert.issuedAt | date:'longDate' }}</span>
             </div>
-            
-            <div class="cert-seal">
-              <div class="seal-inner" [class.revoked]="cert.status === 'REVOKED'">
-                <span>{{ cert.status === 'REVOKED' ? 'REVOKED' : 'VERIFIED' }}</span>
+            @if (cert.status === 'REVOKED' && cert.revokedAt) {
+              <div class="meta-item">
+                <span class="meta-label text-danger">Revoked On</span>
+                <span class="meta-value text-danger">{{ cert.revokedAt | date:'longDate' }}</span>
               </div>
+            }
+            <div class="meta-item">
+              <span class="meta-label">Certificate ID</span>
+              <span class="meta-value">{{ cert.certificateNumber }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Verification Code</span>
+              <span class="meta-value">{{ cert.verificationCode }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="cert-main">
+          <div class="cert-main-content">
+            <div class="cert-title-group">
+              <h1 class="modern-title">CERTIFICATE</h1>
+              <h2 class="modern-subtitle">OF COMPLETION</h2>
             </div>
 
-            <div class="cert-meta">
-              <p><strong>Issued On:</strong> {{ cert.issuedAt | date:'longDate' }}</p>
-              @if (cert.status === 'REVOKED' && cert.revokedAt) {
-                <p><strong>Revoked at:</strong> {{ cert.revokedAt | date:'longDate' }}</p>
+            <div class="cert-awarded-section">
+              <p class="awarded-kicker">THIS IS PROUDLY PRESENTED TO</p>
+              <h3 class="recipient-name">{{ cert.participantNameSnapshot }}</h3>
+            </div>
+
+            <div class="cert-details-section">
+              <p class="details-text">For successfully fulfilling the requirements and completing the program:</p>
+              <h4 class="program-name">{{ cert.programTitleSnapshot }}</h4>
+              
+              <div class="assessment-details">
+                <p>Including the final assessment</p>
+                <h5>{{ cert.quizTitleSnapshot }}</h5>
+              </div>
+              
+              @if (cert.scoreSnapshot != null) {
+                <div class="score-badge">
+                  <span class="score-label">Final Score</span>
+                  <span class="score-value">{{ cert.scoreSnapshot | number:'1.1-1' }}%</span>
+                </div>
               }
-              <p><strong>Certificate ID:</strong> {{ cert.certificateNumber }}</p>
-              <p><strong>Verification:</strong> {{ cert.verificationCode }}</p>
+            </div>
+
+            <div class="cert-signatures-section">
+              <div class="signature-block">
+                <div class="sig-line"></div>
+                <p class="sig-name">{{ cert.ownerNameSnapshot || 'Authorized Administrator' }}</p>
+                <p class="sig-title">Program Director</p>
+              </div>
+              
+              <!-- Optional second signature block could go here for balance -->
+              <div class="signature-block opacity-0"></div>
             </div>
           </div>
         </div>

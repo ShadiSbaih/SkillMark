@@ -12,10 +12,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface UserRepository extends JpaRepository<User, UUID> {
-    Optional<User> findByClerkUserId(String clerkUserId);
     Optional<User> findByEmailIgnoreCase(String email);
     Optional<User> findByEmailVerificationToken(String token);
     Optional<User> findByPasswordResetToken(String token);
-    boolean existsByClerkUserId(String clerkUserId);
     boolean existsByEmailIgnoreCase(String email);
 }

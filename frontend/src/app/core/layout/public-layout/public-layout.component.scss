@@ -1,31 +1,227 @@
+/* -------------------------------------- */
+/* Premium Glass Header */
+/* -------------------------------------- */
 .public-header {
-  border-bottom: 1px solid var(--hairline);
-  background: var(--canvas);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  transition: all 0.3s ease;
 }
 
 .public-header-inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: min(1180px, calc(100% - 40px));
+  width: min(1200px, calc(100% - 48px));
   margin: 0 auto;
-  padding: 16px 0;
+  height: 80px; /* Taller, more elegant height */
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  text-decoration: none;
+}
+
+.header-logo {
+  height: 48px; /* Bigger logo */
+  width: 48px;
+  object-fit: contain;
+}
+
+.header-title {
+  font-size: 26px; /* Bigger title */
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.03em;
 }
 
 .public-header nav {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 24px;
 }
 
+.nav-item {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-secondary);
+  transition: color 0.2s ease;
+  
+  &:hover {
+    color: var(--primary);
+  }
+}
+
+.sign-in-link {
+  @media (max-width: 640px) {
+    display: none;
+  }
+}
+
+.get-started-btn {
+  padding: 10px 24px;
+  font-size: 15px;
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+  transition: all 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(79, 70, 229, 0.3);
+  }
+}
 .public-main {
   min-height: calc(100vh - 140px);
 }
 
+/* -------------------------------------- */
+/* Premium Footer */
+/* -------------------------------------- */
 .public-footer {
-  border-top: 1px solid var(--hairline);
-  padding: 24px 0;
-  text-align: center;
-  color: var(--ink-mute);
-  font-size: 13px;
+  background: #020617;
+  /* var(--brand-dark-900) equivalent for deep rich dark mode */
+  color: #94A3B8;
+  /* Slate 400 */
+  padding: 80px 24px 32px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.footer-container {
+  width: min(1200px, 100%);
+  margin: 0 auto;
+}
+
+.footer-top {
+  display: grid;
+  grid-template-columns: 1.2fr 2fr;
+  gap: 64px;
+  margin-bottom: 64px;
+}
+
+.footer-brand {
+  max-width: 360px;
+}
+
+.footer-brand-link {
+  color: white;
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  display: inline-flex;
+}
+
+.footer-logo {
+  height: 32px;
+  width: 32px;
+  object-fit: contain;
+  margin-right: 12px;
+  /* Option to add a brightness filter if logo needs to pop on dark bg */
+  filter: brightness(0) invert(1);
+}
+
+.brand-tagline {
+  font-size: 15px;
+  line-height: 1.6;
+  margin-bottom: 28px;
+}
+
+.social-links {
+  display: flex;
+  gap: 16px;
+}
+
+.social-links a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  color: #CBD5E1;
+  /* Slate 300 */
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: var(--primary);
+    color: white;
+  }
+}
+
+.footer-links-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+}
+
+.link-group h4 {
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.link-group a {
+  display: block;
+  font-size: 15px;
+  color: #94A3B8;
+  margin-bottom: 12px;
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: white;
+  }
+}
+
+.footer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 32px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 14px;
+}
+
+.legal-links {
+  display: flex;
+  gap: 24px;
+}
+
+.legal-links a {
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: white;
+  }
+}
+
+/* Responsive Footer */
+@media (max-width: 1024px) {
+  .footer-top {
+    grid-template-columns: 1fr;
+    gap: 48px;
+  }
+}
+
+@media (max-width: 640px) {
+  .footer-links-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+  }
+
+  .footer-bottom {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+  }
 }

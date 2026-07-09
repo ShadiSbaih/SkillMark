@@ -77,7 +77,7 @@ export class DashboardLayoutComponent {
 
   readonly participantLinks: NavLink[] = [
     { label: 'Dashboard', route: '/dashboard' },
-    { label: 'My Learning', route: '/my-enrollments' },
+    { label: 'My Programs', route: '/my-enrollments' },
     { label: ProductLanguage.quiz.plural, route: '/my-attempts' },
     { label: ProductLanguage.certificate.plural, route: '/my-certificates' },
   ];
