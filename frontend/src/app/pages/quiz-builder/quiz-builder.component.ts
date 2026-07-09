@@ -292,12 +292,7 @@ export class QuizBuilderComponent {
     this.quizzesService.publishMutation.mutate(id, {
       onSuccess: () => {
         toast.success('Quiz published successfully.');
-        const programId = this.quizQuery.data()?.programId;
-        if (programId) {
-          void this.router.navigate(['/programs', programId, 'quizzes', id]);
-        } else {
-          void this.router.navigate(['/quizzes', id]);
-        }
+        void this.router.navigate(['/quizzes', id]);
       },
       onError: (error) => toast.error(error?.message ?? 'Failed to publish quiz.'),
     });

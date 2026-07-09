@@ -82,6 +82,7 @@ export const routes: Routes = [
           { path: ':orgId/settings', component: OrganizationSettingsComponent },
           { path: ':orgId/audit-logs', component: AuditLogsComponent },
           { path: ':orgId/certificates', component: OrganizationCertificatesComponent },
+          { path: ':orgId/programs', component: ProgramsComponent },
           {
             path: ':orgId/programs/new',
             loadComponent: () =>

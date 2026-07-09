@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, Input } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { ProgramsService } from '../../services/programs.service';
 import { OrganizationsService } from '../../services/organizations.service';
@@ -45,6 +45,22 @@ export class ProgramsComponent {
   readonly selectedOrg = signal<string | null>(null);
   readonly page = signal(0);
   readonly size = signal(10);
+
+  @Input() set orgId(value: string | undefined) {
+    if (value) {
+      this.selectedOrg.set(value);
+      this.page.set(0);
+      this.updateParams();
+    }
+  }
+
+  @Input() set organizationId(value: string | undefined) {
+    if (value) {
+      this.selectedOrg.set(value);
+      this.page.set(0);
+      this.updateParams();
+    }
+  }
 
   readonly organizationsQuery = this.organizationsService.organizationsQuery;
   readonly programsQuery = this.programsService.programsQuery;

@@ -103,9 +103,14 @@
               [routerLink]="['/programs', program.id]"
               class="list-row-link"
             >
-              <div>
-                <p class="font-medium">{{ program.title }}</p>
-                <p class="text-sm text-ink-mute">{{ program.status }}</p>
+              <div class="flex items-center gap-3" style="display: flex; align-items: center; gap: 12px;">
+                @if (program.coverImageUrl) {
+                  <img [src]="program.coverImageUrl" [alt]="program.title" class="h-10 w-10 flex-shrink-0 rounded-md object-cover border border-hairline" style="height: 40px; width: 40px; border-radius: 6px; object-fit: cover;" />
+                }
+                <div>
+                  <p class="font-medium">{{ program.title }}</p>
+                  <p class="text-sm text-ink-mute">{{ program.status }}</p>
+                </div>
               </div>
               <app-status-badge [status]="program.status" entity="program" />
             </a>

@@ -54,9 +54,14 @@
             [routerLink]="['/programs', program.id]"
             class="flex items-center justify-between gap-4 px-4 py-4 hover:bg-canvas-soft sm:px-6"
           >
-            <div class="min-w-0">
-              <p class="truncate text-sm font-medium text-ink">{{ program.title }}</p>
-              <p class="mt-1 truncate text-sm text-ink-mute">{{ organizationName(program.organizationId) }}</p>
+            <div class="flex items-center gap-4 min-w-0">
+              @if (program.coverImageUrl) {
+                <img [src]="program.coverImageUrl" [alt]="program.title" class="h-12 w-12 flex-shrink-0 rounded-md object-cover border border-hairline" />
+              }
+              <div class="min-w-0">
+                <p class="truncate text-sm font-medium text-ink">{{ program.title }}</p>
+                <p class="mt-1 truncate text-sm text-ink-mute">{{ organizationName(program.organizationId) }}</p>
+              </div>
             </div>
             <app-badge [variant]="statusVariant(program.status)">{{ program.status }}</app-badge>
           </a>
