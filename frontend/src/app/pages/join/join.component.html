@@ -13,32 +13,20 @@
     }
 
     @if (code()) {
-      @if (invitationsService.previewQuery.isPending()) {
-        <app-loading-state message="Loading invitation..." />
-      } @else if (invitationsService.previewQuery.isError()) {
+      @if (joining()) {
         <div class="text-center">
-          <h2 class="mb-2 text-lg font-semibold text-ink">Invitation code</h2>
-          <p class="mb-6 font-mono text-2xl text-primary">{{ code() }}</p>
-          <app-button
-            [loading]="invitationsService.joinMutation.isPending()"
-            (clicked)="accept()"
-          >
-            Accept invitation
-          </app-button>
+          <app-loading-state
+            [message]="'Joining ' + (invitationsService.previewQuery.data()?.programTitle ?? 'program') + '…'"
+          />
         </div>
       } @else {
         <div class="text-center">
           <h2 class="mb-2 text-lg font-semibold text-ink">You're invited</h2>
           <p class="mb-6 text-ink-mute">
-            Join program
-            <span class="font-medium text-ink">{{ invitationsService.previewQuery.data()?.programId }}</span>
+            Join
+            <span class="font-medium text-ink">{{ invitationsService.previewQuery.data()?.programTitle }}</span>
           </p>
-          <app-button
-            [loading]="invitationsService.joinMutation.isPending()"
-            (clicked)="accept()"
-          >
-            Accept invitation
-          </app-button>
+          <app-button (clicked)="accept()">Join program</app-button>
         </div>
       }
     } @else {

@@ -11,10 +11,7 @@ import com.library.Skillmark.enrollment.dto.EnrollmentResponse;
 import com.library.Skillmark.enrollment.entity.ProgramEnrollment;
 import com.library.Skillmark.enrollment.enums.EnrollmentStatus;
 import com.library.Skillmark.enrollment.repository.ProgramEnrollmentRepository;
-import com.library.Skillmark.membership.entity.OrganizationMembership;
-import com.library.Skillmark.membership.enums.MembershipRole;
-import com.library.Skillmark.membership.enums.MembershipStatus;
-import com.library.Skillmark.membership.repository.OrganizationMembershipRepository;
+import com.library.Skillmark.membership.service.MembershipService;
 import com.library.Skillmark.program.entity.Program;
 import com.library.Skillmark.program.enums.ProgramStatus;
 import com.library.Skillmark.program.repository.ProgramRepository;
@@ -32,20 +29,20 @@ public class EnrollmentService {
     private final ProgramEnrollmentRepository enrollmentRepository;
     private final ProgramRepository programRepository;
     private final UserRepository userRepository;
-    private final OrganizationMembershipRepository membershipRepository;
+    private final MembershipService membershipService;
     private final AuthorizationService authorizationService;
     private final AuditLogService auditLogService;
 
     public EnrollmentService(ProgramEnrollmentRepository enrollmentRepository,
                              ProgramRepository programRepository,
                              UserRepository userRepository,
-                             OrganizationMembershipRepository membershipRepository,
+                             MembershipService membershipService,
                              AuthorizationService authorizationService,
                              AuditLogService auditLogService) {
         this.enrollmentRepository = enrollmentRepository;
         this.programRepository = programRepository;
         this.userRepository = userRepository;
-        this.membershipRepository = membershipRepository;
+        this.membershipService = membershipService;
         this.authorizationService = authorizationService;
         this.auditLogService = auditLogService;
     }
@@ -60,22 +57,7 @@ public class EnrollmentService {
         if (enrollmentRepository.existsByProgramIdAndUserIdAndStatus(programId, request.userId(), EnrollmentStatus.ACTIVE)) {
             throw new ConflictException("User is already actively enrolled in this program");
         }
-        var membership = membershipRepository.findByOrganizationIdAndUserId(
-                        program.getOrganization().getId(), user.getId())
-                .orElseGet(OrganizationMembership::new);
-        if (membership.getId() == null) {
-            membership.setOrganization(program.getOrganization());
-            membership.setUser(user);
-        }
-        if (membership.getRole() == null) {
-            membership.setRole(MembershipRole.PARTICIPANT);
-        }
-        if (membership.getStatus() != MembershipStatus.ACTIVE) {
-            membership.setStatus(MembershipStatus.ACTIVE);
-            membership.setRemovedBy(null);
-            membership.setRemovedAt(null);
-        }
-        membershipRepository.save(membership);
+        membershipService.ensureActiveMembership(program.getOrganization(), user, user);
         ProgramEnrollment enrollment = new ProgramEnrollment();
         enrollment.setProgram(program);
         enrollment.setUser(user);

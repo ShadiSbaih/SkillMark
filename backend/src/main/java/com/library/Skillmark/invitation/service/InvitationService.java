@@ -3,7 +3,6 @@ package com.library.Skillmark.invitation.service;
 import com.library.Skillmark.audit.enums.AuditAction;
 import com.library.Skillmark.audit.service.AuditLogService;
 import com.library.Skillmark.common.exception.BusinessRuleException;
-import com.library.Skillmark.common.exception.ConflictException;
 import com.library.Skillmark.common.exception.NotFoundException;
 import com.library.Skillmark.common.response.PageResponse;
 import com.library.Skillmark.email.service.EmailService;
@@ -11,14 +10,12 @@ import com.library.Skillmark.enrollment.entity.ProgramEnrollment;
 import com.library.Skillmark.enrollment.enums.EnrollmentStatus;
 import com.library.Skillmark.enrollment.repository.ProgramEnrollmentRepository;
 import com.library.Skillmark.invitation.dto.CreateInvitationRequest;
+import com.library.Skillmark.invitation.dto.InvitationPreviewResponse;
 import com.library.Skillmark.invitation.dto.InvitationResponse;
 import com.library.Skillmark.invitation.entity.InvitationLink;
 import com.library.Skillmark.invitation.enums.InvitationStatus;
 import com.library.Skillmark.invitation.repository.InvitationLinkRepository;
-import com.library.Skillmark.membership.entity.OrganizationMembership;
-import com.library.Skillmark.membership.enums.MembershipRole;
-import com.library.Skillmark.membership.enums.MembershipStatus;
-import com.library.Skillmark.membership.repository.OrganizationMembershipRepository;
+import com.library.Skillmark.membership.service.MembershipService;
 import com.library.Skillmark.program.enums.ProgramStatus;
 import com.library.Skillmark.security.service.AuthorizationService;
 import com.library.Skillmark.user.entity.User;
@@ -36,25 +33,25 @@ import java.util.UUID;
 public class InvitationService {
     private final InvitationLinkRepository invitationRepository;
     private final ProgramEnrollmentRepository enrollmentRepository;
-    private final OrganizationMembershipRepository membershipRepository;
     private final UserRepository userRepository;
     private final AuthorizationService authorizationService;
     private final AuditLogService auditLogService;
     private final EmailService emailService;
+    private final MembershipService membershipService;
     private final String baseUrl;
 
     public InvitationService(InvitationLinkRepository invitationRepository,
                              ProgramEnrollmentRepository enrollmentRepository,
-                             OrganizationMembershipRepository membershipRepository,
                              UserRepository userRepository,
                              AuthorizationService authorizationService,
                              AuditLogService auditLogService,
                              EmailService emailService,
+                             MembershipService membershipService,
                              @Value("${app.base-url:}") String baseUrl) {
         this.invitationRepository = invitationRepository;
         this.enrollmentRepository = enrollmentRepository;
-        this.membershipRepository = membershipRepository;
         this.userRepository = userRepository;
+        this.membershipService = membershipService;
         this.authorizationService = authorizationService;
         this.auditLogService = auditLogService;
         this.emailService = emailService;
@@ -73,8 +70,6 @@ public class InvitationService {
         invitation.setOrganization(program.getOrganization());
         invitation.setCode(uniqueCode());
         invitation.setDescription(request.description());
-        invitation.setMaxUses(request.maxUses());
-        invitation.setExpiresAt(request.expiresAt());
         invitation.setCreatedBy(userRepository.findById(actorId).orElseThrow(() -> new NotFoundException("User not found")));
         InvitationLink saved = invitationRepository.save(invitation);
         auditLogService.record(actorId, program.getOrganization().getId(), AuditAction.INVITATION_CREATED, "InvitationLink", saved.getId());
@@ -103,21 +98,27 @@ public class InvitationService {
 
     @Transactional(noRollbackFor = BusinessRuleException.class)
     public InvitationResponse join(String code, UUID userId) {
-        InvitationLink invitation = invitationRepository.findByCodeForUpdate(code)
+        InvitationLink invitation = invitationRepository.findByCode(code)
                 .orElseThrow(() -> new NotFoundException("Invitation not found"));
-        validateJoinable(invitation);
         if (enrollmentRepository.existsByProgramIdAndUserIdAndStatus(invitation.getProgram().getId(), userId, EnrollmentStatus.ACTIVE)) {
-            throw new ConflictException("User is already actively enrolled in this program");
+            return InvitationResponse.from(invitation, inviteUrl(invitation.getCode()));
         }
+        validateJoinable(invitation);
         User user = userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User not found"));
         ensureActiveMembership(invitation, user);
         ProgramEnrollment enrollment = new ProgramEnrollment();
         enrollment.setProgram(invitation.getProgram());
         enrollment.setUser(user);
         enrollmentRepository.save(enrollment);
-        invitation.setUsedCount(invitation.getUsedCount() + 1);
         auditLogService.record(userId, invitation.getOrganization().getId(), AuditAction.USER_ENROLLED, "InvitationLink", invitation.getId());
         return InvitationResponse.from(invitation, inviteUrl(invitation.getCode()));
+    }
+
+    @Transactional(readOnly = true)
+    public InvitationPreviewResponse preview(String code) {
+        InvitationLink invitation = invitationRepository.findByCode(code)
+                .orElseThrow(() -> new NotFoundException("Invitation not found"));
+        return InvitationPreviewResponse.from(invitation);
     }
 
     @Transactional
@@ -143,41 +144,14 @@ public class InvitationService {
         if (invitation.getStatus() != InvitationStatus.ACTIVE) {
             throw new BusinessRuleException("Invitation is not active");
         }
-        if (invitation.getExpiresAt() != null && invitation.getExpiresAt().isBefore(Instant.now())) {
-            invitation.setStatus(InvitationStatus.EXPIRED);
-            throw new BusinessRuleException("Invitation has expired");
-        }
-        if (invitation.getMaxUses() != null && invitation.getUsedCount() >= invitation.getMaxUses()) {
-            throw new BusinessRuleException("Invitation usage limit reached");
-        }
         if (invitation.getProgram().getStatus() != ProgramStatus.PUBLISHED || invitation.getProgram().getDeletedAt() != null) {
             throw new BusinessRuleException("Program is not joinable");
         }
     }
 
     private void ensureActiveMembership(InvitationLink invitation, User user) {
-        var existing = membershipRepository.findByOrganizationIdAndUserId(
-                invitation.getOrganization().getId(), user.getId());
-        if (existing.isPresent()) {
-            OrganizationMembership membership = existing.get();
-            if (membership.getRole() == null) {
-                membership.setRole(MembershipRole.PARTICIPANT);
-            }
-            if (membership.getStatus() != MembershipStatus.ACTIVE) {
-                membership.setStatus(MembershipStatus.ACTIVE);
-                membership.setRemovedBy(null);
-                membership.setRemovedAt(null);
-            }
-            membershipRepository.save(membership);
-            return;
-        }
-        OrganizationMembership membership = new OrganizationMembership();
-        membership.setOrganization(invitation.getOrganization());
-        membership.setUser(user);
-        membership.setRole(MembershipRole.PARTICIPANT);
-        membership.setStatus(MembershipStatus.ACTIVE);
-        membership.setInvitedBy(invitation.getCreatedBy());
-        membershipRepository.save(membership);
+        membershipService.ensureActiveMembership(
+                invitation.getOrganization(), user, invitation.getCreatedBy());
     }
 
     private String uniqueCode() {

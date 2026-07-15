@@ -4,6 +4,7 @@ import com.library.Skillmark.common.response.ApiResponse;
 import com.library.Skillmark.common.response.PageResponse;
 import com.library.Skillmark.config.OpenApiConfig;
 import com.library.Skillmark.invitation.dto.CreateInvitationRequest;
+import com.library.Skillmark.invitation.dto.InvitationPreviewResponse;
 import com.library.Skillmark.invitation.dto.InvitationResponse;
 import com.library.Skillmark.invitation.dto.UpdateInvitationStatusRequest;
 import com.library.Skillmark.invitation.service.InvitationService;
@@ -45,8 +46,15 @@ public class InvitationController {
                 invitationService.list(programId, currentUser.id(), page, size));
     }
 
+    @GetMapping("/public/invitations/{code}/preview")
+    @io.swagger.v3.oas.annotations.Operation(summary = "Preview invitation", description = "Public, unauthenticated preview of an invitation used to render the join page before sign-in.")
+    ApiResponse<InvitationPreviewResponse> preview(@PathVariable String code) {
+        return ApiResponse.success("Invitation preview retrieved successfully",
+                invitationService.preview(code));
+    }
+
     @PostMapping("/invitations/{code}/join")
-    @io.swagger.v3.oas.annotations.Operation(summary = "Join by invitation", description = "Joins a program using a concurrency-safe invitation usage check; usedCount cannot exceed maxUses.")
+    @io.swagger.v3.oas.annotations.Operation(summary = "Join by invitation", description = "Joins a program using an invitation code.")
     ApiResponse<InvitationResponse> join(@PathVariable String code, AuthUser currentUser) {
         return ApiResponse.success("Invitation joined successfully",
                 invitationService.join(code, currentUser.id()));

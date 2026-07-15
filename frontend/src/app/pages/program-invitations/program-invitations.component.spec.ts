@@ -141,9 +141,6 @@ describe('ProgramInvitationsComponent', () => {
       programId: 'program-1',
       code: 'SPRING-2026',
       description: null,
-      maxUses: 100,
-      usedCount: 42,
-      expiresAt: null,
       status: 'ACTIVE',
       disabledAt: null,
       createdAt: '2026-01-01T00:00:00Z',
@@ -154,9 +151,6 @@ describe('ProgramInvitationsComponent', () => {
       programId: 'program-1',
       code: 'OLD-COHORT',
       description: null,
-      maxUses: 50,
-      usedCount: 50,
-      expiresAt: null,
       status: 'DISABLED',
       disabledAt: '2026-02-01T00:00:00Z',
       createdAt: '2026-01-01T00:00:00Z',
@@ -241,8 +235,6 @@ describe('ProgramInvitationsComponent', () => {
 
     expect(fixture.nativeElement.textContent).toContain('SPRING-2026');
     expect(fixture.nativeElement.textContent).toContain('OLD-COHORT');
-    expect(fixture.nativeElement.textContent).toContain('42 / 100');
-    expect(fixture.nativeElement.textContent).toContain('50 / 50');
     expect(fixture.nativeElement.textContent).toContain('ACTIVE');
     expect(fixture.nativeElement.textContent).toContain('DISABLED');
   });
@@ -257,7 +249,6 @@ describe('ProgramInvitationsComponent', () => {
   it('should compute the correct badge variant for each status', () => {
     expect(component.badgeVariant('ACTIVE')).toBe('success');
     expect(component.badgeVariant('DISABLED')).toBe('danger');
-    expect(component.badgeVariant('EXPIRED')).toBe('warning');
   });
 
   it('should build the join URL from a code', () => {
@@ -275,9 +266,8 @@ describe('ProgramInvitationsComponent', () => {
     expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/join/ABC-123`);
   });
 
-  it('should call create mutation with max uses', () => {
+  it('should call create mutation', () => {
     fixture.detectChanges();
-    component.maxUses.set(25);
 
     component.createInvitation();
 
@@ -286,28 +276,6 @@ describe('ProgramInvitationsComponent', () => {
         programId: 'program-1',
         request: {
           description: null,
-          maxUses: 25,
-          expiresAt: null,
-        },
-      },
-      expect.any(Object)
-    );
-    expect(component.maxUses()).toBe(100);
-  });
-
-  it('should send null max uses when input is empty', () => {
-    fixture.detectChanges();
-    component.maxUses.set(NaN);
-
-    component.createInvitation();
-
-    expect(invitationsService.createMutate).toHaveBeenCalledWith(
-      {
-        programId: 'program-1',
-        request: {
-          description: null,
-          maxUses: null,
-          expiresAt: null,
         },
       },
       expect.any(Object)

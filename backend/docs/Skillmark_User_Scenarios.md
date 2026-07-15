@@ -674,9 +674,7 @@ Frontend Action:
   POST /api/v1/workspaces/a1b2c3d4.../invites
   Body: {
     "workshopId": "w1w2w3w4-w5w6-w7w8-w9w0-w1w2w3w4w5w6",
-    "role": "MEMBER",
-    "maxUses": 50,
-    "expiresAt": "2024-02-01T23:59:59Z"
+    "role": "MEMBER"
   }
 
 Backend Processing:
@@ -692,9 +690,6 @@ Backend Response:
       "id": "i1i2i3i4-i5i6-i7i8-i9i0-i1i2i3i4i5i6",
       "code": "GIT2024WK1AB",
       "workshopId": "w1w2w3w4...",
-      "maxUses": 50,
-      "usesCount": 0,
-      "expiresAt": "2024-02-01T23:59:59Z",
       "inviteUrl": "https://app.skillmark.io/join/GIT2024WK1AB"
     }
   }
@@ -825,10 +820,7 @@ Backend Response:
         "endsAt": "2024-02-01T17:00:00Z"
       },
       "invite": {
-        "expiresAt": "2024-02-01T23:59:59Z",
-        "maxUses": 50,
-        "usesCount": 12,
-        "remainingUses": 38
+        "valid": true
       }
     }
   }
@@ -854,7 +846,6 @@ Frontend displays:
 │                                             │
 │  📅 Feb 1, 2024 • 2:00 PM - 5:00 PM        │
 │  👥 12 participants enrolled                │
-│  ⏰ Invite expires in 15 days               │
 │                                             │
 │  [ Accept Invitation ]                      │
 │                                             │
@@ -878,8 +869,7 @@ Backend Processing:
   2. Find invite by code ✓
   3. Validate invite:
      - Status is active ✓
-     - Not expired (current_time < expiresAt) ✓
-     - Usage not exceeded (usesCount < maxUses) ✓
+     - Program is published and not deleted ✓
   4. Check duplicate enrollment:
      SELECT * FROM enrollments 
      WHERE workshop_id = ? AND user_id = ?
@@ -895,10 +885,6 @@ Backend Processing:
      c. Create workshop enrollment:
         INSERT INTO enrollments (workshop_id, user_id)
         VALUES (?, ?)
-     d. Increment invite usage (with lock):
-        UPDATE invites 
-        SET uses_count = uses_count + 1 
-        WHERE id = ? AND uses_count < max_uses
   6. Commit transaction
   7. Log activity
 
@@ -1013,52 +999,27 @@ Omar downloads the PDF and watches the video
 
 ### 🔄 Alternative Flows
 
-#### 3.1a: Invite Code Expired
+#### 3.1a: Invite Code Disabled
 ```
-Scenario: Omar tries to use expired invite
+Scenario: Omar tries to use a disabled invite
 
-GET /api/v1/invites/EXPIRED123/preview
-
-Response: 410 Gone
-{
-  "success": false,
-  "error": {
-    "code": "INVITE_EXPIRED",
-    "message": "This invitation has expired",
-    "details": [{
-      "expiresAt": "2024-01-10T23:59:59Z",
-      "expiredDays": 5
-    }]
-  }
-}
-
-Frontend displays:
-  ⚠️ "This invitation expired 5 days ago. 
-      Please contact the organizer for a new invite."
-```
-
-#### 3.1b: Invite Usage Limit Reached
-```
-Scenario: 50th person already used the invite
-
-POST /api/v1/invites/accept
-Body: {"code": "GIT2024WK1AB"}
+GET /api/v1/invites/DISABLED123/preview
 
 Response: 422 Unprocessable Entity
 {
   "success": false,
   "error": {
-    "code": "INVITE_LIMIT_REACHED",
-    "message": "This invitation has reached its usage limit",
-    "details": [{
-      "maxUses": 50,
-      "usesCount": 50
-    }]
+    "code": "INVITE_DISABLED",
+    "message": "This invitation is no longer active"
   }
 }
+
+Frontend displays:
+  ⚠️ "This invitation is no longer active. 
+      Please contact the organizer for a new invite."
 ```
 
-#### 3.1c: Already Enrolled
+#### 3.1b: Already Enrolled
 ```
 Scenario: Omar clicks invite link again
 
@@ -1083,30 +1044,18 @@ Frontend displays:
   [Auto-redirect after 2 seconds]
 ```
 
-#### 3.1d: Concurrent Enrollment (Race Condition)
+#### 3.1c: Concurrent Enrollment (Race Condition)
 ```
-Scenario: Exactly at max_uses limit, 2 users click simultaneously
+Scenario: 2 users click the same invite link simultaneously
 
 User A: POST /api/v1/invites/accept at T+0ms
 User B: POST /api/v1/invites/accept at T+5ms
 
 Backend handling:
-  Transaction A:
-    1. SELECT uses_count FROM invites WHERE id = ? FOR UPDATE
-       → uses_count = 49
-    2. Check: 49 < 50 ✓
-    3. UPDATE invites SET uses_count = 50
-    4. Create enrollment
-    5. COMMIT
-    
-  Transaction B (waiting on row lock):
-    1. SELECT uses_count FROM invites WHERE id = ? FOR UPDATE
-       → uses_count = 50 (after A commits)
-    2. Check: 50 < 50 ✗
-    3. ROLLBACK
-    4. Return 422 Unprocessable Entity
+  Both transactions create enrollments independently.
+  Since there's no usage limit, both succeed.
 
-Result: Only User A succeeds ✓
+Result: Both users enroll successfully ✓
 ```
 
 ---
@@ -2817,14 +2766,13 @@ Dr. Ahmad can now:
 **User A** and **User B** — Two students clicking invite simultaneously
 
 ### 🎯 Goal
-Ensure exactly 50 students can join when max_uses = 50
+Ensure both students can join successfully when clicking the same invite link at the same time
 
 ### 📝 Detailed Steps
 
 ```
 Initial State:
-  invite.max_uses = 50
-  invite.uses_count = 49
+  invite is ACTIVE, no usage limits
 
 At T+0ms:
   User A: POST /api/v1/invites/accept {"code": "GIT2024WK1AB"}
@@ -2832,44 +2780,30 @@ At T+0ms:
 
 Backend Processing (Transaction A):
   1. BEGIN TRANSACTION
-  2. SELECT * FROM invites WHERE code = ? FOR UPDATE
-     → Acquires row lock
-     → uses_count = 49
-  3. Check: 49 < 50 ✓
+  2. Find invite by code
+  3. Validate: status is active ✓
   4. Create enrollment
-  5. UPDATE invites SET uses_count = 50 WHERE id = ?
-  6. COMMIT
+  5. COMMIT
   → User A succeeds ✓
 
-Backend Processing (Transaction B, waiting on lock):
+Backend Processing (Transaction B):
   1. BEGIN TRANSACTION
-  2. SELECT * FROM invites WHERE code = ? FOR UPDATE
-     → Waits for Transaction A to complete...
-     → Transaction A commits, lock released
-     → uses_count = 50
-  3. Check: 50 < 50 ✗
-  4. ROLLBACK
-  
-Response to User B: 422 Unprocessable Entity
-{
-  "success": false,
-  "error": {
-    "code": "INVITE_LIMIT_REACHED",
-    "message": "This invitation has reached its usage limit"
-  }
-}
+  2. Find invite by code
+  3. Validate: status is active ✓
+  4. Create enrollment
+  5. COMMIT
+  → User B succeeds ✓
 
 Result:
-  ✓ Exactly 50 users enrolled (not 51)
+  ✓ Both users enrolled successfully
   ✓ No race condition
   ✓ Database integrity maintained
 ```
 
 ### ✅ Success Criteria
-- [x] Only one user succeeds when at limit
+- [x] Both users enroll successfully
 - [x] No duplicate enrollments
-- [x] uses_count never exceeds max_uses
-- [x] Clear error message for rejected user
+- [x] No errors for concurrent access
 
 ---
 
@@ -3411,9 +3345,7 @@ Content-Type: application/json
 
 {
   "workshopId": "wk-456...",
-  "role": "MEMBER",
-  "maxUses": 30,
-  "expiresAt": "2024-03-01T23:59:59Z"
+  "role": "MEMBER"
 }
 
 HTTP/1.1 201 Created

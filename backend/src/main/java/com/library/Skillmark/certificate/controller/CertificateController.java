@@ -45,12 +45,12 @@ public class CertificateController {
                 certificateService.get(certificateId, currentUser.id()));
     }
 
-    @PatchMapping("/{certificateId}/status")
-    @Operation(summary = "Update certificate status", description = "Updates certificate status. Currently only revocation (REVOKED) is supported, with an optional reason.")
-    ApiResponse<CertificateResponse> updateStatus(@PathVariable UUID certificateId,
-                                                  @Valid @RequestBody UpdateCertificateStatusRequest request,
-                                                  AuthUser currentUser) {
-        return ApiResponse.success("Certificate status updated successfully",
-                certificateService.updateStatus(certificateId, request, currentUser.id()));
+    @PostMapping("/{certificateId}/revoke")
+    @Operation(summary = "Revoke certificate", description = "Revokes a certificate. Requires owner permission for the issuing organization.")
+    ApiResponse<CertificateResponse> revoke(@PathVariable UUID certificateId,
+                                             @RequestBody(required = false) RevokeCertificateRequest request,
+                                             AuthUser currentUser) {
+        return ApiResponse.success("Certificate revoked successfully",
+                certificateService.revoke(certificateId, request == null ? null : request.reason(), currentUser.id()));
     }
 }

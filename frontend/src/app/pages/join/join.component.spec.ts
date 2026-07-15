@@ -7,6 +7,7 @@ import { of } from 'rxjs';
 import { vi } from 'vitest';
 import { JoinComponent } from './join.component';
 import { InvitationsService } from '../../services/invitations.service';
+import { AuthService } from '../../core/auth/auth.service';
 import { Invitation } from '../../core/models/invitation.model';
 
 class FakeInvitationsService {
@@ -39,10 +40,8 @@ class FakeInvitationsService {
     organizationId: 'org-1',
     programId: 'program-1',
     code: 'JOIN-CODE',
+    inviteUrl: null,
     description: null,
-    maxUses: 100,
-    usedCount: 1,
-    expiresAt: null,
     status: 'ACTIVE',
     disabledAt: null,
     createdAt: '2026-01-01T00:00:00Z',
@@ -55,19 +54,27 @@ class FakeInvitationsService {
 
   readonly previewQuery = {
     isPending: () => false,
+    isLoading: () => false,
     isError: () => false,
     data: () => this.nextInvitation,
   };
 }
 
-async function setupFixture(paramCode: string | null) {
+class FakeAuthService {
+  readonly isSignedIn = signal(false);
+}
+
+async function setupFixture(paramCode: string | null, signedIn = false) {
   const invitationsService = new FakeInvitationsService();
+  const authService = new FakeAuthService();
+  authService.isSignedIn.set(signedIn);
 
   await TestBed.configureTestingModule({
     imports: [JoinComponent],
     providers: [
       provideQueryClient(new QueryClient()),
       { provide: InvitationsService, useValue: invitationsService },
+      { provide: AuthService, useValue: authService },
       {
         provide: ActivatedRoute,
         useValue: {
@@ -82,7 +89,7 @@ async function setupFixture(paramCode: string | null) {
   const router = TestBed.inject(Router);
   vi.spyOn(router, 'navigate');
 
-  return { fixture, component, invitationsService, router };
+  return { fixture, component, invitationsService, authService, router };
 }
 
 describe('JoinComponent', () => {
@@ -108,12 +115,32 @@ describe('JoinComponent', () => {
     expect(invitationsService.previewCode()).toBe('JOIN-CODE');
   });
 
+  it('should redirect unauthenticated users to sign-in with the join link', async () => {
+    const { fixture, router } = await setupFixture('JOIN-CODE');
+    fixture.detectChanges();
+    expect(router.navigate).toHaveBeenCalledWith(
+      ['/sign-in'],
+      { queryParams: { redirect: '/join/JOIN-CODE' } }
+    );
+  });
+
   it('should accept invitation when the accept button is clicked', async () => {
     const { fixture, invitationsService } = await setupFixture('JOIN-CODE');
     fixture.detectChanges();
 
     const button = fixture.debugElement.query(By.css('app-button'));
     button.triggerEventHandler('clicked', undefined);
+    await fixture.whenStable();
+
+    expect(invitationsService.joinMutate).toHaveBeenCalledWith(
+      'JOIN-CODE',
+      expect.any(Object)
+    );
+  });
+
+  it('should auto-join when the user is already signed in', async () => {
+    const { fixture, invitationsService } = await setupFixture('JOIN-CODE', true);
+    fixture.detectChanges();
     await fixture.whenStable();
 
     expect(invitationsService.joinMutate).toHaveBeenCalledWith(

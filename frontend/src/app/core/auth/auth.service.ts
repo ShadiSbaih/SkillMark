@@ -16,9 +16,8 @@ export interface RegisterRequest {
   name: string;
   email: string;
   password: string;
-  role: 'OWNER' | 'MEMBER';
+  role?: 'OWNER' | 'MEMBER';
   organizationName?: string;
-  inviteCode?: string;
 }
 
 export interface VerifyEmailRequest {

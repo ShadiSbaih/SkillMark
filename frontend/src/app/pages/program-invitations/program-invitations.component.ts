@@ -51,7 +51,6 @@ export class ProgramInvitationsComponent {
   });
 
   readonly invitationsQuery = this.invitationsService.invitationsQuery;
-  readonly maxUses = signal<number | null>(100);
   readonly emails = signal<string>('');
   readonly lastCreated = signal<Invitation | null>(null);
 
@@ -88,8 +87,6 @@ export class ProgramInvitationsComponent {
         return 'success';
       case 'DISABLED':
         return 'danger';
-      case 'EXPIRED':
-        return 'warning';
       default:
         return 'default';
     }
@@ -111,12 +108,9 @@ export class ProgramInvitationsComponent {
     const programId = this.programId();
     if (!programId) return;
 
-    const max = this.maxUses();
     const rawEmails = this.emails().split(',').map((e) => e.trim()).filter(Boolean);
     const request = {
       description: null,
-      maxUses: max !== null && !Number.isNaN(max) ? max : null,
-      expiresAt: null,
       emails: rawEmails.length > 0 ? rawEmails : null,
     };
 
@@ -126,11 +120,14 @@ export class ProgramInvitationsComponent {
         onSuccess: (created) => {
           this.lastCreated.set(created);
           this.emails.set('');
-          this.maxUses.set(100);
+          const link = created.inviteUrl ?? this.joinUrl(created.code);
+          if (link) {
+            navigator.clipboard?.writeText(link).catch(() => undefined);
+          }
           toast.success(
             rawEmails.length > 0
-              ? 'Invitation created and sent by email'
-              : 'Invitation created'
+              ? 'Invitation link copied and sent by email'
+              : 'Invitation link copied to clipboard'
           );
         },
         onError: (error) => {

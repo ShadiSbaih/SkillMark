@@ -30,15 +30,6 @@ public class InvitationLink {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "max_uses")
-    private Integer maxUses;
-
-    @Column(name = "used_count", nullable = false)
-    private int usedCount;
-
-    @Column(name = "expires_at")
-    private Instant expiresAt;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private InvitationStatus status = InvitationStatus.ACTIVE;
@@ -77,12 +68,6 @@ public class InvitationLink {
     public void setCode(String code) { this.code = code; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
-    public Integer getMaxUses() { return maxUses; }
-    public void setMaxUses(Integer maxUses) { this.maxUses = maxUses; }
-    public int getUsedCount() { return usedCount; }
-    public void setUsedCount(int usedCount) { this.usedCount = usedCount; }
-    public Instant getExpiresAt() { return expiresAt; }
-    public void setExpiresAt(Instant expiresAt) { this.expiresAt = expiresAt; }
     public InvitationStatus getStatus() { return status; }
     public void setStatus(InvitationStatus status) { this.status = status; }
     public User getCreatedBy() { return createdBy; }

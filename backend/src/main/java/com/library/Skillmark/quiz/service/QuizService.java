@@ -66,7 +66,6 @@ public class QuizService {
     @Transactional
     public QuizResponse create(UUID programId, CreateQuizRequest request, UUID actorId) {
         Program program = authorizationService.ensureProgramOwner(programId, actorId);
-        validateCertificateMode(request.certificateEnabled(), request.certificateIssueMode());
         Quiz quiz = new Quiz();
         quiz.setProgram(program);
         quiz.setTitle(request.title().trim());
@@ -74,8 +73,7 @@ public class QuizService {
         quiz.setPassingScore(request.passingScore());
         quiz.setDurationMinutes(request.durationMinutes());
         quiz.setMaxAttempts(request.maxAttempts());
-        quiz.setCertificateEnabled(Boolean.TRUE.equals(request.certificateEnabled()));
-        quiz.setCertificateIssueMode(mode(request.certificateEnabled(), request.certificateIssueMode()));
+        quiz.setCertificateIssueMode(request.certificateIssueMode() == null ? CertificateIssueMode.NONE : request.certificateIssueMode());
         Quiz saved = quizRepository.save(quiz);
         auditLogService.record(actorId, program.getOrganization().getId(), AuditAction.QUIZ_CREATED, "Quiz", saved.getId());
         return toResponse(saved, true);
@@ -127,7 +125,6 @@ public class QuizService {
     @Transactional
     public QuizResponse update(UUID quizId, UpdateQuizRequest request, UUID actorId) {
         Quiz quiz = authorizationService.ensureQuizOwner(quizId, actorId);
-        validateCertificateMode(request.certificateEnabled(), request.certificateIssueMode());
         if (attemptRepository.existsByQuizId(quizId) && protectedSettingsChanged(quiz, request)) {
             throw new BusinessRuleException("Only title and description can be changed after attempts exist");
         }
@@ -136,8 +133,7 @@ public class QuizService {
         quiz.setPassingScore(request.passingScore());
         quiz.setDurationMinutes(request.durationMinutes());
         quiz.setMaxAttempts(request.maxAttempts());
-        quiz.setCertificateEnabled(Boolean.TRUE.equals(request.certificateEnabled()));
-        quiz.setCertificateIssueMode(mode(request.certificateEnabled(), request.certificateIssueMode()));
+        quiz.setCertificateIssueMode(request.certificateIssueMode() == null ? CertificateIssueMode.NONE : request.certificateIssueMode());
         auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.QUIZ_UPDATED, "Quiz", quizId);
         return toResponse(quiz, true);
     }
@@ -380,25 +376,11 @@ public class QuizService {
         }
     }
 
-    private void validateCertificateMode(Boolean enabled, CertificateIssueMode issueMode) {
-        if (!Boolean.TRUE.equals(enabled) && issueMode != null && issueMode != CertificateIssueMode.NONE) {
-            throw new BadRequestException("Certificate issue mode must be NONE when certificates are disabled");
-        }
-    }
-
-    private CertificateIssueMode mode(Boolean enabled, CertificateIssueMode issueMode) {
-        if (!Boolean.TRUE.equals(enabled)) {
-            return CertificateIssueMode.NONE;
-        }
-        return issueMode == null ? CertificateIssueMode.AUTO : issueMode;
-    }
-
     private boolean protectedSettingsChanged(Quiz quiz, UpdateQuizRequest request) {
         return !Objects.equals(quiz.getPassingScore(), request.passingScore())
                 || !Objects.equals(quiz.getDurationMinutes(), request.durationMinutes())
                 || !Objects.equals(quiz.getMaxAttempts(), request.maxAttempts())
-                || quiz.isCertificateEnabled() != Boolean.TRUE.equals(request.certificateEnabled())
-                || quiz.getCertificateIssueMode() != mode(request.certificateEnabled(), request.certificateIssueMode());
+                || quiz.getCertificateIssueMode() != (request.certificateIssueMode() == null ? CertificateIssueMode.NONE : request.certificateIssueMode());
     }
 
     private QuizResponse toResponse(Quiz quiz, boolean includeCorrectAnswers) {
@@ -406,8 +388,8 @@ public class QuizService {
                 .map(question -> toQuestionResponse(question, includeCorrectAnswers))
                 .toList();
         return new QuizResponse(quiz.getId(), quiz.getProgram().getId(), quiz.getProgram().getOrganization().getId(), quiz.getTitle(), quiz.getDescription(),
-            quiz.getPassingScore(), quiz.getDurationMinutes(), quiz.getMaxAttempts(), quiz.isCertificateEnabled(),
-            quiz.getCertificateIssueMode(), quiz.isVisibleToParticipants(), quiz.isPublished(), quiz.getStatus(), quiz.getCreatedAt(), questions);
+            quiz.getPassingScore(), quiz.getDurationMinutes(), quiz.getMaxAttempts(), quiz.getCertificateIssueMode(),
+            quiz.isVisibleToParticipants(), quiz.isPublished(), quiz.getStatus(), quiz.getCreatedAt(), questions);
     }
 
     private QuestionResponse toQuestionResponse(QuizQuestion question, boolean includeCorrectAnswers) {

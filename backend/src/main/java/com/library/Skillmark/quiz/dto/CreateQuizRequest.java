@@ -11,7 +11,6 @@ public record CreateQuizRequest(
         @NotNull @Min(0) @jakarta.validation.constraints.Max(100) Integer passingScore,
         @NotNull @Min(1) Integer durationMinutes,
         @NotNull @Min(1) Integer maxAttempts,
-        Boolean certificateEnabled,
         CertificateIssueMode certificateIssueMode
 ) {
 }

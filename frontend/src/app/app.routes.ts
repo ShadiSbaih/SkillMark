@@ -54,6 +54,8 @@ export const routes: Routes = [
       { path: 'reset-password', component: ResetPasswordComponent },
       { path: 'verify', component: VerifyCertificateComponent },
       { path: 'verify/:code', component: VerifyCertificateComponent },
+      { path: 'join', component: JoinComponent },
+      { path: 'join/:code', component: JoinComponent },
     ],
   },
   {
@@ -63,8 +65,6 @@ export const routes: Routes = [
     children: [
       { path: 'dashboard', component: DashboardComponent },
       { path: 'profile', component: ProfileComponent },
-      { path: 'join', component: JoinComponent },
-      { path: 'join/:code', component: JoinComponent },
       { path: 'programs', component: ProgramsComponent },
       {
         path: 'organizations',

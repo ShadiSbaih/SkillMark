@@ -12,7 +12,10 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((error: unknown) => {
       if (error instanceof HttpErrorResponse) {
         if (error.status === 401) {
-          void router.navigate(['/sign-in']);
+          const currentUrl = router.url;
+          void router.navigate(['/sign-in'], {
+            queryParams: currentUrl && currentUrl !== '/sign-in' ? { redirect: currentUrl } : null,
+          });
         } else if (error.status === 403) {
           toast.error('Forbidden: you do not have permission to access this resource');
         }

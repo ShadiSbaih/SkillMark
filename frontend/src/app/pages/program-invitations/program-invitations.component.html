@@ -8,34 +8,18 @@
       class="flex flex-col gap-4"
       (submit)="$event.preventDefault(); createInvitation()"
     >
-      <div class="grid gap-4 sm:grid-cols-2">
-        <div class="w-full">
-          <label for="maxUses" class="mb-1 block text-sm font-medium text-ink">
-            Max uses
-          </label>
-          <input
-            id="maxUses"
-            type="number"
-            min="1"
-            [value]="maxUses()"
-            (input)="maxUses.set($any($event.target).valueAsNumber)"
-            placeholder="Unlimited"
-            class="block w-full rounded-md border border-input px-3 py-2 text-sm text-ink placeholder-ink-mute focus-ring-primary"
-          />
-        </div>
-        <div class="w-full">
-          <label for="emails" class="mb-1 block text-sm font-medium text-ink">
-            Invite by email (optional)
-          </label>
-          <input
-            id="emails"
-            type="text"
-            [value]="emails()"
-            (input)="emails.set($any($event.target).value)"
-            placeholder="alice@acme.com, bob@acme.com"
-            class="block w-full rounded-md border border-input px-3 py-2 text-sm text-ink placeholder-ink-mute focus-ring-primary"
-          />
-        </div>
+      <div class="w-full">
+        <label for="emails" class="mb-1 block text-sm font-medium text-ink">
+          Invite by email (optional)
+        </label>
+        <input
+          id="emails"
+          type="text"
+          [value]="emails()"
+          (input)="emails.set($any($event.target).value)"
+          placeholder="alice@acme.com, bob@acme.com"
+          class="block w-full rounded-md border border-input px-3 py-2 text-sm text-ink placeholder-ink-mute focus-ring-primary"
+        />
       </div>
 
       <div class="flex justify-end">
@@ -101,7 +85,6 @@
               <thead>
                 <tr class="border-b border-input">
                   <th class="pb-3 font-semibold text-ink">Code</th>
-                  <th class="pb-3 font-semibold text-ink">Uses</th>
                   <th class="pb-3 font-semibold text-ink">Status</th>
                   <th class="pb-3 font-semibold text-ink">Created</th>
                   <th class="pb-3 text-right font-semibold text-ink">Actions</th>
@@ -112,9 +95,6 @@
                   <tr class="border-b border-light last:border-b-0">
                     <td class="py-3 font-medium text-ink">
                       {{ invitation.code }}
-                    </td>
-                    <td class="py-3 text-ink-mute">
-                      {{ invitation.usedCount }} / {{ invitation.maxUses ?? '∞' }}
                     </td>
                     <td class="py-3">
                       <app-badge [variant]="badgeVariant(invitation.status)">

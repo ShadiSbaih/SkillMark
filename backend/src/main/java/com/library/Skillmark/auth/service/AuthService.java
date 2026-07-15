@@ -3,13 +3,6 @@ package com.library.Skillmark.auth.service;
 import com.library.Skillmark.auth.dto.*;
 import com.library.Skillmark.common.exception.*;
 import com.library.Skillmark.email.service.EmailService;
-import com.library.Skillmark.enrollment.entity.ProgramEnrollment;
-import com.library.Skillmark.enrollment.enums.EnrollmentStatus;
-import com.library.Skillmark.enrollment.repository.ProgramEnrollmentRepository;
-import com.library.Skillmark.invitation.entity.InvitationLink;
-import com.library.Skillmark.invitation.enums.InvitationStatus;
-import com.library.Skillmark.invitation.repository.InvitationLinkRepository;
-import com.library.Skillmark.invitation.service.InvitationService;
 import com.library.Skillmark.membership.entity.OrganizationMembership;
 import com.library.Skillmark.membership.enums.MembershipRole;
 import com.library.Skillmark.membership.enums.MembershipStatus;
@@ -35,9 +28,6 @@ public class AuthService {
     private final UserRepository userRepository;
     private final OrganizationRepository organizationRepository;
     private final OrganizationMembershipRepository membershipRepository;
-    private final ProgramEnrollmentRepository enrollmentRepository;
-    private final InvitationLinkRepository invitationRepository;
-    private final InvitationService invitationService;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final VerificationTokenService verificationTokenService;
@@ -47,9 +37,6 @@ public class AuthService {
     public AuthService(UserRepository userRepository,
                        OrganizationRepository organizationRepository,
                        OrganizationMembershipRepository membershipRepository,
-                       ProgramEnrollmentRepository enrollmentRepository,
-                       InvitationLinkRepository invitationRepository,
-                       InvitationService invitationService,
                        PasswordEncoder passwordEncoder,
                        JwtService jwtService,
                        VerificationTokenService verificationTokenService,
@@ -58,9 +45,6 @@ public class AuthService {
         this.userRepository = userRepository;
         this.organizationRepository = organizationRepository;
         this.membershipRepository = membershipRepository;
-        this.enrollmentRepository = enrollmentRepository;
-        this.invitationRepository = invitationRepository;
-        this.invitationService = invitationService;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.verificationTokenService = verificationTokenService;
@@ -89,8 +73,6 @@ public class AuthService {
 
         if (request.role() == RegisterRequest.Role.OWNER) {
             createOwnerOrganization(savedUser, request.organizationName());
-        } else {
-            joinWithInviteCode(savedUser, request.inviteCode());
         }
 
         emailService.sendVerificationEmail(savedUser.getEmail(), savedUser.getName(), token.value());
@@ -194,42 +176,5 @@ public class AuthService {
         membership.setRole(MembershipRole.OWNER);
         membership.setStatus(MembershipStatus.ACTIVE);
         membershipRepository.save(membership);
-    }
-
-    private void joinWithInviteCode(User user, String inviteCode) {
-        if (!StringUtils.hasText(inviteCode)) {
-            throw new BadRequestException("Invite code is required");
-        }
-
-        InvitationLink invitation = invitationRepository.findByCode(inviteCode)
-                .orElseThrow(() -> new NotFoundException("Invitation not found"));
-
-        if (invitation.getStatus() != InvitationStatus.ACTIVE) {
-            throw new BadRequestException("Invitation is not active");
-        }
-
-        if (invitation.getExpiresAt() != null && invitation.getExpiresAt().isBefore(Instant.now())) {
-            throw new BadRequestException("Invitation has expired");
-        }
-
-        if (invitation.getMaxUses() != null && invitation.getUsedCount() >= invitation.getMaxUses()) {
-            throw new BadRequestException("Invitation usage limit reached");
-        }
-
-        OrganizationMembership membership = new OrganizationMembership();
-        membership.setOrganization(invitation.getOrganization());
-        membership.setUser(user);
-        membership.setRole(MembershipRole.PARTICIPANT);
-        membership.setStatus(MembershipStatus.ACTIVE);
-        membership.setInvitedBy(invitation.getCreatedBy());
-        membershipRepository.save(membership);
-
-        ProgramEnrollment enrollment = new ProgramEnrollment();
-        enrollment.setProgram(invitation.getProgram());
-        enrollment.setUser(user);
-        enrollment.setStatus(EnrollmentStatus.ACTIVE);
-        enrollmentRepository.save(enrollment);
-
-        invitation.setUsedCount(invitation.getUsedCount() + 1);
     }
 }

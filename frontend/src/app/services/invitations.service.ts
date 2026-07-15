@@ -10,6 +10,7 @@ import { PageResponse } from '../core/api/api-response.model';
 import {
   CreateInvitationRequest,
   Invitation,
+  InvitationPreview,
   UpdateInvitationStatusRequest,
 } from '../core/models/invitation.model';
 
@@ -96,7 +97,7 @@ export class InvitationsService {
     return {
       queryKey: ['invitations', code, 'preview'] as const,
       queryFn: () =>
-        lastValueFrom(this.api.get<Invitation>(`invitations/${code}/preview`)),
+        lastValueFrom(this.api.get<InvitationPreview>(`public/invitations/${code}/preview`)),
       enabled: !!code,
     };
   });

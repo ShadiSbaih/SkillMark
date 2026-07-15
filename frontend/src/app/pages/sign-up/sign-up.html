@@ -6,33 +6,6 @@
         <p class="auth-subtitle">Join Skillmark and start tracking skills.</p>
       </div>
 
-      <div class="role-selector" role="group" aria-label="Account type">
-        <button
-          type="button"
-          class="role-option"
-          [class.active]="isOwner()"
-          (click)="setRole('OWNER')"
-        >
-          Owner
-        </button>
-        <button
-          type="button"
-          class="role-option"
-          [class.active]="!isOwner()"
-          (click)="setRole('MEMBER')"
-        >
-          Member
-        </button>
-      </div>
-
-      <p class="role-hint">
-        @if (isOwner()) {
-          Create a new organization.
-        } @else {
-          Join an organization with an invite code.
-        }
-      </p>
-
       <form [formGroup]="form" (ngSubmit)="onSubmit()" class="auth-form">
         <app-form-field
           label="Full name"
@@ -96,35 +69,19 @@
           </app-form-field>
         </div>
 
-        @if (isOwner()) {
-          <app-form-field
-            label="Organization name"
+        <app-form-field
+          label="Organization name (optional)"
+          id="organizationName"
+          hint="Create an organization now, or leave blank and join one later with an invite link."
+        >
+          <input
             id="organizationName"
-            [error]="form.get('organizationName')?.touched && !form.get('organizationName')?.value?.trim() ? 'Organization name is required.' : undefined"
-          >
-            <input
-              id="organizationName"
-              type="text"
-              formControlName="organizationName"
-              placeholder="Acme Inc"
-              class="input"
-            />
-          </app-form-field>
-        } @else {
-          <app-form-field
-            label="Invite code"
-            id="inviteCode"
-            [error]="form.get('inviteCode')?.touched && !form.get('inviteCode')?.value?.trim() ? 'Invite code is required.' : undefined"
-          >
-            <input
-              id="inviteCode"
-              type="text"
-              formControlName="inviteCode"
-              placeholder="A1B2C3D4E5F6"
-              class="input"
-            />
-          </app-form-field>
-        }
+            type="text"
+            formControlName="organizationName"
+            placeholder="Acme Inc"
+            class="input"
+          />
+        </app-form-field>
 
         @if (error()) {
           <div class="auth-error">{{ error() }}</div>
@@ -138,7 +95,7 @@
       </form>
 
       <div class="auth-footer">
-        <span>Already have an account? <a routerLink="/sign-in">Sign in</a></span>
+        <span>Already have an account? <a routerLink="/sign-in" [queryParams]="redirect() ? { redirect: redirect() } : null">Sign in</a></span>
       </div>
     } @else {
       <div class="auth-header text-center" style="text-align: center;">
@@ -151,7 +108,7 @@
         </p>
       </div>
       <div class="auth-footer mt-8">
-        <span>Already verified? <a routerLink="/sign-in">Sign in</a></span>
+        <span>Already verified? <a [routerLink]="['/sign-in']" [queryParams]="redirect() ? { redirect: redirect() } : null">Sign in</a></span>
       </div>
     }
   </div>

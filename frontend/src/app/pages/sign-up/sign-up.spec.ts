@@ -44,20 +44,9 @@ describe('SignUp', () => {
     expect(fixture.nativeElement.textContent).toContain('Create your account');
   });
 
-  it('should default to owner role and show organization name field', () => {
+  it('should show an optional organization name field', () => {
     fixture.detectChanges();
-    expect(component.isOwner()).toBe(true);
     expect(fixture.nativeElement.querySelector('input[formControlName="organizationName"]')).toBeTruthy();
-  });
-
-  it('should switch to member role and show invite code field', () => {
-    fixture.detectChanges();
-
-    component.setRole('MEMBER');
-    fixture.detectChanges();
-
-    expect(component.isOwner()).toBe(false);
-    expect(fixture.nativeElement.querySelector('input[formControlName="inviteCode"]')).toBeTruthy();
   });
 
   it('should register an owner with organization name', async () => {
@@ -69,7 +58,6 @@ describe('SignUp', () => {
       password: 'password123',
       confirmPassword: 'password123',
       organizationName: 'Acme Inc',
-      inviteCode: '',
     });
 
     await component.onSubmit();
@@ -83,17 +71,15 @@ describe('SignUp', () => {
     });
   });
 
-  it('should register a member with invite code', async () => {
+  it('should register a plain account without a role when no org name', async () => {
     fixture.detectChanges();
 
-    component.setRole('MEMBER');
     component.form.setValue({
       name: 'Bob Jones',
       email: 'bob@example.com',
       password: 'password123',
       confirmPassword: 'password123',
       organizationName: '',
-      inviteCode: 'A1B2C3D4E5F6',
     });
 
     await component.onSubmit();
@@ -102,8 +88,6 @@ describe('SignUp', () => {
       name: 'Bob Jones',
       email: 'bob@example.com',
       password: 'password123',
-      role: 'MEMBER',
-      inviteCode: 'A1B2C3D4E5F6',
     });
   });
 
@@ -115,8 +99,7 @@ describe('SignUp', () => {
       email: 'alice@example.com',
       password: 'password123',
       confirmPassword: 'different',
-      organizationName: 'Acme Inc',
-      inviteCode: '',
+      organizationName: '',
     });
 
     await component.onSubmit();
@@ -134,7 +117,6 @@ describe('SignUp', () => {
       password: '',
       confirmPassword: '',
       organizationName: '',
-      inviteCode: '',
     });
 
     await component.onSubmit();

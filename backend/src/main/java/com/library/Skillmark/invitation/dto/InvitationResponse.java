@@ -13,9 +13,6 @@ public record InvitationResponse(
         String code,
         String inviteUrl,
         String description,
-        Integer maxUses,
-        int usedCount,
-        Instant expiresAt,
         InvitationStatus status,
         Instant disabledAt,
         Instant createdAt
@@ -28,9 +25,6 @@ public record InvitationResponse(
                 invitation.getCode(),
                 inviteUrl,
                 invitation.getDescription(),
-                invitation.getMaxUses(),
-                invitation.getUsedCount(),
-                invitation.getExpiresAt(),
                 invitation.getStatus(),
                 invitation.getDisabledAt(),
                 invitation.getCreatedAt()

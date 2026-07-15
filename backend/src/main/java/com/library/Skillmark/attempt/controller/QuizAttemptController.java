@@ -10,7 +10,7 @@ import com.library.Skillmark.common.response.ApiResponse;
 import com.library.Skillmark.common.response.PageResponse;
 import com.library.Skillmark.config.OpenApiConfig;
 import com.library.Skillmark.certificate.dto.CertificateResponse;
-import com.library.Skillmark.certificate.dto.ManualCertificateRequest;
+import com.library.Skillmark.certificate.dto.IssueCertificateRequest;
 import com.library.Skillmark.certificate.service.CertificateService;
 import com.library.Skillmark.security.AuthUser;
 import io.swagger.v3.oas.annotations.Operation;
@@ -72,9 +72,9 @@ public class QuizAttemptController {
     @PostMapping("/quiz-attempts/{attemptId}/certificate")
     @Operation(summary = "Issue certificate for attempt", description = "Manually issues a certificate for a submitted passing attempt. Requires owner permission.")
     ResponseEntity<ApiResponse<CertificateResponse>> issueCertificate(@PathVariable UUID attemptId,
-                                                                      @RequestBody(required = false) ManualCertificateRequest request,
+                                                                      @RequestBody(required = false) IssueCertificateRequest request,
                                                                       AuthUser currentUser) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Certificate issued successfully",
-                certificateService.issueForAttempt(attemptId, request, currentUser.id())));
+                certificateService.issue(request, currentUser.id())));
     }
 }

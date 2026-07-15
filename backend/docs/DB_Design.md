@@ -131,9 +131,6 @@ table invitation_links {
   created_by uuid [ref: > users.id, not null]
   code varchar(12) [unique, not null]
   description text
-  max_uses int
-  used_count int [not null, default: 0]
-  expires_at timestamp
   status varchar [not null, default: 'ACTIVE']
   created_at timestamp [not null, default: `now()`]
   disabled_at timestamp
@@ -404,8 +401,7 @@ Purpose:
 *   create workshops and training programs under an organization
 *   enroll participants manually or through invitation links
 *   track enrollment lifecycle (active, completed, removed)
-*   support invitation code-based self-enrollment with expiry and usage limits
-*   enforce invitation usage limits atomically so concurrent joins cannot make `used_count` exceed `max_uses`
+*   support invitation code-based self-enrollment
 
 ---
 
@@ -554,7 +550,6 @@ REMOVED      - enrollment was removed by the owner
 ```
 ACTIVE       - invitation is valid and can be used
 DISABLED     - invitation was manually disabled by the owner
-EXPIRED      - invitation passed its expiry date (enforced in code)
 ```
 
 ---

@@ -63,8 +63,7 @@ public class CertificateService {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public Optional<Certificate> issueAutomaticallyIfEligible(QuizAttempt attempt) {
         Quiz quiz = attempt.getQuiz();
-        if (!Boolean.TRUE.equals(attempt.getPassed()) || !quiz.isCertificateEnabled()
-                || quiz.getCertificateIssueMode() != CertificateIssueMode.AUTO) {
+        if (!Boolean.TRUE.equals(attempt.getPassed()) || quiz.getCertificateIssueMode() != CertificateIssueMode.AUTO) {
             return Optional.empty();
         }
         if (certificateRepository.existsByQuizIdAndUserIdAndStatus(quiz.getId(), attempt.getUser().getId(), CertificateStatus.ACTIVE)) {
@@ -82,7 +81,7 @@ public class CertificateService {
     public CertificateResponse issue(IssueCertificateRequest request, UUID actorId) {
         Quiz quiz = quizRepository.findById(request.quizId()).orElseThrow(() -> new NotFoundException("Quiz not found"));
         authorizationService.ensureOrganizationOwner(quiz.getProgram().getOrganization().getId(), actorId);
-        if (!quiz.isCertificateEnabled() || quiz.getCertificateIssueMode() != CertificateIssueMode.MANUAL) {
+        if (quiz.getCertificateIssueMode() != CertificateIssueMode.MANUAL) {
             throw new BusinessRuleException("Manual certificate issuing is available only for MANUAL certificate quizzes");
         }
         var user = userRepository.findById(request.userId()).orElseThrow(() -> new NotFoundException("User not found"));
@@ -92,18 +91,6 @@ public class CertificateService {
                 request.title() == null || request.title().isBlank() ? quiz.getTitle() + " Certificate" : request.title().trim());
         auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.CERTIFICATE_ISSUED, "Certificate", certificate.getId());
         return CertificateResponse.from(certificate);
-    }
-
-    @Transactional
-    public CertificateResponse issueForAttempt(UUID attemptId, ManualCertificateRequest request, UUID actorId) {
-        QuizAttempt attempt = attemptRepository.findById(attemptId).orElseThrow(() -> new NotFoundException("Attempt not found"));
-        Quiz quiz = attempt.getQuiz();
-        return issue(new IssueCertificateRequest(
-                quiz.getId(),
-                attempt.getUser().getId(),
-                attempt.getId(),
-                request == null ? null : request.title()
-        ), actorId);
     }
 
     @Transactional(readOnly = true)
@@ -129,10 +116,7 @@ public class CertificateService {
     }
 
     @Transactional
-    public CertificateResponse updateStatus(UUID certificateId, UpdateCertificateStatusRequest request, UUID actorId) {
-        if (request.status() != CertificateStatus.REVOKED) {
-            throw new BusinessRuleException("Certificate status can only be changed to REVOKED");
-        }
+    public CertificateResponse revoke(UUID certificateId, String reason, UUID actorId) {
         Certificate certificate = certificateRepository.findById(certificateId)
                 .orElseThrow(() -> new NotFoundException("Certificate not found"));
         authorizationService.ensureOrganizationOwner(certificate.getOrganization().getId(), actorId);
@@ -141,7 +125,7 @@ public class CertificateService {
         }
         certificate.setStatus(CertificateStatus.REVOKED);
         certificate.setRevokedAt(Instant.now());
-        certificate.setRevokeReason(request.reason());
+        certificate.setRevokeReason(reason);
         auditLogService.record(actorId, certificate.getOrganization().getId(), AuditAction.CERTIFICATE_REVOKED,
                 "Certificate", certificateId);
         return CertificateResponse.from(certificate);
@@ -168,7 +152,6 @@ public class CertificateService {
     }
 
     private Certificate createCertificate(Quiz quiz, com.library.Skillmark.user.entity.User user, QuizAttempt attempt, String title) {
-        validateEligibility(quiz, user.getId(), attempt);
         Certificate certificate = new Certificate();
         certificate.setCertificateNumber(nextCertificateNumber());
         certificate.setVerificationCode(nextVerificationCode());
@@ -196,22 +179,10 @@ public class CertificateService {
     }
 
     private String nextCertificateNumber() {
-        for (int attempt = 0; attempt < 10; attempt++) {
-            String value = "CERT-" + Year.now().getValue() + "-" + TokenGenerator.randomUppercase(8);
-            if (!certificateRepository.existsByCertificateNumber(value)) {
-                return value;
-            }
-        }
-        throw new IllegalStateException("Unable to generate unique certificate number");
+        return "CERT-" + Year.now().getValue() + "-" + TokenGenerator.randomUppercase(8);
     }
 
     private String nextVerificationCode() {
-        for (int attempt = 0; attempt < 10; attempt++) {
-            String value = TokenGenerator.randomUppercase(16);
-            if (!certificateRepository.existsByVerificationCode(value)) {
-                return value;
-            }
-        }
-        throw new IllegalStateException("Unable to generate unique verification code");
+        return TokenGenerator.randomUppercase(16);
     }
 }

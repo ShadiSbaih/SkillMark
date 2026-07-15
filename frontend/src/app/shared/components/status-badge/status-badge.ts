@@ -44,7 +44,6 @@ const ENTITY_STATUS_MAP: Record<StatusBadgeEntity, Record<string, BadgeConfig>> 
   invitation: {
     ACTIVE: { color: 'green', style: 'subtle' },
     DISABLED: { color: 'gray', style: 'subtle' },
-    EXPIRED: { color: 'red', style: 'subtle' },
   },
   membership: {
     OWNER: { color: 'blue', style: 'subtle' },

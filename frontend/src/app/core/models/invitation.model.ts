@@ -1,4 +1,4 @@
-export type InvitationStatus = 'ACTIVE' | 'DISABLED' | 'EXPIRED';
+export type InvitationStatus = 'ACTIVE' | 'DISABLED';
 
 export interface Invitation {
   id: string;
@@ -7,9 +7,6 @@ export interface Invitation {
   code: string;
   inviteUrl: string | null;
   description: string | null;
-  maxUses: number | null;
-  usedCount: number;
-  expiresAt: string | null;
   status: InvitationStatus;
   disabledAt: string | null;
   createdAt: string;
@@ -17,11 +14,16 @@ export interface Invitation {
 
 export interface CreateInvitationRequest {
   description: string | null;
-  maxUses: number | null;
-  expiresAt: string | null;
   emails?: string[] | null;
 }
 
 export interface UpdateInvitationStatusRequest {
   status: InvitationStatus;
+}
+
+export interface InvitationPreview {
+  code: string;
+  programTitle: string;
+  organizationName: string;
+  valid: boolean;
 }

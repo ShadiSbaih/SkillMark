@@ -342,9 +342,6 @@ CREATE TABLE invitations (
     program_id UUID REFERENCES programs(id) ON DELETE CASCADE,
     code VARCHAR(12) UNIQUE NOT NULL,
     role VARCHAR(20) NOT NULL DEFAULT 'PARTICIPANT',
-    max_uses INT,
-    uses_count INT NOT NULL DEFAULT 0,
-    expires_at TIMESTAMP,
     created_by UUID NOT NULL REFERENCES users(id),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -1137,22 +1134,17 @@ Example: VX8K2MN9PQR7Z3A1B5C7D9E2F4G6H8J0
 **Creation:**
 - ✅ Organization invitations grant membership with specified role
 - ✅ Program invitations enroll user + grant organization PARTICIPANT role if needed
-- ✅ `maxUses = null` means unlimited
-- ✅ `expiresAt = null` means never expires
 
 **Acceptance:**
 ```
 1. Validate invitation code exists and is not disabled
-2. Check expiration: current_time < expiresAt
-3. Check usage: usesCount < maxUses (if maxUses not null)
-4. Check duplicate membership/enrollment (return 409 if exists)
-5. Atomic increment usesCount
-6. Create membership/enrollment
-7. Return success
+2. Check duplicate membership/enrollment (return 409 if exists)
+3. Create membership/enrollment
+4. Return success
 ```
 
 **Concurrent Access:**
-- Use optimistic locking or database transaction to prevent `usesCount` exceeding `maxUses`
+- Use database transaction to ensure safe concurrent joins
 
 ---
 
@@ -1161,20 +1153,17 @@ Example: VX8K2MN9PQR7Z3A1B5C7D9E2F4G6H8J0
 ## 9.1 Authentication Flow
 
 ```
-1. Frontend authenticates with Auth
-2. Frontend receives JWT token
+1. Frontend authenticates with /api/v1/auth/login
+2. Backend validates credentials and issues JWT token
 3. Frontend sends token in Authorization header:
    Authorization: Bearer <token>
    
 4. Backend filter intercepts request:
    a. Extract token from header
-   b. Fetch JWKS from Auth (cached)
-   c. Validate token signature
-   d. Validate claims (exp, iss, nbf)
-   e. Extract auth_id from sub claim
-   f. Look up user by auth_id
-   g. If not found: auto-create from token claims
-   h. Load user into SecurityContext
+   b. Validate JWT signature using local secret
+   c. Validate claims (exp, iss, nbf)
+   d. Extract user ID from token
+   e. Load user into SecurityContext
    
 5. Controller accesses current user via @AuthenticationPrincipal
 ```
@@ -1187,8 +1176,8 @@ Example: VX8K2MN9PQR7Z3A1B5C7D9E2F4G6H8J0
 POST /api/v1/webhooks/auth
 
 Verification:
-1. Extract Svix-Signature header
-2. Verify signature using CLERK_WEBHOOK_SECRET
+1. Extract Authorization header (Bearer token)
+2. Verify JWT signature using JWT_SECRET
 3. If invalid: return 401
 4. If valid: process event
 
@@ -1618,9 +1607,7 @@ DATABASE_URL=postgresql://user:pass@host/dbname
 DATABASE_POOL_SIZE=10
 
 # Authentication (Auth)
-CLERK_ISSUER=https://auth.yourapp.com
-CLERK_JWKS_URL=https://auth.yourapp.com/.well-known/jwks.json
-CLERK_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxx
+JWT_SECRET=your-base64-encoded-secret
 
 # Storage (Cloudflare R2)
 R2_ACCOUNT_ID=your-account-id
@@ -1849,8 +1836,7 @@ services:
       - "8080:8080"
     environment:
       DATABASE_URL: jdbc:postgresql://postgres:5432/skillmark
-      CLERK_ISSUER: ${CLERK_ISSUER}
-      CLERK_JWKS_URL: ${CLERK_JWKS_URL}
+      JWT_SECRET: ${JWT_SECRET}
       R2_ACCOUNT_ID: ${R2_ACCOUNT_ID}
       R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID}
       R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY}
@@ -2169,9 +2155,7 @@ open http://localhost:8080/swagger-ui.html
 
 Edit `.env`:
 ```bash
-CLERK_ISSUER=https://your-auth-domain.auth.accounts.dev
-CLERK_JWKS_URL=https://your-auth-domain.auth.accounts.dev/.well-known/jwks.json
-CLERK_WEBHOOK_SECRET=whsec_xxxxxxx
+JWT_SECRET=your-base64-encoded-secret
 
 R2_ACCOUNT_ID=your-r2-account-id
 R2_ACCESS_KEY_ID=xxxxxx

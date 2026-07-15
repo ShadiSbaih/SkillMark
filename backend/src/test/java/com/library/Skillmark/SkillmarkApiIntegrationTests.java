@@ -150,17 +150,14 @@ class SkillmarkApiIntegrationTests {
                 .andExpect(jsonPath("$.data.isPublished", is(true)));
 
         String invitationCode = read(postJson("/api/v1/programs/" + programId + "/invitations", ownerToken, """
-                {
-                  "maxUses": 5
-                }
+                {}
                 """)
                 .andExpect(status().isCreated())
                 .andReturn(), "/data/code");
 
         String participantToken = token("student_user", "student@example.com", "Jane_Student");
         postJson("/api/v1/invitations/" + invitationCode + "/join", participantToken, "{}")
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.usedCount", is(1)));
+                .andExpect(status().isOk());
 
         postJson("/api/v1/programs/" + programId + "/resources", ownerToken, """
                 {
@@ -350,14 +347,12 @@ class SkillmarkApiIntegrationTests {
     }
 
     @Test
-    void concurrentInvitationJoinsCannotExceedMaxUses() throws Exception {
+    void concurrentInvitationJoinsBothSucceed() throws Exception {
         String ownerToken = token("owner_user", "owner@example.com", "Owner_One");
         String organizationId = createOrganization(ownerToken, "Computer Science Club");
         String programId = createPublishedProgram(ownerToken, organizationId);
         String invitationCode = read(postJson("/api/v1/programs/" + programId + "/invitations", ownerToken, """
-                {
-                  "maxUses": 1
-                }
+                {}
                 """)
                 .andExpect(status().isCreated())
                 .andReturn(), "/data/code");
@@ -381,12 +376,7 @@ class SkillmarkApiIntegrationTests {
         }).toList();
         executor.shutdownNow();
 
-        org.assertj.core.api.Assertions.assertThat(statuses).contains(200);
-        org.assertj.core.api.Assertions.assertThat(statuses).contains(422);
-
-        getJson("/api/v1/programs/" + programId + "/invitations", ownerToken)
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.items[0].usedCount", is(1)));
+        org.assertj.core.api.Assertions.assertThat(statuses).containsExactly(200, 200);
     }
 
     @Test
@@ -659,16 +649,13 @@ class SkillmarkApiIntegrationTests {
                 .andReturn(), "/data/id");
 
         String invitationCode = read(postJson("/api/v1/programs/" + programId + "/invitations", ownerToken, """
-                {
-                  "maxUses": 5
-                }
+                {}
                 """)
                 .andExpect(status().isCreated())
                 .andReturn(), "/data/code");
 
         postJson("/api/v1/invitations/" + invitationCode + "/join", participantToken, "{}")
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.usedCount", is(1)));
+                .andExpect(status().isOk());
 
         getJson("/api/v1/programs/" + programId + "/enrollments", ownerToken)
                 .andExpect(status().isOk())
@@ -777,9 +764,7 @@ class SkillmarkApiIntegrationTests {
 
     private void joinProgram(String ownerToken, String participantToken, String programId) throws Exception {
         String invitationCode = read(postJson("/api/v1/programs/" + programId + "/invitations", ownerToken, """
-                {
-                  "maxUses": 5
-                }
+                {}
                 """)
                 .andExpect(status().isCreated())
                 .andReturn(), "/data/code");
