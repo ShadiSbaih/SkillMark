@@ -108,7 +108,7 @@ Testing:       JUnit 5, Testcontainers
 ## 3.2 Infrastructure
 
 ```
-Authentication:  Auth
+Authentication:  Native JWT (cookie + Bearer fallback)
 Database:        Neon (PostgreSQL 15+)
 Storage:         Cloudflare R2 (S3-compatible)
 Deployment:      Any cloud platform (AWS, GCP, Railway, Render)
@@ -118,7 +118,7 @@ Deployment:      Any cloud platform (AWS, GCP, Railway, Render)
 
 | Service | Reason |
 |---------|--------|
-| **Auth** | Best-in-class auth, no custom password management |
+| **Native JWT** | Self-contained auth, no external identity provider |
 | **Neon** | Serverless Postgres, generous free tier, branching |
 | **Cloudflare R2** | Zero egress fees, S3-compatible, global CDN |
 
@@ -214,7 +214,6 @@ Instead of complex organization + program permissions, we use **organization-lev
 ```sql
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    auth_id VARCHAR(255) UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     full_name VARCHAR(255) NOT NULL,
     avatar_url TEXT,
@@ -222,14 +221,13 @@ CREATE TABLE users (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_users_auth_id ON users(auth_id);
 CREATE INDEX idx_users_email ON users(email);
 ```
 
 **Notes:**
-- `auth_id` links to Auth user identity
-- Local copy maintained via webhook sync
-- No password/auth fields (handled by Auth)
+- Local user identity lives in the `users` table
+- Passwords are hashed with BCrypt and stored in `password_hash`
+- Native JWT auth; no external identity provider or webhook sync
 
 ---
 
@@ -686,13 +684,13 @@ CREATE INDEX idx_activity_logs_entity ON activity_logs(entity_type, entity_id);
 
 ## 7.4 Authentication
 
-All endpoints except public ones require:
+All endpoints except public ones require a valid native JWT. The backend reads it from the `access_token` cookie by default, and also accepts:
 
 ```
-Authorization: Bearer <auth_jwt_token>
+Authorization: Bearer <native_jwt_token>
 ```
 
-Backend validates token using Auth JWKS, extracts `auth_id`, looks up local user.
+Backend validates the JWT signature using `JWT_SECRET`, extracts the local user id from `sub`, and looks up the local user.
 
 ---
 
@@ -1155,57 +1153,25 @@ Example: VX8K2MN9PQR7Z3A1B5C7D9E2F4G6H8J0
 ```
 1. Frontend authenticates with /api/v1/auth/login
 2. Backend validates credentials and issues JWT token
-3. Frontend sends token in Authorization header:
-   Authorization: Bearer <token>
+3. Backend sets the JWT as an httpOnly, Secure, SameSite=Lax cookie (access_token)
+4. Frontend sends cookie automatically on subsequent requests (withCredentials: true)
+   Fallback: Authorization: Bearer <token> header is also supported
    
-4. Backend filter intercepts request:
-   a. Extract token from header
+5. Backend filter intercepts request:
+   a. Extract token from cookie or Authorization header
    b. Validate JWT signature using local secret
    c. Validate claims (exp, iss, nbf)
    d. Extract user ID from token
    e. Load user into SecurityContext
    
-5. Controller accesses current user via @AuthenticationPrincipal
+6. Controller accesses current user via AuthUser argument resolver
 ```
+
+**Note:** The backend uses native JWT auth. There is no external auth provider and no webhook sync endpoint.
 
 ---
 
-## 9.2 Webhook Security
-
-```
-POST /api/v1/webhooks/auth
-
-Verification:
-1. Extract Authorization header (Bearer token)
-2. Verify JWT signature using JWT_SECRET
-3. If invalid: return 401
-4. If valid: process event
-
-Supported Events:
-- user.created  → Create local user
-- user.updated  → Update name, email, avatar
-- user.deleted  → Mark user as deleted (soft delete)
-```
-
-**Implementation:**
-```java
-@PostMapping("/webhooks/auth")
-public ResponseEntity<?> handleAuthWebhook(
-    @RequestHeader("Svix-Signature") String signature,
-    @RequestBody String payload
-) {
-    if (!webhookService.verifySignature(payload, signature)) {
-        return ResponseEntity.status(401).build();
-    }
-    
-    webhookService.processEvent(payload);
-    return ResponseEntity.ok().build();
-}
-```
-
----
-
-## 9.3 Authorization Checks
+## 9.2 Authorization Checks
 
 ### Organization-Level
 
@@ -1253,7 +1219,7 @@ public void checkProgramAccess(UUID programId, User user) {
 
 ---
 
-## 9.4 Rate Limiting
+## 9.3 Rate Limiting
 
 | Endpoint Pattern | Limit |
 |-----------------|-------|
@@ -1267,7 +1233,7 @@ public void checkProgramAccess(UUID programId, User user) {
 
 ---
 
-## 9.5 Data Security
+## 9.4 Data Security
 
 **Sensitive Data Protection:**
 - ❌ Never log JWT tokens

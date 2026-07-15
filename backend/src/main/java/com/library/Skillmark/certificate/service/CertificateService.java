@@ -93,6 +93,24 @@ public class CertificateService {
         return CertificateResponse.from(certificate);
     }
 
+    @Transactional
+    public CertificateResponse issueForAttempt(UUID attemptId, IssueCertificateForAttemptRequest request, UUID actorId) {
+        QuizAttempt attempt = attemptRepository.findById(attemptId)
+                .orElseThrow(() -> new NotFoundException("Attempt not found"));
+        Quiz quiz = attempt.getQuiz();
+        authorizationService.ensureOrganizationOwner(quiz.getProgram().getOrganization().getId(), actorId);
+        if (quiz.getCertificateIssueMode() != CertificateIssueMode.MANUAL) {
+            throw new BusinessRuleException("Manual certificate issuing is available only for MANUAL certificate quizzes");
+        }
+        validateEligibility(quiz, attempt.getUser().getId(), attempt);
+        String title = request == null || request.title() == null || request.title().isBlank()
+                ? quiz.getTitle() + " Certificate"
+                : request.title().trim();
+        Certificate certificate = createCertificate(quiz, attempt.getUser(), attempt, title);
+        auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.CERTIFICATE_ISSUED, "Certificate", certificate.getId());
+        return CertificateResponse.from(certificate);
+    }
+
     @Transactional(readOnly = true)
     public PageResponse<CertificateResponse> mine(UUID userId, int page, int size) {
         return PageResponse.fromList(certificateRepository.findByUserId(userId).stream()

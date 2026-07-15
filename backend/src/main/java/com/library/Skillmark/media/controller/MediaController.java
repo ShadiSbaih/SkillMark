@@ -9,6 +9,7 @@ import com.library.Skillmark.security.AuthUser;
 import com.library.Skillmark.security.service.AuthorizationService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -25,7 +26,7 @@ public class MediaController {
     }
 
     @PostMapping("/media/signatures")
-    ApiResponse<CloudinarySignatureResponse> signature(@RequestBody CloudinarySignatureRequest request,
+    ApiResponse<CloudinarySignatureResponse> signature(@Valid @RequestBody CloudinarySignatureRequest request,
                                                        AuthUser currentUser) {
         if (request.organizationId() != null && request.programId() != null) {
             throw new com.library.Skillmark.common.exception.BadRequestException("Provide either organizationId or programId, not both");

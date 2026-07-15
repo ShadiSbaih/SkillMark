@@ -12,6 +12,7 @@ import com.library.Skillmark.security.AuthUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -33,7 +34,7 @@ public class UserController {
 
     @PatchMapping("/me")
     @Operation(summary = "Update current user", description = "Updates the current user's local profile fields.")
-    ApiResponse<UserResponse> updateMe(@RequestBody UpdateUserProfileRequest request, AuthUser currentUser) {
+    ApiResponse<UserResponse> updateMe(@Valid @RequestBody UpdateUserProfileRequest request, AuthUser currentUser) {
         return ApiResponse.success("User profile updated successfully",
                 userService.update(currentUser.id(), request));
     }

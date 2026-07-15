@@ -23,8 +23,10 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -87,6 +89,10 @@ class SkillmarkApiIntegrationTests {
         mockMvc.perform(get("/api/v1/users/me"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success", is(false)));
+
+        mockMvc.perform(get("/api/v1/auth/me"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success", is(false)));
     }
 
     @Test
@@ -100,13 +106,20 @@ class SkillmarkApiIntegrationTests {
         patchJson("/api/v1/users/me", token, """
                 {
                   "name": "Owner Updated",
-                  "email": "owner.updated@example.com",
                   "avatarUrl": "https://example.com/avatar.png"
                 }
                 """)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.name", is("Owner Updated")))
-                .andExpect(jsonPath("$.data.avatarUrl", is("https://example.com/avatar.png")));
+                .andExpect(jsonPath("$.data.avatarUrl", is("https://example.com/avatar.png")))
+                .andExpect(jsonPath("$.data.email", is("owner@example.com")));
+
+        patchJson("/api/v1/users/me", token, """
+                {
+                  "email": "owner.updated@example.com"
+                }
+                """)
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -194,7 +207,6 @@ class SkillmarkApiIntegrationTests {
                   "passingScore": 70,
                   "durationMinutes": 30,
                   "maxAttempts": 1,
-                  "certificateEnabled": true,
                   "certificateIssueMode": "AUTO"
                 }
                 """)
@@ -291,7 +303,6 @@ class SkillmarkApiIntegrationTests {
                   "passingScore": 70,
                   "durationMinutes": 1,
                   "maxAttempts": 1,
-                  "certificateEnabled": false,
                   "certificateIssueMode": "NONE"
                 }
                 """)
@@ -395,7 +406,6 @@ class SkillmarkApiIntegrationTests {
                   "passingScore": 70,
                   "durationMinutes": 30,
                   "maxAttempts": 1,
-                  "certificateEnabled": true,
                   "certificateIssueMode": "AUTO"
                 }
                 """)
@@ -450,9 +460,8 @@ class SkillmarkApiIntegrationTests {
                 .andExpect(jsonPath("$.data.items.length()", is(1)))
                 .andExpect(jsonPath("$.data.items[0].id", is(certificateId)));
 
-        patchJson("/api/v1/certificates/" + certificateId + "/status", ownerToken, """
+        postJson("/api/v1/certificates/" + certificateId + "/revoke", ownerToken, """
                 {
-                  "status": "REVOKED",
                   "reason": "Test revocation"
                 }
                 """)
@@ -564,7 +573,6 @@ class SkillmarkApiIntegrationTests {
                   "passingScore": 70,
                   "durationMinutes": 30,
                   "maxAttempts": 1,
-                  "certificateEnabled": false,
                   "certificateIssueMode": "NONE"
                 }
                 """)
@@ -682,7 +690,6 @@ class SkillmarkApiIntegrationTests {
                   "passingScore": 70,
                   "durationMinutes": 30,
                   "maxAttempts": 1,
-                  "certificateEnabled": true,
                   "certificateIssueMode": "AUTO"
                 }
                 """)
@@ -773,7 +780,8 @@ class SkillmarkApiIntegrationTests {
     }
 
     private String token(String userId, String email, String name) {
-        return "dev:" + userId + ":" + email + ":" + name;
+        UUID deterministicId = UUID.nameUUIDFromBytes(userId.getBytes(StandardCharsets.UTF_8));
+        return "dev:" + deterministicId + ":" + email + ":" + name;
     }
 
     private org.springframework.test.web.servlet.ResultActions postJson(String path, String token, String json) throws Exception {

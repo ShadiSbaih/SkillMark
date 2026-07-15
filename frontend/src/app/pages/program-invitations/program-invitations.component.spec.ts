@@ -27,11 +27,31 @@ class FakeInvitationsService {
     refetch: this.refetchSpy,
   });
 
-  readonly createMutate = vi.fn((_vars: unknown, options?: { onSuccess?: () => void }) => {
-    options?.onSuccess?.();
+  readonly createMutate = vi.fn((_vars: unknown, options?: { onSuccess?: (invitation: Invitation) => void }) => {
+    options?.onSuccess?.({
+      id: 'inv-new',
+      organizationId: 'org-1',
+      programId: 'program-1',
+      code: 'NEW-CODE',
+      inviteUrl: 'http://localhost:4200/join/NEW-CODE',
+      description: null,
+      status: 'ACTIVE',
+      disabledAt: null,
+      createdAt: '2026-01-01T00:00:00Z',
+    });
   });
-  readonly disableMutate = vi.fn((_vars: string, options?: { onSuccess?: () => void }) => {
-    options?.onSuccess?.();
+  readonly disableMutate = vi.fn((_vars: string, options?: { onSuccess?: (invitation: Invitation) => void }) => {
+    options?.onSuccess?.({
+      id: 'inv-1',
+      organizationId: 'org-1',
+      programId: 'program-1',
+      code: 'SPRING-2026',
+      inviteUrl: 'http://localhost:4200/join/SPRING-2026',
+      description: null,
+      status: 'DISABLED',
+      disabledAt: '2026-02-01T00:00:00Z',
+      createdAt: '2026-01-01T00:00:00Z',
+    });
   });
 
   readonly invitationsQuery = {
@@ -140,6 +160,7 @@ describe('ProgramInvitationsComponent', () => {
       organizationId: 'org-1',
       programId: 'program-1',
       code: 'SPRING-2026',
+      inviteUrl: 'http://localhost:4200/join/SPRING-2026',
       description: null,
       status: 'ACTIVE',
       disabledAt: null,
@@ -150,6 +171,7 @@ describe('ProgramInvitationsComponent', () => {
       organizationId: 'org-1',
       programId: 'program-1',
       code: 'OLD-COHORT',
+      inviteUrl: 'http://localhost:4200/join/OLD-COHORT',
       description: null,
       status: 'DISABLED',
       disabledAt: '2026-02-01T00:00:00Z',

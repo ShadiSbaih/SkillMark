@@ -321,8 +321,8 @@ Frontend Action:
     Authorization: Bearer eyJhbGciOiJSUzI1NiIs...
 
 Backend Processing:
-  1. Verify Auth token ✓
-  2. Extract user from token (auth_id: user_2a3b4c5d)
+  1. Verify native JWT from cookie/Authorization header ✓
+  2. Extract user from token (sub: 123e4567-e89b-12d3-a456-426614174000)
   3. Look up local user → User{id: 123e4567-e89b-12d3-a456-426614174000}
   4. Validate slug uniqueness ✓
   5. Create workspace record

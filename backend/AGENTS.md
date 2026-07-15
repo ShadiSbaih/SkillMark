@@ -19,7 +19,7 @@
 **1. Authentication & Identity**
 * Native JWT auth. Users register with email + password; the backend issues and validates its own JWTs.
 * Local user identity lives in the `users` table (`id`, `password_hash`, email verification, password reset).
-* Passwords are hashed (never stored in plaintext) using `common.util.HashUtil`.
+* Passwords are hashed (never stored in plaintext) using Spring Security `BCryptPasswordEncoder`.
 
 **2. Authorization (Multi-Tenancy)**
 * NO global user roles (`users.role` is forbidden).

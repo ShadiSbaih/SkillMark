@@ -1,5 +1,8 @@
 # API Gap Audit
 
+> **DEPRECATED — This document is stale and kept for historical reference only.**
+> It was generated during Phase 1 of the frontend/backend integration and no longer reflects the current API surface. Many of the listed gaps have been closed, endpoint paths have changed, and listed placeholder pages/components have been implemented or removed. Treat the running backend controllers and frontend services as the source of truth.
+
 > Generated during Phase 1 of the full frontend/backend integration ferment.
 > Compares Spring Boot controllers (`backend/src/main/java/com/library/Skillmark`) with Angular services (`frontend/src/app/services`) and core models (`frontend/src/app/core/models`).
 
@@ -22,7 +25,7 @@
 | Storage | `StorageController` | `/api/v1` |
 | Users (me) | `MeController` | `/api/v1/me` |
 | Users | `UserController` | `/api/v1/users` |
-| Webhooks | `AuthWebhookController` | `/api/v1/webhooks/auth` |
+| Webhooks | ~~`AuthWebhookController`~~ (removed) | ~~`/api/v1/webhooks/auth`~~ |
 
 ### Endpoints by domain
 

@@ -2,6 +2,9 @@ package com.library.Skillmark.common.exception;
 
 import com.library.Skillmark.common.response.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -56,6 +59,34 @@ public class GlobalExceptionHandler {
                                                          HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(ApiResponse.<Void>error(ErrorCode.ACCESS_DENIED.name(), "Access denied", List.of(),
+                        request.getRequestURI()));
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    ResponseEntity<ApiResponse<Void>> handleConstraintViolation(ConstraintViolationException ex,
+                                                                HttpServletRequest request) {
+        List<ApiResponse.ErrorDetail> errors = ex.getConstraintViolations().stream()
+                .map(violation -> new ApiResponse.ErrorDetail(
+                        violation.getPropertyPath().toString(), violation.getMessage()))
+                .toList();
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.<Void>error(ErrorCode.VALIDATION_ERROR.name(), "Validation failed", errors,
+                        request.getRequestURI()));
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    ResponseEntity<ApiResponse<Void>> handleDataIntegrityViolation(DataIntegrityViolationException ex,
+                                                                   HttpServletRequest request) {
+        String message = "Resource conflict";
+        Throwable root = ex.getRootCause();
+        if (root != null && root.getMessage() != null) {
+            String rootMessage = root.getMessage().toLowerCase();
+            if (rootMessage.contains("unique") || rootMessage.contains("duplicate")) {
+                message = "A resource with the same unique value already exists";
+            }
+        }
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.<Void>error(ErrorCode.CONFLICT.name(), message, List.of(),
                         request.getRequestURI()));
     }
 

@@ -6,6 +6,7 @@ import com.library.Skillmark.user.entity.*;
 import com.library.Skillmark.user.enums.*;
 import com.library.Skillmark.user.repository.*;
 import com.library.Skillmark.user.service.*;
+import com.library.Skillmark.common.exception.BadRequestException;
 import com.library.Skillmark.common.exception.NotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,7 +36,7 @@ public class UserService {
                 user.setName(request.name().trim());
             }
             if (StringUtils.hasText(request.email())) {
-                user.setEmail(request.email().trim());
+                throw new BadRequestException("Email cannot be changed through profile update");
             }
             if (request.avatarUrl() != null) {
                 user.setAvatarUrl(request.avatarUrl());

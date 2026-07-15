@@ -30,9 +30,9 @@ This frontend will support:
 | API Middleware | Functional HTTP Interceptors |
 | Local UI State | Angular Signals |
 | Server State / Cache | TanStack Query for Angular |
-| Styling | Tailwind CSS |
+| Styling | Custom CSS design tokens (styles.scss) |
 | Forms | Angular Reactive Forms |
-| Authentication | Auth |
+| Authentication | Native JWT (cookie-based, withCredentials) |
 | Icons | lucide-angular |
 | Toasts / Notifications | ngx-sonner or a lightweight Angular toast library |
 | Charts Later | ECharts or ngx-charts |
@@ -51,7 +51,7 @@ Also avoid Angular Material for now unless the project later needs complex ready
 The UI should be built mainly with:
 
 ```txt
-Angular + Tailwind CSS + small custom reusable components
+Angular + custom CSS design tokens + small custom reusable components
 ```
 
 This gives more control over the design and avoids making the dashboard look like a default Material dashboard.
@@ -69,12 +69,12 @@ Angular HttpClient
 Functional Interceptors
 Angular Signals
 TanStack Query for Angular
-Tailwind CSS
+Custom CSS design tokens (styles.scss)
 Reactive Forms
-Auth Auth
-lucide-angular
+Native JWT auth (cookie-based)
+lucide-angular (installed, currently unused)
 ngx-sonner
-date-fns or Day.js
+date-fns or Day.js (installed, currently unused)
 Playwright later for E2E tests
 ```
 
@@ -105,6 +105,8 @@ TanStack Query for Angular
 ```
 
 for API data, caching, loading states, errors, refetching, and mutations.
+
+Styling is implemented with custom CSS variables and utility classes in `styles.scss`, not Tailwind CSS.
 
 Use:
 
@@ -231,21 +233,17 @@ This keeps the UI consistent without depending on a heavy component library.
 
 ## Authentication Strategy
 
-The backend expects:
-
-```http
-Authorization: Bearer <auth_token>
-```
+The backend uses native JWT auth and sets the token in an `httpOnly`, `Secure`, `SameSite=Lax` cookie on login.
 
 Frontend flow:
 
-1. User signs in with Auth.
-2. Frontend gets the Auth session token.
-3. Angular HTTP interceptor attaches the token to protected API requests.
-4. Backend verifies the Auth JWT.
-5. Backend resolves or creates the local user.
+1. User registers or logs in via `/api/v1/auth/register` or `/api/v1/auth/login`.
+2. Backend issues a JWT and sets it as an `access_token` cookie.
+3. Angular HTTP requests use `withCredentials: true` so the cookie is sent automatically.
+4. Backend validates the JWT cookie (or `Authorization: Bearer <token>` fallback).
+5. Backend resolves the local user from the token claims.
 
-Create an auth interceptor:
+Create an auth interceptor only if additional header logic is needed:
 
 ```txt
 auth.interceptor.ts
@@ -253,8 +251,8 @@ auth.interceptor.ts
 
 Responsibilities:
 
-- Get Auth token.
-- Add `Authorization` header.
+- Ensure `withCredentials: true` on API requests.
+- Optionally attach `Authorization: Bearer <token>` for non-cookie flows.
 - Skip auth header for public routes such as certificate verification if needed.
 
 ---
@@ -405,12 +403,10 @@ Suggested packages:
 
 ```bash
 npm install @tanstack/angular-query-experimental
-npm install lucide-angular
 npm install ngx-sonner
-npm install date-fns
 ```
 
-Tailwind should be installed using the official Angular setup.
+The app currently uses custom CSS in `styles.scss` instead of Tailwind CSS. `lucide-angular` and `date-fns` are present in `package.json` but not imported anywhere; install only if you actually adopt them.
 
 Optional:
 
@@ -441,12 +437,12 @@ Angular Router
 Angular HttpClient + Functional Interceptors
 Angular Signals
 TanStack Query for Angular
-Tailwind CSS
+Custom CSS design tokens (styles.scss)
 Reactive Forms
-Auth Auth
-lucide-angular
+Native JWT auth (cookie-based)
+lucide-angular (installed, currently unused)
 ngx-sonner
-date-fns
+date-fns (installed, currently unused)
 ```
 
 Avoid Material UI and avoid Angular Material for now.

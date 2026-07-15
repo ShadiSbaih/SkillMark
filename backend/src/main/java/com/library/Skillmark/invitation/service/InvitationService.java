@@ -5,6 +5,7 @@ import com.library.Skillmark.audit.service.AuditLogService;
 import com.library.Skillmark.common.exception.BusinessRuleException;
 import com.library.Skillmark.common.exception.NotFoundException;
 import com.library.Skillmark.common.response.PageResponse;
+import com.library.Skillmark.common.util.TokenGenerator;
 import com.library.Skillmark.email.service.EmailService;
 import com.library.Skillmark.enrollment.entity.ProgramEnrollment;
 import com.library.Skillmark.enrollment.enums.EnrollmentStatus;
@@ -16,6 +17,7 @@ import com.library.Skillmark.invitation.entity.InvitationLink;
 import com.library.Skillmark.invitation.enums.InvitationStatus;
 import com.library.Skillmark.invitation.repository.InvitationLinkRepository;
 import com.library.Skillmark.membership.service.MembershipService;
+import com.library.Skillmark.organization.enums.OrganizationStatus;
 import com.library.Skillmark.program.enums.ProgramStatus;
 import com.library.Skillmark.security.service.AuthorizationService;
 import com.library.Skillmark.user.entity.User;
@@ -147,6 +149,10 @@ public class InvitationService {
         if (invitation.getProgram().getStatus() != ProgramStatus.PUBLISHED || invitation.getProgram().getDeletedAt() != null) {
             throw new BusinessRuleException("Program is not joinable");
         }
+        if (invitation.getOrganization().getDeletedAt() != null
+                || invitation.getOrganization().getStatus() == OrganizationStatus.DELETED) {
+            throw new BusinessRuleException("Organization is not joinable");
+        }
     }
 
     private void ensureActiveMembership(InvitationLink invitation, User user) {
@@ -157,7 +163,7 @@ public class InvitationService {
     private String uniqueCode() {
         String code;
         do {
-            code = UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+            code = TokenGenerator.randomUppercase(12);
         } while (invitationRepository.existsByCode(code));
         return code;
     }

@@ -70,6 +70,7 @@ public class User {
     }
 
     public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
     public String getPasswordHash() { return passwordHash; }
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
     public Instant getEmailVerifiedAt() { return emailVerifiedAt; }

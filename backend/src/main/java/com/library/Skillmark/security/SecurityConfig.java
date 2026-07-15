@@ -2,6 +2,7 @@ package com.library.Skillmark.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.library.Skillmark.common.response.ApiResponse;
+import com.library.Skillmark.security.jwt.DevTokenAuthenticationFilter;
 import com.library.Skillmark.security.jwt.JwtAuthenticationFilter;
 import com.library.Skillmark.security.rate.RateLimitFilter;
 import org.springframework.beans.factory.annotation.Value;
@@ -49,12 +50,14 @@ public class SecurityConfig implements WebMvcConfigurer {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http,
                                             JwtAuthenticationFilter jwtAuthenticationFilter,
+                                            DevTokenAuthenticationFilter devTokenAuthenticationFilter,
                                             RateLimitFilter rateLimitFilter,
                                             ObjectMapper objectMapper) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/v1/auth/me").authenticated()
                         .requestMatchers(
                                 "/api/v1/auth/**",
                                 "/api/v1/public/**",
@@ -78,6 +81,7 @@ public class SecurityConfig implements WebMvcConfigurer {
                             objectMapper.writeValue(response.getWriter(), ApiResponse.failure(
                                     "Access denied", java.util.List.of(), request.getRequestURI()));
                         }))
+                .addFilterBefore(devTokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(rateLimitFilter, JwtAuthenticationFilter.class);
         return http.build();
