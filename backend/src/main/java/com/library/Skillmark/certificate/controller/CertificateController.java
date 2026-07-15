@@ -6,6 +6,7 @@ import com.library.Skillmark.certificate.entity.*;
 import com.library.Skillmark.certificate.enums.*;
 import com.library.Skillmark.certificate.repository.*;
 import com.library.Skillmark.certificate.service.*;
+import com.library.Skillmark.common.exception.BusinessRuleException;
 import com.library.Skillmark.common.response.ApiResponse;
 import com.library.Skillmark.config.OpenApiConfig;
 import com.library.Skillmark.security.AuthUser;
@@ -53,4 +54,16 @@ public class CertificateController {
         return ApiResponse.success("Certificate revoked successfully",
                 certificateService.revoke(certificateId, request == null ? null : request.reason(), currentUser.id()));
     }
+
+    @GetMapping("/{certificateId}/download")
+    @Operation(summary = "Download certificate PDF", description = "Returns the public download URL for the certificate PDF. Requires certificate owner or organization owner permission.")
+    ApiResponse<CertificateDownloadResponse> download(@PathVariable UUID certificateId, AuthUser currentUser) {
+        CertificateResponse certificate = certificateService.get(certificateId, currentUser.id());
+        if (certificate.pdfUrl() == null || certificate.pdfUrl().isBlank()) {
+            throw new BusinessRuleException("Certificate PDF is not ready yet. Please try again in a moment.");
+        }
+        return ApiResponse.success("Certificate download URL retrieved successfully",
+                new CertificateDownloadResponse(certificate.pdfUrl()));
+    }
 }
+

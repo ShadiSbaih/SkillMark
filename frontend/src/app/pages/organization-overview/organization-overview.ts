@@ -1,8 +1,9 @@
 import { Component, computed, effect, inject } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
+import { ChartData } from 'chart.js';
 import { OrganizationsService } from '../../services/organizations.service';
 import { ProgramsService } from '../../services/programs.service';
 import { StatsService } from '../../services/stats.service';
@@ -14,12 +15,16 @@ import { PageHeaderComponent } from '../../shared/components/page-header/page-he
 import { CardComponent } from '../../shared/components/card/card.component';
 import { ButtonComponent } from '../../shared/components/button/button.component';
 import { BreadcrumbComponent } from '../../shared/components/breadcrumb/breadcrumb.component';
+import { ChartComponent } from '../../shared/components/chart/chart.component';
+import { TableComponent } from '../../shared/components/table/table.component';
+import { TableColumnDirective } from '../../shared/components/table/table-column.directive';
 
 @Component({
   selector: 'app-organization-overview',
   standalone: true,
   imports: [
     DatePipe,
+    DecimalPipe,
     RouterLink,
     LoadingStateComponent,
     ErrorStateComponent,
@@ -29,6 +34,9 @@ import { BreadcrumbComponent } from '../../shared/components/breadcrumb/breadcru
     CardComponent,
     ButtonComponent,
     BreadcrumbComponent,
+    ChartComponent,
+    TableComponent,
+    TableColumnDirective,
   ],
   templateUrl: './organization-overview.html',
   styleUrl: './organization-overview.scss',
@@ -48,10 +56,40 @@ export class OrganizationOverview {
   readonly organizationQuery = this.organizationsService.getOrganizationQuery(() => this.orgId());
   readonly programsQuery = this.programsService.programsQuery;
   readonly statsQuery = this.statsService.getOrganizationStatsQuery(() => this.orgId());
+  readonly certificatesTimelineQuery = this.statsService.getOrganizationCertificatesTimelineQuery(() => this.orgId());
 
   readonly org = computed(() => this.organizationQuery.data());
   readonly programs = computed(() => this.programsQuery.data()?.items ?? []);
   readonly stats = computed(() => this.statsQuery.data());
+
+  readonly certificatesTimelineChart = computed<ChartData>(() => {
+    const daily = this.certificatesTimelineQuery.data()?.daily ?? [];
+    return {
+      labels: daily.map((d) => d.label),
+      datasets: [
+        {
+          label: 'Issued',
+          data: daily.map((d) => d.issued),
+          backgroundColor: 'rgba(16, 185, 129, 0.7)',
+          borderColor: 'rgba(16, 185, 129, 1)',
+          borderWidth: 2,
+          tension: 0.3,
+          fill: true,
+        },
+        {
+          label: 'Revoked',
+          data: daily.map((d) => d.revoked),
+          backgroundColor: 'rgba(244, 63, 94, 0.7)',
+          borderColor: 'rgba(244, 63, 94, 1)',
+          borderWidth: 2,
+          tension: 0.3,
+          fill: true,
+        },
+      ],
+    };
+  });
+
+  readonly topPrograms = computed(() => this.stats()?.topPrograms ?? []);
 
   constructor() {
     effect(() => {
@@ -68,5 +106,10 @@ export class OrganizationOverview {
     this.organizationQuery.refetch();
     this.programsQuery.refetch();
     this.statsQuery.refetch();
+    this.certificatesTimelineQuery.refetch();
+  }
+
+  trackByProgram(index: number, item: { programId: string }): string {
+    return item.programId;
   }
 }

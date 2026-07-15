@@ -23,7 +23,10 @@ import com.library.Skillmark.membership.enums.MembershipRole;
 import com.library.Skillmark.membership.enums.MembershipStatus;
 import com.library.Skillmark.membership.repository.OrganizationMembershipRepository;
 import com.library.Skillmark.security.service.AuthorizationService;
+import com.library.Skillmark.email.service.EmailService;
+import com.library.Skillmark.user.entity.User;
 import com.library.Skillmark.user.repository.UserRepository;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Propagation;
@@ -43,6 +46,8 @@ public class CertificateService {
     private final AuthorizationService authorizationService;
     private final AuditLogService auditLogService;
     private final OrganizationMembershipRepository membershipRepository;
+    private final CertificatePdfGenerator certificatePdfGenerator;
+    private final EmailService emailService;
 
     public CertificateService(CertificateRepository certificateRepository,
                               QuizRepository quizRepository,
@@ -50,7 +55,9 @@ public class CertificateService {
                               QuizAttemptRepository attemptRepository,
                               AuthorizationService authorizationService,
                               AuditLogService auditLogService,
-                              OrganizationMembershipRepository membershipRepository) {
+                              OrganizationMembershipRepository membershipRepository,
+                              CertificatePdfGenerator certificatePdfGenerator,
+                              EmailService emailService) {
         this.certificateRepository = certificateRepository;
         this.quizRepository = quizRepository;
         this.userRepository = userRepository;
@@ -58,6 +65,8 @@ public class CertificateService {
         this.authorizationService = authorizationService;
         this.auditLogService = auditLogService;
         this.membershipRepository = membershipRepository;
+        this.certificatePdfGenerator = certificatePdfGenerator;
+        this.emailService = emailService;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -193,7 +202,29 @@ public class CertificateService {
                 .map(m -> m.getUser().getName())
                 .orElse(null);
         certificate.setOwnerNameSnapshot(ownerName);
-        return certificateRepository.save(certificate);
+        Certificate saved = certificateRepository.save(certificate);
+        certificatePdfGenerator.generateAsync(saved.getId());
+        sendCertificateIssuedEmail(saved);
+        return saved;
+    }
+
+    @Async
+    public void sendCertificateIssuedEmail(Certificate certificate) {
+        try {
+            User user = certificate.getUser();
+            String certificateUrl = certificate.getPdfUrl();
+            if (certificateUrl == null || certificateUrl.isBlank()) {
+                certificateUrl = "/certificates/" + certificate.getId();
+            }
+            emailService.sendCertificateIssuedEmail(
+                    user.getEmail(),
+                    certificate.getParticipantNameSnapshot(),
+                    certificate.getProgramTitleSnapshot(),
+                    certificateUrl
+            );
+        } catch (Exception ex) {
+            // Email failures should not break certificate issuance
+        }
     }
 
     private String nextCertificateNumber() {

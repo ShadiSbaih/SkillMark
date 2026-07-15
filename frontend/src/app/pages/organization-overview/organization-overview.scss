@@ -61,3 +61,33 @@
     margin: 0;
   }
 }
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+.chart-wrapper {
+  position: relative;
+  height: 240px;
+}
+
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.hover\:underline:hover {
+  text-decoration: underline;
+}
+
+.mt-8 {
+  margin-top: 32px;
+}

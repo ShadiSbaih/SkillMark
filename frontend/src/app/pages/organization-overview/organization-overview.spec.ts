@@ -10,7 +10,10 @@ import { ProgramsService } from '../../services/programs.service';
 import { StatsService } from '../../services/stats.service';
 import { OrganizationResponse } from '../../core/models/organization.model';
 import { ProgramResponse } from '../../core/models/program.model';
-import { OrganizationStatsResponse } from '../../core/models/stats.model';
+import {
+  OrganizationCertificatesTimelineResponse,
+  OrganizationStatsResponse,
+} from '../../core/models/stats.model';
 import { PageResponse } from '../../core/api/api-response.model';
 
 interface QueryState<T> {
@@ -92,20 +95,31 @@ class FakeProgramsService {
 }
 
 class FakeStatsService {
-  private readonly queryState = signal<QueryState<OrganizationStatsResponse>>(createQueryState<OrganizationStatsResponse>());
+  private readonly statsQueryState = signal<QueryState<OrganizationStatsResponse>>(createQueryState<OrganizationStatsResponse>());
+  private readonly timelineQueryState = signal<QueryState<OrganizationCertificatesTimelineResponse>>(createQueryState<OrganizationCertificatesTimelineResponse>());
 
   getOrganizationStatsQuery() {
     return {
-      isPending: () => this.queryState().isPending,
-      isError: () => this.queryState().isError,
-      data: () => this.queryState().data,
-      error: () => this.queryState().error,
-      refetch: this.queryState().refetch,
+      isPending: () => this.statsQueryState().isPending,
+      isError: () => this.statsQueryState().isError,
+      data: () => this.statsQueryState().data,
+      error: () => this.statsQueryState().error,
+      refetch: this.statsQueryState().refetch,
+    };
+  }
+
+  getOrganizationCertificatesTimelineQuery() {
+    return {
+      isPending: () => this.timelineQueryState().isPending,
+      isError: () => this.timelineQueryState().isError,
+      data: () => this.timelineQueryState().data,
+      error: () => this.timelineQueryState().error,
+      refetch: this.timelineQueryState().refetch,
     };
   }
 
   setData(data: OrganizationStatsResponse) {
-    this.queryState.set({ ...createQueryState<OrganizationStatsResponse>(), data, refetch: this.queryState().refetch });
+    this.statsQueryState.set({ ...createQueryState<OrganizationStatsResponse>(), data, refetch: this.statsQueryState().refetch });
   }
 }
 
@@ -164,6 +178,7 @@ describe('OrganizationOverview', () => {
     totalCertificates: 4,
     averageScore: 85,
     passRate: 0.8,
+    topPrograms: [],
   };
 
   beforeEach(async () => {

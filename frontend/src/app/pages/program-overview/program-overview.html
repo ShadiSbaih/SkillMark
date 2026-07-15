@@ -10,6 +10,7 @@
 
   <app-page-header [title]="program().title" [subtitle]="program().description || 'Program overview'">
     <div actions class="button-row">
+      <a class="button button-secondary" [routerLink]="['/programs', programId(), 'analytics']">Analytics</a>
       <a class="button button-secondary" [routerLink]="['/programs', programId(), 'settings']">Settings</a>
       <a class="button button-primary" [routerLink]="['/programs', programId(), 'learn']">Start learning</a>
     </div>

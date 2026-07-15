@@ -9,6 +9,7 @@ import com.library.Skillmark.attempt.service.*;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -43,4 +44,68 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, UUID> 
 
     @Query("select avg(a.scorePercentage) from QuizAttempt a where a.quiz.program.organization.id = :organizationId and a.status = 'SUBMITTED'")
     Double averageScoreForOrganization(UUID organizationId);
+
+    @Query("""
+            select floor(a.scorePercentage / 10) * 10, count(a.id)
+            from QuizAttempt a
+            where a.quiz.id = :quizId and a.status = 'SUBMITTED'
+            group by floor(a.scorePercentage / 10) * 10
+            order by floor(a.scorePercentage / 10) * 10
+            """)
+    List<Object[]> scoreDistributionForQuiz(UUID quizId);
+
+    @Query("""
+            select function('date_trunc', 'day', a.startedAt),
+                   count(a.id),
+                   sum(case when a.status = 'SUBMITTED' then 1 else 0 end),
+                   sum(case when a.passed = true then 1 else 0 end)
+            from QuizAttempt a
+            where a.quiz.id = :quizId and a.startedAt between :start and :end
+            group by function('date_trunc', 'day', a.startedAt)
+            order by function('date_trunc', 'day', a.startedAt)
+            """)
+    List<Object[]> dailyTimelineForQuiz(UUID quizId, Instant start, Instant end);
+
+    @Query("""
+            select function('date_trunc', 'week', a.startedAt),
+                   count(a.id),
+                   sum(case when a.status = 'SUBMITTED' then 1 else 0 end),
+                   sum(case when a.passed = true then 1 else 0 end)
+            from QuizAttempt a
+            where a.quiz.id = :quizId and a.startedAt between :start and :end
+            group by function('date_trunc', 'week', a.startedAt)
+            order by function('date_trunc', 'week', a.startedAt)
+            """)
+    List<Object[]> weeklyTimelineForQuiz(UUID quizId, Instant start, Instant end);
+
+    @Query("""
+            select q.id, q.text, q.position, count(a.id),
+                   sum(case when a.correct = true then 1 else 0 end),
+                   sum(case when a.correct = false then 1 else 0 end)
+            from QuizAttemptAnswer a
+            join a.question q
+            where q.quiz.id = :quizId
+            group by q.id, q.text, q.position
+            order by q.position
+            """)
+    List<Object[]> questionAnswerStatsForQuiz(UUID quizId);
+
+    @Query("""
+            select o.id, o.text, o.position, o.correct, count(a.id)
+            from QuizAttemptAnswer a
+            join a.selectedOption o
+            where a.question.id = :questionId
+            group by o.id, o.text, o.position, o.correct
+            order by o.position
+            """)
+    List<Object[]> optionSelectionStatsForQuestion(UUID questionId);
+
+    @Query("select count(a.id) from QuizAttempt a where a.quiz.program.id = :programId and a.status = 'SUBMITTED'")
+    long submittedAttemptsCountForProgram(UUID programId);
+
+    @Query("select count(distinct a.user.id) from QuizAttempt a where a.quiz.program.id = :programId and a.status = 'SUBMITTED'")
+    long distinctParticipantsWithAttemptsForProgram(UUID programId);
+
+    @Query("select count(distinct a.user.id) from QuizAttempt a where a.quiz.program.id = :programId and a.status = 'SUBMITTED' and a.passed = true")
+    long distinctParticipantsPassedForProgram(UUID programId);
 }

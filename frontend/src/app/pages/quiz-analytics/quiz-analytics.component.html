@@ -1,0 +1,133 @@
+@if (isLoading()) {
+  <app-loading-state message="Loading quiz analytics..." />
+} @else if (hasError()) {
+  <app-error-state
+    message="Failed to load quiz analytics"
+    (retry)="retry()"
+  />
+} @else if (!quiz()) {
+  <app-empty-state
+    title="Quiz not found"
+    description="The quiz you are looking for does not exist or has been removed."
+    actionLabel="Back to quizzes"
+    (action)="router.navigate(['/dashboard'])"
+  />
+} @else {
+  @let q = quiz()!;
+
+  <app-breadcrumb
+    [items]="[
+      { label: 'Programs', route: ['/programs'] },
+      { label: 'Program', route: ['/programs', q.programId] },
+      { label: q.title, route: ['/quizzes', quizId() ?? ''] },
+      { label: 'Analytics' }
+    ]"
+  />
+
+  <app-page-header
+    [title]="q.title + ' Analytics'"
+    [subtitle]="'Score distribution, attempts timeline, and per-question breakdown'"
+    [hasActions]="true"
+  >
+    <ng-container actions>
+      <app-button variant="secondary" (clicked)="router.navigate(['/quizzes', quizId() ?? ''])">
+        Back to quiz
+      </app-button>
+    </ng-container>
+  </app-page-header>
+
+  <div class="metric-grid compact mt-6">
+    <app-card>
+      <p class="metric-label">Attempts</p>
+      <p class="metric-value">{{ stats()?.attemptsCount ?? 0 }}</p>
+    </app-card>
+    <app-card>
+      <p class="metric-label">Submitted</p>
+      <p class="metric-value">{{ stats()?.submittedAttempts ?? 0 }}</p>
+    </app-card>
+    <app-card>
+      <p class="metric-label">Pass rate</p>
+      <p class="metric-value">{{ stats()?.passRate ?? 0 }}%</p>
+    </app-card>
+    <app-card>
+      <p class="metric-label">Avg. score</p>
+      <p class="metric-value">{{ stats()?.averageScore ?? 0 }}%</p>
+    </app-card>
+  </div>
+
+  <div class="analytics-grid mt-8">
+    <app-card>
+      <h2 class="panel-title">Score distribution</h2>
+      @if (scoreDistributionQuery.data()?.buckets?.length === 0) {
+        <app-empty-state
+          title="No attempts yet"
+          description="Score distribution will appear once participants submit attempts."
+        />
+      } @else {
+        <div class="chart-wrapper">
+          <app-chart type="bar" [data]="scoreDistributionChart()" [height]="240" />
+        </div>
+      }
+    </app-card>
+
+    <app-card>
+      <h2 class="panel-title">Attempts timeline</h2>
+      @if (timelineQuery.data()?.daily?.length === 0) {
+        <app-empty-state
+          title="No timeline data"
+          description="Attempts timeline will appear once activity starts."
+        />
+      } @else {
+        <div class="chart-wrapper">
+          <app-chart type="line" [data]="timelineChart()" [height]="240" />
+        </div>
+      }
+    </app-card>
+  </div>
+
+  <app-card class="mt-8">
+    <h2 class="panel-title">Per-question breakdown</h2>
+    @if (questions().length === 0) {
+      <app-empty-state
+        title="No questions"
+        description="Add questions to see per-question analytics."
+      />
+    } @else {
+      <app-table
+        [headers]="['Position', 'Question', 'Total', 'Correct', 'Incorrect', 'Correct rate']"
+        [items]="questionHeatmapData()"
+        [trackByFn]="trackByQuestion"
+      >
+        <ng-template appTableColumn="Position" let-item>
+          <span class="text-sm text-ink-mute">#{{ item.position }}</span>
+        </ng-template>
+        <ng-template appTableColumn="Question" let-item>
+          <span class="font-medium line-clamp-2">{{ item.questionText }}</span>
+        </ng-template>
+        <ng-template appTableColumn="Total" let-item>
+          <span class="tabular-nums">{{ item.totalAttempts }}</span>
+        </ng-template>
+        <ng-template appTableColumn="Correct" let-item>
+          <span class="tabular-nums text-emerald-600">{{ item.correctCount }}</span>
+        </ng-template>
+        <ng-template appTableColumn="Incorrect" let-item>
+          <span class="tabular-nums text-rose-600">{{ item.incorrectCount }}</span>
+        </ng-template>
+        <ng-template appTableColumn="Correct rate" let-item>
+          <div class="rate-bar">
+            <div class="rate-bar-track">
+              <div
+                class="rate-bar-fill"
+                [style.width.%]="item.correctRatePercent"
+                [class.rate-bar-high]="item.correctRatePercent >= 70"
+                [class.rate-bar-medium]="item.correctRatePercent >= 40 && item.correctRatePercent < 70"
+                [class.rate-bar-low]="item.correctRatePercent < 40"
+              ></div>
+            </div>
+            <span class="rate-bar-label">{{ item.correctRatePercent }}%</span>
+          </div>
+        </ng-template>
+      </app-table>
+    }
+  </app-card>
+}

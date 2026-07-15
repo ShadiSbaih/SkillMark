@@ -1,5 +1,7 @@
 package com.library.Skillmark.stats.dto;
 
+import java.util.List;
+
 public record OrganizationStatsResponse(
         long totalPrograms,
         long totalMembers,
@@ -8,6 +10,7 @@ public record OrganizationStatsResponse(
         long totalAttempts,
         long totalCertificates,
         double averageScore,
-        double passRate
+        double passRate,
+        List<TopProgramResponse> topPrograms
 ) {
 }

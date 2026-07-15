@@ -93,6 +93,11 @@ export class QuizOverview {
     if (id) void this.router.navigate(['/quizzes', id, 'view']);
   }
 
+  navigateToAnalytics(): void {
+    const id = this.quizId();
+    if (id) void this.router.navigate(['/quizzes', id, 'analytics']);
+  }
+
   openPublishModal(): void {
     this.showPublishModal.set(true);
   }

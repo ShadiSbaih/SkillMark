@@ -1,0 +1,107 @@
+@if (isLoading()) {
+  <app-loading-state message="Loading program analytics..." />
+} @else if (hasError()) {
+  <app-error-state
+    message="Failed to load program analytics"
+    (retry)="retry()"
+  />
+} @else if (!program()) {
+  <app-empty-state
+    title="Program not found"
+    description="The program you are looking for does not exist or has been removed."
+    actionLabel="Back to programs"
+    (action)="router.navigate(['/programs'])"
+  />
+} @else {
+  @let p = program()!;
+
+  <app-breadcrumb
+    [items]="[
+      { label: 'Programs', route: ['/programs'] },
+      { label: p.title, route: ['/programs', programId() ?? ''] },
+      { label: 'Analytics' }
+    ]"
+  />
+
+  <app-page-header
+    [title]="p.title + ' Analytics'"
+    [subtitle]="'Enrollment trends and completion funnel'"
+    [hasActions]="true"
+  >
+    <ng-container actions>
+      <app-button variant="secondary" (clicked)="router.navigate(['/programs', programId() ?? ''])">
+        Back to program
+      </app-button>
+    </ng-container>
+  </app-page-header>
+
+  <div class="metric-grid compact mt-6">
+    <app-card>
+      <p class="metric-label">Enrollments</p>
+      <p class="metric-value">{{ stats()?.totalEnrollments ?? 0 }}</p>
+    </app-card>
+    <app-card>
+      <p class="metric-label">Active</p>
+      <p class="metric-value">{{ stats()?.activeEnrollments ?? 0 }}</p>
+    </app-card>
+    <app-card>
+      <p class="metric-label">Attempts</p>
+      <p class="metric-value">{{ stats()?.attemptsCount ?? 0 }}</p>
+    </app-card>
+    <app-card>
+      <p class="metric-label">Certificates</p>
+      <p class="metric-value">{{ stats()?.certificatesIssued ?? 0 }}</p>
+    </app-card>
+    <app-card>
+      <p class="metric-label">Avg. score</p>
+      <p class="metric-value">{{ stats()?.averageScore ?? 0 }}%</p>
+    </app-card>
+    <app-card>
+      <p class="metric-label">Pass rate</p>
+      <p class="metric-value">{{ (stats()?.passedParticipants ?? 0) && (stats()?.attemptsCount ?? 0) ? (((stats()?.passedParticipants ?? 0) / (stats()?.attemptsCount ?? 1)) * 100).toFixed(0) : 0 }}%</p>
+    </app-card>
+  </div>
+
+  <div class="analytics-grid mt-8">
+    <app-card>
+      <h2 class="panel-title">Enrollment timeline</h2>
+      @if (enrollmentTimelineQuery.data()?.daily?.length === 0) {
+        <app-empty-state
+          title="No enrollment data"
+          description="Enrollment timeline will appear once participants join."
+        />
+      } @else {
+        <div class="chart-wrapper">
+          <app-chart type="line" [data]="enrollmentTimelineChart()" [height]="240" />
+        </div>
+      }
+    </app-card>
+
+    <app-card>
+      <h2 class="panel-title">Completion funnel</h2>
+      @if (funnelSteps().length === 0) {
+        <app-empty-state
+          title="No data"
+          description="Completion funnel will appear once activity starts."
+        />
+      } @else {
+        <div class="funnel">
+          @for (step of funnelSteps(); track step.label) {
+            <div class="funnel-step">
+              <div class="funnel-step-header">
+                <span class="funnel-step-label">{{ step.label }}</span>
+                <span class="funnel-step-value">{{ step.value }}</span>
+              </div>
+              <div class="funnel-step-track">
+                <div
+                  class="funnel-step-fill {{ step.color }}"
+                  [style.width.%]="(step.value / maxFunnelValue()) * 100"
+                ></div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </app-card>
+  </div>
+}

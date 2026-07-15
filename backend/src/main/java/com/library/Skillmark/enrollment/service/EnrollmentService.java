@@ -6,6 +6,7 @@ import com.library.Skillmark.common.exception.ConflictException;
 import com.library.Skillmark.common.exception.BusinessRuleException;
 import com.library.Skillmark.common.exception.NotFoundException;
 import com.library.Skillmark.common.response.PageResponse;
+import com.library.Skillmark.email.service.EmailService;
 import com.library.Skillmark.enrollment.dto.CreateEnrollmentRequest;
 import com.library.Skillmark.enrollment.dto.EnrollmentResponse;
 import com.library.Skillmark.enrollment.entity.ProgramEnrollment;
@@ -16,7 +17,9 @@ import com.library.Skillmark.program.entity.Program;
 import com.library.Skillmark.program.enums.ProgramStatus;
 import com.library.Skillmark.program.repository.ProgramRepository;
 import com.library.Skillmark.security.service.AuthorizationService;
+import com.library.Skillmark.user.entity.User;
 import com.library.Skillmark.user.repository.UserRepository;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,19 +35,22 @@ public class EnrollmentService {
     private final MembershipService membershipService;
     private final AuthorizationService authorizationService;
     private final AuditLogService auditLogService;
+    private final EmailService emailService;
 
     public EnrollmentService(ProgramEnrollmentRepository enrollmentRepository,
-                             ProgramRepository programRepository,
-                             UserRepository userRepository,
-                             MembershipService membershipService,
-                             AuthorizationService authorizationService,
-                             AuditLogService auditLogService) {
+                              ProgramRepository programRepository,
+                              UserRepository userRepository,
+                              MembershipService membershipService,
+                              AuthorizationService authorizationService,
+                              AuditLogService auditLogService,
+                              EmailService emailService) {
         this.enrollmentRepository = enrollmentRepository;
         this.programRepository = programRepository;
         this.userRepository = userRepository;
         this.membershipService = membershipService;
         this.authorizationService = authorizationService;
         this.auditLogService = auditLogService;
+        this.emailService = emailService;
     }
 
     @Transactional
@@ -63,7 +69,24 @@ public class EnrollmentService {
         enrollment.setUser(user);
         ProgramEnrollment saved = enrollmentRepository.save(enrollment);
         auditLogService.record(actorId, program.getOrganization().getId(), AuditAction.USER_ENROLLED, "ProgramEnrollment", saved.getId());
+        sendEnrollmentConfirmationEmail(saved);
         return EnrollmentResponse.from(saved);
+    }
+
+    @Async
+    public void sendEnrollmentConfirmationEmail(ProgramEnrollment enrollment) {
+        try {
+            Program program = enrollment.getProgram();
+            User user = enrollment.getUser();
+            emailService.sendEnrollmentConfirmationEmail(
+                    user.getEmail(),
+                    user.getName(),
+                    program.getTitle(),
+                    "/programs/" + program.getId()
+            );
+        } catch (Exception ex) {
+            // Email failures should not break enrollment
+        }
     }
 
     @Transactional(readOnly = true)

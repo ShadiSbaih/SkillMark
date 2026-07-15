@@ -7,7 +7,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
@@ -39,6 +41,27 @@ public class R2StorageService implements StorageService {
     @Override
     public String provider() {
         return "R2";
+    }
+
+    @Override
+    public String uploadBytes(String objectKey, byte[] data, String contentType) {
+        ensureConfigured();
+        try (S3Client s3 = S3Client.builder()
+                .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKeyId, secretAccessKey)))
+                .region(Region.of("auto"))
+                .endpointOverride(URI.create("https://" + accountId + ".r2.cloudflarestorage.com"))
+                .build()) {
+            PutObjectRequest.Builder putBuilder = PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(objectKey);
+            if (StringUtils.hasText(contentType)) {
+                putBuilder.contentType(contentType);
+            }
+            s3.putObject(putBuilder.build(), RequestBody.fromBytes(data));
+            return StringUtils.hasText(publicBaseUrl)
+                    ? publicBaseUrl.replaceAll("/+$", "") + "/" + objectKey
+                    : "https://" + accountId + ".r2.cloudflarestorage.com/" + bucketName + "/" + objectKey;
+        }
     }
 
     public R2UploadUrlResponse createUploadUrl(String objectKey, String contentType) {

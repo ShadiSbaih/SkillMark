@@ -64,6 +64,26 @@ public class SendGridEmailService implements EmailService {
         send(to, subject, body);
     }
 
+    @Override
+    public void sendCertificateIssuedEmail(String to, String name, String programName, String certificateUrl) {
+        String subject = "Your Skillmark certificate is ready";
+        String body = buildBody("Hi " + name + ",",
+                "Congratulations! You've earned a certificate for completing \"" + programName + "\" on Skillmark.",
+                certificateUrl,
+                "Click the link above to view, verify, and download your certificate.");
+        send(to, subject, body);
+    }
+
+    @Override
+    public void sendEnrollmentConfirmationEmail(String to, String name, String programName, String programUrl) {
+        String subject = "You're enrolled in " + programName;
+        String body = buildBody("Hi " + name + ",",
+                "You've successfully enrolled in \"" + programName + "\" on Skillmark.",
+                programUrl,
+                "Click the link above to access the program materials and start learning.");
+        send(to, subject, body);
+    }
+
     private String buildBody(String greeting, String actionText, String link, String footer) {
         return greeting + "\n\n"
                 + actionText + "\n\n"

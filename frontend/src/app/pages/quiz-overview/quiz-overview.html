@@ -25,6 +25,7 @@
         <app-button variant="secondary" (clicked)="navigateToBuilder()">Builder</app-button>
         <app-button variant="secondary" (clicked)="navigateToSettings()">Settings</app-button>
         <app-button variant="secondary" (clicked)="navigateToPreview()">Preview</app-button>
+        <app-button variant="secondary" (clicked)="navigateToAnalytics()">Analytics</app-button>
         @if (quiz.status !== 'PUBLISHED') {
           <app-button (clicked)="openPublishModal()">Publish</app-button>
         }

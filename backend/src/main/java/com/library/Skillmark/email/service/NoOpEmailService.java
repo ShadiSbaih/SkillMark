@@ -24,4 +24,14 @@ public class NoOpEmailService implements EmailService {
     public void sendInvitationEmail(String to, String programName, String inviteLink) {
         logger.info("[NoOpEmail] Invitation email to {} for program '{}': link={}", to, programName, inviteLink);
     }
+
+    @Override
+    public void sendCertificateIssuedEmail(String to, String name, String programName, String certificateUrl) {
+        logger.info("[NoOpEmail] Certificate issued email to {} for program '{}': link={}", to, programName, certificateUrl);
+    }
+
+    @Override
+    public void sendEnrollmentConfirmationEmail(String to, String name, String programName, String programUrl) {
+        logger.info("[NoOpEmail] Enrollment confirmation email to {} for program '{}': link={}", to, programName, programUrl);
+    }
 }

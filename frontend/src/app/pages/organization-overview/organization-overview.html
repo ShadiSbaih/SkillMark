@@ -30,6 +30,12 @@
     <ng-container actions>
       <app-button
         variant="secondary"
+        (clicked)="router.navigate(['/organizations', orgId(), 'analytics'])"
+      >
+        Analytics
+      </app-button>
+      <app-button
+        variant="secondary"
         (clicked)="router.navigate(['/organizations', orgId(), 'settings'])"
       >
         Settings
@@ -75,66 +81,120 @@
     </app-card>
   </div>
 
-  <div class="two-column mt-8">
+  <div class="analytics-grid mt-8">
     <app-card>
       <div class="panel-header">
-        <h2>Programs</h2>
+        <h2>Top programs</h2>
         <a class="link" [routerLink]="['/organizations', orgId(), 'programs']">View all</a>
       </div>
-
-      @if (programsQuery.isPending()) {
-        <app-loading-state message="Loading programs..." />
-      } @else if (programsQuery.isError()) {
-        <app-error-state
-          [message]="programsQuery.error()?.message ?? 'Failed to load programs'"
-          (retry)="programsQuery.refetch()"
-        />
-      } @else if (programs().length === 0) {
+      @if (topPrograms().length === 0) {
         <app-empty-state
-          title="No programs"
-          description="No programs have been created for this organization yet."
-          actionLabel="Create program"
-          (action)="router.navigate(['/organizations', orgId(), 'programs', 'new'])"
+          title="No programs yet"
+          description="Top programs by enrollments and certificates will appear here."
         />
       } @else {
-        <div class="stack">
-          @for (program of programs().slice(0, 5); track program.id) {
+        <app-table
+          [headers]="['Program', 'Enrollments', 'Certificates', 'Avg score', 'Pass rate']"
+          [items]="topPrograms()"
+          [trackByFn]="trackByProgram"
+        >
+          <ng-template appTableColumn="Program" let-item>
             <a
-              [routerLink]="['/programs', program.id]"
-              class="list-row-link"
+              class="font-medium line-clamp-1 hover:underline"
+              [routerLink]="['/programs', item.programId]"
             >
-              <div class="flex items-center gap-3" style="display: flex; align-items: center; gap: 12px;">
-                @if (program.coverImageUrl) {
-                  <img [src]="program.coverImageUrl" [alt]="program.title" class="h-10 w-10 flex-shrink-0 rounded-md object-cover border border-hairline" style="height: 40px; width: 40px; border-radius: 6px; object-fit: cover;" />
-                }
-                <div>
-                  <p class="font-medium">{{ program.title }}</p>
-                  <p class="text-sm text-ink-mute">{{ program.status }}</p>
-                </div>
-              </div>
-              <app-status-badge [status]="program.status" entity="program" />
+              {{ item.programTitle }}
             </a>
-          }
-        </div>
+          </ng-template>
+          <ng-template appTableColumn="Enrollments" let-item>
+            <span class="tabular-nums">{{ item.enrollments }}</span>
+          </ng-template>
+          <ng-template appTableColumn="Certificates" let-item>
+            <span class="tabular-nums">{{ item.certificatesIssued }}</span>
+          </ng-template>
+          <ng-template appTableColumn="Avg score" let-item>
+            <span class="tabular-nums">{{ item.averageScore | number:'1.0-1' }}%</span>
+          </ng-template>
+          <ng-template appTableColumn="Pass rate" let-item>
+            <span class="tabular-nums">{{ item.passRate | number:'1.0-1' }}%</span>
+          </ng-template>
+        </app-table>
       }
     </app-card>
 
     <app-card>
-      <h2 class="panel-title">Details</h2>
-      <dl class="detail-grid single">
-        <div>
-          <dt>Slug</dt>
-          <dd>{{ organization.slug ?? organization.id }}</dd>
+      <h2 class="panel-title">Certificates over time</h2>
+      @if (certificatesTimelineQuery.data()?.daily?.length === 0) {
+        <app-empty-state
+          title="No certificates yet"
+          description="Certificate issuance timeline will appear once certificates are issued."
+        />
+      } @else {
+        <div class="chart-wrapper">
+          <app-chart type="line" [data]="certificatesTimelineChart()" [height]="240" />
         </div>
-        <div>
-          <dt>Created</dt>
-          <dd>{{ organization.createdAt | date:'medium' }}</dd>
-        </div>
-        <div>
-          <dt>Created by</dt>
-          <dd>{{ organization.createdBy ?? organization.ownerId }}</dd>
-        </div>
-      </dl>
+      }
     </app-card>
   </div>
+
+  <app-card class="mt-8">
+    <div class="panel-header">
+      <h2>Programs</h2>
+      <a class="link" [routerLink]="['/organizations', orgId(), 'programs']">View all</a>
+    </div>
+
+    @if (programsQuery.isPending()) {
+      <app-loading-state message="Loading programs..." />
+    } @else if (programsQuery.isError()) {
+      <app-error-state
+        [message]="programsQuery.error()?.message ?? 'Failed to load programs'"
+        (retry)="programsQuery.refetch()"
+      />
+    } @else if (programs().length === 0) {
+      <app-empty-state
+        title="No programs"
+        description="No programs have been created for this organization yet."
+        actionLabel="Create program"
+        (action)="router.navigate(['/organizations', orgId(), 'programs', 'new'])"
+      />
+    } @else {
+      <div class="stack">
+        @for (program of programs().slice(0, 5); track program.id) {
+          <a
+            [routerLink]="['/programs', program.id]"
+            class="list-row-link"
+          >
+            <div class="flex items-center gap-3" style="display: flex; align-items: center; gap: 12px;">
+              @if (program.coverImageUrl) {
+                <img [src]="program.coverImageUrl" [alt]="program.title" class="h-10 w-10 flex-shrink-0 rounded-md object-cover border border-hairline" style="height: 40px; width: 40px; border-radius: 6px; object-fit: cover;" />
+              }
+              <div>
+                <p class="font-medium">{{ program.title }}</p>
+                <p class="text-sm text-ink-mute">{{ program.status }}</p>
+              </div>
+            </div>
+            <app-status-badge [status]="program.status" entity="program" />
+          </a>
+        }
+      </div>
+    }
+  </app-card>
+
+  <app-card class="mt-8">
+    <h2 class="panel-title">Details</h2>
+    <dl class="detail-grid single">
+      <div>
+        <dt>Slug</dt>
+        <dd>{{ organization.slug ?? organization.id }}</dd>
+      </div>
+      <div>
+        <dt>Created</dt>
+        <dd>{{ organization.createdAt | date:'medium' }}</dd>
+      </div>
+      <div>
+        <dt>Created by</dt>
+        <dd>{{ organization.createdBy ?? organization.ownerId }}</dd>
+      </div>
+    </dl>
+  </app-card>
 }
