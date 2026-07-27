@@ -11,9 +11,11 @@
 **Skillmark** is a modern, API-first platform that helps universities, student clubs, and training organizations create programs, assess participants, and issue verifiable digital certificates.
 
 ### One-line pitch
+
 > Create programs, assess skills, issue certificates—all through a simple API.
 
 ### Core value proposition
+
 Skillmark eliminates the complexity of managing training programs by providing a clean, secure backend that handles enrollment, quizzes, and certificate verification out of the box.
 
 ---
@@ -22,24 +24,24 @@ Skillmark eliminates the complexity of managing training programs by providing a
 
 This redesigned version focuses on:
 
-✅ **Simplicity first** — Fewer entities, clearer relationships  
-✅ **Better API design** — RESTful, predictable, intuitive  
-✅ **Cleaner permissions** — Role-based access that makes sense  
-✅ **Single source of truth** — No duplicate state management  
-✅ **Modern auth** — Auth integration without the complexity  
-✅ **Unified storage** — One provider, consistent approach  
-✅ **Production ready** — Built for real-world deployment  
+✅ **Simplicity first** — Fewer entities, clearer relationships
+✅ **Better API design** — RESTful, predictable, intuitive
+✅ **Cleaner permissions** — Role-based access that makes sense
+✅ **Single source of truth** — No duplicate state management
+✅ **Modern auth** — Auth integration without the complexity
+✅ **Unified storage** — One provider, consistent approach
+✅ **Production ready** — Built for real-world deployment
 
 ---
 
 ## 1.3 Target Users
 
-| User Type | Example | Primary Use Case |
-|-----------|---------|-----------------|
-| **Program Organizers** | Student club leaders | Run training programs |
-| **Training Coordinators** | University departments | Manage certification programs |
-| **Owners** | Technical trainers | Create quizzes and programs |
-| **Participants** | Students, trainees | Complete courses, earn certificates |
+| User Type                       | Example                | Primary Use Case                    |
+| ------------------------------- | ---------------------- | ----------------------------------- |
+| **Program Organizers**    | Student club leaders   | Run training programs               |
+| **Training Coordinators** | University departments | Manage certification programs       |
+| **Owners**                | Technical trainers     | Create quizzes and programs         |
+| **Participants**          | Students, trainees     | Complete courses, earn certificates |
 
 ---
 
@@ -64,6 +66,7 @@ This redesigned version focuses on:
 ## 2.1 In Scope (MVP)
 
 Core Features:
+
 - ✅ User authentication (Auth)
 - ✅ Organization management
 - ✅ Program creation & management
@@ -116,11 +119,11 @@ Deployment:      Any cloud platform (AWS, GCP, Railway, Render)
 
 ### Why These Choices?
 
-| Service | Reason |
-|---------|--------|
-| **Native JWT** | Self-contained auth, no external identity provider |
-| **Neon** | Serverless Postgres, generous free tier, branching |
-| **Cloudflare R2** | Zero egress fees, S3-compatible, global CDN |
+| Service                 | Reason                                             |
+| ----------------------- | -------------------------------------------------- |
+| **Native JWT**    | Self-contained auth, no external identity provider |
+| **Neon**          | Serverless Postgres, generous free tier, branching |
+| **Cloudflare R2** | Zero egress fees, S3-compatible, global CDN        |
 
 ---
 
@@ -149,12 +152,12 @@ User (managed by Auth, synced locally)
 
 ## 4.2 Simplified Terminology
 
-| Old Term | New Term | Why? |
-|----------|----------|------|
-| Organization | Organization | Existing domain model |
-| Program | Program | Existing domain model |
-| Quiz | Quiz | Existing domain model |
-| Attempt | Attempt | Existing domain model |
+| Old Term       | New Term       | Why?                  |
+| -------------- | -------------- | --------------------- |
+| Organization   | Organization   | Existing domain model |
+| Program        | Program        | Existing domain model |
+| Quiz           | Quiz           | Existing domain model |
+| Attempt        | Attempt        | Existing domain model |
 | InvitationLink | InvitationLink | Existing domain model |
 
 ---
@@ -167,41 +170,45 @@ Instead of complex organization + program permissions, we use **organization-lev
 
 ### Roles
 
-| Role | Description |
-|------|-------------|
-| **OWNER** | Organization owner, full control |
+| Role                  | Description                             |
+| --------------------- | --------------------------------------- |
+| **OWNER**       | Organization owner, full control        |
 | **PARTICIPANT** | Can enroll in programs and take quizzes |
 
 ### Permission Matrix
 
-| Action | OWNER | PARTICIPANT |
-|--------|-------|-------------|
-| Manage organization | ✅ | ❌ |
-| Manage members | ✅ | ❌ |
-| Create programs | ✅ | ❌ |
-| Create quizzes | ✅ | ❌ |
-| Issue certificates | ✅ | ❌ |
-| Enroll in programs | ✅ | ✅ |
-| Take quizzes | ✅ | ✅ |
-| View own certificates | ✅ | ✅ |
+| Action                | OWNER | PARTICIPANT |
+| --------------------- | ----- | ----------- |
+| Manage organization   | ✅    | ❌          |
+| Manage members        | ✅    | ❌          |
+| Create programs       | ✅    | ❌          |
+| Create quizzes        | ✅    | ❌          |
+| Issue certificates    | ✅    | ❌          |
+| Enroll in programs    | ✅    | ✅          |
+| Take quizzes          | ✅    | ✅          |
+| View own certificates | ✅    | ✅          |
 
 ---
 
 ## 5.2 Access Control Rules
 
 ### Organization-level
+
 - Users can only access organizations where they are members
 - Users can be members of multiple organizations with different roles
 
 ### Program-level
+
 - Only enrolled members can access program content
 - Owners have automatic access to their organization's programs
 
 ### Resource-level
+
 - Resources inherit program access control
 - Owners can hide resources from participants
 
 ### Quiz-level
+
 - Only published quizzes are visible to members
 - Members can only submit their own quiz attempts
 
@@ -225,6 +232,7 @@ CREATE INDEX idx_users_email ON users(email);
 ```
 
 **Notes:**
+
 - Local user identity lives in the `users` table
 - Passwords are hashed with BCrypt and stored in `password_hash`
 - Native JWT auth; no external identity provider or webhook sync
@@ -250,6 +258,7 @@ CREATE INDEX idx_workspaces_created_by ON organizations(created_by);
 ```
 
 **Notes:**
+
 - `slug` is URL-friendly identifier (e.g., "cs-club")
 - Creator automatically becomes OWNER
 
@@ -266,7 +275,7 @@ CREATE TABLE organization_memberships (
     status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE',
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    
+  
     UNIQUE(organization_id, user_id)
 );
 
@@ -275,6 +284,7 @@ CREATE INDEX idx_memberships_user ON organization_memberships(user_id);
 ```
 
 **Notes:**
+
 - One membership per user per organization
 - Cascade delete when organization or user is deleted
 
@@ -303,6 +313,7 @@ CREATE INDEX idx_workshops_status ON programs(status);
 ```
 
 **Notes:**
+
 - Single `status` field (no duplicate isPublished)
 - Optional scheduling with starts_at/ends_at
 
@@ -317,7 +328,7 @@ CREATE TABLE program_enrollments (
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     enrolled_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     completed_at TIMESTAMP,
-    
+  
     UNIQUE(program_id, user_id)
 );
 
@@ -326,6 +337,7 @@ CREATE INDEX idx_enrollments_user ON enrollments(user_id);
 ```
 
 **Notes:**
+
 - Simple enrollment tracking
 - `completed_at` set when certificate issued
 
@@ -349,6 +361,7 @@ CREATE INDEX idx_invitations_organization ON invitations(organization_id);
 ```
 
 **Notes:**
+
 - If `program_id` is NULL, invitation is for organization membership
 - If `program_id` is set, invitation enrolls user in specific program
 - Code format: 12 chars, uppercase alphanumeric (e.g., `A3FX9KL2MN8P`)
@@ -380,6 +393,7 @@ CREATE INDEX idx_resources_position ON resources(program_id, position);
 ```
 
 **Notes:**
+
 - `url` is either external URL or generated R2 URL
 - `storage_key` is R2 object key for uploaded files
 - `position` for ordering
@@ -411,6 +425,7 @@ CREATE INDEX idx_assessments_status ON quizzes(status);
 ```
 
 **Notes:**
+
 - `auto_issue_certificate` replaces complex certificateIssueMode
 - Single status field
 
@@ -435,6 +450,7 @@ CREATE INDEX idx_questions_position ON questions(assessment_id, position);
 ```
 
 **Notes:**
+
 - MVP supports multiple-choice only
 - Future: add `type` field for other question types
 
@@ -456,6 +472,7 @@ CREATE INDEX idx_answers_question ON answers(question_id);
 ```
 
 **Notes:**
+
 - Each question must have exactly one `is_correct = TRUE` answer
 - Minimum 2 answers per question
 
@@ -478,7 +495,7 @@ CREATE TABLE attempts (
     started_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     submitted_at TIMESTAMP,
     expires_at TIMESTAMP NOT NULL,
-    
+  
     UNIQUE(assessment_id, user_id, attempt_number)
 );
 
@@ -488,6 +505,7 @@ CREATE INDEX idx_submissions_status ON attempts(status);
 ```
 
 **Notes:**
+
 - `attempt_number` auto-increments per user per quiz
 - `expires_at = started_at + quiz.duration_minutes`
 - Score calculated on attempt
@@ -504,7 +522,7 @@ CREATE TABLE responses (
     answer_id UUID REFERENCES answers(id) ON DELETE SET NULL,
     is_correct BOOLEAN,
     points_earned INT DEFAULT 0,
-    
+  
     UNIQUE(submission_id, question_id)
 );
 
@@ -512,6 +530,7 @@ CREATE INDEX idx_responses_submission ON responses(submission_id);
 ```
 
 **Notes:**
+
 - One response per question per attempt
 - `is_correct` and `points_earned` calculated on grading
 
@@ -527,29 +546,29 @@ CREATE TABLE certificates (
     assessment_id UUID NOT NULL REFERENCES quizzes(id) ON DELETE CASCADE,
     submission_id UUID NOT NULL REFERENCES attempts(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    
+  
     certificate_number VARCHAR(50) UNIQUE NOT NULL,
     verification_code VARCHAR(32) UNIQUE NOT NULL,
-    
+  
     -- Snapshots (immutable data)
     recipient_name VARCHAR(255) NOT NULL,
     workshop_title VARCHAR(255) NOT NULL,
     workspace_name VARCHAR(255) NOT NULL,
     score INT NOT NULL,
-    
+  
     -- Files
     pdf_url TEXT,
     pdf_storage_key TEXT,
-    
+  
     -- Status
     status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE' 
         CHECK (status IN ('ACTIVE', 'REVOKED')),
     revoked_at TIMESTAMP,
     revoke_reason TEXT,
-    
+  
     issued_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     issued_by UUID NOT NULL REFERENCES users(id),
-    
+  
     UNIQUE(assessment_id, user_id)
 );
 
@@ -560,8 +579,9 @@ CREATE INDEX idx_certificates_organization ON certificates(organization_id);
 ```
 
 **Notes:**
+
 - One certificate per user per quiz
-- Certificate number format: `CERT-2024-A3FX9KL2` 
+- Certificate number format: `CERT-2024-A3FX9KL2`
 - Verification code: 32-char alphanumeric
 - Snapshots preserve data even if program/organization changes
 
@@ -590,6 +610,7 @@ CREATE INDEX idx_activity_logs_entity ON activity_logs(entity_type, entity_id);
 ```
 
 **Notes:**
+
 - Immutable audit trail
 - Never deleted
 - JSONB metadata for flexible context
@@ -666,19 +687,19 @@ CREATE INDEX idx_activity_logs_entity ON activity_logs(entity_type, entity_id);
 
 ## 7.3 HTTP Status Codes
 
-| Code | Usage |
-|------|-------|
-| `200` | Successful GET, PUT, PATCH |
-| `201` | Successful POST (resource created) |
-| `204` | Successful DELETE (no content) |
-| `400` | Bad request (validation error) |
-| `401` | Unauthorized (missing/invalid token) |
-| `403` | Forbidden (no permission) |
-| `404` | Resource not found |
-| `409` | Conflict (duplicate resource) |
+| Code    | Usage                                   |
+| ------- | --------------------------------------- |
+| `200` | Successful GET, PUT, PATCH              |
+| `201` | Successful POST (resource created)      |
+| `204` | Successful DELETE (no content)          |
+| `400` | Bad request (validation error)          |
+| `401` | Unauthorized (missing/invalid token)    |
+| `403` | Forbidden (no permission)               |
+| `404` | Resource not found                      |
+| `409` | Conflict (duplicate resource)           |
 | `422` | Unprocessable (business rule violation) |
-| `429` | Too many requests (rate limited) |
-| `500` | Internal server error |
+| `429` | Too many requests (rate limited)        |
+| `500` | Internal server error                   |
 
 ---
 
@@ -743,6 +764,7 @@ GET    /api/v1/invitations/:code/preview      # Preview invitation details (publ
 ```
 
 **Accept InvitationLink Request:**
+
 ```json
 POST /api/v1/invitations/accept
 {
@@ -794,6 +816,7 @@ POST   /api/v1/resources/upload-url       # Get upload URL for R2
 ```
 
 **Upload Flow:**
+
 1. Client requests upload URL: `POST /api/v1/resources/upload-url`
 2. Backend returns presigned R2 URL
 3. Client uploads file directly to R2
@@ -831,6 +854,7 @@ DELETE /api/v1/answers/:id                # Delete answer
 ```
 
 **Batch Question Creation:**
+
 ```json
 POST /api/v1/quizzes/:id/questions/batch
 {
@@ -863,6 +887,7 @@ GET    /api/v1/attempts/:id/result             # Get graded result
 ```
 
 **Start Attempt:**
+
 ```json
 POST /api/v1/quizzes/:id/attempts
 {}
@@ -880,6 +905,7 @@ Response:
 ```
 
 **Submit Answers:**
+
 ```json
 POST /api/v1/attempts/:id/submit
 {
@@ -922,6 +948,7 @@ GET    /api/v1/public/verify/:code                # Public verification (no auth
 ```
 
 **Public Verification Response:**
+
 ```json
 GET /api/v1/public/verify/VX8K2MN9PQR7Z
 
@@ -984,15 +1011,18 @@ GET /api/v1/certificates?search=python
 ## 8.1 Organization Rules
 
 **Creation:**
+
 - ✅ Any authenticated user can create an organization
 - ✅ Creator automatically becomes OWNER
 - ✅ `slug` must be unique, URL-safe, 3-50 characters
 
 **Access:**
+
 - ✅ Users can only access organizations where they are members
 - ✅ Non-members get 404, not 403
 
 **Deletion:**
+
 - ✅ Only OWNER can delete organization
 - ✅ Cascades to all programs, quizzes, certificates
 - ⚠️ Warning: irreversible action
@@ -1002,15 +1032,18 @@ GET /api/v1/certificates?search=python
 ## 8.2 Member Rules
 
 **Adding:**
+
 - ✅ OWNER can invite members
 - ✅ InvitationLinks can be for organization or specific program
 - ✅ Duplicate membership returns 409
 
 **Roles:**
+
 - ✅ Only OWNER can assign OWNER or OWNER roles
 - ✅ Cannot remove last OWNER from organization
 
 **Removing:**
+
 - ✅ OWNER can remove any member
 - ✅ Members can leave organization (except last OWNER)
 
@@ -1019,15 +1052,18 @@ GET /api/v1/certificates?search=python
 ## 8.3 Program Rules
 
 **Publishing:**
+
 - ✅ Must have title and description
 - ✅ Can only publish if at least one resource or quiz exists
 
 **Archiving:**
+
 - ✅ Archived programs cannot accept new enrollments
 - ✅ Existing enrollments remain valid
 - ✅ Quizzes become read-only
 
 **Deletion:**
+
 - ⚠️ Only allowed if no certificates have been issued
 - ✅ Otherwise, must archive instead
 
@@ -1037,6 +1073,7 @@ GET /api/v1/certificates?search=python
 
 **Publishing:**
 Must pass all validations:
+
 - ✅ At least 3 questions
 - ✅ Each question has 2-6 answers
 - ✅ Each question has exactly one correct answer
@@ -1045,11 +1082,13 @@ Must pass all validations:
 - ✅ `maxAttempts` is at least 1
 
 **Editing:**
+
 - ✅ Can edit freely in DRAFT status
 - ⚠️ Cannot edit questions/answers if attempts exist
 - ✅ Can edit metadata (title, passing score, etc.) anytime
 
 **Deletion:**
+
 - ✅ Can delete if no attempts exist
 - ⚠️ Cannot delete if attempts exist (must archive)
 
@@ -1058,6 +1097,7 @@ Must pass all validations:
 ## 8.5 Attempt Rules
 
 **Starting:**
+
 - ✅ Must be enrolled in program
 - ✅ Quiz must be PUBLISHED
 - ✅ Cannot exceed `maxAttempts`
@@ -1065,12 +1105,14 @@ Must pass all validations:
 - ✅ System records `startedAt` and calculates `expiresAt`
 
 **Submitting:**
+
 - ✅ Must answer all questions
 - ✅ Cannot submit after `expiresAt`
 - ✅ Cannot submit already-submitted attempt
 - ✅ System auto-grades immediately
 
 **Auto-grading:**
+
 ```
 1. For each response:
    - Check if selected answer is correct
@@ -1094,12 +1136,14 @@ Must pass all validations:
 ## 8.6 Certificate Rules
 
 **Issuance:**
+
 - ✅ Auto-issued when attempt passes (if enabled)
 - ✅ Can be manually issued by OWNER
 - ✅ One certificate per user per quiz
 - ✅ Duplicate issuance returns existing certificate (409)
 
 **Number Generation:**
+
 ```
 Format: CERT-{YEAR}-{8_RANDOM}
 Example: CERT-2024-A3FX9KL2
@@ -1111,6 +1155,7 @@ Algorithm:
 ```
 
 **Verification Code:**
+
 ```
 Format: 32 uppercase alphanumeric
 Example: VX8K2MN9PQR7Z3A1B5C7D9E2F4G6H8J0
@@ -1120,6 +1165,7 @@ Example: VX8K2MN9PQR7Z3A1B5C7D9E2F4G6H8J0
 ```
 
 **Revocation:**
+
 - ✅ Only OWNER can revoke
 - ✅ Revoked certificates remain visible but marked as REVOKED
 - ✅ Public verification shows revocation status
@@ -1130,10 +1176,12 @@ Example: VX8K2MN9PQR7Z3A1B5C7D9E2F4G6H8J0
 ## 8.7 InvitationLink Rules
 
 **Creation:**
+
 - ✅ Organization invitations grant membership with specified role
 - ✅ Program invitations enroll user + grant organization PARTICIPANT role if needed
 
 **Acceptance:**
+
 ```
 1. Validate invitation code exists and is not disabled
 2. Check duplicate membership/enrollment (return 409 if exists)
@@ -1142,6 +1190,7 @@ Example: VX8K2MN9PQR7Z3A1B5C7D9E2F4G6H8J0
 ```
 
 **Concurrent Access:**
+
 - Use database transaction to ensure safe concurrent joins
 
 ---
@@ -1179,7 +1228,7 @@ Example: VX8K2MN9PQR7Z3A1B5C7D9E2F4G6H8J0
 public void checkOrganizationAccess(UUID organizationId, User user, Role... allowedRoles) {
     Member member = memberRepository.findByOrganizationAndUser(organizationId, user.getId())
         .orElseThrow(() -> new NotFoundException("Organization not found"));
-    
+  
     if (!Arrays.asList(allowedRoles).contains(member.getRole())) {
         throw new ForbiddenException("Insufficient permissions");
     }
@@ -1187,6 +1236,7 @@ public void checkOrganizationAccess(UUID organizationId, User user, Role... allo
 ```
 
 **Usage:**
+
 ```java
 // Only OWNER can update organization
 checkOrganizationAccess(organizationId, currentUser, Role.OWNER);
@@ -1201,16 +1251,16 @@ checkOrganizationAccess(organizationId, currentUser, Role.OWNER);
 public void checkProgramAccess(UUID programId, User user) {
     Program program = programRepository.findById(programId)
         .orElseThrow(() -> new NotFoundException("Program not found"));
-    
+  
     // Check if user is enrolled OR has organization owner role
     boolean isEnrolled = enrollmentRepository
         .existsByProgramAndUser(programId, user.getId());
-    
+  
     boolean isOrganizationStaff = memberRepository
         .findByOrganizationAndUser(program.getOrganizationId(), user.getId())
         .map(m -> m.getRole() == Role.OWNER)
         .orElse(false);
-    
+  
     if (!isEnrolled && !isOrganizationStaff) {
         throw new NotFoundException("Program not found");
     }
@@ -1221,13 +1271,13 @@ public void checkProgramAccess(UUID programId, User user) {
 
 ## 9.3 Rate Limiting
 
-| Endpoint Pattern | Limit |
-|-----------------|-------|
-| `POST /api/v1/invitations/accept` | 10/min per IP |
-| `POST /api/v1/quizzes/*/attempts` | 5/min per user |
-| `POST /api/v1/attempts/*/submit` | 3/min per user |
-| `GET /api/v1/public/verify/*` | 60/min per IP |
-| All other authenticated endpoints | 300/min per user |
+| Endpoint Pattern                    | Limit            |
+| ----------------------------------- | ---------------- |
+| `POST /api/v1/invitations/accept` | 10/min per IP    |
+| `POST /api/v1/quizzes/*/attempts` | 5/min per user   |
+| `POST /api/v1/attempts/*/submit`  | 3/min per user   |
+| `GET /api/v1/public/verify/*`     | 60/min per IP    |
+| All other authenticated endpoints   | 300/min per user |
 
 **Implementation:** Use Spring filter with Redis or in-memory cache
 
@@ -1236,6 +1286,7 @@ public void checkProgramAccess(UUID programId, User user) {
 ## 9.4 Data Security
 
 **Sensitive Data Protection:**
+
 - ❌ Never log JWT tokens
 - ❌ Never expose Auth secrets in responses
 - ❌ Never expose other users' emails unless OWNER
@@ -1245,6 +1296,7 @@ public void checkProgramAccess(UUID programId, User user) {
 - ✅ Parameterize all SQL queries (JPA does this)
 
 **CORS Configuration:**
+
 ```yaml
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
@@ -1290,6 +1342,7 @@ cors:
 ```
 
 **Benefits:**
+
 - ✅ Backend doesn't handle large files
 - ✅ Faster uploads (direct to R2)
 - ✅ Reduced server bandwidth
@@ -1339,17 +1392,17 @@ public interface StorageService {
         long contentLength,
         int expirationMinutes
     );
-    
+  
     /**
      * Get public URL for object
      */
     String getPublicUrl(String objectKey);
-    
+  
     /**
      * Delete object
      */
     void deleteObject(String objectKey);
-    
+  
     /**
      * Upload bytes directly (for system-generated files like PDFs)
      */
@@ -1414,6 +1467,7 @@ String pdfUrl = storageService.uploadBytes(
 ```
 
 **Template Variables:**
+
 ```html
 <!DOCTYPE html>
 <html>
@@ -1490,6 +1544,7 @@ Response:
 ```
 
 **Queries:**
+
 ```sql
 SELECT COUNT(*) FROM organization_memberships WHERE organization_id = ?;
 SELECT COUNT(*) FROM programs WHERE organization_id = ?;
@@ -1520,6 +1575,7 @@ Response:
 ```
 
 **Queries:**
+
 ```sql
 SELECT COUNT(*) FROM enrollments WHERE program_id = ?;
 
@@ -1598,13 +1654,13 @@ LOG_LEVEL=INFO
 spring:
   application:
     name: skillmark-api
-    
+  
   datasource:
     url: ${DATABASE_URL}
     hikari:
       maximum-pool-size: ${DATABASE_POOL_SIZE:10}
       minimum-idle: 2
-      
+    
   jpa:
     hibernate:
       ddl-auto: validate
@@ -1612,23 +1668,23 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        
+      
   flyway:
     enabled: true
     baseline-on-migrate: true
-    
+  
 server:
   port: 8080
   error:
     include-message: always
     include-stacktrace: never
-    
+  
 springdoc:
   api-docs:
     path: /api/v1/docs
   swagger-ui:
     path: /swagger-ui.html
-    
+  
 management:
   endpoints:
     web:
@@ -1660,12 +1716,14 @@ management:
 ## 14.2 Unit Tests
 
 **Focus:**
+
 - Business logic validation
 - Permission checks
 - Calculation algorithms (scoring, stats)
 - Code generation (certificate numbers, invitation codes)
 
 **Example:**
+
 ```java
 @Test
 void calculateScore_shouldReturnCorrectPercentage() {
@@ -1673,14 +1731,14 @@ void calculateScore_shouldReturnCorrectPercentage() {
         new Question(1, 10),  // 10 points
         new Question(2, 5)    // 5 points
     );
-    
+  
     var responses = List.of(
         new Response(1, true, 10),   // correct
         new Response(2, false, 0)    // incorrect
     );
-    
+  
     var result = scoringService.calculate(questions, responses);
-    
+  
     assertEquals(10, result.getScore());
     assertEquals(15, result.getMaxScore());
     assertEquals(66.67, result.getPercentage(), 0.01);
@@ -1694,18 +1752,19 @@ void calculateScore_shouldReturnCorrectPercentage() {
 ## 14.3 Integration Tests
 
 **Setup:**
+
 ```java
 @SpringBootTest
 @Testcontainers
 class ProgramIntegrationTest {
-    
+  
     @Container
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
         .withDatabaseName("skillmark_test");
-    
+  
     @Autowired
     private MockMvc mockMvc;
-    
+  
     @Test
     void createProgram_shouldReturnCreated() throws Exception {
         mockMvc.perform(post("/api/v1/organizations/{id}/programs", organizationId)
@@ -1724,6 +1783,7 @@ class ProgramIntegrationTest {
 ```
 
 **Coverage:**
+
 - All API endpoints
 - Auth/permission flows
 - Database constraints
@@ -1765,6 +1825,7 @@ void accessOtherOrganization_shouldReturn404() {
 ## 15.1 Docker Support
 
 **Dockerfile:**
+
 ```dockerfile
 FROM eclipse-temurin:17-jre-alpine
 
@@ -1781,6 +1842,7 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 ```
 
 **docker-compose.yml (local dev):**
+
 ```yaml
 version: '3.8'
 
@@ -1818,6 +1880,7 @@ volumes:
 ## 15.2 Platform Deployment
 
 **Railway:**
+
 ```yaml
 # railway.json
 {
@@ -1832,6 +1895,7 @@ volumes:
 ```
 
 **Render:**
+
 ```yaml
 # render.yaml
 services:
@@ -2004,18 +2068,18 @@ If implementing from scratch, you can ignore this section. If migrating from the
 
 ## Changes Summary
 
-| V2 Concept | V3 Concept | Reason |
-|------------|------------|---------|
-| Organization | Organization | Modern terminology |
-| OrganizationMembership | Member | Simplified |
-| Program | Program | Clearer purpose |
-| ProgramEnrollment | Enrollment | Simplified |
-| InvitationLink | InvitationLink | Shorter |
-| ProgramResource | Resource | Less verbose |
-| Quiz | Quiz | Professional term |
-| QuizAttempt | Attempt | Clearer noun |
-| QuizAttemptAnswer | Response | Simpler |
-| AuditLog | ActivityLog | Less scary term |
+| V2 Concept             | V3 Concept     | Reason             |
+| ---------------------- | -------------- | ------------------ |
+| Organization           | Organization   | Modern terminology |
+| OrganizationMembership | Member         | Simplified         |
+| Program                | Program        | Clearer purpose    |
+| ProgramEnrollment      | Enrollment     | Simplified         |
+| InvitationLink         | InvitationLink | Shorter            |
+| ProgramResource        | Resource       | Less verbose       |
+| Quiz                   | Quiz           | Professional term  |
+| QuizAttempt            | Attempt        | Clearer noun       |
+| QuizAttemptAnswer      | Response       | Simpler            |
+| AuditLog               | ActivityLog    | Less scary term    |
 
 ## Data Model Changes
 
@@ -2120,6 +2184,7 @@ open http://localhost:8080/swagger-ui.html
 ## Environment Setup
 
 Edit `.env`:
+
 ```bash
 JWT_SECRET=your-base64-encoded-secret
 
@@ -2135,14 +2200,15 @@ R2_BUCKET_NAME=skillmark-dev
 
 This redesigned **Skillmark V3** PRD delivers:
 
-✅ **Simpler architecture** — 11 entities vs 15+  
-✅ **Better API design** — RESTful, intuitive, consistent  
-✅ **Clearer permissions** — 3 roles instead of complex matrix  
-✅ **Modern stack** — Auth + Neon + R2  
-✅ **Production ready** — Security, testing, deployment  
-✅ **Developer friendly** — Clear structure, good DX  
+✅ **Simpler architecture** — 11 entities vs 15+
+✅ **Better API design** — RESTful, intuitive, consistent
+✅ **Clearer permissions** — 3 roles instead of complex matrix
+✅ **Modern stack** — Auth + Neon + R2
+✅ **Production ready** — Security, testing, deployment
+✅ **Developer friendly** — Clear structure, good DX
 
 **Core flows work out of the box:**
+
 1. Create organization → auto-become owner
 2. Create program → publish
 3. Generate invitation → share code
@@ -2156,6 +2222,6 @@ This redesigned **Skillmark V3** PRD delivers:
 
 ---
 
-**Document Version:** 3.0  
-**Last Updated:** 2024  
+**Document Version:** 3.0
+**Last Updated:** 2024
 **Status:** ✅ Ready for Implementation
