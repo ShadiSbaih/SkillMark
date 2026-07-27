@@ -123,9 +123,9 @@ class SkillmarkApiIntegrationTests {
     }
 
     @Test
-    void swaggerEndpointsArePublicAndDescribeApi() throws Exception {
-        mockMvc.perform(get("/swagger-ui.html"))
-                .andExpect(status().is3xxRedirection());
+    void apiDocsAndScalarArePublic() throws Exception {
+        mockMvc.perform(get("/docs.html"))
+                .andExpect(status().isOk());
 
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
@@ -271,7 +271,7 @@ class SkillmarkApiIntegrationTests {
 
         mockMvc.perform(get("/api/v1/public/certificates/verify/" + read(certificateResult, "/data/verificationCode")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.programTitle", is("Git Workshop")))
+                .andExpect(jsonPath("$.data.programTitle", is("Git Workshop")));
 
 
         getJson("/api/v1/quizzes/" + quizId + "/stats", ownerToken)

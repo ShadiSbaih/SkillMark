@@ -53,7 +53,7 @@ public class OpenApiConfig {
                                 .description("Skillmark access token supplied as Authorization: Bearer <token> or access_token cookie")))
                 .externalDocs(new ExternalDocumentation()
                         .description("Skillmark backend documentation")
-                        .url("/swagger-ui.html"));
+                        .url("/docs.html"));
     }
 
     @Bean
