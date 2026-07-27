@@ -1,9 +1,6 @@
 package com.library.Skillmark.audit.entity;
 
-import com.library.Skillmark.audit.entity.*;
-import com.library.Skillmark.audit.enums.*;
-import com.library.Skillmark.audit.repository.*;
-import com.library.Skillmark.audit.service.*;
+import com.library.Skillmark.audit.enums.AuditAction;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -20,9 +17,6 @@ public class AuditLog {
 
     @Column(name = "actor_user_id")
     private UUID actorUserId;
-
-    @Column(name = "organization_id")
-    private UUID organizationId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 100)
@@ -52,7 +46,6 @@ public class AuditLog {
 
     public UUID getId() { return id; }
     public UUID getActorUserId() { return actorUserId; }
-    public UUID getOrganizationId() { return organizationId; }
     public AuditAction getAction() { return action; }
     public String getEntityType() { return entityType; }
     public UUID getEntityId() { return entityId; }
@@ -61,7 +54,6 @@ public class AuditLog {
     public String getMetadata() { return metadata; }
     public Instant getCreatedAt() { return createdAt; }
     public void setActorUserId(UUID actorUserId) { this.actorUserId = actorUserId; }
-    public void setOrganizationId(UUID organizationId) { this.organizationId = organizationId; }
     public void setAction(AuditAction action) { this.action = action; }
     public void setEntityType(String entityType) { this.entityType = entityType; }
     public void setEntityId(UUID entityId) { this.entityId = entityId; }

@@ -3,15 +3,7 @@ package com.library.Skillmark.stats.controller;
 import com.library.Skillmark.common.response.ApiResponse;
 import com.library.Skillmark.config.OpenApiConfig;
 import com.library.Skillmark.security.AuthUser;
-import com.library.Skillmark.stats.dto.OrganizationCertificatesTimelineResponse;
-import com.library.Skillmark.stats.dto.OrganizationStatsResponse;
-import com.library.Skillmark.stats.dto.ProgramCompletionStatsResponse;
-import com.library.Skillmark.stats.dto.ProgramEnrollmentTimelineResponse;
-import com.library.Skillmark.stats.dto.ProgramStatsResponse;
-import com.library.Skillmark.stats.dto.QuizAttemptTimelineResponse;
-import com.library.Skillmark.stats.dto.QuizQuestionStatsResponse;
-import com.library.Skillmark.stats.dto.QuizScoreDistributionResponse;
-import com.library.Skillmark.stats.dto.QuizStatsResponse;
+import com.library.Skillmark.stats.dto.*;
 import com.library.Skillmark.stats.service.StatsService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -32,6 +24,12 @@ public class StatsController {
 
     public StatsController(StatsService statsService) {
         this.statsService = statsService;
+    }
+
+    @GetMapping("/stats")
+    ApiResponse<OrganizationStatsResponse> globalStats(AuthUser currentUser) {
+        return ApiResponse.success("Global stats retrieved successfully",
+                statsService.globalStats(currentUser.id()));
     }
 
     @GetMapping("/organizations/{organizationId}/stats")
@@ -80,6 +78,12 @@ public class StatsController {
     ApiResponse<ProgramCompletionStatsResponse> programCompletionStats(@PathVariable UUID programId, AuthUser currentUser) {
         return ApiResponse.success("Program completion stats retrieved successfully",
                 statsService.programCompletionStats(programId, currentUser.id()));
+    }
+
+    @GetMapping("/certificates/timeline")
+    ApiResponse<OrganizationCertificatesTimelineResponse> globalCertificateTimeline(AuthUser currentUser) {
+        return ApiResponse.success("Global certificates timeline retrieved successfully",
+                statsService.globalCertificateTimeline(currentUser.id()));
     }
 
     @GetMapping("/organizations/{organizationId}/certificates/timeline")

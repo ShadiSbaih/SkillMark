@@ -18,8 +18,7 @@ export class ProgramsService {
   private readonly api = inject(ApiClientService);
   private readonly queryClient = inject(QueryClient);
 
-  readonly listParams = signal<{ organizationId: string | null; page: number; size: number }>({
-    organizationId: null,
+  readonly listParams = signal<{ page: number; size: number }>({
     page: 0,
     size: 10,
   });
@@ -31,14 +30,13 @@ export class ProgramsService {
       queryFn: () =>
         lastValueFrom(
           this.api.getPage<ProgramResponse>(
-            `organizations/${params.organizationId}/programs`,
+            `programs`,
             {
               page: params.page,
               size: params.size,
             }
           )
         ),
-      enabled: !!params.organizationId,
     };
   });
 
@@ -54,19 +52,13 @@ export class ProgramsService {
   }
 
   readonly createMutation = injectMutation(() => ({
-    mutationFn: ({
-      organizationId,
-      request,
-    }: {
-      organizationId: string;
-      request: CreateProgramRequest;
-    }) =>
+    mutationFn: (request: CreateProgramRequest) =>
       lastValueFrom(
-        this.api.post<ProgramResponse>(`organizations/${organizationId}/programs`, request)
+        this.api.post<ProgramResponse>(`programs`, request)
       ),
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       this.queryClient.invalidateQueries({
-        queryKey: ['programs', { organizationId: variables.organizationId }],
+        queryKey: ['programs'],
       });
     },
   }));

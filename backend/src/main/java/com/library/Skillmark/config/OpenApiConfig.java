@@ -26,7 +26,7 @@ public class OpenApiConfig {
                         .title("Skillmark Backend API")
                         .description("""
                                 API-first training, assessment, and certification backend with JWT authentication,
-                                organization-scoped permissions, program enrollments, resources, quizzes,
+                                role-based access control (Admin vs Student), program enrollments, resources, quizzes,
                                 automatic scoring, certificates, revocation, and public verification.
                                 """)
                         .version("v1")
@@ -35,16 +35,14 @@ public class OpenApiConfig {
                 .servers(List.of(new Server().url("/").description("Current server")))
                 .tags(List.of(
                         new Tag().name("Users").description("Current authenticated user profile and backend sync."),
-                        new Tag().name("Organizations").description("Organization creation, lookup, update, and soft deletion."),
-                        new Tag().name("Memberships").description("Organization-scoped OWNER/PARTICIPANT membership management."),
+                        new Tag().name("Organizations").description("Legacy organization endpoints retained for backward compatibility."),
                         new Tag().name("Programs").description("Program/workshop creation, publishing, archiving, and lookup."),
                         new Tag().name("Enrollments").description("Program enrollment management and current-user enrollment lists."),
-                        new Tag().name("Invitations").description("Invitation links for joining published programs."),
                         new Tag().name("Resources").description("Program resources backed by external links, R2 files, or Cloudinary media."),
                         new Tag().name("Quizzes").description("Quiz creation, question management, publishing, and quiz lists."),
-                        new Tag().name("Attempts").description("Participant quiz attempts, answer submission, scoring, and owner review."),
-                        new Tag().name("Certificates").description("Manual issuing, certificate lookup, organization certificate lists, and revocation."),
-                        new Tag().name("Statistics").description("Organization and program statistics."),
+                        new Tag().name("Attempts").description("Participant quiz attempts, answer submission, scoring, and review."),
+                        new Tag().name("Certificates").description("Manual issuing, certificate lookup, certificate lists, and revocation."),
+                        new Tag().name("Statistics").description("Platform and program statistics."),
                         new Tag().name("Public Verification").description("Public certificate verification without authentication.")
                 ))
                 .components(new Components().addSecuritySchemes(BEARER_AUTH,

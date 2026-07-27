@@ -1,7 +1,6 @@
 import { Component, computed, inject, signal, Input } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { ProgramsService } from '../../services/programs.service';
-import { OrganizationsService } from '../../services/organizations.service';
 import { ProgramResponse, ProgramStatus } from '../../core/models/program.model';
 import { BadgeComponent } from '../../shared/components/badge/badge.component';
 import { ButtonComponent } from '../../shared/components/button/button.component';
@@ -40,41 +39,12 @@ const STATUS_VARIANTS: Record<ProgramStatus, BadgeVariant> = {
 export class ProgramsComponent {
   readonly router = inject(Router);
   private readonly programsService = inject(ProgramsService);
-  private readonly organizationsService = inject(OrganizationsService);
 
-  readonly selectedOrg = signal<string | null>(null);
   readonly page = signal(0);
   readonly size = signal(10);
 
-  @Input() set orgId(value: string | undefined) {
-    if (value) {
-      this.selectedOrg.set(value);
-      this.page.set(0);
-      this.updateParams();
-    }
-  }
-
-  @Input() set organizationId(value: string | undefined) {
-    if (value) {
-      this.selectedOrg.set(value);
-      this.page.set(0);
-      this.updateParams();
-    }
-  }
-
-  readonly organizationsQuery = this.organizationsService.organizationsQuery;
   readonly programsQuery = this.programsService.programsQuery;
-
-  readonly organizations = computed(() => this.organizationsQuery.data()?.items ?? []);
   readonly programs = computed(() => this.programsQuery.data()?.items ?? []);
-
-  private readonly organizationsMap = computed(() => {
-    const map = new Map<string, string>();
-    for (const org of this.organizations()) {
-      map.set(org.id, org.name);
-    }
-    return map;
-  });
 
   readonly pageInfo = computed(() => {
     const data = this.programsQuery.data();
@@ -90,16 +60,9 @@ export class ProgramsComponent {
 
   constructor() {
     this.programsService.listParams.set({
-      organizationId: this.selectedOrg(),
       page: this.page(),
       size: this.size(),
     });
-  }
-
-  onOrganizationChange(organizationId: string): void {
-    this.selectedOrg.set(organizationId || null);
-    this.page.set(0);
-    this.updateParams();
   }
 
   onPageChange(page: number): void {
@@ -107,9 +70,7 @@ export class ProgramsComponent {
     this.updateParams();
   }
 
-  organizationName(organizationId: string): string {
-    return this.organizationsMap().get(organizationId) ?? 'Unknown organization';
-  }
+
 
   statusVariant(status: ProgramStatus): BadgeVariant {
     return STATUS_VARIANTS[status];
@@ -121,7 +82,6 @@ export class ProgramsComponent {
 
   private updateParams(): void {
     this.programsService.listParams.set({
-      organizationId: this.selectedOrg(),
       page: this.page(),
       size: this.size(),
     });

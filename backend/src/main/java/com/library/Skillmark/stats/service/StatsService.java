@@ -6,23 +6,13 @@ import com.library.Skillmark.attempt.repository.QuizAttemptRepository;
 import com.library.Skillmark.certificate.repository.CertificateRepository;
 import com.library.Skillmark.enrollment.enums.EnrollmentStatus;
 import com.library.Skillmark.enrollment.repository.ProgramEnrollmentRepository;
-import com.library.Skillmark.membership.enums.MembershipStatus;
-import com.library.Skillmark.membership.repository.OrganizationMembershipRepository;
 import com.library.Skillmark.program.repository.ProgramRepository;
 import com.library.Skillmark.quiz.repository.QuizRepository;
 import com.library.Skillmark.resource.enums.ResourceStatus;
 import com.library.Skillmark.resource.repository.ProgramResourceRepository;
 import com.library.Skillmark.security.service.AuthorizationService;
-import com.library.Skillmark.stats.dto.OrganizationCertificatesTimelineResponse;
-import com.library.Skillmark.stats.dto.OrganizationStatsResponse;
-import com.library.Skillmark.stats.dto.ProgramCompletionStatsResponse;
-import com.library.Skillmark.stats.dto.ProgramEnrollmentTimelineResponse;
-import com.library.Skillmark.stats.dto.ProgramStatsResponse;
-import com.library.Skillmark.stats.dto.QuizAttemptTimelineResponse;
-import com.library.Skillmark.stats.dto.QuizQuestionStatsResponse;
-import com.library.Skillmark.stats.dto.QuizScoreDistributionResponse;
-import com.library.Skillmark.stats.dto.QuizStatsResponse;
-import com.library.Skillmark.stats.dto.TopProgramResponse;
+import com.library.Skillmark.stats.dto.*;
+import com.library.Skillmark.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,7 +34,6 @@ public class StatsService {
     private static final DateTimeFormatter WEEK_FORMATTER = DateTimeFormatter.ofPattern("yyyy-'W'ww").withZone(ZoneId.systemDefault());
 
     private final ProgramRepository programRepository;
-    private final OrganizationMembershipRepository membershipRepository;
     private final CertificateRepository certificateRepository;
     private final ProgramEnrollmentRepository enrollmentRepository;
     private final ProgramResourceRepository resourceRepository;
@@ -52,18 +41,18 @@ public class StatsService {
     private final QuizAttemptRepository attemptRepository;
     private final QuizAttemptAnswerRepository attemptAnswerRepository;
     private final AuthorizationService authorizationService;
+    private final UserRepository userRepository;
 
     public StatsService(ProgramRepository programRepository,
-                        OrganizationMembershipRepository membershipRepository,
                         CertificateRepository certificateRepository,
                         ProgramEnrollmentRepository enrollmentRepository,
                         ProgramResourceRepository resourceRepository,
                         QuizRepository quizRepository,
                         QuizAttemptRepository attemptRepository,
                         QuizAttemptAnswerRepository attemptAnswerRepository,
-                        AuthorizationService authorizationService) {
+                        AuthorizationService authorizationService,
+                        UserRepository userRepository) {
         this.programRepository = programRepository;
-        this.membershipRepository = membershipRepository;
         this.certificateRepository = certificateRepository;
         this.enrollmentRepository = enrollmentRepository;
         this.resourceRepository = resourceRepository;
@@ -71,24 +60,30 @@ public class StatsService {
         this.attemptRepository = attemptRepository;
         this.attemptAnswerRepository = attemptAnswerRepository;
         this.authorizationService = authorizationService;
+        this.userRepository = userRepository;
+    }
+
+    @Transactional(readOnly = true)
+    public OrganizationStatsResponse globalStats(UUID actorId) {
+        authorizationService.ensureAdmin(actorId);
+        long attempts = attemptRepository.count();
+        long passed = attemptRepository.countByPassed(true);
+        return new OrganizationStatsResponse(
+                programRepository.countByDeletedAtIsNull(),
+                userRepository.count(),
+                enrollmentRepository.countDistinctUsersByStatus(EnrollmentStatus.ACTIVE),
+                quizRepository.countByDeletedAtIsNull(),
+                attempts,
+                certificateRepository.count(),
+                zeroIfNull(attemptRepository.averageScore()),
+                rate(passed, attempts),
+                topPrograms()
+        );
     }
 
     @Transactional(readOnly = true)
     public OrganizationStatsResponse organizationStats(UUID organizationId, UUID actorId) {
-        authorizationService.ensureOrganizationOwner(organizationId, actorId);
-        long attempts = attemptRepository.countByQuizProgramOrganizationId(organizationId);
-        long passed = attemptRepository.countByQuizProgramOrganizationIdAndPassed(organizationId, true);
-        return new OrganizationStatsResponse(
-                programRepository.countByOrganizationIdAndDeletedAtIsNull(organizationId),
-                membershipRepository.countByOrganizationIdAndStatus(organizationId, MembershipStatus.ACTIVE),
-                enrollmentRepository.countDistinctUsersByOrganizationIdAndStatus(organizationId, EnrollmentStatus.ACTIVE),
-                quizRepository.countByProgramOrganizationIdAndDeletedAtIsNull(organizationId),
-                attempts,
-                certificateRepository.countByOrganizationId(organizationId),
-                zeroIfNull(attemptRepository.averageScoreForOrganization(organizationId)),
-                rate(passed, attempts),
-                topPrograms(organizationId)
-        );
+        return globalStats(actorId);
     }
 
     @Transactional(readOnly = true)
@@ -210,18 +205,23 @@ public class StatsService {
     }
 
     @Transactional(readOnly = true)
-    public OrganizationCertificatesTimelineResponse organizationCertificateTimeline(UUID organizationId, UUID actorId) {
-        authorizationService.ensureOrganizationOwner(organizationId, actorId);
+    public OrganizationCertificatesTimelineResponse globalCertificateTimeline(UUID actorId) {
+        authorizationService.ensureAdmin(actorId);
         Instant end = Instant.now().truncatedTo(ChronoUnit.DAYS).plus(1, ChronoUnit.DAYS);
         Instant start = end.minus(ANALYTICS_DAYS, ChronoUnit.DAYS);
         return new OrganizationCertificatesTimelineResponse(
-                mapCertificateBuckets(certificateRepository.dailyCertificateTimelineForOrganization(organizationId, start, end), DAY_FORMATTER),
-                mapCertificateBuckets(certificateRepository.weeklyCertificateTimelineForOrganization(organizationId, start, end), WEEK_FORMATTER)
+                mapCertificateBuckets(certificateRepository.dailyCertificateTimeline(start, end), DAY_FORMATTER),
+                mapCertificateBuckets(certificateRepository.weeklyCertificateTimeline(start, end), WEEK_FORMATTER)
         );
     }
 
-    private List<TopProgramResponse> topPrograms(UUID organizationId) {
-        return certificateRepository.topProgramsByEnrollments(organizationId).stream().map(row -> {
+    @Transactional(readOnly = true)
+    public OrganizationCertificatesTimelineResponse organizationCertificateTimeline(UUID organizationId, UUID actorId) {
+        return globalCertificateTimeline(actorId);
+    }
+
+    private List<TopProgramResponse> topPrograms() {
+        return certificateRepository.topProgramsByEnrollments().stream().map(row -> {
             UUID programId = (UUID) row[0];
             String title = (String) row[1];
             long enrollments = row[2] == null ? 0 : ((Number) row[2]).longValue();

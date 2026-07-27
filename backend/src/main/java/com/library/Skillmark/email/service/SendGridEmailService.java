@@ -55,16 +55,6 @@ public class SendGridEmailService implements EmailService {
     }
 
     @Override
-    public void sendInvitationEmail(String to, String programName, String inviteLink) {
-        String subject = "You're invited to a Skillmark program";
-        String body = buildBody("Hi,",
-                "You've been invited to join the program \"" + programName + "\" on Skillmark.",
-                inviteLink,
-                "Click the link above to view the program and join. If you weren't expecting this invitation, you can safely ignore this email.");
-        send(to, subject, body);
-    }
-
-    @Override
     public void sendCertificateIssuedEmail(String to, String name, String programName, String certificateUrl) {
         String subject = "Your Skillmark certificate is ready";
         String body = buildBody("Hi " + name + ",",

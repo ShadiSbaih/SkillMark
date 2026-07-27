@@ -4,7 +4,6 @@ export interface CertificateResponse {
   id: string;
   certificateNumber: string;
   verificationCode: string;
-  organizationId: string;
   programId: string;
   quizId: string;
   userId: string;
@@ -13,7 +12,6 @@ export interface CertificateResponse {
   participantNameSnapshot: string;
   quizTitleSnapshot: string;
   programTitleSnapshot: string;
-  organizationNameSnapshot: string;
   ownerNameSnapshot: string | null;
   scoreSnapshot?: number | null;
   status: CertificateStatus;
@@ -31,7 +29,6 @@ export interface PublicCertificateVerificationResponse {
   participantName: string;
   quizTitle: string;
   programTitle: string;
-  organizationName: string;
   issuedAt: string;
   isRevoked: boolean;
   revokedAt: string | null;

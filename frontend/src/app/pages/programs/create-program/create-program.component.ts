@@ -18,7 +18,7 @@ export class CreateProgramComponent {
   private readonly fb = inject(FormBuilder);
   private readonly programsService = inject(ProgramsService);
 
-  readonly organizationId = this.route.snapshot.paramMap.get('orgId') ?? this.route.parent?.snapshot.paramMap.get('orgId') ?? '';
+
 
   readonly form = this.fb.group({
     title: ['', [Validators.required, Validators.maxLength(100)]],
@@ -39,17 +39,14 @@ export class CreateProgramComponent {
     const value = this.form.value;
     this.mutation.mutate(
       {
-        organizationId: this.organizationId,
-        request: {
-          title: value.title ?? '',
-          description: value.description || undefined,
-          coverImageUrl: value.coverImageUrl || undefined,
-          startDate: value.startDate || undefined,
-          endDate: value.endDate || undefined,
-        },
+        title: value.title ?? '',
+        description: value.description || undefined,
+        coverImageUrl: value.coverImageUrl || undefined,
+        startDate: value.startDate || undefined,
+        endDate: value.endDate || undefined,
       },
       {
-        onSuccess: () => void this.router.navigate(['/organizations', this.organizationId]),
+        onSuccess: () => void this.router.navigate(['/programs']),
       }
     );
   }

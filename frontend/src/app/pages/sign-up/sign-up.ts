@@ -28,7 +28,6 @@ export class SignUp {
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]],
     confirmPassword: ['', [Validators.required]],
-    organizationName: [''],
   });
 
   async onSubmit(): Promise<void> {
@@ -44,12 +43,10 @@ export class SignUp {
       return;
     }
 
-    const orgName = values.organizationName.trim();
     const request: RegisterRequest = {
       name: values.name.trim(),
       email: values.email.trim(),
       password: values.password,
-      ...(orgName ? { role: 'OWNER', organizationName: orgName } : {}),
     };
 
     this.isLoading.set(true);

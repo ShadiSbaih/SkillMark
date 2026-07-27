@@ -6,9 +6,7 @@ type StatusBadgeEntity =
   | 'quiz'
   | 'attempt'
   | 'certificate'
-  | 'enrollment'
-  | 'invitation'
-  | 'membership';
+  | 'enrollment';
 
 type BadgeColor = 'green' | 'amber' | 'red' | 'gray' | 'blue';
 type BadgeStyle = 'subtle' | 'solid' | 'outline';
@@ -41,14 +39,7 @@ const ENTITY_STATUS_MAP: Record<StatusBadgeEntity, Record<string, BadgeConfig>> 
   enrollment: {
     ACTIVE: { color: 'green', style: 'subtle' },
   },
-  invitation: {
-    ACTIVE: { color: 'green', style: 'subtle' },
-    DISABLED: { color: 'gray', style: 'subtle' },
-  },
-  membership: {
-    OWNER: { color: 'blue', style: 'subtle' },
-    PARTICIPANT: { color: 'gray', style: 'subtle' },
-  },
+
 };
 
 const FALLBACK_COLOR_MAP: Record<string, BadgeColor> = {

@@ -5,8 +5,6 @@ import com.library.Skillmark.attempt.enums.AttemptStatus;
 import com.library.Skillmark.attempt.repository.QuizAttemptRepository;
 import com.library.Skillmark.common.exception.NotFoundException;
 import com.library.Skillmark.enrollment.repository.ProgramEnrollmentRepository;
-import com.library.Skillmark.membership.repository.OrganizationMembershipRepository;
-import com.library.Skillmark.organization.entity.Organization;
 import com.library.Skillmark.program.entity.Program;
 import com.library.Skillmark.program.repository.ProgramRepository;
 import com.library.Skillmark.quiz.dto.CreateOptionRequest;
@@ -36,6 +34,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -56,8 +55,6 @@ class QuizServiceOptionHierarchyTest {
     @Mock
     private ProgramEnrollmentRepository enrollmentRepository;
     @Mock
-    private OrganizationMembershipRepository membershipRepository;
-    @Mock
     private AuthorizationService authorizationService;
     @Mock
     private AuditLogService auditLogService;
@@ -65,7 +62,6 @@ class QuizServiceOptionHierarchyTest {
     private QuizService quizService;
 
     private final UUID actorId = UUID.randomUUID();
-    private final UUID organizationId = UUID.randomUUID();
     private final UUID quizId = UUID.randomUUID();
     private final UUID questionId = UUID.randomUUID();
     private final UUID optionId = UUID.randomUUID();
@@ -77,14 +73,10 @@ class QuizServiceOptionHierarchyTest {
     @BeforeEach
     void setUp() {
         quizService = new QuizService(quizRepository, questionRepository, optionRepository, attemptRepository,
-                programRepository, enrollmentRepository, membershipRepository, authorizationService, auditLogService);
-
-        Organization organization = new Organization();
-        setId(organization, organizationId);
+                programRepository, enrollmentRepository, authorizationService, auditLogService);
 
         Program program = new Program();
         setId(program, UUID.randomUUID());
-        program.setOrganization(organization);
 
         quiz = new Quiz();
         setId(quiz, quizId);
@@ -125,7 +117,7 @@ class QuizServiceOptionHierarchyTest {
 
         assertThat(response.text()).isEqualTo("New option");
         assertThat(response.position()).isEqualTo(2);
-        verify(auditLogService).record(eq(actorId), eq(organizationId), any(), eq("QuizOption"), eq(saved.getId()));
+        verify(auditLogService).record(eq(actorId), isNull(), any(), eq("QuizOption"), eq(saved.getId()));
     }
 
     @Test
@@ -154,7 +146,7 @@ class QuizServiceOptionHierarchyTest {
         assertThat(response.text()).isEqualTo("Updated text");
         assertThat(response.isCorrect()).isFalse();
         assertThat(response.position()).isEqualTo(2);
-        verify(auditLogService).record(eq(actorId), eq(organizationId), any(), eq("QuizOption"), eq(optionId));
+        verify(auditLogService).record(eq(actorId), isNull(), any(), eq("QuizOption"), eq(optionId));
     }
 
     @Test
@@ -193,7 +185,7 @@ class QuizServiceOptionHierarchyTest {
         quizService.deleteOption(quizId, questionId, optionId, actorId);
 
         verify(optionRepository).delete(option);
-        verify(auditLogService).record(eq(actorId), eq(organizationId), any(), eq("QuizOption"), eq(optionId));
+        verify(auditLogService).record(eq(actorId), isNull(), any(), eq("QuizOption"), eq(optionId));
     }
 
     @Test
@@ -243,7 +235,7 @@ class QuizServiceOptionHierarchyTest {
         assertThat(response.text()).isEqualTo("Updated question");
         assertThat(response.points()).isEqualTo(2);
         assertThat(response.position()).isEqualTo(2);
-        verify(auditLogService).record(eq(actorId), eq(organizationId), any(), eq("QuizQuestion"), eq(questionId));
+        verify(auditLogService).record(eq(actorId), isNull(), any(), eq("QuizQuestion"), eq(questionId));
     }
 
     @Test
@@ -272,7 +264,7 @@ class QuizServiceOptionHierarchyTest {
 
         verify(optionRepository).findByQuestionIdOrderByPositionAsc(questionId);
         verify(questionRepository).delete(question);
-        verify(auditLogService).record(eq(actorId), eq(organizationId), any(), eq("QuizQuestion"), eq(questionId));
+        verify(auditLogService).record(eq(actorId), isNull(), any(), eq("QuizQuestion"), eq(questionId));
     }
 
     @Test

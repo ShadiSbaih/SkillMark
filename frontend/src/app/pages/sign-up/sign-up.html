@@ -69,20 +69,6 @@
           </app-form-field>
         </div>
 
-        <app-form-field
-          label="Organization name (optional)"
-          id="organizationName"
-          hint="Create an organization now, or leave blank and join one later with an invite link."
-        >
-          <input
-            id="organizationName"
-            type="text"
-            formControlName="organizationName"
-            placeholder="Acme Inc"
-            class="input"
-          />
-        </app-form-field>
-
         @if (error()) {
           <div class="auth-error">{{ error() }}</div>
         }
@@ -116,7 +102,7 @@
   <div class="auth-visual">
     <div class="auth-visual-quote">
       <blockquote>
-        "An absolutely essential tool for running a modern engineering organization. The clarity it brings is unmatched."
+        "An absolutely essential tool for running a modern training program. The clarity it brings is unmatched."
       </blockquote>
       <cite>
         <div style="width: 32px; height: 32px; border-radius: 9999px; background: var(--primary); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 12px;">MD</div>

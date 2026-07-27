@@ -12,23 +12,20 @@
 @if (!hasAnyError() && !allPending()) {
   <app-page-header
     title="Dashboard"
-    subtitle="Track your organizations, quiz performance, certificates, and activity."
+    subtitle="Track your quiz performance, certificates, and activity."
     [hasActions]="true"
   >
     <a
       actions
       class="button button-secondary"
-      routerLink="/organizations/new"
+      routerLink="/programs/new"
     >
-      Create organization
+      Create program
     </a>
   </app-page-header>
 
   <section class="dashboard-metrics" aria-label="Dashboard metrics">
-    <app-card>
-      <span class="metric-label">Organizations</span>
-      <strong class="metric-value">{{ stats().organizations }}</strong>
-    </app-card>
+
     <app-card>
       <span class="metric-label">Certificates</span>
       <strong class="metric-value">{{ stats().certificates }}</strong>
@@ -43,36 +40,7 @@
     </app-card>
   </section>
 
-  <section class="dashboard-lists" aria-label="Recent organizations and certificates">
-    <app-card class="dashboard-list-card">
-      <div class="panel-header">
-        <h2>Your organizations</h2>
-        <a class="link" routerLink="/organizations">View all</a>
-      </div>
-      @if (organizations().length === 0) {
-        <app-empty-state title="No organizations" description="You are not a member of any organizations yet." />
-      } @else {
-        <ul class="dashboard-list">
-          @for (org of organizations().slice(0, 5); track org.id) {
-            <li>
-              <a
-                class="list-row list-row-link"
-                [routerLink]="['/organizations', org.id]"
-              >
-                <div class="min-w-0">
-                  <p class="font-medium text-ink">{{ org.name }}</p>
-                  @if (org.description) {
-                    <p class="text-sm text-ink-mute line-clamp-2">{{ org.description }}</p>
-                  }
-                </div>
-                <app-status-badge [status]="org.status" />
-              </a>
-            </li>
-          }
-        </ul>
-      }
-    </app-card>
-
+  <section class="dashboard-lists" aria-label="Recent certificates">
     <app-card class="dashboard-list-card">
       <div class="panel-header">
         <h2>Recent certificates</h2>

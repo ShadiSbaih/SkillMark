@@ -81,33 +81,6 @@ export class CertificatesService {
     },
   }));
 
-  organizationCertificatesQuery(
-    organizationId: () => string | null,
-    page: () => number,
-    size: () => number
-  ) {
-    return injectQuery(() => ({
-      queryKey: [
-        'certificates',
-        'organization',
-        organizationId(),
-        page(),
-        size(),
-      ] as const,
-      queryFn: () =>
-        lastValueFrom(
-          this.api.getPage<CertificateResponse>(
-            `organizations/${organizationId()}/certificates`,
-            {
-              page: page(),
-              size: size(),
-            }
-          )
-        ),
-      enabled: !!organizationId(),
-    }));
-  }
-
   verifyPublicCertificateQuery(verificationCode: () => string | null) {
     return injectQuery(() => ({
       queryKey: ['public', 'certificates', 'verify', verificationCode()] as const,

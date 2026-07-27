@@ -44,15 +44,24 @@ public class DevTokenAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             String[] parts = token.split(":");
-            if (parts.length != 4 || !"dev".equals(parts[0])) {
+            if ((parts.length != 4 && parts.length != 5) || !"dev".equals(parts[0])) {
                 chain.doFilter(request, response);
                 return;
             }
             UUID userId = UUID.fromString(parts[1]);
             String email = parts[2];
             String name = parts[3];
-            User user = userRepository.findById(userId).orElseGet(() -> createDevUser(userId, email, name));
-            AuthUser authUser = new AuthUser(userId, user.getEmail());
+            com.library.Skillmark.user.enums.UserRole role = parts.length == 5
+                    ? com.library.Skillmark.user.enums.UserRole.valueOf(parts[4])
+                    : (email.toLowerCase().contains("owner") || email.toLowerCase().contains("admin")
+                        ? com.library.Skillmark.user.enums.UserRole.ADMIN
+                        : com.library.Skillmark.user.enums.UserRole.STUDENT);
+            User user = userRepository.findById(userId).orElseGet(() -> createDevUser(userId, email, name, role));
+            if (user.getRole() != role && (parts.length == 5 || email.toLowerCase().contains("owner") || email.toLowerCase().contains("admin"))) {
+                user.setRole(role);
+                user = userRepository.save(user);
+            }
+            AuthUser authUser = new AuthUser(userId, user.getEmail(), user.getRole());
             var authentication = new UsernamePasswordAuthenticationToken(authUser, null, authUser.getAuthorities());
             SecurityContextHolder.getContext().setAuthentication(authentication);
         } catch (Exception ignored) {
@@ -61,11 +70,12 @@ public class DevTokenAuthenticationFilter extends OncePerRequestFilter {
         chain.doFilter(request, response);
     }
 
-    private User createDevUser(UUID userId, String email, String name) {
+    private User createDevUser(UUID userId, String email, String name, com.library.Skillmark.user.enums.UserRole role) {
         User user = new User();
         user.setId(userId);
         user.setEmail(email);
         user.setName(name);
+        user.setRole(role);
         user.setEmailVerifiedAt(Instant.now());
         return userRepository.save(user);
     }

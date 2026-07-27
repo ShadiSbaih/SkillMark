@@ -29,21 +29,34 @@ public class ProgramController {
         this.programService = programService;
     }
 
-    @PostMapping("/organizations/{organizationId}/programs")
-    ResponseEntity<ApiResponse<ProgramResponse>> create(@PathVariable UUID organizationId,
-                                                        @Valid @RequestBody CreateProgramRequest request,
+    @PostMapping("/programs")
+    ResponseEntity<ApiResponse<ProgramResponse>> create(@Valid @RequestBody CreateProgramRequest request,
                                                         AuthUser currentUser) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Program created successfully",
-                programService.create(organizationId, request, currentUser.id())));
+                programService.create(request, currentUser.id())));
     }
 
-    @GetMapping("/organizations/{organizationId}/programs")
-    ApiResponse<PageResponse<ProgramResponse>> list(@PathVariable UUID organizationId,
-                                                    AuthUser currentUser,
+    @PostMapping("/organizations/{organizationId}/programs")
+    ResponseEntity<ApiResponse<ProgramResponse>> createOrg(@PathVariable UUID organizationId,
+                                                           @Valid @RequestBody CreateProgramRequest request,
+                                                           AuthUser currentUser) {
+        return create(request, currentUser);
+    }
+
+    @GetMapping("/programs")
+    ApiResponse<PageResponse<ProgramResponse>> list(AuthUser currentUser,
                                                     @RequestParam(defaultValue = "0") int page,
                                                     @RequestParam(defaultValue = "10") int size) {
         return ApiResponse.success("Programs retrieved successfully",
-                programService.list(organizationId, currentUser.id(), page, size));
+                programService.list(currentUser.id(), page, size));
+    }
+
+    @GetMapping("/organizations/{organizationId}/programs")
+    ApiResponse<PageResponse<ProgramResponse>> listOrg(@PathVariable UUID organizationId,
+                                                       AuthUser currentUser,
+                                                       @RequestParam(defaultValue = "0") int page,
+                                                       @RequestParam(defaultValue = "10") int size) {
+        return list(currentUser, page, size);
     }
 
     @GetMapping("/programs/{programId}")

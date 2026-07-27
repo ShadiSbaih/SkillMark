@@ -18,8 +18,12 @@ public interface ProgramEnrollmentRepository extends JpaRepository<ProgramEnroll
     long countByProgramId(UUID programId);
     long countByProgramIdAndStatus(UUID programId, EnrollmentStatus status);
 
-    @Query("select count(distinct e.user.id) from ProgramEnrollment e where e.program.organization.id = :organizationId and e.status = :status")
-    long countDistinctUsersByOrganizationIdAndStatus(UUID organizationId, EnrollmentStatus status);
+    @Query("select count(distinct e.user.id) from ProgramEnrollment e where e.status = :status")
+    long countDistinctUsersByStatus(EnrollmentStatus status);
+
+    default long countDistinctUsersByOrganizationIdAndStatus(UUID organizationId, EnrollmentStatus status) {
+        return countDistinctUsersByStatus(status);
+    }
 
     @Query("""
             select function('date_trunc', 'day', e.enrolledAt),

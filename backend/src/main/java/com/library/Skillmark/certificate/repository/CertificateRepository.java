@@ -1,11 +1,7 @@
 package com.library.Skillmark.certificate.repository;
 
-import com.library.Skillmark.certificate.controller.*;
-import com.library.Skillmark.certificate.dto.*;
-import com.library.Skillmark.certificate.entity.*;
-import com.library.Skillmark.certificate.enums.*;
-import com.library.Skillmark.certificate.repository.*;
-import com.library.Skillmark.certificate.service.*;
+import com.library.Skillmark.certificate.entity.Certificate;
+import com.library.Skillmark.certificate.enums.CertificateStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -19,32 +15,34 @@ public interface CertificateRepository extends JpaRepository<Certificate, UUID> 
     boolean existsByCertificateNumber(String certificateNumber);
     boolean existsByVerificationCode(String verificationCode);
     List<Certificate> findByUserId(UUID userId);
-    List<Certificate> findByOrganizationId(UUID organizationId);
-    long countByOrganizationId(UUID organizationId);
     long countByProgramId(UUID programId);
     Optional<Certificate> findByVerificationCode(String verificationCode);
+
+    default long countByOrganizationId(UUID organizationId) {
+        return count();
+    }
 
     @Query("""
             select function('date_trunc', 'day', c.issuedAt),
                    sum(case when c.status = 'ACTIVE' then 1 else 0 end),
                    sum(case when c.status = 'REVOKED' then 1 else 0 end)
             from Certificate c
-            where c.organization.id = :organizationId and c.issuedAt between :start and :end
+            where c.issuedAt between :start and :end
             group by function('date_trunc', 'day', c.issuedAt)
             order by function('date_trunc', 'day', c.issuedAt)
             """)
-    List<Object[]> dailyCertificateTimelineForOrganization(UUID organizationId, Instant start, Instant end);
+    List<Object[]> dailyCertificateTimeline(Instant start, Instant end);
 
     @Query("""
             select function('date_trunc', 'week', c.issuedAt),
                    sum(case when c.status = 'ACTIVE' then 1 else 0 end),
                    sum(case when c.status = 'REVOKED' then 1 else 0 end)
             from Certificate c
-            where c.organization.id = :organizationId and c.issuedAt between :start and :end
+            where c.issuedAt between :start and :end
             group by function('date_trunc', 'week', c.issuedAt)
             order by function('date_trunc', 'week', c.issuedAt)
             """)
-    List<Object[]> weeklyCertificateTimelineForOrganization(UUID organizationId, Instant start, Instant end);
+    List<Object[]> weeklyCertificateTimeline(Instant start, Instant end);
 
     @Query("""
             select p.id,
@@ -58,9 +56,21 @@ public interface CertificateRepository extends JpaRepository<Certificate, UUID> 
             left join Quiz q on q.program.id = p.id
             left join QuizAttempt a on a.quiz.id = q.id and a.status = 'SUBMITTED'
             left join Certificate c on c.program.id = p.id and c.status = 'ACTIVE'
-            where p.organization.id = :organizationId and p.deletedAt is null
+            where p.deletedAt is null
             group by p.id, p.title
             order by count(distinct e.user.id) desc
             """)
-    List<Object[]> topProgramsByEnrollments(UUID organizationId);
+    List<Object[]> topProgramsByEnrollments();
+
+    default List<Object[]> dailyCertificateTimelineForOrganization(UUID organizationId, Instant start, Instant end) {
+        return dailyCertificateTimeline(start, end);
+    }
+
+    default List<Object[]> weeklyCertificateTimelineForOrganization(UUID organizationId, Instant start, Instant end) {
+        return weeklyCertificateTimeline(start, end);
+    }
+
+    default List<Object[]> topProgramsByEnrollments(UUID organizationId) {
+        return topProgramsByEnrollments();
+    }
 }

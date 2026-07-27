@@ -34,7 +34,7 @@ public class MediaController {
         if (request.programId() != null) {
             authorizationService.ensureProgramOwner(request.programId(), currentUser.id());
         } else if (request.organizationId() != null) {
-            authorizationService.ensureOrganizationOwner(request.organizationId(), currentUser.id());
+            authorizationService.ensureAdmin(currentUser.id());
         } else {
             throw new com.library.Skillmark.common.exception.BadRequestException("organizationId or programId is required");
         }

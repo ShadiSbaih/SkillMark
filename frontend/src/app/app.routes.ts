@@ -3,17 +3,11 @@ import { authGuard } from './core/auth/auth.guard';
 import { DashboardLayoutComponent } from './core/layout/dashboard-layout/dashboard-layout.component';
 import { PublicLayoutComponent } from './core/layout/public-layout/public-layout.component';
 import { AttemptResultComponent } from './pages/attempt-result/attempt-result.component';
-import { AuditLogsComponent } from './pages/audit-logs/audit-logs.component';
 import { CertificateDetailComponent } from './pages/certificate-detail/certificate-detail.component';
 import { DashboardComponent } from './pages/dashboard/dashboard.component';
-import { JoinComponent } from './pages/join/join.component';
 import { LandingComponent } from './pages/landing/landing.component';
 import { MyCertificatesComponent } from './pages/my-certificates/my-certificates.component';
-import { OrganizationMembersComponent } from './pages/organization-members/organization-members.component';
-import { OrganizationAnalyticsComponent } from './pages/organization-analytics/organization-analytics.component';
-import { OrganizationsComponent } from './pages/organizations/organizations.component';
 import { ProgramEnrollmentsComponent } from './pages/program-enrollments/program-enrollments.component';
-import { ProgramInvitationsComponent } from './pages/program-invitations/program-invitations.component';
 import { ProgramOverview as ProgramOverviewComponent } from './pages/program-overview/program-overview';
 import { ProgramResourcesComponent } from './pages/program-resources/program-resources.component';
 import { QuizAttemptComponent } from './pages/quiz-attempt/quiz-attempt.component';
@@ -24,9 +18,6 @@ import { ProgramsComponent } from './pages/programs/programs.component';
 
 // Dedicated components generated to eliminate route-to-component reuse
 import { Profile as ProfileComponent } from './pages/profile/profile';
-import { OrganizationOverview as OrganizationOverviewComponent } from './pages/organization-overview/organization-overview';
-import { OrganizationSettings as OrganizationSettingsComponent } from './pages/organization-settings/organization-settings';
-import { OrganizationCertificates as OrganizationCertificatesComponent } from './pages/organization-certificates/organization-certificates';
 import { ProgramAnalyticsComponent } from './pages/program-analytics/program-analytics.component';
 import { ProgramQuizzes as ProgramQuizzesComponent } from './pages/program-quizzes/program-quizzes';
 import { ProgramSettings as ProgramSettingsComponent } from './pages/program-settings/program-settings';
@@ -57,8 +48,6 @@ export const routes: Routes = [
       { path: 'reset-password', component: ResetPasswordComponent },
       { path: 'verify', component: VerifyCertificateComponent },
       { path: 'verify/:code', component: VerifyCertificateComponent },
-      { path: 'join', component: JoinComponent },
-      { path: 'join/:code', component: JoinComponent },
     ],
   },
   {
@@ -69,36 +58,8 @@ export const routes: Routes = [
       { path: 'dashboard', component: DashboardComponent },
       { path: 'profile', component: ProfileComponent },
       { path: 'programs', component: ProgramsComponent },
-      {
-        path: 'organizations',
-        children: [
-          { path: '', component: OrganizationsComponent },
-          {
-            path: 'new',
-            loadComponent: () =>
-              import('./pages/organizations/create-organization/create-organization.component').then(
-                (m) => m.CreateOrganizationComponent
-              ),
-          },
-          { path: ':orgId', component: OrganizationOverviewComponent },
-          { path: ':orgId/members', component: OrganizationMembersComponent },
-          { path: ':orgId/settings', component: OrganizationSettingsComponent },
-          { path: ':orgId/audit-logs', component: AuditLogsComponent },
-          { path: ':orgId/certificates', component: OrganizationCertificatesComponent },
-          { path: ':orgId/analytics', component: OrganizationAnalyticsComponent },
-          { path: ':orgId/programs', component: ProgramsComponent },
-          {
-            path: ':orgId/programs/new',
-            loadComponent: () =>
-              import('./pages/programs/create-program/create-program.component').then(
-                (m) => m.CreateProgramComponent
-              ),
-          },
-        ],
-      },
       { path: 'programs/:programId', component: ProgramOverviewComponent },
       { path: 'programs/:programId/enrollments', component: ProgramEnrollmentsComponent },
-      { path: 'programs/:programId/invitations', component: ProgramInvitationsComponent },
       { path: 'programs/:programId/resources', component: ProgramResourcesComponent },
       { path: 'programs/:programId/quizzes', component: ProgramQuizzesComponent },
       { path: 'programs/:programId/analytics', component: ProgramAnalyticsComponent },

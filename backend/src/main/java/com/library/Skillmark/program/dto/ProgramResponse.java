@@ -24,7 +24,7 @@ public record ProgramResponse(
     public static ProgramResponse from(Program program) {
         return new ProgramResponse(
                 program.getId(),
-                program.getOrganization().getId(),
+                program.getOrganizationId(),
                 program.getTitle(),
                 program.getDescription(),
                 program.getCoverImageUrl(),

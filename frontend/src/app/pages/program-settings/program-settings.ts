@@ -5,7 +5,6 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { toast } from 'ngx-sonner';
 import { ProgramsService } from '../../services/programs.service';
-import { OrganizationsService } from '../../services/organizations.service';
 import { ProgramStatus } from '../../core/models/program.model';
 import { ButtonComponent } from '../../shared/components/button/button.component';
 import { CardComponent } from '../../shared/components/card/card.component';
@@ -49,7 +48,6 @@ export class ProgramSettings {
   readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
   readonly programsService = inject(ProgramsService);
-  readonly organizationsService = inject(OrganizationsService);
 
   readonly programId = toSignal(
     this.route.paramMap.pipe(map((params) => params.get('programId'))),
@@ -57,9 +55,6 @@ export class ProgramSettings {
   );
 
   readonly programQuery = this.programsService.getProgramQuery(() => this.programId());
-  readonly organizationQuery = this.organizationsService.getOrganizationQuery(
-    () => this.programQuery.data()?.organizationId ?? null
-  );
   readonly showDeleteDialog = signal(false);
 
   readonly statusOptions: { value: ProgramStatus; label: string }[] = [
@@ -155,7 +150,7 @@ export class ProgramSettings {
     this.programsService.deleteMutation.mutate(id, {
       onSuccess: () => {
         toast.success('Program deleted');
-        this.router.navigate(['/organizations']);
+        this.router.navigate(['/programs']);
       },
       onError: (error: Error) => toast.error(error.message || 'Failed to delete program'),
     });

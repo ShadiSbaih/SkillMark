@@ -1,7 +1,7 @@
 package com.library.Skillmark.program.entity;
 
-import com.library.Skillmark.organization.entity.Organization;
 import com.library.Skillmark.program.enums.ProgramStatus;
+import com.library.Skillmark.user.entity.User;
 import jakarta.persistence.*;
 
 import java.time.Instant;
@@ -15,9 +15,9 @@ public class Program {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "organization_id", nullable = false)
-    private Organization organization;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by")
+    private User createdBy;
 
     @Column(nullable = false)
     private String title;
@@ -63,8 +63,9 @@ public class Program {
     }
 
     public UUID getId() { return id; }
-    public Organization getOrganization() { return organization; }
-    public void setOrganization(Organization organization) { this.organization = organization; }
+    public UUID getOrganizationId() { return null; }
+    public User getCreatedBy() { return createdBy; }
+    public void setCreatedBy(User createdBy) { this.createdBy = createdBy; }
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
     public String getDescription() { return description; }

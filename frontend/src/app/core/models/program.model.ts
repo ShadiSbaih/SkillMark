@@ -2,7 +2,6 @@ export type ProgramStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 
 export interface ProgramResponse {
   id: string;
-  organizationId: string;
   title: string;
   description: string | null;
   coverImageUrl: string | null;

@@ -48,14 +48,20 @@ public class JwtService {
     }
 
     public String generateToken(UUID userId, String email) {
+        return generateToken(userId, email, null);
+    }
+
+    public String generateToken(UUID userId, String email, String role) {
         Instant now = Instant.now();
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .subject(userId.toString())
                 .claim("email", email)
                 .issuedAt(Date.from(now))
-                .expiration(Date.from(now.plusMillis(expirationMillis)))
-                .signWith(key)
-                .compact();
+                .expiration(Date.from(now.plusMillis(expirationMillis)));
+        if (role != null) {
+            builder.claim("role", role);
+        }
+        return builder.signWith(key).compact();
     }
 
     public Claims parseToken(String token) {

@@ -1,29 +1,24 @@
 package com.library.Skillmark.certificate.service;
 
-import com.library.Skillmark.certificate.controller.*;
-import com.library.Skillmark.certificate.dto.*;
-import com.library.Skillmark.certificate.entity.*;
-import com.library.Skillmark.certificate.enums.*;
-import com.library.Skillmark.certificate.repository.*;
-import com.library.Skillmark.certificate.service.*;
 import com.library.Skillmark.attempt.enums.AttemptStatus;
 import com.library.Skillmark.attempt.entity.QuizAttempt;
 import com.library.Skillmark.attempt.repository.QuizAttemptRepository;
 import com.library.Skillmark.audit.enums.AuditAction;
 import com.library.Skillmark.audit.service.AuditLogService;
+import com.library.Skillmark.certificate.dto.*;
+import com.library.Skillmark.certificate.entity.*;
+import com.library.Skillmark.certificate.enums.*;
+import com.library.Skillmark.certificate.repository.*;
 import com.library.Skillmark.common.exception.BusinessRuleException;
 import com.library.Skillmark.common.exception.ConflictException;
 import com.library.Skillmark.common.exception.NotFoundException;
 import com.library.Skillmark.common.response.PageResponse;
 import com.library.Skillmark.common.util.TokenGenerator;
+import com.library.Skillmark.email.service.EmailService;
 import com.library.Skillmark.quiz.enums.CertificateIssueMode;
 import com.library.Skillmark.quiz.entity.Quiz;
 import com.library.Skillmark.quiz.repository.QuizRepository;
-import com.library.Skillmark.membership.enums.MembershipRole;
-import com.library.Skillmark.membership.enums.MembershipStatus;
-import com.library.Skillmark.membership.repository.OrganizationMembershipRepository;
 import com.library.Skillmark.security.service.AuthorizationService;
-import com.library.Skillmark.email.service.EmailService;
 import com.library.Skillmark.user.entity.User;
 import com.library.Skillmark.user.repository.UserRepository;
 import org.springframework.scheduling.annotation.Async;
@@ -45,7 +40,6 @@ public class CertificateService {
     private final QuizAttemptRepository attemptRepository;
     private final AuthorizationService authorizationService;
     private final AuditLogService auditLogService;
-    private final OrganizationMembershipRepository membershipRepository;
     private final CertificatePdfGenerator certificatePdfGenerator;
     private final EmailService emailService;
 
@@ -55,7 +49,6 @@ public class CertificateService {
                               QuizAttemptRepository attemptRepository,
                               AuthorizationService authorizationService,
                               AuditLogService auditLogService,
-                              OrganizationMembershipRepository membershipRepository,
                               CertificatePdfGenerator certificatePdfGenerator,
                               EmailService emailService) {
         this.certificateRepository = certificateRepository;
@@ -64,7 +57,6 @@ public class CertificateService {
         this.attemptRepository = attemptRepository;
         this.authorizationService = authorizationService;
         this.auditLogService = auditLogService;
-        this.membershipRepository = membershipRepository;
         this.certificatePdfGenerator = certificatePdfGenerator;
         this.emailService = emailService;
     }
@@ -81,7 +73,7 @@ public class CertificateService {
         authorizationService.ensureProgramEnrollment(quiz.getProgram().getId(), attempt.getUser().getId());
         Certificate certificate = createCertificate(quiz, attempt.getUser(), attempt,
                 quiz.getTitle() + " Certificate");
-        auditLogService.record(attempt.getUser().getId(), quiz.getProgram().getOrganization().getId(), AuditAction.CERTIFICATE_ISSUED,
+        auditLogService.record(attempt.getUser().getId(), null, AuditAction.CERTIFICATE_ISSUED,
                 "Certificate", certificate.getId());
         return Optional.of(certificate);
     }
@@ -89,7 +81,7 @@ public class CertificateService {
     @Transactional
     public CertificateResponse issue(IssueCertificateRequest request, UUID actorId) {
         Quiz quiz = quizRepository.findById(request.quizId()).orElseThrow(() -> new NotFoundException("Quiz not found"));
-        authorizationService.ensureOrganizationOwner(quiz.getProgram().getOrganization().getId(), actorId);
+        authorizationService.ensureAdmin(actorId);
         if (quiz.getCertificateIssueMode() != CertificateIssueMode.MANUAL) {
             throw new BusinessRuleException("Manual certificate issuing is available only for MANUAL certificate quizzes");
         }
@@ -98,7 +90,7 @@ public class CertificateService {
         validateEligibility(quiz, user.getId(), attempt);
         Certificate certificate = createCertificate(quiz, user, attempt,
                 request.title() == null || request.title().isBlank() ? quiz.getTitle() + " Certificate" : request.title().trim());
-        auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.CERTIFICATE_ISSUED, "Certificate", certificate.getId());
+        auditLogService.record(actorId, null, AuditAction.CERTIFICATE_ISSUED, "Certificate", certificate.getId());
         return CertificateResponse.from(certificate);
     }
 
@@ -107,7 +99,7 @@ public class CertificateService {
         QuizAttempt attempt = attemptRepository.findById(attemptId)
                 .orElseThrow(() -> new NotFoundException("Attempt not found"));
         Quiz quiz = attempt.getQuiz();
-        authorizationService.ensureOrganizationOwner(quiz.getProgram().getOrganization().getId(), actorId);
+        authorizationService.ensureAdmin(actorId);
         if (quiz.getCertificateIssueMode() != CertificateIssueMode.MANUAL) {
             throw new BusinessRuleException("Manual certificate issuing is available only for MANUAL certificate quizzes");
         }
@@ -116,7 +108,7 @@ public class CertificateService {
                 ? quiz.getTitle() + " Certificate"
                 : request.title().trim();
         Certificate certificate = createCertificate(quiz, attempt.getUser(), attempt, title);
-        auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.CERTIFICATE_ISSUED, "Certificate", certificate.getId());
+        auditLogService.record(actorId, null, AuditAction.CERTIFICATE_ISSUED, "Certificate", certificate.getId());
         return CertificateResponse.from(certificate);
     }
 
@@ -129,12 +121,17 @@ public class CertificateService {
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<CertificateResponse> organizationCertificates(UUID organizationId, UUID actorId, int page, int size) {
-        authorizationService.ensureOrganizationOwner(organizationId, actorId);
-        return PageResponse.fromList(certificateRepository.findByOrganizationId(organizationId).stream()
+    public PageResponse<CertificateResponse> listAll(UUID actorId, int page, int size) {
+        authorizationService.ensureAdmin(actorId);
+        return PageResponse.fromList(certificateRepository.findAll().stream()
                 .sorted(Comparator.comparing(Certificate::getIssuedAt).reversed())
                 .map(CertificateResponse::from)
                 .toList(), page, size);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<CertificateResponse> organizationCertificates(UUID organizationId, UUID actorId, int page, int size) {
+        return listAll(actorId, page, size);
     }
 
     @Transactional(readOnly = true)
@@ -146,14 +143,14 @@ public class CertificateService {
     public CertificateResponse revoke(UUID certificateId, String reason, UUID actorId) {
         Certificate certificate = certificateRepository.findById(certificateId)
                 .orElseThrow(() -> new NotFoundException("Certificate not found"));
-        authorizationService.ensureOrganizationOwner(certificate.getOrganization().getId(), actorId);
+        authorizationService.ensureAdmin(actorId);
         if (certificate.getStatus() == CertificateStatus.REVOKED) {
             throw new ConflictException("Certificate is already revoked");
         }
         certificate.setStatus(CertificateStatus.REVOKED);
         certificate.setRevokedAt(Instant.now());
         certificate.setRevokeReason(reason);
-        auditLogService.record(actorId, certificate.getOrganization().getId(), AuditAction.CERTIFICATE_REVOKED,
+        auditLogService.record(actorId, null, AuditAction.CERTIFICATE_REVOKED,
                 "Certificate", certificateId);
         return CertificateResponse.from(certificate);
     }
@@ -182,7 +179,6 @@ public class CertificateService {
         Certificate certificate = new Certificate();
         certificate.setCertificateNumber(nextCertificateNumber());
         certificate.setVerificationCode(nextVerificationCode());
-        certificate.setOrganization(quiz.getProgram().getOrganization());
         certificate.setProgram(quiz.getProgram());
         certificate.setQuiz(quiz);
         certificate.setUser(user);
@@ -191,17 +187,11 @@ public class CertificateService {
         certificate.setParticipantNameSnapshot(user.getName());
         certificate.setQuizTitleSnapshot(quiz.getTitle());
         certificate.setProgramTitleSnapshot(quiz.getProgram().getTitle());
-        certificate.setOrganizationNameSnapshot(quiz.getProgram().getOrganization().getName());
-        // Snapshot the first active owner's name
-        String ownerName = membershipRepository
-                .findByOrganizationIdAndRoleAndStatus(
-                        quiz.getProgram().getOrganization().getId(),
-                        MembershipRole.OWNER,
-                        MembershipStatus.ACTIVE)
-                .stream().findFirst()
-                .map(m -> m.getUser().getName())
-                .orElse(null);
-        certificate.setOwnerNameSnapshot(ownerName);
+        String ownerName = null;
+        if (quiz.getProgram().getCreatedBy() != null) {
+            ownerName = quiz.getProgram().getCreatedBy().getName();
+        }
+        certificate.setOwnerNameSnapshot(ownerName != null ? ownerName : "Skillmark Instructor");
         Certificate saved = certificateRepository.save(certificate);
         certificatePdfGenerator.generateAsync(saved.getId());
         sendCertificateIssuedEmail(saved);

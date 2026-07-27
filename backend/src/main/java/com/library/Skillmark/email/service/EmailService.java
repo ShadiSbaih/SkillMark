@@ -5,8 +5,6 @@ public interface EmailService {
 
     void sendPasswordResetEmail(String to, String name, String token);
 
-    void sendInvitationEmail(String to, String programName, String inviteLink);
-
     void sendCertificateIssuedEmail(String to, String name, String programName, String certificateUrl);
 
     void sendEnrollmentConfirmationEmail(String to, String name, String programName, String programUrl);

@@ -27,7 +27,6 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private final Map<String, Counter> counters = new ConcurrentHashMap<>();
 
     private final int authMaxRequests;
-    private final int inviteMaxRequests;
     private final int attemptMaxRequests;
     private final int publicCertMaxRequests;
     private final int windowSeconds;
@@ -35,14 +34,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     public RateLimitFilter(ObjectMapper objectMapper,
                            @Value("${app.rate-limit.auth.max-requests:200}") int authMaxRequests,
-                           @Value("${app.rate-limit.invite.max-requests:10}") int inviteMaxRequests,
                            @Value("${app.rate-limit.attempt.max-requests:5}") int attemptMaxRequests,
                            @Value("${app.rate-limit.public-cert.max-requests:30}") int publicCertMaxRequests,
                            @Value("${app.rate-limit.window-seconds:60}") int windowSeconds,
                            @Value("${app.rate-limit.trust-x-forwarded-for:false}") boolean trustForwardedFor) {
         this.objectMapper = objectMapper;
         this.authMaxRequests = Math.max(authMaxRequests, 1);
-        this.inviteMaxRequests = Math.max(inviteMaxRequests, 1);
         this.attemptMaxRequests = Math.max(attemptMaxRequests, 1);
         this.publicCertMaxRequests = Math.max(publicCertMaxRequests, 1);
         this.windowSeconds = Math.max(windowSeconds, 1);
@@ -72,9 +69,6 @@ public class RateLimitFilter extends OncePerRequestFilter {
         AuthUser user = currentUser();
         if (user == null || !path.startsWith("/api/")) {
             return null;
-        }
-        if ("POST".equals(method) && path.matches("/api/v1/invitations/[^/]+/join")) {
-            return new Limit("invite:" + user.id(), inviteMaxRequests);
         }
         if ("POST".equals(method) && path.matches("/api/v1/quizzes/[^/]+/attempts")) {
             return new Limit("attempt:" + user.id(), attemptMaxRequests);

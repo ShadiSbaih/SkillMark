@@ -21,7 +21,6 @@ export interface Question {
 export interface Quiz {
   id: string;
   programId: string;
-  organizationId: string;
   title: string;
   description?: string;
   instructions?: string;

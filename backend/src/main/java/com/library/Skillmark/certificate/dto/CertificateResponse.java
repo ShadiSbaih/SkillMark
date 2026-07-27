@@ -35,7 +35,7 @@ public record CertificateResponse(
                 certificate.getId(),
                 certificate.getCertificateNumber(),
                 certificate.getVerificationCode(),
-                certificate.getOrganization().getId(),
+                certificate.getOrganizationId(),
                 certificate.getProgram().getId(),
                 certificate.getQuiz().getId(),
                 certificate.getUser().getId(),

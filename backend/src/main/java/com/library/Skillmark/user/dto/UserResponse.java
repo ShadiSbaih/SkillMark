@@ -15,6 +15,7 @@ public record UserResponse(
         String email,
         String avatarUrl,
         UserStatus status,
+        UserRole role,
         Instant createdAt
 ) {
     public static UserResponse from(User user) {
@@ -24,6 +25,7 @@ public record UserResponse(
                 user.getEmail(),
                 user.getAvatarUrl(),
                 user.getStatus(),
+                user.getRole(),
                 user.getCreatedAt()
         );
     }

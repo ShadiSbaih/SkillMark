@@ -85,6 +85,7 @@ public class Quiz {
     public UUID getId() { return id; }
     public Program getProgram() { return program; }
     public void setProgram(Program program) { this.program = program; }
+    public UUID getOrganizationId() { return program != null ? program.getOrganizationId() : null; }
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
     public String getDescription() { return description; }

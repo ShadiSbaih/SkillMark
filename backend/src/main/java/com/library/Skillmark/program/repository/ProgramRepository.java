@@ -8,8 +8,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface ProgramRepository extends JpaRepository<Program, UUID> {
-    List<Program> findByOrganizationIdAndStatusNot(UUID organizationId, ProgramStatus status);
-    long countByOrganizationIdAndStatusNot(UUID organizationId, ProgramStatus status);
-    List<Program> findByOrganizationIdAndDeletedAtIsNull(UUID organizationId);
-    long countByOrganizationIdAndDeletedAtIsNull(UUID organizationId);
+    List<Program> findByDeletedAtIsNull();
+    List<Program> findByStatusAndDeletedAtIsNull(ProgramStatus status);
+    long countByDeletedAtIsNull();
 }

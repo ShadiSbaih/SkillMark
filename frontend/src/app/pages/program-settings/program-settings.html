@@ -1,30 +1,23 @@
-@if (programQuery.isPending() || organizationQuery.isPending()) {
+@if (programQuery.isPending()) {
   <app-loading-state message="Loading program..." />
 } @else if (programQuery.isError()) {
   <app-error-state
     [message]="programQuery.error()?.message ?? 'Failed to load program'"
     (retry)="programQuery.refetch()"
   />
-} @else if (organizationQuery.isError()) {
-  <app-error-state
-    [message]="organizationQuery.error()?.message ?? 'Failed to load organization'"
-    (retry)="organizationQuery.refetch()"
-  />
 } @else if (!programQuery.data()) {
   <app-empty-state
     title="Program not found"
     description="The program you are looking for does not exist or has been removed."
     actionLabel="Go back"
-    (action)="router.navigate(['/organizations'])"
+    (action)="router.navigate(['/programs'])"
   />
 } @else {
   @let program = programQuery.data();
-  @let organization = organizationQuery.data();
 
   <app-breadcrumb
     [items]="[
-      { label: 'Organizations', route: ['/organizations'] },
-      { label: organization?.name ?? 'Organization', route: ['/organizations', program?.organizationId ?? ''] },
+      { label: 'Programs', route: ['/programs'] },
       { label: program?.title ?? 'Program', route: ['/programs', programId() ?? ''] },
       { label: 'Settings' }
     ]"

@@ -1,10 +1,6 @@
 package com.library.Skillmark.attempt.controller;
 
-import com.library.Skillmark.attempt.controller.*;
 import com.library.Skillmark.attempt.dto.*;
-import com.library.Skillmark.attempt.entity.*;
-import com.library.Skillmark.attempt.enums.*;
-import com.library.Skillmark.attempt.repository.*;
 import com.library.Skillmark.attempt.service.*;
 import com.library.Skillmark.common.response.ApiResponse;
 import com.library.Skillmark.common.response.PageResponse;
@@ -37,7 +33,7 @@ public class QuizAttemptController {
     }
 
     @PostMapping("/quizzes/{quizId}/attempts")
-    @Operation(summary = "Start quiz attempt", description = "Starts an attempt for a published quiz. Requires ACTIVE PARTICIPANT membership and available attempt quota.")
+    @Operation(summary = "Start quiz attempt", description = "Starts an attempt for a published quiz. Requires active enrollment and available attempt quota.")
     ResponseEntity<ApiResponse<StartAttemptResponse>> start(@PathVariable UUID quizId, AuthUser currentUser) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Quiz attempt started successfully",
                 attemptService.start(quizId, currentUser.id())));
@@ -53,14 +49,14 @@ public class QuizAttemptController {
     }
 
     @GetMapping("/quiz-attempts/{attemptId}")
-    @Operation(summary = "Get attempt", description = "Returns an attempt for the attempt owner or the owner of the quiz organization.")
+    @Operation(summary = "Get attempt", description = "Returns an attempt for the attempt owner or an Admin.")
     ApiResponse<AttemptResponse> get(@PathVariable UUID attemptId, AuthUser currentUser) {
         return ApiResponse.success("Attempt retrieved successfully",
                 attemptService.get(attemptId, currentUser.id()));
     }
 
     @GetMapping("/quizzes/{quizId}/attempts")
-    @Operation(summary = "List quiz attempts", description = "Lists attempts for a quiz. Requires owner permission for the quiz organization.")
+    @Operation(summary = "List quiz attempts", description = "Lists attempts for a quiz. Requires Admin permission.")
     ApiResponse<PageResponse<AttemptResponse>> listForQuiz(@PathVariable UUID quizId,
                                                            AuthUser currentUser,
                                                            @RequestParam(defaultValue = "0") int page,
@@ -70,7 +66,7 @@ public class QuizAttemptController {
     }
 
     @PostMapping("/quiz-attempts/{attemptId}/certificate")
-    @Operation(summary = "Issue certificate for attempt", description = "Manually issues a certificate for a submitted passing attempt. Requires owner permission.")
+    @Operation(summary = "Issue certificate for attempt", description = "Manually issues a certificate for a submitted passing attempt. Requires Admin permission.")
     ResponseEntity<ApiResponse<CertificateResponse>> issueCertificate(@PathVariable UUID attemptId,
                                                                       @Valid @RequestBody(required = false) IssueCertificateForAttemptRequest request,
                                                                       AuthUser currentUser) {

@@ -7,7 +7,8 @@ public record AuthUserResponse(
         String name,
         String email,
         String avatarUrl,
-        String status
+        String status,
+        String role
 ) {
     public static AuthUserResponse from(UserResponse user) {
         return new AuthUserResponse(
@@ -15,7 +16,8 @@ public record AuthUserResponse(
                 user.name(),
                 user.email(),
                 user.avatarUrl(),
-                user.status() != null ? user.status().name() : null
+                user.status() != null ? user.status().name() : null,
+                user.role() != null ? user.role().name() : null
         );
     }
 }

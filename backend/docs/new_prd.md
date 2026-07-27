@@ -1,4 +1,3 @@
-
 # Skillmark — Training Program Manager
 
 ## Project Overview
@@ -13,6 +12,28 @@ Instead of focusing on complex organization management and permissions, the plat
 * Tracking progress.
 * Evaluating learners through quizzes.
 * Issuing digital certificates after completion.
+
+Important The New core chnages:
+
+**Without multi-tenancy.**
+
+There is only one owner.
+
+* Admin
+* Programs
+* Resources
+* Quizzes
+* Enrollments
+* Certificates
+
+There are no:
+
+* Organizations
+* Members
+* Roles
+* Invitations
+
+Everything becomes 70% simpler.
 
 ---
 

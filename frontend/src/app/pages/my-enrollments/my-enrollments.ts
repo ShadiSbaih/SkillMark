@@ -12,7 +12,7 @@ import { PaginationComponent } from '../../shared/components/pagination/paginati
 
 type EnrichedEnrollment = Enrollment & {
   programTitle?: string;
-  organizationName?: string;
+
 };
 
 @Component({

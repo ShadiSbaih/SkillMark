@@ -3,7 +3,6 @@ import { injectQuery } from '@tanstack/angular-query-experimental';
 import { lastValueFrom } from 'rxjs';
 import { ApiClientService } from '../core/api/api-client.service';
 import {
-  OrganizationStatsResponse,
   OrganizationCertificatesTimelineResponse,
   ProgramStatsResponse,
   ProgramEnrollmentTimelineResponse,
@@ -17,17 +16,6 @@ import {
 @Injectable({ providedIn: 'root' })
 export class StatsService {
   private readonly api = inject(ApiClientService);
-
-  getOrganizationStatsQuery(organizationId: () => string | null) {
-    return injectQuery(() => ({
-      queryKey: ['stats', 'organization', organizationId()] as const,
-      queryFn: () =>
-        lastValueFrom(
-          this.api.get<OrganizationStatsResponse>(`organizations/${organizationId()}/stats`)
-        ),
-      enabled: !!organizationId(),
-    }));
-  }
 
   getProgramStatsQuery(programId: () => string | null) {
     return injectQuery(() => ({
@@ -104,16 +92,5 @@ export class StatsService {
     }));
   }
 
-  getOrganizationCertificatesTimelineQuery(organizationId: () => string | null) {
-    return injectQuery(() => ({
-      queryKey: ['stats', 'organization', organizationId(), 'certificates-timeline'] as const,
-      queryFn: () =>
-        lastValueFrom(
-          this.api.get<OrganizationCertificatesTimelineResponse>(
-            `organizations/${organizationId()}/certificates/timeline`
-          )
-        ),
-      enabled: !!organizationId(),
-    }));
-  }
+
 }

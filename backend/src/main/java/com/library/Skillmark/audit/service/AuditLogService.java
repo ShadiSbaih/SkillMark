@@ -1,9 +1,8 @@
 package com.library.Skillmark.audit.service;
 
-import com.library.Skillmark.audit.entity.*;
-import com.library.Skillmark.audit.enums.*;
-import com.library.Skillmark.audit.repository.*;
-import com.library.Skillmark.audit.service.*;
+import com.library.Skillmark.audit.entity.AuditLog;
+import com.library.Skillmark.audit.enums.AuditAction;
+import com.library.Skillmark.audit.repository.AuditLogRepository;
 import com.library.Skillmark.audit.dto.AuditLogResponse;
 import com.library.Skillmark.common.response.PageResponse;
 import com.library.Skillmark.security.service.AuthorizationService;
@@ -21,20 +20,27 @@ public class AuditLogService {
         this.authorizationService = authorizationService;
     }
 
-    public void record(UUID actorUserId, UUID organizationId, AuditAction action, String entityType, UUID entityId) {
+    public void record(UUID actorUserId, AuditAction action, String entityType, UUID entityId) {
         AuditLog log = new AuditLog();
         log.setActorUserId(actorUserId);
-        log.setOrganizationId(organizationId);
         log.setAction(action);
         log.setEntityType(entityType);
         log.setEntityId(entityId);
         repository.save(log);
     }
 
-    public PageResponse<AuditLogResponse> listForOrganization(UUID organizationId, UUID actorId, int page, int size) {
-        authorizationService.ensureOrganizationOwner(organizationId, actorId);
-        return PageResponse.fromList(repository.findByOrganizationIdOrderByCreatedAtDesc(organizationId).stream()
+    public void record(UUID actorUserId, UUID ignoredOrganizationId, AuditAction action, String entityType, UUID entityId) {
+        record(actorUserId, action, entityType, entityId);
+    }
+
+    public PageResponse<AuditLogResponse> listAll(UUID actorId, int page, int size) {
+        authorizationService.ensureAdmin(actorId);
+        return PageResponse.fromList(repository.findAllByOrderByCreatedAtDesc().stream()
                 .map(AuditLogResponse::from)
                 .toList(), page, size);
+    }
+
+    public PageResponse<AuditLogResponse> listForOrganization(UUID ignoredOrganizationId, UUID actorId, int page, int size) {
+        return listAll(actorId, page, size);
     }
 }

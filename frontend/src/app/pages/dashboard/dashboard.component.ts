@@ -6,7 +6,6 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { OrganizationsService } from '../../services/organizations.service';
 import { CertificatesService } from '../../services/certificates.service';
 import { AttemptsService } from '../../services/attempts.service';
 import { CardComponent } from '../../shared/components/card/card.component';
@@ -35,14 +34,8 @@ import { StatusBadgeComponent } from '../../shared/components/status-badge/statu
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DashboardComponent {
-  private readonly organizationsService = inject(OrganizationsService);
   private readonly certificatesService = inject(CertificatesService);
   private readonly attemptsService = inject(AttemptsService);
-
-  readonly organizationsQuery = this.organizationsService.organizationsQuery;
-  readonly organizations = computed(
-    () => this.organizationsQuery.data()?.items ?? []
-  );
 
   readonly certificatesQuery = this.certificatesService.myCertificatesQuery;
   readonly certificates = computed(
@@ -54,14 +47,12 @@ export class DashboardComponent {
 
   readonly hasAnyError = computed(
     () =>
-      !!this.organizationsQuery.error() ||
       !!this.certificatesQuery.error() ||
       !!this.attemptsQuery.error()
   );
 
   readonly firstErrorMessage = computed(() => {
     const messages = [
-      this.organizationsQuery.error(),
       this.certificatesQuery.error(),
       this.attemptsQuery.error(),
     ]
@@ -74,20 +65,17 @@ export class DashboardComponent {
 
   readonly allPending = computed(
     () =>
-      this.organizationsQuery.isPending() &&
       this.certificatesQuery.isPending() &&
       this.attemptsQuery.isPending()
   );
 
   readonly stats = computed(() => {
-    const orgs = this.organizations();
     const certs = this.certificates();
     const attempts = this.attempts();
     const submitted = attempts.filter((a) => a.status === 'SUBMITTED');
     const passed = submitted.filter((a) => a.passed).length;
     const passRate = submitted.length ? (passed / submitted.length) * 100 : 0;
     return {
-      organizations: orgs.length,
       certificates: certs.length,
       attempts: attempts.length,
       passRate,
@@ -95,7 +83,6 @@ export class DashboardComponent {
   });
 
   retryAll(): void {
-    this.organizationsQuery.refetch();
     this.certificatesQuery.refetch();
     this.attemptsQuery.refetch();
   }
