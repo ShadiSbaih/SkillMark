@@ -2,7 +2,7 @@ package com.library.Skillmark.stats.dto;
 
 import java.util.List;
 
-public record OrganizationStatsResponse(
+public record GlobalStatsResponse(
         long totalPrograms,
         long totalMembers,
         long totalEnrolledParticipants,

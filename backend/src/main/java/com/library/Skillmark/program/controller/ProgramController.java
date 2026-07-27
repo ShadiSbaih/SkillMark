@@ -36,12 +36,7 @@ public class ProgramController {
                 programService.create(request, currentUser.id())));
     }
 
-    @PostMapping("/organizations/{organizationId}/programs")
-    ResponseEntity<ApiResponse<ProgramResponse>> createOrg(@PathVariable UUID organizationId,
-                                                           @Valid @RequestBody CreateProgramRequest request,
-                                                           AuthUser currentUser) {
-        return create(request, currentUser);
-    }
+
 
     @GetMapping("/programs")
     ApiResponse<PageResponse<ProgramResponse>> list(AuthUser currentUser,
@@ -51,13 +46,7 @@ public class ProgramController {
                 programService.list(currentUser.id(), page, size));
     }
 
-    @GetMapping("/organizations/{organizationId}/programs")
-    ApiResponse<PageResponse<ProgramResponse>> listOrg(@PathVariable UUID organizationId,
-                                                       AuthUser currentUser,
-                                                       @RequestParam(defaultValue = "0") int page,
-                                                       @RequestParam(defaultValue = "10") int size) {
-        return list(currentUser, page, size);
-    }
+
 
     @GetMapping("/programs/{programId}")
     ApiResponse<ProgramResponse> get(@PathVariable UUID programId, AuthUser currentUser) {

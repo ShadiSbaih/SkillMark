@@ -2,7 +2,7 @@ package com.library.Skillmark.stats.dto;
 
 import java.util.List;
 
-public record OrganizationCertificatesTimelineResponse(
+public record GlobalCertificatesTimelineResponse(
         List<Bucket> daily,
         List<Bucket> weekly
 ) {

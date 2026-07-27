@@ -82,7 +82,7 @@ class SkillmarkApiIntegrationTests {
 
     @Test
     void protectedEndpointsRequireToken() throws Exception {
-        mockMvc.perform(get("/api/v1/organizations"))
+        mockMvc.perform(get("/api/v1/programs"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success", is(false)));
 
@@ -131,7 +131,7 @@ class SkillmarkApiIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.info.title", is("Skillmark Backend API")))
                 .andExpect(jsonPath("$.paths['/api/v1/users/me'].patch").exists())
-                .andExpect(jsonPath("$.paths['/api/v1/organizations/{organizationId}/programs'].post").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/programs'].post").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/programs/{programId}/quizzes'].post").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/storage/upload-urls'].post").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/media/signatures'].post").exists())
@@ -141,18 +141,9 @@ class SkillmarkApiIntegrationTests {
     @Test
     void ownerCanCreateProgramInviteParticipantAndShareResource() throws Exception {
         String ownerToken = token("owner_user", "owner@example.com", "Owner_One");
-        String organizationId = createOrganization(ownerToken, "Computer Science Club");
+        String programId = createPublishedProgram(ownerToken);
 
-        MvcResult programResult = postJson("/api/v1/organizations/" + organizationId + "/programs", ownerToken, """
-                {
-                  "title": "Git Workshop",
-                  "description": "Intro workshop"
-                }
-                """)
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.status", is("DRAFT")))
-                .andReturn();
-        String programId = read(programResult, "/data/id");
+
 
         patchJson("/api/v1/programs/" + programId + "/status", ownerToken, """
                 {
@@ -186,7 +177,7 @@ class SkillmarkApiIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.items[0].title", is("Slides")));
 
-        getJson("/api/v1/organizations/" + organizationId + "/stats", ownerToken)
+        getJson("/api/v1/stats", ownerToken)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.totalPrograms", is(1)));
     }
@@ -194,8 +185,7 @@ class SkillmarkApiIntegrationTests {
     @Test
     void fullProgramQuizAttemptCertificateFlowUsesEnrollment() throws Exception {
         String ownerToken = token("owner_user", "owner@example.com", "Owner_One");
-        String organizationId = createOrganization(ownerToken, "Computer Science Club");
-        String programId = createPublishedProgram(ownerToken, organizationId);
+        String programId = createPublishedProgram(ownerToken);
 
         String participantToken = token("student_user", "student@example.com", "Jane_Student");
         joinProgram(ownerToken, participantToken, programId);
@@ -282,7 +272,7 @@ class SkillmarkApiIntegrationTests {
         mockMvc.perform(get("/api/v1/public/certificates/verify/" + read(certificateResult, "/data/verificationCode")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.programTitle", is("Git Workshop")))
-                .andExpect(jsonPath("$.data.organizationName", is("Computer Science Club")));
+
 
         getJson("/api/v1/quizzes/" + quizId + "/stats", ownerToken)
                 .andExpect(status().isOk())
@@ -292,8 +282,7 @@ class SkillmarkApiIntegrationTests {
     @Test
     void expiredAttemptIsRejectedAndCountsTowardMaxAttempts() throws Exception {
         String ownerToken = token("owner_user", "owner@example.com", "Owner_One");
-        String organizationId = createOrganization(ownerToken, "Computer Science Club");
-        String programId = createPublishedProgram(ownerToken, organizationId);
+        String programId = createPublishedProgram(ownerToken);
         String participantToken = token("student_user", "student@example.com", "Jane_Student");
         joinProgram(ownerToken, participantToken, programId);
 
@@ -360,8 +349,7 @@ class SkillmarkApiIntegrationTests {
     @Test
     void concurrentInvitationJoinsBothSucceed() throws Exception {
         String ownerToken = token("owner_user", "owner@example.com", "Owner_One");
-        String organizationId = createOrganization(ownerToken, "Computer Science Club");
-        String programId = createPublishedProgram(ownerToken, organizationId);
+        String programId = createPublishedProgram(ownerToken);
         String invitationCode = read(postJson("/api/v1/programs/" + programId + "/invitations", ownerToken, """
                 {}
                 """)
@@ -393,8 +381,7 @@ class SkillmarkApiIntegrationTests {
     @Test
     void ownerCanRevokeCertificate() throws Exception {
         String ownerToken = token("owner_user", "owner@example.com", "Owner_One");
-        String organizationId = createOrganization(ownerToken, "Computer Science Club");
-        String programId = createPublishedProgram(ownerToken, organizationId);
+        String programId = createPublishedProgram(ownerToken);
 
         String participantToken = token("student_user", "student@example.com", "Jane_Student");
         joinProgram(ownerToken, participantToken, programId);
@@ -455,7 +442,7 @@ class SkillmarkApiIntegrationTests {
                 .andExpect(jsonPath("$.data.certificateIssued", is(true)))
                 .andReturn(), "/data/certificateId");
 
-        getJson("/api/v1/organizations/" + organizationId + "/certificates", ownerToken)
+        getJson("/api/v1/certificates", ownerToken)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.items.length()", is(1)))
                 .andExpect(jsonPath("$.data.items[0].id", is(certificateId)));
@@ -480,8 +467,7 @@ class SkillmarkApiIntegrationTests {
     @Test
     void ownerCanUpdateAndArchiveResource() throws Exception {
         String ownerToken = token("owner_user", "owner@example.com", "Owner_One");
-        String organizationId = createOrganization(ownerToken, "Computer Science Club");
-        String programId = createPublishedProgram(ownerToken, organizationId);
+        String programId = createPublishedProgram(ownerToken);
 
         String participantToken = token("student_user", "student@example.com", "Jane_Student");
         joinProgram(ownerToken, participantToken, programId);
@@ -527,41 +513,12 @@ class SkillmarkApiIntegrationTests {
                 .andExpect(jsonPath("$.data.items.length()", is(0)));
     }
 
-    @Test
-    void ownerCanAddAndRemoveOrganizationMember() throws Exception {
-        String ownerToken = token("owner_user", "owner@example.com", "Owner_One");
-        String organizationId = createOrganization(ownerToken, "Computer Science Club");
 
-        String participantToken = token("student_user", "student@example.com", "Jane_Student");
-        String participantUserId = read(getJson("/api/v1/users/me", participantToken)
-                .andExpect(status().isOk())
-                .andReturn(), "/data/id");
-
-        postJson("/api/v1/organizations/" + organizationId + "/members", ownerToken, """
-                {
-                  "userId": "%s",
-                  "role": "PARTICIPANT"
-                }
-                """.formatted(participantUserId))
-                .andExpect(status().isCreated());
-
-        getJson("/api/v1/organizations/" + organizationId + "/members", ownerToken)
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.items[*].userId", org.hamcrest.Matchers.hasItem(participantUserId)));
-
-        deleteJson("/api/v1/organizations/" + organizationId + "/members/" + participantUserId, ownerToken)
-                .andExpect(status().isOk());
-
-        getJson("/api/v1/organizations/" + organizationId + "/members", ownerToken)
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.items[*].userId", org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem(participantUserId))));
-    }
 
     @Test
     void ownerCanToggleQuizVisibility() throws Exception {
         String ownerToken = token("owner_user", "owner@example.com", "Owner_One");
-        String organizationId = createOrganization(ownerToken, "Computer Science Club");
-        String programId = createPublishedProgram(ownerToken, organizationId);
+        String programId = createPublishedProgram(ownerToken);
 
         String participantToken = token("student_user", "student@example.com", "Jane_Student");
         joinProgram(ownerToken, participantToken, programId);
@@ -628,8 +585,7 @@ class SkillmarkApiIntegrationTests {
     @Test
     void ownerCanRemoveEnrollment() throws Exception {
         String ownerToken = token("owner_user", "owner@example.com", "Owner_One");
-        String organizationId = createOrganization(ownerToken, "Computer Science Club");
-        String programId = createPublishedProgram(ownerToken, organizationId);
+        String programId = createPublishedProgram(ownerToken);
 
         String participantToken = token("student_user", "student@example.com", "Jane_Student");
         joinProgram(ownerToken, participantToken, programId);
@@ -646,10 +602,9 @@ class SkillmarkApiIntegrationTests {
     }
 
     @Test
-    void joiningInvitationCreatesProgramEnrollmentAndOrganizationMembership() throws Exception {
+    void joiningInvitationCreatesProgramEnrollment() throws Exception {
         String ownerToken = token("owner_user", "owner@example.com", "Owner_One");
-        String organizationId = createOrganization(ownerToken, "Computer Science Club");
-        String programId = createPublishedProgram(ownerToken, organizationId);
+        String programId = createPublishedProgram(ownerToken);
 
         String participantToken = token("student_user", "student@example.com", "Jane_Student");
         String participantUserId = read(getJson("/api/v1/users/me", participantToken)
@@ -668,17 +623,12 @@ class SkillmarkApiIntegrationTests {
         getJson("/api/v1/programs/" + programId + "/enrollments", ownerToken)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.items[*].userId", org.hamcrest.Matchers.hasItem(participantUserId)));
-
-        getJson("/api/v1/organizations/" + organizationId + "/members", ownerToken)
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.items[*].userId", org.hamcrest.Matchers.hasItem(participantUserId)));
     }
 
     @Test
     void passingAutoModeQuizIssuesCertificateImmediately() throws Exception {
         String ownerToken = token("owner_user", "owner@example.com", "Owner_One");
-        String organizationId = createOrganization(ownerToken, "Computer Science Club");
-        String programId = createPublishedProgram(ownerToken, organizationId);
+        String programId = createPublishedProgram(ownerToken);
 
         String participantToken = token("student_user", "student@example.com", "Jane_Student");
         joinProgram(ownerToken, participantToken, programId);
@@ -740,19 +690,10 @@ class SkillmarkApiIntegrationTests {
                 .andExpect(jsonPath("$.data.certificateId").exists());
     }
 
-    private String createOrganization(String token, String name) throws Exception {
-        MvcResult result = postJson("/api/v1/organizations", token, """
-                {
-                  "name": "%s"
-                }
-                """.formatted(name))
-                .andExpect(status().isCreated())
-                .andReturn();
-        return read(result, "/data/id");
-    }
 
-    private String createPublishedProgram(String ownerToken, String organizationId) throws Exception {
-        String programId = read(postJson("/api/v1/organizations/" + organizationId + "/programs", ownerToken, """
+
+    private String createPublishedProgram(String ownerToken) throws Exception {
+        String programId = read(postJson("/api/v1/programs", ownerToken, """
                 {
                   "title": "Git Workshop",
                   "description": "Intro workshop"

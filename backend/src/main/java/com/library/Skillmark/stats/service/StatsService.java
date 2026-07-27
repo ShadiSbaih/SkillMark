@@ -64,11 +64,11 @@ public class StatsService {
     }
 
     @Transactional(readOnly = true)
-    public OrganizationStatsResponse globalStats(UUID actorId) {
+    public GlobalStatsResponse globalStats(UUID actorId) {
         authorizationService.ensureAdmin(actorId);
         long attempts = attemptRepository.count();
         long passed = attemptRepository.countByPassed(true);
-        return new OrganizationStatsResponse(
+        return new GlobalStatsResponse(
                 programRepository.countByDeletedAtIsNull(),
                 userRepository.count(),
                 enrollmentRepository.countDistinctUsersByStatus(EnrollmentStatus.ACTIVE),
@@ -81,10 +81,6 @@ public class StatsService {
         );
     }
 
-    @Transactional(readOnly = true)
-    public OrganizationStatsResponse organizationStats(UUID organizationId, UUID actorId) {
-        return globalStats(actorId);
-    }
 
     @Transactional(readOnly = true)
     public ProgramStatsResponse programStats(UUID programId, UUID actorId) {
@@ -205,20 +201,16 @@ public class StatsService {
     }
 
     @Transactional(readOnly = true)
-    public OrganizationCertificatesTimelineResponse globalCertificateTimeline(UUID actorId) {
+    public GlobalCertificatesTimelineResponse globalCertificateTimeline(UUID actorId) {
         authorizationService.ensureAdmin(actorId);
         Instant end = Instant.now().truncatedTo(ChronoUnit.DAYS).plus(1, ChronoUnit.DAYS);
         Instant start = end.minus(ANALYTICS_DAYS, ChronoUnit.DAYS);
-        return new OrganizationCertificatesTimelineResponse(
+        return new GlobalCertificatesTimelineResponse(
                 mapCertificateBuckets(certificateRepository.dailyCertificateTimeline(start, end), DAY_FORMATTER),
                 mapCertificateBuckets(certificateRepository.weeklyCertificateTimeline(start, end), WEEK_FORMATTER)
         );
     }
 
-    @Transactional(readOnly = true)
-    public OrganizationCertificatesTimelineResponse organizationCertificateTimeline(UUID organizationId, UUID actorId) {
-        return globalCertificateTimeline(actorId);
-    }
 
     private List<TopProgramResponse> topPrograms() {
         return certificateRepository.topProgramsByEnrollments().stream().map(row -> {
@@ -250,8 +242,8 @@ public class StatsService {
         )).toList();
     }
 
-    private List<OrganizationCertificatesTimelineResponse.Bucket> mapCertificateBuckets(List<Object[]> rows, DateTimeFormatter formatter) {
-        return rows.stream().map(r -> new OrganizationCertificatesTimelineResponse.Bucket(
+    private List<GlobalCertificatesTimelineResponse.Bucket> mapCertificateBuckets(List<Object[]> rows, DateTimeFormatter formatter) {
+        return rows.stream().map(r -> new GlobalCertificatesTimelineResponse.Bucket(
                 formatTimestamp(r[0], formatter),
                 r[1] == null ? 0 : ((Number) r[1]).longValue(),
                 r[2] == null ? 0 : ((Number) r[2]).longValue()

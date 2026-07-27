@@ -27,16 +27,11 @@ public class StatsController {
     }
 
     @GetMapping("/stats")
-    ApiResponse<OrganizationStatsResponse> globalStats(AuthUser currentUser) {
+    ApiResponse<GlobalStatsResponse> globalStats(AuthUser currentUser) {
         return ApiResponse.success("Global stats retrieved successfully",
                 statsService.globalStats(currentUser.id()));
     }
 
-    @GetMapping("/organizations/{organizationId}/stats")
-    ApiResponse<OrganizationStatsResponse> organizationStats(@PathVariable UUID organizationId, AuthUser currentUser) {
-        return ApiResponse.success("Organization stats retrieved successfully",
-                statsService.organizationStats(organizationId, currentUser.id()));
-    }
 
     @GetMapping("/programs/{programId}/stats")
     ApiResponse<ProgramStatsResponse> programStats(@PathVariable UUID programId, AuthUser currentUser) {
@@ -81,14 +76,10 @@ public class StatsController {
     }
 
     @GetMapping("/certificates/timeline")
-    ApiResponse<OrganizationCertificatesTimelineResponse> globalCertificateTimeline(AuthUser currentUser) {
+    ApiResponse<GlobalCertificatesTimelineResponse> globalCertificateTimeline(AuthUser currentUser) {
         return ApiResponse.success("Global certificates timeline retrieved successfully",
                 statsService.globalCertificateTimeline(currentUser.id()));
     }
 
-    @GetMapping("/organizations/{organizationId}/certificates/timeline")
-    ApiResponse<OrganizationCertificatesTimelineResponse> organizationCertificateTimeline(@PathVariable UUID organizationId, AuthUser currentUser) {
-        return ApiResponse.success("Organization certificates timeline retrieved successfully",
-                statsService.organizationCertificateTimeline(organizationId, currentUser.id()));
-    }
+
 }
