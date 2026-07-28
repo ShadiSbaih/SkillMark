@@ -1,4 +1,4 @@
-export interface OrganizationStatsResponse {
+export interface GlobalStatsResponse {
   totalPrograms: number;
   totalMembers: number;
   totalEnrolledParticipants: number;
@@ -99,7 +99,7 @@ export interface ProgramCompletionStatsResponse {
   enrollmentToCertificateRate: number;
 }
 
-export interface OrganizationCertificatesTimelineResponse {
+export interface GlobalCertificatesTimelineResponse {
   daily: CertificateTimelineBucket[];
   weekly: CertificateTimelineBucket[];
 }

@@ -26,15 +26,16 @@ export class DashboardLayoutComponent {
   private readonly auth = inject(AuthService);
 
   readonly user = this.auth.user;
+  readonly isAdmin = this.auth.isAdmin;
 
   readonly mobileOpen = signal(false);
 
-  readonly ownerLinks: NavLink[] = [
+  readonly adminLinks: NavLink[] = [
     { label: 'Dashboard', route: '/dashboard' },
     { label: 'Programs', route: '/programs' },
   ];
 
-  readonly participantLinks: NavLink[] = [
+  readonly studentLinks: NavLink[] = [
     { label: 'Dashboard', route: '/dashboard' },
     { label: 'My Programs', route: '/my-enrollments' },
     { label: ProductLanguage.quiz.plural, route: '/my-attempts' },
@@ -43,8 +44,7 @@ export class DashboardLayoutComponent {
 
   readonly accountLinks: NavLink[] = [{ label: 'Profile', route: '/profile' }];
 
-  constructor() {
-  }
+  constructor() {}
 
   async logout(): Promise<void> {
     await this.auth.logout();

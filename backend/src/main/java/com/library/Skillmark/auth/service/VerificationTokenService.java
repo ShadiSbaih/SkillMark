@@ -12,16 +12,11 @@ public class VerificationTokenService {
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final Base64.Encoder ENCODER = Base64.getUrlEncoder().withoutPadding();
 
-    private static final long VERIFICATION_EXPIRY_HOURS = 24;
-    private static final long PASSWORD_RESET_EXPIRY_HOURS = 1;
 
-    public Token generateEmailVerificationToken() {
-        return new Token(generateToken(), Instant.now().plus(VERIFICATION_EXPIRY_HOURS, ChronoUnit.HOURS));
-    }
 
-    public Token generatePasswordResetToken() {
-        return new Token(generateToken(), Instant.now().plus(PASSWORD_RESET_EXPIRY_HOURS, ChronoUnit.HOURS));
-    }
+
+
+
 
     public boolean isValid(Token token) {
         return token != null

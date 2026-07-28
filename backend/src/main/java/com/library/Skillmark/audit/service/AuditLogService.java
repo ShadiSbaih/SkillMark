@@ -29,7 +29,7 @@ public class AuditLogService {
         repository.save(log);
     }
 
-    public void record(UUID actorUserId, UUID ignoredOrganizationId, AuditAction action, String entityType, UUID entityId) {
+    public void record(UUID actorUserId, UUID ignoredId, AuditAction action, String entityType, UUID entityId) {
         record(actorUserId, action, entityType, entityId);
     }
 
@@ -40,7 +40,7 @@ public class AuditLogService {
                 .toList(), page, size);
     }
 
-    public PageResponse<AuditLogResponse> listForOrganization(UUID ignoredOrganizationId, UUID actorId, int page, int size) {
+    public PageResponse<AuditLogResponse> listForPlatform(UUID ignoredId, UUID actorId, int page, int size) {
         return listAll(actorId, page, size);
     }
 }

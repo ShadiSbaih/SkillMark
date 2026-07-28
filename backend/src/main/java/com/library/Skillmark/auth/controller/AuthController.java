@@ -4,8 +4,6 @@ import com.library.Skillmark.auth.dto.*;
 import com.library.Skillmark.auth.service.AuthService;
 import com.library.Skillmark.common.response.ApiResponse;
 import com.library.Skillmark.security.AuthUser;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,9 +26,10 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    ApiResponse<Void> register(@Valid @RequestBody RegisterRequest request) {
-        authService.register(request);
-        return ApiResponse.success("Check your email to verify your account.", null);
+    ApiResponse<Void> register(@Valid @RequestBody RegisterRequest request, HttpServletResponse response) {
+        String token = authService.register(request);
+        addJwtCookie(response, token);
+        return ApiResponse.success("Registered successfully", null);
     }
 
     @PostMapping("/login")
@@ -40,30 +39,6 @@ public class AuthController {
         return ApiResponse.success("Logged in successfully", null);
     }
 
-    @PostMapping("/verify-email")
-    ApiResponse<Void> verifyEmail(@Valid @RequestBody VerifyEmailRequest request, HttpServletResponse response) {
-        String token = authService.verifyEmail(request);
-        addJwtCookie(response, token);
-        return ApiResponse.success("Email verified successfully", null);
-    }
-
-    @PostMapping("/resend-verification")
-    ApiResponse<Void> resendVerification(@Valid @RequestBody ResendVerificationRequest request) {
-        authService.resendVerification(request);
-        return ApiResponse.success("Verification email sent", null);
-    }
-
-    @PostMapping("/forgot-password")
-    ApiResponse<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
-        authService.forgotPassword(request);
-        return ApiResponse.success("If an account exists, a reset email has been sent", null);
-    }
-
-    @PostMapping("/reset-password")
-    ApiResponse<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
-        authService.resetPassword(request);
-        return ApiResponse.success("Password reset successfully", null);
-    }
 
     @PostMapping("/logout")
     ApiResponse<Void> logout(HttpServletResponse response) {

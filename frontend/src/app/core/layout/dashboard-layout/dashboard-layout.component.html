@@ -13,37 +13,39 @@
     </div>
 
     <div class="sidebar-body">
-      <nav aria-label="Owner navigation">
-        <p class="nav-group-title">Owner</p>
-        @for (link of ownerLinks; track link.route) {
-          <a
-            [routerLink]="link.route"
-            routerLinkActive="active"
-            [routerLinkActiveOptions]="{
-              exact: link.route === '/dashboard' || link.route === '/organizations'
-            }"
-            class="nav-link"
-            (click)="closeMobile()"
-          >
-            {{ link.label }}
-          </a>
-        }
-      </nav>
-
-      <nav aria-label="Participant navigation">
-        <p class="nav-group-title">Participant</p>
-        @for (link of participantLinks; track link.route) {
-          <a
-            [routerLink]="link.route"
-            routerLinkActive="active"
-            [routerLinkActiveOptions]="{ exact: link.route === '/dashboard' }"
-            class="nav-link"
-            (click)="closeMobile()"
-          >
-            {{ link.label }}
-          </a>
-        }
-      </nav>
+      @if (isAdmin()) {
+        <nav aria-label="Admin navigation">
+          <p class="nav-group-title">Admin</p>
+          @for (link of adminLinks; track link.route) {
+            <a
+              [routerLink]="link.route"
+              routerLinkActive="active"
+              [routerLinkActiveOptions]="{
+                exact: link.route === '/dashboard'
+              }"
+              class="nav-link"
+              (click)="closeMobile()"
+            >
+              {{ link.label }}
+            </a>
+          }
+        </nav>
+      } @else {
+        <nav aria-label="Student navigation">
+          <p class="nav-group-title">Student</p>
+          @for (link of studentLinks; track link.route) {
+            <a
+              [routerLink]="link.route"
+              routerLinkActive="active"
+              [routerLinkActiveOptions]="{ exact: link.route === '/dashboard' }"
+              class="nav-link"
+              (click)="closeMobile()"
+            >
+              {{ link.label }}
+            </a>
+          }
+        </nav>
+      }
 
       <nav aria-label="Account navigation">
         <p class="nav-group-title">Account</p>
@@ -101,6 +103,9 @@
         @if (user(); as currentUser) {
           <div class="user-menu">
             <span class="user-name">{{ currentUser.name || currentUser.email }}</span>
+            <span class="role-badge" [class.role-badge--admin]="isAdmin()">
+              {{ isAdmin() ? 'Admin' : 'Student' }}
+            </span>
             <button
               type="button"
               class="logout-button"

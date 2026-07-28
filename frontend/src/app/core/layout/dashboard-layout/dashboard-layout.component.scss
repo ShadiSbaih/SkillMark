@@ -218,3 +218,21 @@ nav+nav {
     padding: 32px;
   }
 }
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  background: var(--blue-bg, #e8f0ff);
+  color: var(--blue, #1971ff);
+
+  &.role-badge--admin {
+    background: var(--primary-bg, #ede9ff);
+    color: var(--primary, #533afd);
+  }
+}

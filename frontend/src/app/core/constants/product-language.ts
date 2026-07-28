@@ -1,5 +1,4 @@
 export const ProductLanguage = {
-  organization: { singular: 'Organization', plural: 'Organizations' },
   program: { singular: 'Program', plural: 'Programs' },
   quiz: { singular: 'Quiz', plural: 'Quizzes' },
   attempt: { singular: 'Attempt', plural: 'Attempts' },

@@ -32,27 +32,7 @@ public class SendGridEmailService implements EmailService {
         this.baseUrl = baseUrl == null || baseUrl.isBlank() ? "" : baseUrl.replaceAll("/$", "");
     }
 
-    @Override
-    public void sendVerificationEmail(String to, String name, String token) {
-        String subject = "Verify your Skillmark email";
-        String link = baseUrl + "/verify-email?token=" + token;
-        String body = buildBody("Hi " + name + ",",
-                "Please verify your Skillmark email address by clicking the link below:",
-                link,
-                "This link will expire in 24 hours. If you did not create an account, you can safely ignore this email.");
-        send(to, subject, body);
-    }
 
-    @Override
-    public void sendPasswordResetEmail(String to, String name, String token) {
-        String subject = "Reset your Skillmark password";
-        String link = baseUrl + "/reset-password?token=" + token;
-        String body = buildBody("Hi " + name + ",",
-                "You requested a password reset. Click the link below to choose a new password:",
-                link,
-                "This link will expire in 1 hour. If you did not request this, you can safely ignore this email.");
-        send(to, subject, body);
-    }
 
     @Override
     public void sendCertificateIssuedEmail(String to, String name, String programName, String certificateUrl) {

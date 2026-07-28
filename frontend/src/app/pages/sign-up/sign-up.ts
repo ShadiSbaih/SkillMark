@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { AuthService, RegisterRequest } from '../../core/auth/auth.service';
 import { ButtonComponent } from '../../shared/components/button/button.component';
@@ -16,10 +16,10 @@ export class SignUp {
   private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
   readonly isLoading = signal(false);
   readonly error = signal<string | null>(null);
-  readonly isSuccess = signal(false);
 
   readonly redirect = signal<string | null>(this.route.snapshot.queryParamMap.get('redirect'));
 
@@ -28,6 +28,7 @@ export class SignUp {
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]],
     confirmPassword: ['', [Validators.required]],
+    role: ['STUDENT' as 'ADMIN' | 'STUDENT', [Validators.required]],
   });
 
   async onSubmit(): Promise<void> {
@@ -47,6 +48,7 @@ export class SignUp {
       name: values.name.trim(),
       email: values.email.trim(),
       password: values.password,
+      role: values.role,
     };
 
     this.isLoading.set(true);
@@ -54,7 +56,13 @@ export class SignUp {
 
     try {
       await this.auth.register(request);
-      this.isSuccess.set(true);
+      const user = await this.auth.login({ email: values.email.trim(), password: values.password });
+      const redirect = this.redirect();
+      if (redirect) {
+        await this.router.navigateByUrl(redirect);
+      } else {
+        await this.router.navigate([user.role === 'ADMIN' ? '/programs' : '/my-enrollments']);
+      }
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Sign up failed. Please try again.');
     } finally {

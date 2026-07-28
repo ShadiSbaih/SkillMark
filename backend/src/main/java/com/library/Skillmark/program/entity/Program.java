@@ -63,7 +63,6 @@ public class Program {
     }
 
     public UUID getId() { return id; }
-    public UUID getOrganizationId() { return null; }
     public User getCreatedBy() { return createdBy; }
     public void setCreatedBy(User createdBy) { this.createdBy = createdBy; }
     public String getTitle() { return title; }

@@ -3,7 +3,7 @@ import { injectQuery } from '@tanstack/angular-query-experimental';
 import { lastValueFrom } from 'rxjs';
 import { ApiClientService } from '../core/api/api-client.service';
 import {
-  OrganizationCertificatesTimelineResponse,
+  GlobalCertificatesTimelineResponse,
   ProgramStatsResponse,
   ProgramEnrollmentTimelineResponse,
   ProgramCompletionStatsResponse,

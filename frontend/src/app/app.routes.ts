@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/auth/auth.guard';
+import { adminGuard } from './core/auth/admin.guard';
 import { DashboardLayoutComponent } from './core/layout/dashboard-layout/dashboard-layout.component';
 import { PublicLayoutComponent } from './core/layout/public-layout/public-layout.component';
 import { AttemptResultComponent } from './pages/attempt-result/attempt-result.component';
@@ -15,6 +16,7 @@ import { QuizAnalyticsComponent } from './pages/quiz-analytics/quiz-analytics.co
 import { QuizBuilderComponent } from './pages/quiz-builder/quiz-builder.component';
 import { VerifyCertificateComponent } from './pages/verify-certificate/verify-certificate.component';
 import { ProgramsComponent } from './pages/programs/programs.component';
+import { CreateProgramComponent } from './pages/programs/create-program/create-program.component';
 
 // Dedicated components generated to eliminate route-to-component reuse
 import { Profile as ProfileComponent } from './pages/profile/profile';
@@ -31,11 +33,10 @@ import { MyEnrollments as MyEnrollmentsComponent } from './pages/my-enrollments/
 import { MyAttempts as MyAttemptsComponent } from './pages/my-attempts/my-attempts';
 import { SignIn as SignInComponent } from './pages/sign-in/sign-in';
 import { SignUp as SignUpComponent } from './pages/sign-up/sign-up';
-import { VerifyEmail as VerifyEmailComponent } from './pages/verify-email/verify-email';
-import { ForgotPassword as ForgotPasswordComponent } from './pages/forgot-password/forgot-password';
-import { ResetPassword as ResetPasswordComponent } from './pages/reset-password/reset-password';
+
 
 export const routes: Routes = [
+  // ── Public routes (no auth required) ──────────────────────────────────
   {
     path: '',
     component: PublicLayoutComponent,
@@ -43,13 +44,12 @@ export const routes: Routes = [
       { path: '', component: LandingComponent },
       { path: 'sign-in', component: SignInComponent },
       { path: 'sign-up', component: SignUpComponent },
-      { path: 'verify-email', component: VerifyEmailComponent },
-      { path: 'forgot-password', component: ForgotPasswordComponent },
-      { path: 'reset-password', component: ResetPasswordComponent },
       { path: 'verify', component: VerifyCertificateComponent },
       { path: 'verify/:code', component: VerifyCertificateComponent },
     ],
   },
+
+  // ── Shared authenticated routes (any role) ─────────────────────────────
   {
     path: '',
     component: DashboardLayoutComponent,
@@ -57,24 +57,16 @@ export const routes: Routes = [
     children: [
       { path: 'dashboard', component: DashboardComponent },
       { path: 'profile', component: ProfileComponent },
-      { path: 'programs', component: ProgramsComponent },
-      { path: 'programs/:programId', component: ProgramOverviewComponent },
-      { path: 'programs/:programId/enrollments', component: ProgramEnrollmentsComponent },
-      { path: 'programs/:programId/resources', component: ProgramResourcesComponent },
-      { path: 'programs/:programId/quizzes', component: ProgramQuizzesComponent },
-      { path: 'programs/:programId/analytics', component: ProgramAnalyticsComponent },
-      { path: 'programs/:programId/settings', component: ProgramSettingsComponent },
+
+      // Students can browse/learn from programs they are enrolled in
       { path: 'programs/:programId/learn', component: ProgramLearnComponent },
-      { path: 'programs/:programId/analytics', component: ProgramAnalyticsComponent },
-      { path: 'programs/:programId/quizzes/new', component: CreateQuizComponent },
-      { path: 'quizzes/:quizId', component: QuizOverviewComponent },
-      { path: 'quizzes/:quizId/builder', component: QuizBuilderComponent },
+
+      // Quiz taking — students attend quizzes
       { path: 'quizzes/:quizId/view', component: QuizViewComponent },
       { path: 'quizzes/:quizId/attempt', component: QuizAttemptComponent },
-      { path: 'quizzes/:quizId/attempts', component: QuizAttemptsComponent },
-      { path: 'quizzes/:quizId/analytics', component: QuizAnalyticsComponent },
-      { path: 'quizzes/:quizId/settings', component: QuizSettingsComponent },
       { path: 'attempts/:attemptId/result', component: AttemptResultComponent },
+
+      // Student personal pages
       { path: 'my-enrollments', component: MyEnrollmentsComponent },
       { path: 'me/enrollments', component: MyEnrollmentsComponent },
       { path: 'my-attempts', component: MyAttemptsComponent },
@@ -85,5 +77,32 @@ export const routes: Routes = [
       { path: 'certificates/:certificateId', component: CertificateDetailComponent },
     ],
   },
+
+  // ── Admin-only routes ──────────────────────────────────────────────────
+  {
+    path: '',
+    component: DashboardLayoutComponent,
+    canActivate: [adminGuard],
+    children: [
+      // Program management
+      { path: 'programs', component: ProgramsComponent },
+      { path: 'programs/new', component: CreateProgramComponent },
+      { path: 'programs/:programId', component: ProgramOverviewComponent },
+      { path: 'programs/:programId/enrollments', component: ProgramEnrollmentsComponent },
+      { path: 'programs/:programId/resources', component: ProgramResourcesComponent },
+      { path: 'programs/:programId/quizzes', component: ProgramQuizzesComponent },
+      { path: 'programs/:programId/analytics', component: ProgramAnalyticsComponent },
+      { path: 'programs/:programId/settings', component: ProgramSettingsComponent },
+      { path: 'programs/:programId/quizzes/new', component: CreateQuizComponent },
+
+      // Quiz management
+      { path: 'quizzes/:quizId', component: QuizOverviewComponent },
+      { path: 'quizzes/:quizId/builder', component: QuizBuilderComponent },
+      { path: 'quizzes/:quizId/attempts', component: QuizAttemptsComponent },
+      { path: 'quizzes/:quizId/analytics', component: QuizAnalyticsComponent },
+      { path: 'quizzes/:quizId/settings', component: QuizSettingsComponent },
+    ],
+  },
+
   { path: '**', redirectTo: '' },
 ];

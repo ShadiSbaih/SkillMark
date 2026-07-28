@@ -90,7 +90,6 @@ describe('MyEnrollments', () => {
 
   const enrollment: Enrollment & {
     programTitle: string;
-    organizationName: string;
   } = {
     id: 'enrollment-1',
     programId: 'program-1',
@@ -101,7 +100,6 @@ describe('MyEnrollments', () => {
     status: 'ACTIVE',
     enrolledAt: '2026-02-14T10:00:00Z',
     programTitle: 'Foundations of Testing',
-    organizationName: 'Acme Inc',
   };
 
   const pageResponse: PageResponse<Enrollment> = {
@@ -170,13 +168,12 @@ describe('MyEnrollments', () => {
     expect(fixture.nativeElement.textContent).toContain('No enrollments');
   });
 
-  it('should render the list of enrollments with program title, organization name, and enrolled date', () => {
+  it('should render the list of enrollments with program title and enrolled date', () => {
     enrollmentsService.setData(pageResponse);
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent;
     expect(text).toContain(enrollment.programTitle);
-    expect(text).toContain(enrollment.organizationName);
     expect(text).toContain('Feb 14, 2026');
   });
 

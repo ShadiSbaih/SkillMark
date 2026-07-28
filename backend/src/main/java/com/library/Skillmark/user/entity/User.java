@@ -24,17 +24,6 @@ public class User {
     @Column(name = "email_verified_at")
     private Instant emailVerifiedAt;
 
-    @Column(name = "email_verification_token", unique = true, length = 255)
-    private String emailVerificationToken;
-
-    @Column(name = "email_verification_expires_at")
-    private Instant emailVerificationExpiresAt;
-
-    @Column(name = "password_reset_token", unique = true, length = 255)
-    private String passwordResetToken;
-
-    @Column(name = "password_reset_expires_at")
-    private Instant passwordResetExpiresAt;
 
     @Column(nullable = false, length = 150)
     private String name;
@@ -79,14 +68,6 @@ public class User {
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
     public Instant getEmailVerifiedAt() { return emailVerifiedAt; }
     public void setEmailVerifiedAt(Instant emailVerifiedAt) { this.emailVerifiedAt = emailVerifiedAt; }
-    public String getEmailVerificationToken() { return emailVerificationToken; }
-    public void setEmailVerificationToken(String emailVerificationToken) { this.emailVerificationToken = emailVerificationToken; }
-    public Instant getEmailVerificationExpiresAt() { return emailVerificationExpiresAt; }
-    public void setEmailVerificationExpiresAt(Instant emailVerificationExpiresAt) { this.emailVerificationExpiresAt = emailVerificationExpiresAt; }
-    public String getPasswordResetToken() { return passwordResetToken; }
-    public void setPasswordResetToken(String passwordResetToken) { this.passwordResetToken = passwordResetToken; }
-    public Instant getPasswordResetExpiresAt() { return passwordResetExpiresAt; }
-    public void setPasswordResetExpiresAt(Instant passwordResetExpiresAt) { this.passwordResetExpiresAt = passwordResetExpiresAt; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
     public String getEmail() { return email; }

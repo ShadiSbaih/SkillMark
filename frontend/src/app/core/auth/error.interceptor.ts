@@ -11,7 +11,8 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   return next(req).pipe(
     catchError((error: unknown) => {
       if (error instanceof HttpErrorResponse) {
-        if (error.status === 401) {
+        const isMeEndpointNotFound = error.status === 404 && req.url.endsWith('/me');
+        if (error.status === 401 || isMeEndpointNotFound) {
           const currentUrl = router.url;
           void router.navigate(['/sign-in'], {
             queryParams: currentUrl && currentUrl !== '/sign-in' ? { redirect: currentUrl } : null,
@@ -24,7 +25,9 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           ? error.error.message
           : error.message;
 
-        toast.error(message || 'An unexpected error occurred');
+        if (error.status !== 401 && !isMeEndpointNotFound) {
+          toast.error(message || 'An unexpected error occurred');
+        }
       } else {
         toast.error('An unexpected error occurred');
       }

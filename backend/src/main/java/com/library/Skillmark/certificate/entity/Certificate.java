@@ -105,8 +105,6 @@ public class Certificate {
     public void setCertificateNumber(String certificateNumber) { this.certificateNumber = certificateNumber; }
     public String getVerificationCode() { return verificationCode; }
     public void setVerificationCode(String verificationCode) { this.verificationCode = verificationCode; }
-    public UUID getOrganizationId() { return null; }
-    public String getOrganizationNameSnapshot() { return "Skillmark"; }
     public Program getProgram() { return program; }
     public void setProgram(Program program) { this.program = program; }
     public Quiz getQuiz() { return quiz; }

@@ -10,19 +10,10 @@ export type Status =
   | 'DISABLED'
   | 'REMOVED';
 
-export interface Organization {
-  id: string;
-  name: string;
-  description: string;
-  status: Status;
-  programs: number;
-  members: number;
-  certificates: number;
-}
+
 
 export interface Program {
   id: string;
-  organizationId: string;
   title: string;
   description: string;
   status: Status;
@@ -78,7 +69,6 @@ export interface Certificate {
   recipientName: string;
   programTitle: string;
   quizTitle: string;
-  organizationName: string;
   issuedAt: string;
   status: Status;
 }
@@ -91,31 +81,11 @@ export interface AuditLog {
   entity: string;
 }
 
-export const organizations: Organization[] = [
-  {
-    id: 'org-cs',
-    name: 'CS Club',
-    description: 'Practical software workshops, assessments, and verified achievements.',
-    status: 'ACTIVE',
-    programs: 4,
-    members: 146,
-    certificates: 89,
-  },
-  {
-    id: 'org-data',
-    name: 'Data Guild',
-    description: 'Analytics cohorts with skill checks and reusable learning resources.',
-    status: 'ACTIVE',
-    programs: 2,
-    members: 78,
-    certificates: 41,
-  },
-];
+
 
 export const programs: Program[] = [
   {
     id: 'program-git',
-    organizationId: 'org-cs',
     title: 'Git Foundations',
     description: 'A four-week path from commits and branches to collaborative review habits.',
     status: 'PUBLISHED',
@@ -127,7 +97,6 @@ export const programs: Program[] = [
   },
   {
     id: 'program-web',
-    organizationId: 'org-cs',
     title: 'Web APIs Bootcamp',
     description: 'Build, document, test, and certify REST API fundamentals.',
     status: 'DRAFT',
@@ -239,7 +208,6 @@ export const certificates: Certificate[] = [
     recipientName: 'Sara Nasser',
     programTitle: 'Git Foundations',
     quizTitle: 'Git Basics Final Quiz',
-    organizationName: 'CS Club',
     issuedAt: '2026-05-18',
     status: 'ACTIVE',
   },
@@ -249,7 +217,6 @@ export const certificates: Certificate[] = [
     recipientName: 'Omar Saleh',
     programTitle: 'Web APIs Bootcamp',
     quizTitle: 'HTTP Fundamentals',
-    organizationName: 'CS Club',
     issuedAt: '2026-04-28',
     status: 'REVOKED',
   },
@@ -286,16 +253,7 @@ export const auditLogs: AuditLog[] = [
   },
 ];
 
-export const organizationStats = {
-  totalPrograms: 6,
-  totalMembers: 224,
-  totalEnrolledParticipants: 172,
-  totalQuizzes: 11,
-  totalAttempts: 438,
-  totalCertificates: 130,
-  averageScore: 82,
-  passRate: 76,
-};
+
 
 export const programStats = {
   totalEnrollments: 64,

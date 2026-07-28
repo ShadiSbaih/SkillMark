@@ -35,7 +35,6 @@ public class OpenApiConfig {
                 .servers(List.of(new Server().url("/").description("Current server")))
                 .tags(List.of(
                         new Tag().name("Users").description("Current authenticated user profile and backend sync."),
-                        new Tag().name("Organizations").description("Legacy organization endpoints retained for backward compatibility."),
                         new Tag().name("Programs").description("Program/workshop creation, publishing, archiving, and lookup."),
                         new Tag().name("Enrollments").description("Program enrollment management and current-user enrollment lists."),
                         new Tag().name("Resources").description("Program resources backed by external links, R2 files, or Cloudinary media."),

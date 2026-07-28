@@ -157,7 +157,6 @@ public class CertificatePdfGenerator {
 
             addDetailCell(detailsTable, "Certificate ID", certificate.getCertificateNumber(), smallFont);
             addDetailCell(detailsTable, "Issued On", DATE_FORMATTER.format(certificate.getIssuedAt()), smallFont);
-            addDetailCell(detailsTable, "Organization", certificate.getOrganizationNameSnapshot(), smallFont);
             if (certificate.getOwnerNameSnapshot() != null) {
                 addDetailCell(detailsTable, "Owner", certificate.getOwnerNameSnapshot(), smallFont);
             }

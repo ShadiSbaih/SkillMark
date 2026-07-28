@@ -28,16 +28,10 @@ public class MediaController {
     @PostMapping("/media/signatures")
     ApiResponse<CloudinarySignatureResponse> signature(@Valid @RequestBody CloudinarySignatureRequest request,
                                                        AuthUser currentUser) {
-        if (request.organizationId() != null && request.programId() != null) {
-            throw new com.library.Skillmark.common.exception.BadRequestException("Provide either organizationId or programId, not both");
+        if (request.programId() == null) {
+            throw new com.library.Skillmark.common.exception.BadRequestException("programId is required");
         }
-        if (request.programId() != null) {
-            authorizationService.ensureProgramOwner(request.programId(), currentUser.id());
-        } else if (request.organizationId() != null) {
-            authorizationService.ensureAdmin(currentUser.id());
-        } else {
-            throw new com.library.Skillmark.common.exception.BadRequestException("organizationId or programId is required");
-        }
+        authorizationService.ensureProgramOwner(request.programId(), currentUser.id());
         return ApiResponse.success("Cloudinary signature created successfully",
                 cloudinaryMediaService.signUpload(request.params()));
     }

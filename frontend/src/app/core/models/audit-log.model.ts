@@ -1,6 +1,5 @@
 export interface AuditLogResponse {
   id: string;
-  organizationId: string | null;
   userId: string | null;
   action: string;
   entityType: string | null;

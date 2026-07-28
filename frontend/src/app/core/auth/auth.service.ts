@@ -16,27 +16,8 @@ export interface RegisterRequest {
   name: string;
   email: string;
   password: string;
-  role?: 'OWNER' | 'MEMBER';
-  organizationName?: string;
+  role?: 'ADMIN' | 'STUDENT';
 }
-
-export interface VerifyEmailRequest {
-  token: string;
-}
-
-export interface ResendVerificationRequest {
-  email: string;
-}
-
-export interface ForgotPasswordRequest {
-  email: string;
-}
-
-export interface ResetPasswordRequest {
-  token: string;
-  password: string;
-}
-
 @Injectable({
   providedIn: 'root',
 })
@@ -51,6 +32,8 @@ export class AuthService {
   readonly isLoaded = this._isLoaded.asReadonly();
   readonly isSignedIn = computed(() => this._user() !== null);
   readonly userId = computed(() => this._user()?.id ?? null);
+  readonly isAdmin = computed(() => this._user()?.role === 'ADMIN');
+  readonly isStudent = computed(() => this._user()?.role === 'STUDENT');
 
   async loadUser(): Promise<AuthUserResponse | null> {
     try {
@@ -78,26 +61,8 @@ export class AuthService {
     await lastValueFrom(this.api.post<void>('auth/register', request));
   }
 
-  async verifyEmail(request: VerifyEmailRequest): Promise<AuthUserResponse> {
-    await lastValueFrom(this.api.post<void>('auth/verify-email', request));
-    const user = await this.loadUser();
-    if (!user) {
-      throw new Error('Email verified but user could not be loaded');
-    }
-    return user;
-  }
 
-  async resendVerification(request: ResendVerificationRequest): Promise<void> {
-    await lastValueFrom(this.api.post<void>('auth/resend-verification', request));
-  }
 
-  async forgotPassword(request: ForgotPasswordRequest): Promise<void> {
-    await lastValueFrom(this.api.post<void>('auth/forgot-password', request));
-  }
-
-  async resetPassword(request: ResetPasswordRequest): Promise<void> {
-    await lastValueFrom(this.api.post<void>('auth/reset-password', request));
-  }
 
   async logout(): Promise<void> {
     try {

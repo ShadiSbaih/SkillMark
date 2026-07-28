@@ -48,22 +48,11 @@
     </form>
 
     <div class="auth-footer">
-      <div class="mb-4">
-        <a routerLink="/forgot-password">Forgot password?</a>
-      </div>
       <span>Don't have an account? <a routerLink="/sign-up" [queryParams]="redirectUrl() ? { redirect: redirectUrl() } : null">Sign up</a></span>
     </div>
   </div>
 
   <div class="auth-visual">
-    <div class="auth-visual-quote">
-      <blockquote>
-        "Skillmark has completely transformed how we track and evaluate our team's engineering competencies."
-      </blockquote>
-      <cite>
-        <div style="width: 32px; height: 32px; border-radius: 9999px; background: var(--primary); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 12px;">SL</div>
-        <span>Sarah L., VP of Engineering</span>
-      </cite>
-    </div>
+    <img src="/undraw_sign-up_qamz.svg" alt="Sign in to Skillmark" style="max-width: 80%; height: auto;" />
   </div>
 </section>

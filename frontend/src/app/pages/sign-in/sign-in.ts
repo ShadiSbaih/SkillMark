@@ -37,9 +37,13 @@ export class SignIn {
     this.error.set(null);
 
     try {
-      await this.auth.login(this.form.getRawValue());
+      const user = await this.auth.login(this.form.getRawValue());
       const redirect = this.redirectUrl();
-      await this.router.navigate(redirect ? [redirect] : ['/dashboard']);
+      if (redirect) {
+        await this.router.navigate([redirect]);
+      } else {
+        await this.router.navigate([user.role === 'ADMIN' ? '/programs' : '/my-enrollments']);
+      }
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Sign in failed. Please try again.');
     } finally {

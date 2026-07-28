@@ -135,7 +135,8 @@ class SkillmarkApiIntegrationTests {
                 .andExpect(jsonPath("$.paths['/api/v1/programs/{programId}/quizzes'].post").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/storage/upload-urls'].post").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/media/signatures'].post").exists())
-                .andExpect(jsonPath("$.paths['/api/v1/public/certificates/verify/{verificationCode}'].get").exists());
+                .andExpect(jsonPath("$.paths['/api/v1/public/certificates/verify/{verificationCode}'].get").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/auth/verify-email']").doesNotExist());
     }
 
     @Test

@@ -11,7 +11,6 @@ import java.util.UUID;
 public record QuizResponse(
         UUID id,
         UUID programId,
-        UUID organizationId,
         String title,
         String description,
         Integer passingScore,

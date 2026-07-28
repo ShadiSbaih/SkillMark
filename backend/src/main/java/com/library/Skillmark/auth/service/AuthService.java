@@ -39,7 +39,7 @@ public class AuthService {
     }
 
     @Transactional
-    public void register(RegisterRequest request) {
+    public String register(RegisterRequest request) {
         String email = request.email().trim().toLowerCase();
         if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new ConflictException("Email is already registered");
@@ -49,18 +49,14 @@ public class AuthService {
         user.setName(request.name().trim());
         user.setEmail(email);
         user.setPasswordHash(passwordEncoder.encode(request.password()));
-        user.setStatus(UserStatus.PENDING_VERIFICATION);
-        user.setRole((request.role() == RegisterRequest.Role.OWNER || request.role() == RegisterRequest.Role.ADMIN) 
-                ? com.library.Skillmark.user.enums.UserRole.ADMIN 
+        user.setStatus(UserStatus.ACTIVE);
+        user.setEmailVerifiedAt(Instant.now());
+        user.setRole(request.role() == RegisterRequest.Role.ADMIN
+                ? com.library.Skillmark.user.enums.UserRole.ADMIN
                 : com.library.Skillmark.user.enums.UserRole.STUDENT);
 
-        var token = verificationTokenService.generateEmailVerificationToken();
-        user.setEmailVerificationToken(token.value());
-        user.setEmailVerificationExpiresAt(token.expiresAt());
-
         User savedUser = userRepository.save(user);
-
-        emailService.sendVerificationEmail(savedUser.getEmail(), savedUser.getName(), token.value());
+        return jwtService.generateToken(savedUser.getId(), savedUser.getEmail(), savedUser.getRole().name());
     }
 
     @Transactional
@@ -73,70 +69,12 @@ public class AuthService {
         }
 
         if (user.getStatus() != UserStatus.ACTIVE) {
-            throw new ForbiddenException("EMAIL_NOT_VERIFIED");
+            throw new ForbiddenException("Account is not active");
         }
 
         return jwtService.generateToken(user.getId(), user.getEmail(), user.getRole() != null ? user.getRole().name() : null);
     }
 
-    @Transactional
-    public String verifyEmail(VerifyEmailRequest request) {
-        User user = userRepository.findByEmailVerificationToken(request.token())
-                .orElseThrow(() -> new BadRequestException("Invalid or expired verification token"));
-
-        if (!verificationTokenService.isValid(new VerificationTokenService.Token(user.getEmailVerificationToken(), user.getEmailVerificationExpiresAt()))) {
-            throw new BadRequestException("Invalid or expired verification token");
-        }
-
-        user.setEmailVerifiedAt(Instant.now());
-        user.setEmailVerificationToken(null);
-        user.setEmailVerificationExpiresAt(null);
-        user.setStatus(UserStatus.ACTIVE);
-
-        return jwtService.generateToken(user.getId(), user.getEmail(), user.getRole() != null ? user.getRole().name() : null);
-    }
-
-    @Transactional
-    public void resendVerification(ResendVerificationRequest request) {
-        User user = userRepository.findByEmailIgnoreCase(request.email().trim().toLowerCase())
-                .orElseThrow(() -> new NotFoundException("User not found"));
-
-        if (user.getStatus() == UserStatus.ACTIVE) {
-            throw new BadRequestException("Email is already verified");
-        }
-
-        var token = verificationTokenService.generateEmailVerificationToken();
-        user.setEmailVerificationToken(token.value());
-        user.setEmailVerificationExpiresAt(token.expiresAt());
-
-        emailService.sendVerificationEmail(user.getEmail(), user.getName(), token.value());
-    }
-
-    @Transactional
-    public void forgotPassword(ForgotPasswordRequest request) {
-        User user = userRepository.findByEmailIgnoreCase(request.email().trim().toLowerCase())
-                .orElseThrow(() -> new NotFoundException("User not found"));
-
-        var token = verificationTokenService.generatePasswordResetToken();
-        user.setPasswordResetToken(token.value());
-        user.setPasswordResetExpiresAt(token.expiresAt());
-
-        emailService.sendPasswordResetEmail(user.getEmail(), user.getName(), token.value());
-    }
-
-    @Transactional
-    public void resetPassword(ResetPasswordRequest request) {
-        User user = userRepository.findByPasswordResetToken(request.token())
-                .orElseThrow(() -> new BadRequestException("Invalid or expired reset token"));
-
-        if (!verificationTokenService.isValid(new VerificationTokenService.Token(user.getPasswordResetToken(), user.getPasswordResetExpiresAt()))) {
-            throw new BadRequestException("Invalid or expired reset token");
-        }
-
-        user.setPasswordHash(passwordEncoder.encode(request.password()));
-        user.setPasswordResetToken(null);
-        user.setPasswordResetExpiresAt(null);
-    }
 
     @Transactional(readOnly = true)
     public AuthUserResponse me(AuthUser currentUser) {

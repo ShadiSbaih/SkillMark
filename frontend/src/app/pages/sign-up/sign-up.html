@@ -1,6 +1,6 @@
 <section class="auth-layout">
   <div class="auth-content">
-    @if (!isSuccess()) {
+
       <div class="auth-header">
         <h1>Create your account</h1>
         <p class="auth-subtitle">Join Skillmark and start tracking skills.</p>
@@ -69,6 +69,24 @@
           </app-form-field>
         </div>
 
+        <div class="role-picker">
+          <p class="role-picker-label">I am joining as a</p>
+          <div class="role-picker-options">
+            <label class="role-option" [class.selected]="form.get('role')?.value === 'STUDENT'">
+              <input type="radio" formControlName="role" value="STUDENT" />
+              <span class="role-icon">🎓</span>
+              <span class="role-name">Student</span>
+              <span class="role-desc">Join programs and take quizzes</span>
+            </label>
+            <label class="role-option" [class.selected]="form.get('role')?.value === 'ADMIN'">
+              <input type="radio" formControlName="role" value="ADMIN" />
+              <span class="role-icon">⚙️</span>
+              <span class="role-name">Admin</span>
+              <span class="role-desc">Create programs and manage quizzes</span>
+            </label>
+          </div>
+        </div>
+
         @if (error()) {
           <div class="auth-error">{{ error() }}</div>
         }
@@ -83,31 +101,10 @@
       <div class="auth-footer">
         <span>Already have an account? <a routerLink="/sign-in" [queryParams]="redirect() ? { redirect: redirect() } : null">Sign in</a></span>
       </div>
-    } @else {
-      <div class="auth-header text-center" style="text-align: center;">
-        <div style="width: 48px; height: 48px; background: var(--success-bg); color: var(--success); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px auto;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-        </div>
-        <h1>Verify your email</h1>
-        <p class="auth-subtitle" style="margin-top: 16px;">
-          Thanks for signing up! Check your email and click the verification link to activate your account.
-        </p>
-      </div>
-      <div class="auth-footer mt-8">
-        <span>Already verified? <a [routerLink]="['/sign-in']" [queryParams]="redirect() ? { redirect: redirect() } : null">Sign in</a></span>
-      </div>
-    }
+
   </div>
 
   <div class="auth-visual">
-    <div class="auth-visual-quote">
-      <blockquote>
-        "An absolutely essential tool for running a modern training program. The clarity it brings is unmatched."
-      </blockquote>
-      <cite>
-        <div style="width: 32px; height: 32px; border-radius: 9999px; background: var(--primary); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 12px;">MD</div>
-        <span>Marcus D., Director of Platform</span>
-      </cite>
-    </div>
+    <img src="/undraw_sign-up_qamz.svg" alt="Sign up for Skillmark" style="max-width: 80%; height: auto;" />
   </div>
 </section>

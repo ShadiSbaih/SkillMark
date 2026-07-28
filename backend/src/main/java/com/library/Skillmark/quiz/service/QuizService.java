@@ -360,7 +360,7 @@ public class QuizService {
         List<QuestionResponse> questions = questionRepository.findByQuizIdOrderByPositionAsc(quiz.getId()).stream()
                 .map(question -> toQuestionResponse(question, includeCorrectAnswers))
                 .toList();
-        return new QuizResponse(quiz.getId(), quiz.getProgram().getId(), quiz.getProgram().getOrganizationId(), quiz.getTitle(), quiz.getDescription(),
+        return new QuizResponse(quiz.getId(), quiz.getProgram().getId(), quiz.getTitle(), quiz.getDescription(),
             quiz.getPassingScore(), quiz.getDurationMinutes(), quiz.getMaxAttempts(), quiz.getCertificateIssueMode(),
             quiz.isVisibleToParticipants(), quiz.isPublished(), quiz.getStatus(), quiz.getCreatedAt(), questions);
     }
