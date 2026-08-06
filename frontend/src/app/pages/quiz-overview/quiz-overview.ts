@@ -14,6 +14,7 @@ import { ErrorStateComponent } from '../../shared/components/error-state/error-s
 import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
 import { ModalComponent } from '../../shared/components/modal/modal.component';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
+import { KpiCardComponent } from '../../shared/components/kpi-card/kpi-card';
 
 @Component({
   selector: 'app-quiz-overview',
@@ -28,6 +29,7 @@ import { PageHeaderComponent } from '../../shared/components/page-header/page-he
     LoadingStateComponent,
     ModalComponent,
     PageHeaderComponent,
+    KpiCardComponent,
   ],
   templateUrl: './quiz-overview.html',
   styles: ``,
@@ -52,6 +54,8 @@ export class QuizOverview {
   readonly failCount = computed(() => this.statsQuery.data()?.failCount ?? 0);
   readonly highestScore = computed(() => this.statsQuery.data()?.highestScore ?? 0);
   readonly lowestScore = computed(() => this.statsQuery.data()?.lowestScore ?? 0);
+  readonly passRatePercentage = computed(() => Math.round((this.statsQuery.data()?.passRate ?? 0) * 100));
+  readonly avgScorePercentage = computed(() => Math.round(this.statsQuery.data()?.averageScore ?? 0));
 
   readonly breadcrumbs = computed(() => {
     const quiz = this.quizQuery.data();

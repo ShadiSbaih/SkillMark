@@ -1,52 +1,84 @@
-<app-page-header title="Programs" subtitle="All programs." />
+<app-page-header title="Programs" subtitle="All programs in your organization." [hasActions]="true">
+  <div actions class="flex items-center gap-2">
+    <a class="button button-primary" routerLink="/programs/new">
+      <svg class="w-4 h-4 mr-1 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      Create program
+    </a>
+  </div>
+</app-page-header>
 
 @if (programsQuery.isPending()) {
-    <app-loading-state message="Loading programs..." />
-  } @else if (programsQuery.isError()) {
-    <app-error-state
-      [message]="programsQuery.error().message ?? 'Failed to load programs'"
-      (retry)="programsQuery.refetch()"
-    />
-  } @else if (programs().length === 0) {
-    <app-card>
-      <app-empty-state
-        title="No programs yet"
-        description="There are no programs available."
-        actionLabel="Create program"
-        (action)="router.navigate(['/programs', 'new'])"
-      />
-    </app-card>
-  } @else {
-    <app-card>
-      <div class="divide-y divide-light">
-        @for (program of programs(); track trackById($index, program)) {
-          <a
-            [routerLink]="['/programs', program.id]"
-            class="flex items-center justify-between gap-4 px-4 py-4 hover:bg-canvas-soft sm:px-6"
-          >
-            <div class="flex items-center gap-4 min-w-0">
-              @if (program.coverImageUrl) {
-                <img [src]="program.coverImageUrl" [alt]="program.title" class="h-12 w-12 flex-shrink-0 rounded-md object-cover border border-hairline" />
-              }
-              <div class="min-w-0">
-                <p class="truncate text-sm font-medium text-ink">{{ program.title }}</p>
-              </div>
+  <app-loading-state message="Loading programs..." />
+} @else if (programsQuery.isError()) {
+  <app-error-state [message]="programsQuery.error().message ?? 'Failed to load programs'" (retry)="programsQuery.refetch()" />
+} @else if (programs().length === 0) {
+  <app-card>
+    <app-empty-state title="No programs yet" description="Create your first program to organize quizzes and learning materials." actionLabel="Create program" (action)="router.navigate(['/programs', 'new'])" />
+  </app-card>
+} @else {
+  <div class="programs-grid">
+    @for (program of programs(); track trackById($index, program)) {
+      <a [routerLink]="['/programs', program.id]" class="program-card">
+        <!-- Cover Banner / Frame -->
+        <div class="program-cover-wrap">
+          @if (program.coverImageUrl) {
+            <img [src]="program.coverImageUrl" [alt]="program.title" class="program-cover-img" />
+          } @else {
+            <div class="program-cover-fallback">
+              <svg class="w-12 h-12 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+              </svg>
             </div>
-            <app-badge [variant]="statusVariant(program.status)">{{ program.status }}</app-badge>
-          </a>
-        }
-      </div>
+          }
 
-      @if (pageInfo().totalPages > 1) {
-        <app-pagination
-          [page]="pageInfo().page"
-          [size]="pageInfo().size"
-          [totalElements]="pageInfo().totalElements"
-          [totalPages]="pageInfo().totalPages"
-          [hasNext]="pageInfo().hasNext"
-          [hasPrevious]="pageInfo().hasPrevious"
-          (pageChange)="onPageChange($event)"
-        />
-      }
-    </app-card>
+          <!-- Status Badge -->
+          <div class="status-glass-badge">
+            <span class="status-dot"
+              [class.dot-published]="program.status === 'PUBLISHED'"
+              [class.dot-draft]="program.status === 'DRAFT'"
+              [class.dot-archived]="program.status === 'ARCHIVED'"></span>
+            <span>{{ program.status }}</span>
+          </div>
+        </div>
+
+        <!-- Body Content -->
+        <div class="program-card-body">
+          <h3 class="program-title" [title]="program.title">{{ program.title }}</h3>
+          
+          @if (program.description) {
+            <p class="program-desc">{{ program.description }}</p>
+          } @else {
+            <p class="program-desc desc-empty">No description provided for this program.</p>
+          }
+
+          <!-- Footer Action Bar -->
+          <div class="program-card-footer">
+            <div class="manage-btn">
+              <span class="manage-text">Manage program</span>
+              <svg class="arrow-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+            </div>
+            
+            <button [routerLink]="['/programs', program.id, 'analytics']" (click)="$event.stopPropagation()" class="analytics-btn">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+              <span>Analytics</span>
+            </button>
+          </div>
+        </div>
+      </a>
+    }
+  </div>
+
+  @if (pageInfo().totalPages > 1) {
+    <div class="mt-8">
+      <app-pagination
+        [page]="pageInfo().page"
+        [size]="pageInfo().size"
+        [totalElements]="pageInfo().totalElements"
+        [totalPages]="pageInfo().totalPages"
+        [hasNext]="pageInfo().hasNext"
+        [hasPrevious]="pageInfo().hasPrevious"
+        (pageChange)="onPageChange($event)"
+      />
+    </div>
   }
+}

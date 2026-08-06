@@ -41,7 +41,7 @@ export const routes: Routes = [
     path: '',
     component: PublicLayoutComponent,
     children: [
-      { path: '', component: LandingComponent },
+      { path: '', component: LandingComponent, pathMatch: 'full' },
       { path: 'sign-in', component: SignInComponent },
       { path: 'sign-up', component: SignUpComponent },
       { path: 'verify', component: VerifyCertificateComponent },

@@ -8,11 +8,21 @@
     { label: program().title }
   ]" />
 
-  <app-page-header [title]="program().title" [subtitle]="program().description || 'Program overview'">
+  <app-page-header [title]="program().title" [subtitle]="program().description || 'Program overview'" [hasActions]="true">
     <div actions class="button-row">
-      <a class="button button-secondary" [routerLink]="['/programs', programId(), 'analytics']">Analytics</a>
+      <a class="button button-secondary font-semibold text-indigo-600 border-indigo-200 hover:bg-indigo-50" [routerLink]="['/programs', programId(), 'analytics']">
+        <svg class="w-4 h-4 mr-1.5 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        View Analytics
+      </a>
       <a class="button button-secondary" [routerLink]="['/programs', programId(), 'settings']">Settings</a>
-      <a class="button button-primary" [routerLink]="['/programs', programId(), 'learn']">Start learning</a>
+      @if (isAdmin()) {
+        <a class="button button-primary flex items-center gap-1.5" [routerLink]="['/programs', programId(), 'learn']">
+          <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+          Preview as learner
+        </a>
+      } @else {
+        <a class="button button-primary" [routerLink]="['/programs', programId(), 'learn']">Start learning</a>
+      }
     </div>
   </app-page-header>
 
@@ -22,47 +32,15 @@
     </div>
   }
 
-  <div class="metric-grid compact" style="margin-top: 24px;">
-    <app-card>
-      <p class="metric-label">Status</p>
-      <p class="metric-value"><app-status-badge entity="program" [status]="program().status" /></p>
-    </app-card>
-    <app-card>
-      <p class="metric-label">Enrollments</p>
-      <p class="metric-value">{{ stats()?.totalEnrollments ?? 0 }}</p>
-    </app-card>
-    <app-card>
-      <p class="metric-label">Active enrollments</p>
-      <p class="metric-value">{{ stats()?.activeEnrollments ?? 0 }}</p>
-    </app-card>
-    <app-card>
-      <p class="metric-label">Resources</p>
-      <p class="metric-value">{{ stats()?.resourcesCount ?? resources().length }}</p>
-    </app-card>
-    <app-card>
-      <p class="metric-label">Quizzes</p>
-      <p class="metric-value">{{ stats()?.quizzesCount ?? quizzes().length }}</p>
-    </app-card>
-    <app-card>
-      <p class="metric-label">Attempts</p>
-      <p class="metric-value">{{ stats()?.attemptsCount ?? 0 }}</p>
-    </app-card>
-    <app-card>
-      <p class="metric-label">Passed participants</p>
-      <p class="metric-value">{{ stats()?.passedParticipants ?? 0 }}</p>
-    </app-card>
-    <app-card>
-      <p class="metric-label">Certificates issued</p>
-      <p class="metric-value">{{ stats()?.certificatesIssued ?? 0 }}</p>
-    </app-card>
-    <app-card>
-      <p class="metric-label">Average score</p>
-      <p class="metric-value">{{ averageScore() }}%</p>
-    </app-card>
-    <app-card>
-      <p class="metric-label">Pass rate</p>
-      <p class="metric-value">{{ passRate() }}%</p>
-    </app-card>
+  <div class="kpi-grid-4">
+    <app-kpi-card label="Status" [value]="program().status" icon="status" [status]="program().status" entity="program" color="indigo" />
+    <app-kpi-card label="Enrollments" [value]="stats()?.totalEnrollments ?? 0" icon="users" color="indigo" />
+    <app-kpi-card label="Active" [value]="stats()?.activeEnrollments ?? 0" icon="active" color="emerald" />
+    <app-kpi-card label="Resources" [value]="stats()?.resourcesCount ?? resources().length" icon="resources" color="sky" />
+    <app-kpi-card label="Quizzes" [value]="stats()?.quizzesCount ?? quizzes().length" icon="quizzes" color="violet" />
+    <app-kpi-card label="Attempts" [value]="stats()?.attemptsCount ?? 0" icon="attempts" color="amber" />
+    <app-kpi-card label="Passed Users" [value]="stats()?.passedParticipants ?? 0" icon="passed" color="emerald" />
+    <app-kpi-card label="Certificates" [value]="stats()?.certificatesIssued ?? 0" icon="certificate" color="rose" />
   </div>
 
   <div class="two-column mt-6">
@@ -77,9 +55,9 @@
         <div class="stack">
           @for (r of resources().slice(0, 5); track r.id) {
             <div class="list-row-link">
-              <div>
-                <p class="font-medium">{{ r.title }}</p>
-                <p class="text-sm text-ink-mute">{{ r.type }}</p>
+              <div class="flex-grow min-w-0 pr-4">
+                <p class="font-medium text-ink mb-0.5 text-base">{{ r.title }}</p>
+                <p class="text-sm text-ink-mute mb-0">{{ r.type }}</p>
               </div>
             </div>
           }
@@ -98,11 +76,13 @@
         <div class="stack">
           @for (q of quizzes().slice(0, 5); track q.id) {
             <a [routerLink]="['/quizzes', q.id]" class="list-row-link">
-              <div>
-                <p class="font-medium">{{ q.title }}</p>
-                <p class="text-sm text-ink-mute">Passing: {{ q.passingScore }}%</p>
+              <div class="flex-grow min-w-0 pr-4">
+                <p class="font-medium text-ink mb-0.5 text-base">{{ q.title }}</p>
+                <p class="text-sm text-ink-mute mb-0">Passing: {{ q.passingScore }}%</p>
               </div>
-              <app-status-badge entity="quiz" [status]="q.status" />
+              <div class="shrink-0">
+                <app-status-badge entity="quiz" [status]="q.status" />
+              </div>
             </a>
           }
         </div>

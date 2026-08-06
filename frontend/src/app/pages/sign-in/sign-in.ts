@@ -52,6 +52,7 @@ export class SignIn {
   }
 
   loginAsAdminDemo(): void {
+    this.redirectUrl.set(null);
     this.form.patchValue({
       email: 'maya.owner@skillmark.local',
       password: 'Skillmark2024!'
@@ -60,6 +61,7 @@ export class SignIn {
   }
 
   loginAsStudentDemo(): void {
+    this.redirectUrl.set(null);
     this.form.patchValue({
       email: 'omar.learner@skillmark.local',
       password: 'Skillmark2024!'

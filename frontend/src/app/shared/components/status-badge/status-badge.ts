@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { BadgeComponent } from '../badge/badge.component';
 
-type StatusBadgeEntity =
+export type StatusBadgeEntity =
   | 'program'
   | 'quiz'
   | 'attempt'

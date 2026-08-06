@@ -123,8 +123,7 @@
   width: 32px;
   object-fit: contain;
   margin-right: 12px;
-  /* Option to add a brightness filter if logo needs to pop on dark bg */
-  filter: brightness(0) invert(1);
+  border-radius: 8px; /* App icon style for solid background logos */
 }
 
 .brand-tagline {

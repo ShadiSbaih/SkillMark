@@ -1,5 +1,6 @@
 import { Component, computed, effect, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { AuthService } from '../../core/auth/auth.service';
 import { ProgramsService } from '../../services/programs.service';
 import { ProgramResponse } from '../../core/models/program.model';
 import { ResourcesService } from '../../services/resources.service';
@@ -12,6 +13,7 @@ import { LoadingStateComponent } from '../../shared/components/loading-state/loa
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { StatusBadgeComponent } from '../../shared/components/status-badge/status-badge';
 import { BreadcrumbComponent } from '../../shared/components/breadcrumb/breadcrumb.component';
+import { KpiCardComponent } from '../../shared/components/kpi-card/kpi-card';
 
 @Component({
   selector: 'app-program-overview',
@@ -19,14 +21,18 @@ import { BreadcrumbComponent } from '../../shared/components/breadcrumb/breadcru
   imports: [
     RouterLink, CardComponent, EmptyStateComponent, ErrorStateComponent,
     LoadingStateComponent, PageHeaderComponent, StatusBadgeComponent, BreadcrumbComponent,
+    KpiCardComponent,
   ],
   templateUrl: './program-overview.html',
 })
 export class ProgramOverview {
+  private readonly authService = inject(AuthService);
   private readonly programsService = inject(ProgramsService);
   private readonly resourcesService = inject(ResourcesService);
   private readonly quizzesService = inject(QuizzesService);
   private readonly statsService = inject(StatsService);
+
+  readonly isAdmin = this.authService.isAdmin;
 
   readonly programId = input.required<string>({ alias: 'programId' });
 

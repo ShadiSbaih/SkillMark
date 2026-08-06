@@ -15,6 +15,7 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
 import { ErrorStateComponent } from '../../shared/components/error-state/error-state.component';
 import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
 import { StatusBadgeComponent } from '../../shared/components/status-badge/status-badge';
+import { KpiCardComponent } from '../../shared/components/kpi-card/kpi-card';
 
 @Component({
   selector: 'app-dashboard',
@@ -29,6 +30,7 @@ import { StatusBadgeComponent } from '../../shared/components/status-badge/statu
     ErrorStateComponent,
     LoadingStateComponent,
     StatusBadgeComponent,
+    KpiCardComponent,
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
@@ -85,6 +87,8 @@ export class DashboardComponent {
       passRate,
     };
   });
+
+  readonly passRatePercentage = computed(() => Math.round(this.stats().passRate));
 
   retryAll(): void {
     this.certificatesQuery.refetch();

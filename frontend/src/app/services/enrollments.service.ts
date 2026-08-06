@@ -3,11 +3,13 @@ import { injectQuery, injectMutation, QueryClient } from '@tanstack/angular-quer
 import { lastValueFrom } from 'rxjs';
 import { ApiClientService } from '../core/api/api-client.service';
 import { Enrollment, CreateEnrollmentRequest } from '../core/models/enrollment.model';
+import { AuthService } from '../core/auth/auth.service';
 
 @Injectable({ providedIn: 'root' })
 export class EnrollmentsService {
   private readonly api = inject(ApiClientService);
   private readonly queryClient = inject(QueryClient);
+  private readonly authService = inject(AuthService);
 
   readonly mineParams = signal<{ page: number; size: number }>({
     page: 0,
@@ -31,6 +33,7 @@ export class EnrollmentsService {
             size: params.size,
           })
         ),
+      enabled: this.authService.isSignedIn(),
     };
   });
 

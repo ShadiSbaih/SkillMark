@@ -20,6 +20,7 @@ import { BreadcrumbComponent } from '../../shared/components/breadcrumb/breadcru
 import { ChartComponent } from '../../shared/components/chart/chart.component';
 import { TableComponent } from '../../shared/components/table/table.component';
 import { TableColumnDirective } from '../../shared/components/table/table-column.directive';
+import { KpiCardComponent } from '../../shared/components/kpi-card/kpi-card';
 
 @Component({
   selector: 'app-quiz-analytics',
@@ -35,6 +36,7 @@ import { TableColumnDirective } from '../../shared/components/table/table-column
     ChartComponent,
     TableComponent,
     TableColumnDirective,
+    KpiCardComponent,
   ],
   templateUrl: './quiz-analytics.component.html',
   styleUrl: './quiz-analytics.component.scss',
@@ -60,6 +62,9 @@ export class QuizAnalyticsComponent {
   readonly quiz = computed(() => this.quizQuery.data());
   readonly stats = computed(() => this.statsQuery.data());
   readonly questions = computed(() => this.questionStatsQuery.data() ?? []);
+
+  readonly passRatePercentage = computed(() => Math.round((this.stats()?.passRate ?? 0) * 100));
+  readonly avgScorePercentage = computed(() => Math.round(this.stats()?.averageScore ?? 0));
 
   readonly hasError = computed(
     () =>

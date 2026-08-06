@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { Component, input, ViewEncapsulation } from '@angular/core';
 import { RouterModule } from '@angular/router';
 
 export interface BreadcrumbItem {
@@ -12,6 +12,7 @@ export interface BreadcrumbItem {
   imports: [RouterModule],
   templateUrl: './breadcrumb.component.html',
   styleUrl: './breadcrumb.component.scss',
+  encapsulation: ViewEncapsulation.None,
 })
 export class BreadcrumbComponent {
   readonly items = input<BreadcrumbItem[]>([]);

@@ -35,31 +35,11 @@
     </ng-container>
   </app-page-header>
 
-  <div class="metric-grid compact mt-6">
-    <app-card>
-      <p class="metric-label">Enrollments</p>
-      <p class="metric-value">{{ stats()?.totalEnrollments ?? 0 }}</p>
-    </app-card>
-    <app-card>
-      <p class="metric-label">Active</p>
-      <p class="metric-value">{{ stats()?.activeEnrollments ?? 0 }}</p>
-    </app-card>
-    <app-card>
-      <p class="metric-label">Attempts</p>
-      <p class="metric-value">{{ stats()?.attemptsCount ?? 0 }}</p>
-    </app-card>
-    <app-card>
-      <p class="metric-label">Certificates</p>
-      <p class="metric-value">{{ stats()?.certificatesIssued ?? 0 }}</p>
-    </app-card>
-    <app-card>
-      <p class="metric-label">Avg. score</p>
-      <p class="metric-value">{{ stats()?.averageScore ?? 0 }}%</p>
-    </app-card>
-    <app-card>
-      <p class="metric-label">Pass rate</p>
-      <p class="metric-value">{{ (stats()?.passedParticipants ?? 0) && (stats()?.attemptsCount ?? 0) ? (((stats()?.passedParticipants ?? 0) / (stats()?.attemptsCount ?? 1)) * 100).toFixed(0) : 0 }}%</p>
-    </app-card>
+  <div class="kpi-grid-4">
+    <app-kpi-card label="Enrollments" [value]="stats()?.totalEnrollments ?? 0" icon="users" color="indigo" />
+    <app-kpi-card label="Active" [value]="stats()?.activeEnrollments ?? 0" icon="active" color="emerald" />
+    <app-kpi-card label="Attempts" [value]="stats()?.attemptsCount ?? 0" icon="attempts" color="amber" />
+    <app-kpi-card label="Certificates" [value]="stats()?.certificatesIssued ?? 0" icon="certificate" color="rose" />
   </div>
 
   <div class="analytics-grid mt-8">

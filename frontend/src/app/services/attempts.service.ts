@@ -16,11 +16,13 @@ import {
   CertificateResponse,
   ManualCertificateRequest,
 } from '../core/models/certificate.model';
+import { AuthService } from '../core/auth/auth.service';
 
 @Injectable({ providedIn: 'root' })
 export class AttemptsService {
   private readonly api = inject(ApiClientService);
   private readonly queryClient = inject(QueryClient);
+  private readonly authService = inject(AuthService);
 
   readonly mineParams = signal<{ page: number; size: number }>({
     page: 0,
@@ -38,6 +40,7 @@ export class AttemptsService {
             size: params.size,
           })
         ),
+      enabled: this.authService.isSignedIn(),
     };
   });
 

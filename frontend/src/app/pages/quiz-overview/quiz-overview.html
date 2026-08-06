@@ -32,65 +32,20 @@
       </ng-container>
     </app-page-header>
 
-    <div class="metric-grid compact mt-6">
-      <app-card>
-        <p class="metric-label">Status</p>
-        <div class="metric-value">
-          <app-badge [variant]="statusBadgeVariant()">{{ quiz.status }}</app-badge>
-        </div>
-      </app-card>
-
-      <app-card>
-        <p class="metric-label">Questions</p>
-        <p class="metric-value">{{ quiz.questions.length }}</p>
-      </app-card>
-
-      <app-card>
-        <p class="metric-label">Passing score</p>
-        <p class="metric-value">{{ quiz.passingScore }}%</p>
-      </app-card>
+    <div class="kpi-grid-5">
+      <app-kpi-card label="Status" [value]="quiz.status" icon="status" [status]="quiz.status" entity="quiz" color="indigo" />
+      <app-kpi-card label="Questions" [value]="quiz.questions.length" icon="quizzes" color="sky" />
+      <app-kpi-card label="Passing Score" [value]="quiz.passingScore + '%'" [percentage]="quiz.passingScore" color="violet" />
 
       @if (!statsQuery.isPending() && !statsQuery.isError() && statsQuery.data()) {
         @let stats = statsQuery.data();
-        <app-card>
-          <p class="metric-label">Total attempts</p>
-          <p class="metric-value">{{ stats?.attemptsCount ?? 0 }}</p>
-        </app-card>
-
-        <app-card>
-          <p class="metric-label">Submitted</p>
-          <p class="metric-value">{{ submittedAttempts() }}</p>
-        </app-card>
-
-        <app-card>
-          <p class="metric-label">Passed</p>
-          <p class="metric-value">{{ passCount() }}</p>
-        </app-card>
-
-        <app-card>
-          <p class="metric-label">Failed</p>
-          <p class="metric-value">{{ failCount() }}</p>
-        </app-card>
-
-        <app-card>
-          <p class="metric-label">Pass rate</p>
-          <p class="metric-value">{{ ((stats?.passRate ?? 0) * 100).toFixed(0) }}%</p>
-        </app-card>
-
-        <app-card>
-          <p class="metric-label">Average score</p>
-          <p class="metric-value">{{ (stats?.averageScore ?? 0).toFixed(1) }}%</p>
-        </app-card>
-
-        <app-card>
-          <p class="metric-label">Highest score</p>
-          <p class="metric-value">{{ highestScore().toFixed(1) }}%</p>
-        </app-card>
-
-        <app-card>
-          <p class="metric-label">Lowest score</p>
-          <p class="metric-value">{{ lowestScore().toFixed(1) }}%</p>
-        </app-card>
+        <app-kpi-card label="Total Attempts" [value]="stats?.attemptsCount ?? 0" icon="attempts" color="amber" />
+        <app-kpi-card label="Submitted" [value]="submittedAttempts()" icon="attempts" color="indigo" />
+        <app-kpi-card label="Passed" [value]="passCount()" icon="passed" color="emerald" />
+        <app-kpi-card label="Failed" [value]="failCount()" icon="failed" color="rose" />
+        <app-kpi-card label="Pass Rate" [value]="passRatePercentage() + '%'" [percentage]="passRatePercentage()" color="emerald" />
+        <app-kpi-card label="Average Score" [value]="avgScorePercentage() + '%'" [percentage]="avgScorePercentage()" color="indigo" />
+        <app-kpi-card label="Highest Score" [value]="highestScore().toFixed(1) + '%'" icon="score" color="amber" />
       }
     </div>
 

@@ -13,11 +13,13 @@ import {
   PublicCertificateVerificationResponse,
   RevokeCertificateRequest,
 } from '../core/models/certificate.model';
+import { AuthService } from '../core/auth/auth.service';
 
 @Injectable({ providedIn: 'root' })
 export class CertificatesService {
   private readonly api = inject(ApiClientService);
   private readonly queryClient = inject(QueryClient);
+  private readonly authService = inject(AuthService);
 
   readonly myCertificatesParams = signal<{ page: number; size: number }>({
     page: 0,
@@ -35,6 +37,7 @@ export class CertificatesService {
             size: params.size,
           })
         ),
+      enabled: this.authService.isSignedIn(),
     };
   });
 

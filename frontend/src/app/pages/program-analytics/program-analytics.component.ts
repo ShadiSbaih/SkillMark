@@ -18,6 +18,7 @@ import { ErrorStateComponent } from '../../shared/components/error-state/error-s
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { BreadcrumbComponent } from '../../shared/components/breadcrumb/breadcrumb.component';
 import { ChartComponent } from '../../shared/components/chart/chart.component';
+import { KpiCardComponent } from '../../shared/components/kpi-card/kpi-card';
 
 @Component({
   selector: 'app-program-analytics',
@@ -31,6 +32,7 @@ import { ChartComponent } from '../../shared/components/chart/chart.component';
     BreadcrumbComponent,
     ButtonComponent,
     ChartComponent,
+    KpiCardComponent,
   ],
   templateUrl: './program-analytics.component.html',
   styleUrl: './program-analytics.component.scss',
@@ -55,6 +57,14 @@ export class ProgramAnalyticsComponent {
   readonly program = computed(() => this.programQuery.data());
   readonly stats = computed(() => this.statsQuery.data());
   readonly completion = computed(() => this.completionStatsQuery.data());
+
+  readonly avgScorePercentage = computed(() => Math.round((this.stats()?.averageScore ?? 0)));
+  readonly passRatePercentage = computed(() => {
+    const s = this.stats();
+    const attempts = s?.attemptsCount ?? 0;
+    const passed = s?.passedParticipants ?? 0;
+    return attempts ? Math.round((passed / attempts) * 100) : 0;
+  });
 
   readonly hasError = computed(
     () =>

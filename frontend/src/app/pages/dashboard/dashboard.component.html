@@ -16,33 +16,24 @@
     [hasActions]="true"
   >
     @if (isAdmin()) {
-      <a
-        actions
-        class="button button-secondary"
-        routerLink="/programs/new"
-      >
-        Create program
-      </a>
+      <div actions class="flex items-center gap-2">
+        <a class="button button-secondary" routerLink="/programs">
+          View Programs & Analytics
+        </a>
+        <a class="button button-primary" routerLink="/programs/new">
+          Create program
+        </a>
+      </div>
     }
   </app-page-header>
 
-  <section class="dashboard-metrics" aria-label="Dashboard metrics">
-
-    <app-card>
-      <span class="metric-label">Certificates</span>
-      <strong class="metric-value">{{ stats().certificates }}</strong>
-    </app-card>
-    <app-card>
-      <span class="metric-label">Attempts</span>
-      <strong class="metric-value">{{ stats().attempts }}</strong>
-    </app-card>
-    <app-card>
-      <span class="metric-label">Pass rate</span>
-      <strong class="metric-value">{{ stats().passRate | number:'1.0-1' }}%</strong>
-    </app-card>
+  <section class="kpi-grid-3" aria-label="Dashboard metrics">
+    <app-kpi-card label="Certificates" [value]="stats().certificates" icon="certificate" color="rose" />
+    <app-kpi-card label="Attempts" [value]="stats().attempts" icon="attempts" color="indigo" />
+    <app-kpi-card label="Pass Rate" [value]="passRatePercentage() + '%'" [percentage]="passRatePercentage()" color="emerald" />
   </section>
 
-  <section class="dashboard-lists" aria-label="Recent certificates">
+  <section class="dashboard-lists" aria-label="Recent activity">
     <app-card class="dashboard-list-card">
       <div class="panel-header">
         <h2>Recent certificates</h2>
@@ -51,27 +42,28 @@
       @if (certificates().length === 0) {
         <app-empty-state title="No certificates" description="You have not earned any certificates yet." />
       } @else {
-        <ul class="dashboard-list">
+        <ul class="dashboard-list flex-grow">
           @for (cert of certificates().slice(0, 5); track cert.id) {
             <li>
               <a
-                class="list-row list-row-link"
+                class="list-row-link"
                 [routerLink]="['/certificates', cert.id]"
               >
-                <div class="min-w-0">
-                  <p class="font-medium text-ink">{{ cert.title }}</p>
-                  <p class="text-sm text-ink-mute">{{ cert.programTitleSnapshot }} / {{ cert.quizTitleSnapshot }}</p>
+                <div class="flex-grow min-w-0 pr-4">
+                  <p class="font-medium text-ink mb-0.5 text-base">{{ cert.title }}</p>
+                  <p class="text-sm text-ink-mute mb-0 truncate">{{ cert.programTitleSnapshot }} / {{ cert.quizTitleSnapshot }}</p>
                 </div>
-                <app-status-badge entity="certificate" [status]="cert.status" />
+                <div class="shrink-0">
+                  <app-status-badge entity="certificate" [status]="cert.status" />
+                </div>
               </a>
             </li>
           }
         </ul>
       }
     </app-card>
-  </section>
 
-  <app-card>
+    <app-card class="dashboard-list-card">
     <div class="panel-header">
       <h2>Recent attempts</h2>
       <a class="link" routerLink="/my-attempts">View all</a>
@@ -112,5 +104,6 @@
         </table>
       </div>
     }
-  </app-card>
+    </app-card>
+  </section>
 }

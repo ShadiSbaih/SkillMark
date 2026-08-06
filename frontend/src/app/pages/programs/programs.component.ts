@@ -33,7 +33,7 @@ const STATUS_VARIANTS: Record<ProgramStatus, BadgeVariant> = {
     PaginationComponent,
   ],
   templateUrl: './programs.component.html',
-  styles: ``,
+  styleUrl: './programs.component.scss',
 })
 export class ProgramsComponent {
   readonly router = inject(Router);

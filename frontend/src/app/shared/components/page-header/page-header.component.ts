@@ -11,11 +11,10 @@ import { Component, input } from '@angular/core';
           <p>{{ subtitle() }}</p>
         }
       </div>
-      @if (hasActions()) {
-        <div class="page-header-actions">
-          <ng-content select="[actions]" />
-        </div>
-      }
+      <div class="page-header-actions">
+        <ng-content select="[actions]" />
+        <ng-content />
+      </div>
     </div>
   `,
   styleUrl: './page-header.component.scss',
@@ -23,5 +22,5 @@ import { Component, input } from '@angular/core';
 export class PageHeaderComponent {
   readonly title = input.required<string>();
   readonly subtitle = input<string>();
-  readonly hasActions = input(false);
+  readonly hasActions = input(true);
 }
