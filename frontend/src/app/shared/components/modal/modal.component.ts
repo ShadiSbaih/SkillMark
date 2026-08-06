@@ -14,8 +14,8 @@ import { ButtonComponent } from '../button/button.component';
             <ng-content />
           </div>
           <div class="modal-actions">
-            <app-button variant="ghost" (clicked)="close.emit()">{{ cancelLabel() }}</app-button>
-            <app-button [variant]="confirmVariant()" (clicked)="confirm.emit()">{{ confirmLabel() }}</app-button>
+            <app-button variant="ghost" [disabled]="loading()" (clicked)="close.emit()">{{ cancelLabel() }}</app-button>
+            <app-button [variant]="confirmVariant()" [loading]="loading()" [disabled]="loading()" (clicked)="confirm.emit()">{{ confirmLabel() }}</app-button>
           </div>
         </div>
       </div>
@@ -29,6 +29,7 @@ export class ModalComponent {
   readonly confirmLabel = input('Confirm');
   readonly cancelLabel = input('Cancel');
   readonly confirmVariant = input<'primary' | 'secondary' | 'danger'>('primary');
+  readonly loading = input(false);
   readonly close = output<void>();
   readonly confirm = output<void>();
 }

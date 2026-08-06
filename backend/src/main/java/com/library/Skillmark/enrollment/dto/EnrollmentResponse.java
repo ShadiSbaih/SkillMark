@@ -9,6 +9,7 @@ import java.util.UUID;
 public record EnrollmentResponse(
         UUID id,
         UUID programId,
+        String programTitle,
         UUID userId,
         String userName,
         EnrollmentStatus status,
@@ -18,6 +19,7 @@ public record EnrollmentResponse(
         return new EnrollmentResponse(
                 enrollment.getId(),
                 enrollment.getProgram().getId(),
+                enrollment.getProgram().getTitle(),
                 enrollment.getUser().getId(),
                 enrollment.getUser().getName(),
                 enrollment.getStatus(),

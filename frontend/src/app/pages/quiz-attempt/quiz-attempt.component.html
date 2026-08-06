@@ -2,8 +2,8 @@
   <app-loading-state message="Loading quiz..." />
 } @else if (quizQuery.isError()) {
   <app-error-state
-    [message]="quizQuery.error()?.message ?? 'Failed to load quiz'"
-    (retry)="retryLoad()"
+    [message]="quizQuery.error().message ?? 'Failed to load quiz'"
+    (retry)="quizQuery.refetch()"
   />
 } @else {
   @let quiz = quizQuery.data();
@@ -86,7 +86,7 @@
               Previous
             </app-button>
             @if (isLastQuestion()) {
-              <app-button (clicked)="openSubmitModal()">Submit</app-button>
+              <app-button (clicked)="openSubmitModal()" [disabled]="isSubmitting()">Submit</app-button>
             } @else {
               <app-button (clicked)="next()">Next</app-button>
             }
@@ -132,7 +132,7 @@
           <app-button
             class="full-width"
             variant="primary"
-            [disabled]="!attemptId()"
+            [disabled]="!attemptId() || isSubmitting()"
             (clicked)="openSubmitModal()"
           >
             Submit quiz
@@ -147,6 +147,7 @@
   [open]="showSubmitModal()"
   title="Submit quiz?"
   confirmLabel="Submit"
+  [loading]="isSubmitting()"
   (close)="closeSubmitModal()"
   (confirm)="confirmSubmit()"
 >
@@ -154,4 +155,9 @@
     You have answered {{ answeredCount() }} of {{ totalQuestions() }} questions. Once submitted, you
     cannot change your answers.
   </p>
+  @if (submitError()) {
+    <div class="mt-4 p-3 bg-danger/10 text-danger rounded-md text-sm font-medium">
+      {{ submitError() }}
+    </div>
+  }
 </app-modal>

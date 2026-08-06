@@ -50,4 +50,20 @@ export class SignIn {
       this.isLoading.set(false);
     }
   }
+
+  loginAsAdminDemo(): void {
+    this.form.patchValue({
+      email: 'maya.owner@skillmark.local',
+      password: 'Skillmark2024!'
+    });
+    this.onSubmit();
+  }
+
+  loginAsStudentDemo(): void {
+    this.form.patchValue({
+      email: 'omar.learner@skillmark.local',
+      password: 'Skillmark2024!'
+    });
+    this.onSubmit();
+  }
 }

@@ -31,12 +31,27 @@
     } @else {
       <div class="stack">
         @for (q of quizzes(); track q.id) {
+          @let bestAttempt = getBestAttempt(q.id);
           <div class="list-row-link">
             <div>
-              <p class="font-medium">{{ q.title }}</p>
+              <p class="font-medium flex items-center gap-2">
+                {{ q.title }}
+                @if (bestAttempt?.passed) {
+                  <app-badge variant="success">Passed</app-badge>
+                } @else if (bestAttempt?.status === 'SUBMITTED') {
+                  <app-badge variant="warning">Failed</app-badge>
+                } @else if (bestAttempt?.status === 'IN_PROGRESS') {
+                  <app-badge variant="info">In Progress</app-badge>
+                }
+              </p>
               <p class="text-sm text-ink-mute">Duration: {{ q.durationMinutes }} min | Passing: {{ q.passingScore }}%</p>
             </div>
-            <a class="button button-primary" [routerLink]="['/quizzes', q.id, 'attempt']">Start</a>
+            
+            @if (bestAttempt?.passed) {
+              <a class="button button-secondary" [routerLink]="['/attempts', bestAttempt?.attemptId, 'result']">Review</a>
+            } @else {
+              <a class="button button-primary" [routerLink]="['/quizzes', q.id, 'attempt']">Start</a>
+            }
           </div>
         }
       </div>

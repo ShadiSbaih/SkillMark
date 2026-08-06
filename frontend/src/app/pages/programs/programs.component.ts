@@ -25,7 +25,6 @@ const STATUS_VARIANTS: Record<ProgramStatus, BadgeVariant> = {
   imports: [
     RouterLink,
     BadgeComponent,
-    ButtonComponent,
     CardComponent,
     EmptyStateComponent,
     ErrorStateComponent,

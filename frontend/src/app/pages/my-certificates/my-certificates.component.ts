@@ -15,7 +15,6 @@ import { StatusBadgeComponent } from '../../shared/components/status-badge/statu
   selector: 'app-my-certificates',
   standalone: true,
   imports: [
-    DatePipe,
     DecimalPipe,
     RouterLink,
     ButtonComponent,

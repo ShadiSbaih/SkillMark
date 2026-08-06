@@ -2,12 +2,12 @@
   <app-loading-state message="Loading result..." />
 } @else if (attemptQuery.isError()) {
   <app-error-state
-    [message]="attemptQuery.error()?.message ?? 'Failed to load attempt result'"
+    [message]="attemptQuery.error().message ?? 'Failed to load attempt result'"
     (retry)="attemptQuery.refetch()"
   />
 } @else if (quizQuery.isError()) {
   <app-error-state
-    [message]="quizQuery.error()?.message ?? 'Failed to load quiz details'"
+    [message]="quizQuery.error().message ?? 'Failed to load quiz details'"
     (retry)="quizQuery.refetch()"
   />
 } @else {

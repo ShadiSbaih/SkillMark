@@ -13,7 +13,7 @@
   <app-loading-state message="Loading quizzes..." />
 } @else if (quizzesQuery.isError()) {
   <app-error-state
-    [message]="quizzesQuery.error()?.message ?? 'Failed to load quizzes'"
+    [message]="quizzesQuery.error().message ?? 'Failed to load quizzes'"
     (retry)="quizzesQuery.refetch()"
   />
 } @else {

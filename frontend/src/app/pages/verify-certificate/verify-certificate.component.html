@@ -22,7 +22,7 @@
     } @else if (query.isError()) {
       <app-error-state
         class="mt-8 block"
-        [message]="query.error()?.message ?? 'Failed to verify certificate'"
+        [message]="query.error().message ?? 'Failed to verify certificate'"
         (retry)="query.refetch()"
       />
     } @else if (result()) {

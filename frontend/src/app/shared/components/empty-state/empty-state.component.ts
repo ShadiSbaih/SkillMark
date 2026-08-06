@@ -1,10 +1,11 @@
 import { Component, input, output } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { ButtonComponent } from '../button/button.component';
 
 @Component({
   selector: 'app-empty-state',
   standalone: true,
-  imports: [ButtonComponent],
+  imports: [ButtonComponent, RouterLink],
   template: `
     <div class="empty-state">
       <div class="empty-state-icon">
@@ -15,7 +16,11 @@ import { ButtonComponent } from '../button/button.component';
       <h3>{{ title() }}</h3>
       <p>{{ description() }}</p>
       @if (actionLabel()) {
-        <app-button class="empty-state-action" (clicked)="action.emit()">{{ actionLabel() }}</app-button>
+        @if (actionLink()) {
+          <a [routerLink]="actionLink()" class="button button-primary empty-state-action">{{ actionLabel() }}</a>
+        } @else {
+          <app-button class="empty-state-action" (clicked)="action.emit()">{{ actionLabel() }}</app-button>
+        }
       }
     </div>
   `,
@@ -25,5 +30,6 @@ export class EmptyStateComponent {
   readonly title = input('Nothing here');
   readonly description = input('No data available.');
   readonly actionLabel = input<string>();
+  readonly actionLink = input<string | any[]>();
   readonly action = output<void>();
 }

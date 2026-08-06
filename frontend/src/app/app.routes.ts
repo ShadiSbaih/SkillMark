@@ -33,7 +33,7 @@ import { MyEnrollments as MyEnrollmentsComponent } from './pages/my-enrollments/
 import { MyAttempts as MyAttemptsComponent } from './pages/my-attempts/my-attempts';
 import { SignIn as SignInComponent } from './pages/sign-in/sign-in';
 import { SignUp as SignUpComponent } from './pages/sign-up/sign-up';
-
+import { JoinProgramComponent } from './pages/join-program/join-program';
 
 export const routes: Routes = [
   // ── Public routes (no auth required) ──────────────────────────────────
@@ -67,6 +67,7 @@ export const routes: Routes = [
       { path: 'attempts/:attemptId/result', component: AttemptResultComponent },
 
       // Student personal pages
+      { path: 'join', component: JoinProgramComponent },
       { path: 'my-enrollments', component: MyEnrollmentsComponent },
       { path: 'me/enrollments', component: MyEnrollmentsComponent },
       { path: 'my-attempts', component: MyAttemptsComponent },

@@ -2,7 +2,7 @@
   <app-loading-state message="Loading quiz..." />
 } @else if (quizQuery.isError()) {
   <app-error-state
-    [message]="quizQuery.error()?.message ?? 'Failed to load quiz.'"
+    [message]="quizQuery.error().message ?? 'Failed to load quiz.'"
     (retry)="quizQuery.refetch()"
   />
 } @else {
@@ -30,7 +30,7 @@
       <app-loading-state message="Loading attempts..." />
     } @else if (attemptsQuery.isError()) {
       <app-error-state
-        [message]="attemptsQuery.error()?.message ?? 'Failed to load attempts.'"
+        [message]="attemptsQuery.error().message ?? 'Failed to load attempts.'"
         (retry)="attemptsQuery.refetch()"
       />
     } @else {

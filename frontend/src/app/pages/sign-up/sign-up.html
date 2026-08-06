@@ -69,23 +69,7 @@
           </app-form-field>
         </div>
 
-        <div class="role-picker">
-          <p class="role-picker-label">I am joining as a</p>
-          <div class="role-picker-options">
-            <label class="role-option" [class.selected]="form.get('role')?.value === 'STUDENT'">
-              <input type="radio" formControlName="role" value="STUDENT" />
-              <span class="role-icon">🎓</span>
-              <span class="role-name">Student</span>
-              <span class="role-desc">Join programs and take quizzes</span>
-            </label>
-            <label class="role-option" [class.selected]="form.get('role')?.value === 'ADMIN'">
-              <input type="radio" formControlName="role" value="ADMIN" />
-              <span class="role-icon">⚙️</span>
-              <span class="role-name">Admin</span>
-              <span class="role-desc">Create programs and manage quizzes</span>
-            </label>
-          </div>
-        </div>
+
 
         @if (error()) {
           <div class="auth-error">{{ error() }}</div>

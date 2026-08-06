@@ -12,6 +12,7 @@ export interface StartAttemptResponse {
 export interface AttemptResponse {
   attemptId: string;
   quizId: string;
+  quizTitle: string;
   userId: string;
   attemptNumber: number;
   expiresAt: string;

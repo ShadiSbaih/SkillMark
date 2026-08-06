@@ -6,6 +6,7 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DatePipe, DecimalPipe } from '@angular/common';
+import { AuthService } from '../../core/auth/auth.service';
 import { CertificatesService } from '../../services/certificates.service';
 import { AttemptsService } from '../../services/attempts.service';
 import { CardComponent } from '../../shared/components/card/card.component';
@@ -34,7 +35,10 @@ import { StatusBadgeComponent } from '../../shared/components/status-badge/statu
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DashboardComponent {
+  private readonly authService = inject(AuthService);
   private readonly certificatesService = inject(CertificatesService);
+
+  readonly isAdmin = this.authService.isAdmin;
   private readonly attemptsService = inject(AttemptsService);
 
   readonly certificatesQuery = this.certificatesService.myCertificatesQuery;

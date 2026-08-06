@@ -51,9 +51,7 @@ public class AuthService {
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setStatus(UserStatus.ACTIVE);
         user.setEmailVerifiedAt(Instant.now());
-        user.setRole(request.role() == RegisterRequest.Role.ADMIN
-                ? com.library.Skillmark.user.enums.UserRole.ADMIN
-                : com.library.Skillmark.user.enums.UserRole.STUDENT);
+        user.setRole(com.library.Skillmark.user.enums.UserRole.STUDENT);
 
         User savedUser = userRepository.save(user);
         return jwtService.generateToken(savedUser.getId(), savedUser.getEmail(), savedUser.getRole().name());

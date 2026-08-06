@@ -19,6 +19,10 @@ import com.library.Skillmark.program.repository.ProgramRepository;
 import com.library.Skillmark.security.service.AuthorizationService;
 import com.library.Skillmark.user.entity.User;
 import com.library.Skillmark.user.repository.UserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -87,7 +91,7 @@ public class EnrollmentService {
                     user.getEmail(),
                     user.getName(),
                     program.getTitle(),
-                    "/programs/" + program.getId()
+                    "/programs/" + program.getId() + "/learn"
             );
         } catch (Exception ex) {
             // Email failures should not break enrollment
@@ -97,18 +101,16 @@ public class EnrollmentService {
     @Transactional(readOnly = true)
     public PageResponse<EnrollmentResponse> list(UUID programId, UUID actorId, int page, int size) {
         authorizationService.ensureProgramOwner(programId, actorId);
-        return PageResponse.fromList(enrollmentRepository.findByProgramIdAndStatus(programId, EnrollmentStatus.ACTIVE).stream()
-                .sorted(Comparator.comparing(ProgramEnrollment::getEnrolledAt).reversed())
-                .map(EnrollmentResponse::from)
-                .toList(), page, size);
+        Pageable pageable = PageRequest.of(page, Math.max(1, size), Sort.by(Sort.Direction.DESC, "enrolledAt"));
+        Page<ProgramEnrollment> dbPage = enrollmentRepository.findByProgramIdAndStatus(programId, EnrollmentStatus.ACTIVE, pageable);
+        return PageResponse.from(dbPage.map(EnrollmentResponse::from));
     }
 
     @Transactional(readOnly = true)
     public PageResponse<EnrollmentResponse> mine(UUID userId, int page, int size) {
-        return PageResponse.fromList(enrollmentRepository.findByUserIdAndStatus(userId, EnrollmentStatus.ACTIVE).stream()
-                .sorted(Comparator.comparing(ProgramEnrollment::getEnrolledAt).reversed())
-                .map(EnrollmentResponse::from)
-                .toList(), page, size);
+        Pageable pageable = PageRequest.of(page, Math.max(1, size), Sort.by(Sort.Direction.DESC, "enrolledAt"));
+        Page<ProgramEnrollment> dbPage = enrollmentRepository.findByUserIdAndStatus(userId, EnrollmentStatus.ACTIVE, pageable);
+        return PageResponse.from(dbPage.map(EnrollmentResponse::from));
     }
 
     @Transactional

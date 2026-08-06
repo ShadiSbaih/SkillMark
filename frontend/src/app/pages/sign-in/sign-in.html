@@ -40,9 +40,22 @@
         <div class="auth-error">{{ error() }}</div>
       }
 
-      <div class="mt-2">
+      <div class="mt-2 flex flex-col gap-3">
         <app-button type="submit" variant="primary" [loading]="isLoading()" [disabled]="isLoading()" [fullWidth]="true">
           Sign in
+        </app-button>
+
+        <div class="relative py-2 flex items-center justify-center">
+          <div class="border-t border-border absolute w-full left-0"></div>
+          <span class="bg-surface text-ink-mute text-xs px-2 relative z-10 font-medium tracking-wide uppercase">or try a demo</span>
+        </div>
+
+        <app-button type="button" variant="secondary" (clicked)="loginAsAdminDemo()" [disabled]="isLoading()" [fullWidth]="true">
+          Log in as admin demo
+        </app-button>
+        
+        <app-button type="button" variant="secondary" (clicked)="loginAsStudentDemo()" [disabled]="isLoading()" [fullWidth]="true">
+          Login as student demo
         </app-button>
       </div>
     </form>

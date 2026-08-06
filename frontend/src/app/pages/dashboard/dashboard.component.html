@@ -15,13 +15,15 @@
     subtitle="Track your quiz performance, certificates, and activity."
     [hasActions]="true"
   >
-    <a
-      actions
-      class="button button-secondary"
-      routerLink="/programs/new"
-    >
-      Create program
-    </a>
+    @if (isAdmin()) {
+      <a
+        actions
+        class="button button-secondary"
+        routerLink="/programs/new"
+      >
+        Create program
+      </a>
+    }
   </app-page-header>
 
   <section class="dashboard-metrics" aria-label="Dashboard metrics">
@@ -90,7 +92,7 @@
           <tbody>
             @for (attempt of attempts().slice(0, 5); track attempt.attemptId) {
               <tr>
-                <td class="font-medium text-ink">{{ attempt.attemptId }}</td>
+                <td class="font-medium text-ink">{{ attempt.quizTitle }}</td>
                 <td>
                   @if (attempt.status === 'SUBMITTED') {
                     {{ attempt.scorePercentage | number:'1.0-1' }}%

@@ -52,7 +52,7 @@
   <app-loading-state message="Loading resources..." />
 } @else if (resourcesQuery.isError()) {
   <app-error-state
-    [message]="resourcesQuery.error()?.message ?? 'Failed to load resources'"
+    [message]="resourcesQuery.error().message ?? 'Failed to load resources'"
     (retry)="resourcesQuery.refetch()"
   />
 } @else {

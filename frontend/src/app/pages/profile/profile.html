@@ -2,7 +2,7 @@
   <app-loading-state message="Loading profile..." />
 } @else if (meQuery.isError()) {
   <app-error-state
-    [message]="meQuery.error()?.message ?? 'Failed to load profile'"
+    [message]="meQuery.error().message ?? 'Failed to load profile'"
     (retry)="meQuery.refetch()"
   />
 } @else if (!meQuery.data()) {

@@ -13,7 +13,6 @@ import { FormFieldComponent } from '../../shared/components/form-field/form-fiel
     FormsModule,
     RouterLink,
     ButtonComponent,
-    CardComponent,
     FormFieldComponent,
   ],
   templateUrl: './landing.component.html',

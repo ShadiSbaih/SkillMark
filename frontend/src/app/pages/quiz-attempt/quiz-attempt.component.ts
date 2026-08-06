@@ -61,6 +61,8 @@ export class QuizAttemptComponent implements OnInit {
   readonly timeRemainingMs = signal(0);
   readonly showSubmitModal = signal(false);
   readonly startError = signal<string | null>(null);
+  readonly isSubmitting = signal(false);
+  readonly submitError = signal<string | null>(null);
 
   private timerIntervalId: ReturnType<typeof setInterval> | null = null;
 
@@ -183,21 +185,26 @@ export class QuizAttemptComponent implements OnInit {
   }
 
   openSubmitModal(): void {
+    this.submitError.set(null);
     this.showSubmitModal.set(true);
   }
 
   closeSubmitModal(): void {
-    this.showSubmitModal.set(false);
+    if (!this.isSubmitting()) {
+      this.showSubmitModal.set(false);
+    }
   }
 
   confirmSubmit(): void {
-    this.showSubmitModal.set(false);
     this.submitAnswers(false);
   }
 
   private submitAnswers(auto: boolean): void {
     const attemptId = this.attemptId();
-    if (!attemptId) return;
+    if (!attemptId || this.isSubmitting()) return;
+
+    this.isSubmitting.set(true);
+    this.submitError.set(null);
 
     const request: SubmitAttemptRequest = {
       answers: Object.entries(this.answers()).map(([questionId, selectedOptionId]) => ({
@@ -211,13 +218,16 @@ export class QuizAttemptComponent implements OnInit {
       {
         onSuccess: () => {
           this.attemptStorage.clear(attemptId);
+          this.showSubmitModal.set(false);
           this.router.navigate(['/attempts', attemptId, 'result']);
         },
         onError: (error) => {
+          this.isSubmitting.set(false);
+          const msg = error?.message ?? 'Submission failed. Please try again.';
           if (auto) {
-            this.startError.set(
-              error?.message ?? 'Time is up, but submission failed.'
-            );
+            this.startError.set(`Time is up, but submission failed: ${msg}`);
+          } else {
+            this.submitError.set(msg);
           }
         },
       }

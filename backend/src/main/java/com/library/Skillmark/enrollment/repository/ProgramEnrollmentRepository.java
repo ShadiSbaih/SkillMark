@@ -2,6 +2,8 @@ package com.library.Skillmark.enrollment.repository;
 
 import com.library.Skillmark.enrollment.entity.ProgramEnrollment;
 import com.library.Skillmark.enrollment.enums.EnrollmentStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -14,7 +16,9 @@ public interface ProgramEnrollmentRepository extends JpaRepository<ProgramEnroll
     boolean existsByProgramIdAndUserIdAndStatus(UUID programId, UUID userId, EnrollmentStatus status);
     Optional<ProgramEnrollment> findByProgramIdAndUserIdAndStatus(UUID programId, UUID userId, EnrollmentStatus status);
     List<ProgramEnrollment> findByProgramIdAndStatus(UUID programId, EnrollmentStatus status);
+    Page<ProgramEnrollment> findByProgramIdAndStatus(UUID programId, EnrollmentStatus status, Pageable pageable);
     List<ProgramEnrollment> findByUserIdAndStatus(UUID userId, EnrollmentStatus status);
+    Page<ProgramEnrollment> findByUserIdAndStatus(UUID userId, EnrollmentStatus status, Pageable pageable);
     long countByProgramId(UUID programId);
     long countByProgramIdAndStatus(UUID programId, EnrollmentStatus status);
 

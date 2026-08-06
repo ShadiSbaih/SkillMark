@@ -4,7 +4,7 @@
     <app-loading-state message="Loading programs..." />
   } @else if (programsQuery.isError()) {
     <app-error-state
-      [message]="programsQuery.error()?.message ?? 'Failed to load programs'"
+      [message]="programsQuery.error().message ?? 'Failed to load programs'"
       (retry)="programsQuery.refetch()"
     />
   } @else if (programs().length === 0) {

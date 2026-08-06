@@ -7,7 +7,7 @@
   <app-loading-state message="Loading attempts..." />
 } @else if (query.isError()) {
   <app-error-state
-    [message]="query.error()?.message ?? 'Failed to load attempts.'"
+    [message]="query.error().message ?? 'Failed to load attempts.'"
     (retry)="query.refetch()"
   />
 } @else {
@@ -15,10 +15,12 @@
 
   @if (!pageData || pageData.items.length === 0) {
     <app-card>
-      <app-empty-state
-        title="No attempts yet"
-        description="You have not taken any quizzes yet."
-      />
+          <app-empty-state
+            title="No attempts yet"
+            description="You have not taken any quizzes yet. Go to your enrollments to start learning."
+            actionLabel="View Enrollments"
+            actionLink="/my-enrollments"
+          />
     </app-card>
   } @else {
     <app-card>
@@ -40,7 +42,7 @@
                     class="link"
                     [routerLink]="['/attempts', attempt.attemptId, 'result']"
                   >
-                    {{ attempt.attemptId }}
+                    {{ attempt.quizTitle }}
                   </a>
                 </td>
                 <td class="tabular-nums">

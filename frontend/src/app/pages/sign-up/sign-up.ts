@@ -28,7 +28,6 @@ export class SignUp {
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]],
     confirmPassword: ['', [Validators.required]],
-    role: ['STUDENT' as 'ADMIN' | 'STUDENT', [Validators.required]],
   });
 
   async onSubmit(): Promise<void> {
@@ -48,7 +47,6 @@ export class SignUp {
       name: values.name.trim(),
       email: values.email.trim(),
       password: values.password,
-      role: values.role,
     };
 
     this.isLoading.set(true);
@@ -61,7 +59,7 @@ export class SignUp {
       if (redirect) {
         await this.router.navigateByUrl(redirect);
       } else {
-        await this.router.navigate([user.role === 'ADMIN' ? '/programs' : '/my-enrollments']);
+        await this.router.navigate(['/my-enrollments']);
       }
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Sign up failed. Please try again.');

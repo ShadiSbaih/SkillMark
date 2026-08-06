@@ -17,7 +17,7 @@ interface NavLink {
 @Component({
   selector: 'app-dashboard-layout',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, LoadingStateComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet],
   templateUrl: './dashboard-layout.component.html',
   styleUrl: './dashboard-layout.component.scss',
 })

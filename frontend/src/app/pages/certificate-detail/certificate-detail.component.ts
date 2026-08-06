@@ -9,7 +9,6 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
 import { ErrorStateComponent } from '../../shared/components/error-state/error-state.component';
 import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
-import { StatusBadgeComponent } from '../../shared/components/status-badge/status-badge';
 
 @Component({
   selector: 'app-certificate-detail',
@@ -17,14 +16,11 @@ import { StatusBadgeComponent } from '../../shared/components/status-badge/statu
   imports: [
     DatePipe,
     DecimalPipe,
-    RouterLink,
     ButtonComponent,
-    CardComponent,
     EmptyStateComponent,
     ErrorStateComponent,
     LoadingStateComponent,
     PageHeaderComponent,
-    StatusBadgeComponent,
   ],
   templateUrl: './certificate-detail.component.html',
   styleUrl: './certificate-detail.component.scss',

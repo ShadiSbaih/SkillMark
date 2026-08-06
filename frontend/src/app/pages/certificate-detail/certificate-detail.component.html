@@ -1,7 +1,7 @@
 @if (query.isPending()) {
   <app-loading-state message="Loading certificate..." />
 } @else if (query.isError()) {
-  <app-error-state [message]="query.error()?.message ?? 'Failed to load certificate'" (retry)="query.refetch()" />
+  <app-error-state [message]="query.error().message ?? 'Failed to load certificate details'" (retry)="query.refetch()" />
 } @else {
   @let cert = certificate();
 
