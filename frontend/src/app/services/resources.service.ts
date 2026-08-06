@@ -76,7 +76,8 @@ export class ResourcesService {
   readonly deleteMutation = injectMutation(() => ({
     mutationFn: (resourceId: string) =>
       lastValueFrom(this.api.delete<void>(`resources/${resourceId}`)),
-    onSuccess: () => {
+    onSuccess: (_, resourceId) => {
+      this.queryClient.removeQueries({ queryKey: ['resource', resourceId] });
       this.queryClient.invalidateQueries({ queryKey: ['resources'] });
     },
   }));

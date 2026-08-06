@@ -110,7 +110,7 @@ export class ProgramsService {
     mutationFn: (programId: string) =>
       lastValueFrom(this.api.delete<void>(`programs/${programId}`)),
     onSuccess: (_, programId) => {
-      this.queryClient.invalidateQueries({ queryKey: ['program', programId] });
+      this.queryClient.removeQueries({ queryKey: ['program', programId] });
       this.queryClient.invalidateQueries({ queryKey: ['programs'] });
     },
   }));

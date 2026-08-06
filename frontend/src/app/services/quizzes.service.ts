@@ -91,7 +91,7 @@ export class QuizzesService {
     mutationFn: (quizId: string) =>
       lastValueFrom(this.api.delete<void>(`quizzes/${quizId}`)),
     onSuccess: (_, quizId) => {
-      this.queryClient.invalidateQueries({ queryKey: ['quiz', quizId] });
+      this.queryClient.removeQueries({ queryKey: ['quiz', quizId] });
       this.queryClient.invalidateQueries({ queryKey: ['quizzes'] });
     },
   }));

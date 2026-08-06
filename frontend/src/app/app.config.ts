@@ -17,6 +17,18 @@ export const appConfig: ApplicationConfig = {
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes, withComponentInputBinding()),
     provideHttpClient(withInterceptors([authInterceptor, errorInterceptor])),
-    provideQueryClient(new QueryClient()),
+    provideQueryClient(
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            retry: (failureCount, error: any) => {
+              if (error?.status === 404) return false;
+              return failureCount < 2;
+            },
+            refetchOnWindowFocus: false,
+          },
+        },
+      })
+    ),
   ],
 };

@@ -26,7 +26,10 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           : error.message;
 
         if (error.status !== 401 && !isMeEndpointNotFound) {
-          toast.error(message || 'An unexpected error occurred');
+          // Suppress global error toast for GET 404s since page components render inline error state views
+          if (!(error.status === 404 && req.method === 'GET')) {
+            toast.error(message || 'An unexpected error occurred');
+          }
         }
       } else {
         toast.error('An unexpected error occurred');
