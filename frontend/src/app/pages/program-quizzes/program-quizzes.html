@@ -13,7 +13,7 @@
   <app-loading-state message="Loading quizzes..." />
 } @else if (quizzesQuery.isError()) {
   <app-error-state
-    [message]="quizzesQuery.error().message ?? 'Failed to load quizzes'"
+    [message]="quizzesQuery.error()?.message || 'Failed to load quizzes'"
     (retry)="quizzesQuery.refetch()"
   />
 } @else {
@@ -48,7 +48,7 @@
               </div>
 
               <div class="space-y-1 text-sm text-ink-mute">
-                <p><span class="font-medium text-ink">Questions:</span> {{ quiz.questions?.length ?? 0 }}</p>
+                <p><span class="font-medium text-ink">Questions:</span> {{ quiz.questions ? quiz.questions.length : 0 }}</p>
                 <p><span class="font-medium text-ink">Passing Score:</span> {{ quiz.passingScore }}%</p>
                 <p><span class="font-medium text-ink">Duration:</span> {{ quiz.durationMinutes }} mins</p>
               </div>

@@ -2,7 +2,7 @@
   <app-loading-state message="Loading quiz settings..." />
 } @else if (quizQuery.isError()) {
   <app-error-state
-    [message]="quizQuery.error().message ?? 'Failed to load quiz settings.'"
+    [message]="quizQuery.error()?.message || 'Failed to load quiz settings.'"
     (retry)="quizQuery.refetch()"
   />
 } @else {
