@@ -1,338 +1,371 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Outfit:wght@300;400;500;700;800;900&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,400;1,600&family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 .certificate-container {
   display: flex;
   justify-content: center;
-  background: var(--canvas-soft);
+  background: var(--canvas-soft, #f8fafc);
   padding: 40px 20px;
   overflow-x: auto;
 }
 
-.certificate-modern-paper {
+.certificate-paper {
   position: relative;
-  display: flex;
   width: 1056px; /* Exact US Letter Landscape width at 96 DPI */
-  height: 740px; /* Highly optimized modern cinematic aspect ratio */
-  background: #FFFFFF;
+  height: 740px; /* Modern aspect ratio */
+  background: #ffffff;
+  border-radius: 8px;
   box-shadow: 
-    0 25px 50px -12px rgba(0, 0, 0, 0.15),
-    0 0 0 1px rgba(0, 0, 0, 0.05);
+    0 20px 40px -15px rgba(15, 23, 42, 0.08),
+    0 0 0 1px rgba(15, 23, 42, 0.06);
   overflow: hidden;
-  border-radius: 4px; /* Slight paper rounding */
-}
-
-/* -------------------------------------- */
-/* Left Sidebar (Dark Brand Section) */
-/* -------------------------------------- */
-.cert-sidebar {
-  width: 300px;
-  background: #090E17; /* Very deep premium ink */
-  color: #FFFFFF;
-  padding: 56px 48px;
+  padding: 56px 64px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  position: relative;
-  overflow: hidden;
+
+  &.is-revoked {
+    border-top: 4px solid #ef4444;
+  }
 }
 
-/* Subtle background accent in the sidebar */
-.cert-sidebar::before {
-  content: '';
+/* -------------------------------------- */
+/* Top Gradient Accent Bar */
+/* -------------------------------------- */
+.top-accent-bar {
   position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle at top left, rgba(197, 160, 89, 0.15) 0%, transparent 60%);
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: linear-gradient(90deg, #4f46e5 0%, #6366f1 40%, #a855f7 70%, #eab308 100%);
+}
+
+.is-revoked .top-accent-bar {
+  background: #ef4444;
+}
+
+/* -------------------------------------- */
+/* Micro Corner Accents */
+/* -------------------------------------- */
+.corner-accent {
+  position: absolute;
+  width: 24px;
+  height: 24px;
   pointer-events: none;
+  opacity: 0.35;
+
+  &.top-left {
+    top: 24px;
+    left: 24px;
+    border-top: 2px solid #4f46e5;
+    border-left: 2px solid #4f46e5;
+  }
+  &.top-right {
+    top: 24px;
+    right: 24px;
+    border-top: 2px solid #4f46e5;
+    border-right: 2px solid #4f46e5;
+  }
+  &.bottom-left {
+    bottom: 24px;
+    left: 24px;
+    border-bottom: 2px solid #4f46e5;
+    border-left: 2px solid #4f46e5;
+  }
+  &.bottom-right {
+    bottom: 24px;
+    right: 24px;
+    border-bottom: 2px solid #4f46e5;
+    border-right: 2px solid #4f46e5;
+  }
 }
 
-.cert-brand {
-  position: relative;
-  z-index: 2;
+/* -------------------------------------- */
+/* Certificate Header */
+/* -------------------------------------- */
+.cert-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 24px;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
 }
 
-.brand-logo {
-  color: #D4AF37; /* Elegant Gold */
-  margin-bottom: 24px;
+.brand-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-.brand-logo svg {
-  width: 48px;
-  height: 48px;
+.brand-logo-img {
+  height: 36px;
+  width: 36px;
+  object-fit: contain;
 }
 
-.brand-name {
+.brand-title {
   font-family: 'Outfit', sans-serif;
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-  color: #FFFFFF;
-  line-height: 1.6;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: #0f172a;
 }
 
-/* -------------------------------------- */
-/* Seal (Sidebar Center) */
-/* -------------------------------------- */
-.cert-seal-badge {
-  position: relative;
-  z-index: 2;
-  width: 140px;
-  height: 140px;
-  margin: 0 auto;
+/* Gold Emblem Badge moved to Header */
+.emblem-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  background: rgba(254, 240, 138, 0.15);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+
+  &.emblem-revoked {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.3);
+
+    .emblem-ring {
+      background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+    }
+    .emblem-title {
+      color: #ef4444;
+    }
+    .emblem-sub {
+      color: #f87171;
+    }
+  }
+}
+
+.emblem-ring {
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  background: transparent;
-  border: 2px solid rgba(212, 175, 55, 0.3); /* Gold ring */
+  background: linear-gradient(135deg, #fef08a 0%, #eab308 50%, #ca8a04 100%);
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 3px 10px rgba(234, 179, 8, 0.25);
+  border: 2px solid #ffffff;
+  flex-shrink: 0;
 }
 
-.seal-ring {
-  position: absolute;
-  inset: 12px;
-  border-radius: 50%;
-  border: 1px dashed rgba(212, 175, 55, 0.8);
-  animation: spin 60s linear infinite;
+.emblem-text-group {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
 }
 
-@keyframes spin {
-  100% { transform: rotate(360deg); }
-}
-
-.seal-text {
+.emblem-title {
   font-family: 'Outfit', sans-serif;
+  font-size: 13px;
   font-weight: 800;
-  font-size: 16px;
-  letter-spacing: 0.2em;
-  color: #D4AF37;
+  letter-spacing: 0.12em;
+  color: #ca8a04;
+  line-height: 1.1;
+}
+
+.emblem-sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #854d0e;
   text-transform: uppercase;
 }
 
-.cert-seal-badge.revoked .seal-ring {
-  border-color: rgba(220, 38, 38, 0.8);
+/* -------------------------------------- */
+/* Body Content */
+/* -------------------------------------- */
+.cert-body {
+  text-align: center;
+  margin: auto 0;
+  padding: 20px 0;
 }
-.cert-seal-badge.revoked .seal-text {
-  color: #EF4444;
+
+.cert-title-block {
+  margin-bottom: 28px;
 }
-.cert-seal-badge.revoked {
-  border-color: rgba(220, 38, 38, 0.3);
+
+.title-kicker {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  color: #64748b;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.cert-heading {
+  font-family: 'Outfit', sans-serif;
+  font-size: 42px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+  margin: 0;
+  line-height: 1.1;
+}
+
+.recipient-block {
+  margin-bottom: 32px;
+}
+
+.presented-to {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: #94a3b8;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.recipient-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 58px;
+  font-weight: 600;
+  font-style: italic;
+  color: #0f172a;
+  margin: 0 0 12px 0;
+  line-height: 1.1;
+}
+
+.recipient-divider {
+  width: 140px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #4f46e5, transparent);
+  margin: 0 auto;
+}
+
+.details-block {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.fulfillment-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  color: #475569;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.program-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 20px 0;
+  letter-spacing: -0.01em;
+}
+
+.assessment-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 8px 18px;
+  border-radius: 9999px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+
+  .quiz-label {
+    color: #64748b;
+    font-weight: 500;
+  }
+  .quiz-title {
+    color: #0f172a;
+    font-weight: 600;
+  }
+  .score-chip {
+    background: rgba(79, 70, 229, 0.1);
+    color: #4f46e5;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 12px;
+  }
 }
 
 /* -------------------------------------- */
-/* Meta List (Sidebar Bottom) */
+/* Footer Layout */
 /* -------------------------------------- */
-.cert-meta-list {
-  position: relative;
-  z-index: 2;
+.cert-footer {
   display: flex;
-  flex-direction: column;
-  gap: 24px;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding-top: 24px;
+  border-top: 1px solid rgba(226, 232, 240, 0.8);
 }
 
-.meta-item {
+.footer-meta {
+  display: flex;
+  gap: 32px;
+  text-align: left;
+}
+
+.meta-col {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .meta-label {
   font-family: 'Inter', sans-serif;
   font-size: 10px;
   font-weight: 600;
-  color: #64748B;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
 }
 
-.meta-value {
-  font-family: 'Outfit', sans-serif;
-  font-size: 14px;
-  font-weight: 400;
-  color: #F8FAFC;
-  letter-spacing: 0.05em;
-}
-
-.text-danger {
-  color: #EF4444 !important;
-}
-
-/* -------------------------------------- */
-/* Main Content Area (Right Side) */
-/* -------------------------------------- */
-.cert-main {
-  flex: 1;
-  background: #FDFDFD;
-  background-image: radial-gradient(#F1F1F1 1px, transparent 1px);
-  background-size: 32px 32px;
-  padding: 64px 80px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.cert-main-content {
-  max-width: 600px;
-}
-
-/* Title Group */
-.cert-title-group {
-  margin-bottom: 56px;
-}
-
-.modern-title {
-  font-family: 'Outfit', sans-serif;
-  font-size: 80px;
-  font-weight: 900;
-  line-height: 0.9;
-  color: #090E17;
-  letter-spacing: -0.02em;
-  margin: 0;
-}
-
-.modern-subtitle {
-  font-family: 'Outfit', sans-serif;
-  font-size: 32px;
-  font-weight: 300;
-  color: #D4AF37;
-  letter-spacing: 0.25em;
-  margin: 4px 0 0 4px;
-}
-
-/* Awarded Section */
-.cert-awarded-section {
-  margin-bottom: 48px;
-}
-
-.awarded-kicker {
+.meta-val {
   font-family: 'Inter', sans-serif;
   font-size: 12px;
   font-weight: 600;
-  color: #94A3B8;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  margin-bottom: 16px;
+  color: #1e293b;
+
+  &.code-font {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    color: #475569;
+  }
 }
 
-.recipient-name {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 64px;
-  font-style: italic;
-  font-weight: 600;
-  color: #090E17;
-  margin: 0;
-  line-height: 1.1;
+.footer-signature {
+  text-align: right;
+  width: 220px;
 }
 
-/* Details Section */
-.cert-details-section {
-  margin-bottom: 64px;
-}
-
-.details-text {
-  font-family: 'Inter', sans-serif;
-  font-size: 16px;
-  color: #475569;
-  line-height: 1.6;
+.signature-line {
+  height: 1px;
+  background: #cbd5e1;
   margin-bottom: 12px;
 }
 
-.program-name {
-  font-family: 'Outfit', sans-serif;
-  font-size: 28px;
-  font-weight: 700;
-  color: #090E17;
-  margin: 0 0 24px 0;
-  letter-spacing: 0.02em;
-}
-
-.assessment-details {
-  border-left: 2px solid #E2E8F0;
-  padding-left: 20px;
-  margin-bottom: 24px;
-}
-
-.assessment-details p {
-  font-family: 'Inter', sans-serif;
-  font-size: 13px;
-  color: #64748B;
-  margin: 0 0 4px 0;
-}
-
-.assessment-details h5 {
-  font-family: 'Outfit', sans-serif;
-  font-size: 18px;
-  font-weight: 500;
-  color: #090E17;
-  margin: 0;
-}
-
-/* Score Badge */
-.score-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 16px;
-  background: #F8FAFC;
-  border: 1px solid #E2E8F0;
-  padding: 12px 24px;
-  border-radius: 4px;
-}
-
-.score-label {
-  font-family: 'Inter', sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  color: #64748B;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-}
-
-.score-value {
-  font-family: 'Outfit', sans-serif;
-  font-size: 24px;
-  font-weight: 800;
-  color: #D4AF37;
-}
-
-/* Signatures */
-.cert-signatures-section {
-  display: flex;
-  gap: 80px;
-}
-
-.signature-block {
-  width: 240px;
-}
-
-.sig-line {
-  height: 2px;
-  background: #E2E8F0;
-  margin-bottom: 16px;
-}
-
-.sig-name {
+.signer-name {
   font-family: 'Cormorant Garamond', serif;
-  font-size: 22px;
-  font-weight: 600;
+  font-size: 20px;
   font-style: italic;
-  color: #090E17;
-  margin: 0 0 4px 0;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 0 0 2px 0;
 }
 
-.sig-title {
+.signer-title {
   font-family: 'Inter', sans-serif;
-  font-size: 11px;
-  font-weight: 500;
-  color: #94A3B8;
+  font-size: 10px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
   margin: 0;
-}
-
-.opacity-0 {
-  opacity: 0;
 }
 
 /* -------------------------------------- */
@@ -369,31 +402,12 @@
       z-index: 9999 !important;
     }
 
-    .certificate-modern-paper {
+    .certificate-paper {
       width: 1056px !important;
-      height: 816px !important;
+      height: 740px !important;
       box-shadow: none !important;
       border: none !important;
       border-radius: 0 !important;
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-    }
-
-    .cert-sidebar {
-      background-color: #090E17 !important;
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-    }
-
-    .cert-seal-badge {
-      border-color: rgba(212, 175, 55, 0.3) !important;
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-    }
-
-    .seal-ring {
-      border-color: rgba(212, 175, 55, 0.8) !important;
-      animation: none !important; /* Stop spinning on print */
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
     }

@@ -22,88 +22,99 @@
     </app-page-header>
 
     <div class="certificate-container">
-      <div class="certificate-modern-paper">
-        <div class="cert-sidebar">
-          <div class="cert-brand">
-            <div class="brand-logo">
-              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></svg>
-            </div>
-            <div class="brand-name">Skillmark</div>
-          </div>
-          
-          <div class="cert-seal-badge" [class.revoked]="cert.status === 'REVOKED'">
-            <div class="seal-ring"></div>
-            <span class="seal-text">{{ cert.status === 'REVOKED' ? 'REVOKED' : 'OFFICIAL' }}</span>
+      <div class="certificate-paper" [class.is-revoked]="cert.status === 'REVOKED'">
+        <!-- Micro-Guilloche / Corner Geometry Accents -->
+        <div class="corner-accent top-left"></div>
+        <div class="corner-accent top-right"></div>
+        <div class="corner-accent bottom-left"></div>
+        <div class="corner-accent bottom-right"></div>
+
+        <!-- Top Accent Bar -->
+        <div class="top-accent-bar"></div>
+
+        <!-- Certificate Header -->
+        <div class="cert-header">
+          <div class="brand-badge">
+            <img src="/logo.png" alt="Skillmark Logo" class="brand-logo-img" />
+            <span class="brand-title">SKILLMARK</span>
           </div>
 
-          <div class="cert-meta-list">
-            <div class="meta-item">
-              <span class="meta-label">Issued On</span>
-              <span class="meta-value">{{ cert.issuedAt | date:'longDate' }}</span>
+          <!-- Official Gold Emblem Badge moved to top right header -->
+          <div class="emblem-badge" [class.emblem-revoked]="cert.status === 'REVOKED'">
+            <div class="emblem-ring">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                @if (cert.status === 'REVOKED') {
+                  <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+                } @else {
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                }
+              </svg>
             </div>
-            @if (cert.status === 'REVOKED' && cert.revokedAt) {
-              <div class="meta-item">
-                <span class="meta-label text-danger">Revoked On</span>
-                <span class="meta-value text-danger">{{ cert.revokedAt | date:'longDate' }}</span>
-              </div>
-            }
-            <div class="meta-item">
-              <span class="meta-label">Certificate ID</span>
-              <span class="meta-value">{{ cert.certificateNumber }}</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-label">Verification Code</span>
-              <span class="meta-value">{{ cert.verificationCode }}</span>
+            <div class="emblem-text-group">
+              <span class="emblem-title">{{ cert.status === 'REVOKED' ? 'REVOKED' : 'VERIFIED' }}</span>
+              <span class="emblem-sub">OFFICIAL CREDENTIAL</span>
             </div>
           </div>
         </div>
-        
-        <div class="cert-main">
-          <div class="cert-main-content">
-            <div class="cert-title-group">
-              <h1 class="modern-title">CERTIFICATE</h1>
-              <h2 class="modern-subtitle">OF COMPLETION</h2>
-            </div>
 
-            <div class="cert-awarded-section">
-              <p class="awarded-kicker">THIS IS PROUDLY PRESENTED TO</p>
-              <h3 class="recipient-name">{{ cert.participantNameSnapshot }}</h3>
-            </div>
+        <!-- Certificate Body Content -->
+        <div class="cert-body">
+          <div class="cert-title-block">
+            <span class="title-kicker">CERTIFICATE OF ACHIEVEMENT</span>
+            <h1 class="cert-heading">Program Completion</h1>
+          </div>
 
-            <div class="cert-details-section">
-              <p class="details-text">For successfully fulfilling the requirements and completing the program:</p>
-              <h4 class="program-name">{{ cert.programTitleSnapshot }}</h4>
-              
-              <div class="assessment-details">
-                <p>Including the final assessment</p>
-                <h5>{{ cert.quizTitleSnapshot }}</h5>
-              </div>
-              
+          <div class="recipient-block">
+            <p class="presented-to">THIS IS PROUDLY PRESENTED TO</p>
+            <h2 class="recipient-name">{{ cert.participantNameSnapshot }}</h2>
+            <div class="recipient-divider"></div>
+          </div>
+
+          <div class="details-block">
+            <p class="fulfillment-text">
+              For successfully completing all requirements and demonstrating technical proficiency in
+            </p>
+            <h3 class="program-title">{{ cert.programTitleSnapshot }}</h3>
+            
+            <div class="assessment-pill">
+              <span class="quiz-label">Assessment:</span>
+              <span class="quiz-title">{{ cert.quizTitleSnapshot }}</span>
               @if (cert.scoreSnapshot != null) {
-                <div class="score-badge">
-                  <span class="score-label">Final Score</span>
-                  <span class="score-value">{{ cert.scoreSnapshot | number:'1.1-1' }}%</span>
-                </div>
+                <span class="score-chip">Score: {{ cert.scoreSnapshot | number:'1.1-1' }}%</span>
               }
             </div>
+          </div>
+        </div>
 
-            <div class="cert-signatures-section">
-              <div class="signature-block">
-                <div class="sig-line"></div>
-                <p class="sig-name">{{ cert.ownerNameSnapshot || 'Authorized Administrator' }}</p>
-                <p class="sig-title">Program Director</p>
-              </div>
-              
-              <!-- Optional second signature block could go here for balance -->
-              <div class="signature-block opacity-0"></div>
+        <!-- Certificate Footer -->
+        <div class="cert-footer">
+          <!-- Left Meta Block -->
+          <div class="footer-meta">
+            <div class="meta-col">
+              <span class="meta-label">Issued Date</span>
+              <span class="meta-val">{{ cert.issuedAt | date:'longDate' }}</span>
             </div>
+            <div class="meta-col">
+              <span class="meta-label">Certificate ID</span>
+              <span class="meta-val code-font">{{ cert.certificateNumber }}</span>
+            </div>
+            <div class="meta-col">
+              <span class="meta-label">Verification Code</span>
+              <span class="meta-val code-font">{{ cert.verificationCode }}</span>
+            </div>
+          </div>
+
+          <!-- Right Signature Block -->
+          <div class="footer-signature">
+            <div class="signature-line"></div>
+            <p class="signer-name">{{ cert.ownerNameSnapshot || 'Authorized Administrator' }}</p>
+            <p class="signer-title">Program Director & Instructor</p>
           </div>
         </div>
       </div>
     </div>
   } @else {
     <app-page-header title="Certificate not found" />
-
     <app-empty-state
       title="Certificate not found"
       description="The requested certificate could not be loaded."
