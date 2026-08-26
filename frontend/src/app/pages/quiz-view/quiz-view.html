@@ -1,0 +1,91 @@
+@if (quizQuery.isPending()) {
+  <app-loading-state message="Loading quiz..." />
+} @else if (quizQuery.error()) {
+  <app-error-state
+    [message]="quizQuery.error()?.message ?? 'Failed to load quiz'"
+    (retry)="quizQuery.refetch()"
+  />
+} @else if (quiz(); as quiz) {
+  <div class="space-y-6">
+    <header class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <p class="text-xs font-medium uppercase text-ink-mute">Quiz preview</p>
+        <h1 class="mt-1 text-2xl font-bold text-ink">{{ quiz.title }}</h1>
+        @if (quiz.description) {
+          <p class="mt-1 text-sm text-ink-mute">{{ quiz.description }}</p>
+        }
+      </div>
+      <div class="flex gap-3">
+        <a class="button button-secondary" [routerLink]="['/quizzes', quiz.id]">
+          Back to overview
+        </a>
+        <a class="button button-secondary" [routerLink]="['/quizzes', quiz.id, 'builder']">
+          Edit quiz
+        </a>
+        <a class="button button-primary" [routerLink]="['/quizzes', quiz.id, 'attempt']">
+          Start attempt
+        </a>
+      </div>
+    </header>
+
+    <app-card>
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div>
+          <p class="text-xs font-medium uppercase text-ink-mute">Passing score</p>
+          <p class="text-lg font-semibold text-ink">{{ quiz.passingScore | number }}%</p>
+        </div>
+        <div>
+          <p class="text-xs font-medium uppercase text-ink-mute">Duration</p>
+          <p class="text-lg font-semibold text-ink">{{ quiz.durationMinutes }} min</p>
+        </div>
+        <div>
+          <p class="text-xs font-medium uppercase text-ink-mute">Max attempts</p>
+          <p class="text-lg font-semibold text-ink">{{ quiz.maxAttempts }}</p>
+        </div>
+        <div>
+          <p class="text-xs font-medium uppercase text-ink-mute">Questions</p>
+          <p class="text-lg font-semibold text-ink">{{ quiz.questions.length }}</p>
+        </div>
+      </div>
+    </app-card>
+
+    <app-card>
+      <h2 class="mb-4 text-lg font-semibold text-ink">
+        Questions ({{ totalPoints() }} points total)
+      </h2>
+      @if (quiz.questions.length === 0) {
+        <app-empty-state
+          title="No questions yet"
+          description="No questions have been added to this quiz yet."
+        />
+      } @else {
+        <ol class="space-y-6">
+          @for (question of quiz.questions; track question.id; let i = $index) {
+            <li class="rounded-lg border border-light p-4">
+              <p class="font-medium text-ink">
+                <span class="question-number">{{ i + 1 }}.</span>{{ question.text }}
+                <span class="question-points">({{ question.points }} pts)</span>
+              </p>
+              <ul class="mt-3 space-y-2">
+                @for (option of question.options; track option.id) {
+                  <li
+                    class="rounded border px-3 py-2 text-sm"
+                    [class.border-success]="option.isCorrect"
+                    [class.bg-success-light]="option.isCorrect"
+                    [class.border-light]="!option.isCorrect"
+                    [class.text-ink]="!option.isCorrect"
+                  >
+                    {{ option.text }}
+                    @if (option.isCorrect) {
+                      <span class="option-correct-badge">Correct</span>
+                    }
+                  </li>
+                }
+              </ul>
+            </li>
+          }
+        </ol>
+      }
+    </app-card>
+  </div>
+}

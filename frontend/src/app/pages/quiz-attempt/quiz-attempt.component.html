@@ -1,45 +1,163 @@
-<section class="page quiz-page">
-  <header class="page-heading">
-    <div>
-      <p class="breadcrumb">Quizzes / {{ quiz.title }} / Attempt</p>
-      <h1>{{ quiz.title }}</h1>
-      <p>{{ quiz.description }}</p>
-    </div>
-    <div class="timer-card">
-      <span>Remaining</span>
-      <strong>28:14</strong>
-    </div>
-  </header>
+@if (quizQuery.isPending()) {
+  <app-loading-state message="Loading quiz..." />
+} @else if (quizQuery.isError()) {
+  <app-error-state
+    [message]="quizQuery.error()?.message || 'Failed to load quiz'"
+    (retry)="quizQuery.refetch()"
+  />
+} @else {
+  @let quiz = quizQuery.data();
 
-  <div class="two-column wide-left">
-    <div class="stack">
-      @for (question of quiz.questions; track question.id; let index = $index) {
-        <article class="panel question-card">
-          <div class="panel-header">
-            <h2>{{ index + 1 }}. {{ question.text }}</h2>
-            <span class="numeric">{{ question.points }} pts</span>
+  @if (!quiz) {
+    <app-empty-state
+      title="Quiz not found"
+      description="The quiz you are looking for does not exist or is unavailable."
+    />
+  } @else if (startError()) {
+    <app-error-state
+      [message]="startError() ?? 'Failed to start attempt'"
+      (retry)="startAttempt(quiz)"
+    />
+  } @else if (quiz.questions.length === 0) {
+    <app-empty-state
+      title="No questions"
+      description="This quiz does not have any questions yet."
+    />
+  } @else {
+    <section class="page quiz-page">
+      <header class="page-heading">
+        <div>
+          <p class="breadcrumb">Quizzes / {{ quiz.title }} / Attempt</p>
+          <h1>{{ quiz.title }}</h1>
+          <p>{{ quiz.description ?? 'Answer all questions before time runs out.' }}</p>
+        </div>
+        <div class="timer-card" [class.warning]="timerWarning()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="timer-icon">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <div class="timer-text">
+            <span>Remaining</span>
+            <strong>{{ timerDisplay() }}</strong>
           </div>
-          <div class="option-grid">
-            @for (option of question.options; track option.id) {
-              <label class="option-card">
-                <input type="radio" [name]="question.id" [checked]="option.id === selected" />
-                <span>{{ option.text }}</span>
-              </label>
+        </div>
+      </header>
+
+      <div class="attempt-layout">
+        <div class="attempt-main">
+          @let question = currentQuestion();
+          @if (question) {
+            <article class="panel question-card">
+              <div class="panel-header">
+                <h2>{{ currentQuestionIndex() + 1 }}. {{ question.text }}</h2>
+                <app-badge variant="info">{{ question.points }} pts</app-badge>
+              </div>
+              <div class="option-list">
+                @for (option of question.options; track option.id) {
+                  <label
+                    class="option-item"
+                    [class.selected]="getSelectedOption(question.id) === option.id"
+                  >
+                    <input
+                      type="radio"
+                      [name]="question.id"
+                      class="sr-only"
+                      [checked]="getSelectedOption(question.id) === option.id"
+                      (change)="selectOption(question.id, option.id)"
+                    />
+                    <div class="custom-radio">
+                      @if (getSelectedOption(question.id) === option.id) {
+                        <div class="custom-radio-inner"></div>
+                      }
+                    </div>
+                    <span class="option-text">{{ option.text }}</span>
+                  </label>
+                }
+              </div>
+            </article>
+          }
+
+          <div class="button-row">
+            <app-button
+              variant="secondary"
+              [disabled]="currentQuestionIndex() === 0"
+              (clicked)="previous()"
+            >
+              Previous
+            </app-button>
+            @if (isLastQuestion()) {
+              <app-button (clicked)="openSubmitModal()" [disabled]="isSubmitting()">Submit</app-button>
+            } @else {
+              <app-button (clicked)="next()">Next</app-button>
             }
           </div>
-        </article>
-      }
-    </div>
+        </div>
 
-    <aside class="panel">
-      <h2>Attempt summary</h2>
-      <p class="muted">Answers are submitted together. The backend validates attempt ownership and expiry.</p>
-      <dl class="detail-grid single">
-        <div><dt>Passing score</dt><dd>{{ quiz.passingScore }}%</dd></div>
-        <div><dt>Duration</dt><dd>{{ quiz.durationMinutes }} minutes</dd></div>
-        <div><dt>Max attempts</dt><dd>{{ quiz.maxAttempts }}</dd></div>
-      </dl>
-      <a class="button button-primary full-width" routerLink="/attempts/attempt-1/result">Submit quiz</a>
-    </aside>
-  </div>
-</section>
+        <aside class="panel min-w-0 w-full lg:w-40">
+          <h2>Question navigator</h2>
+          <p class="muted">{{ answeredCount() }} of {{ totalQuestions() }} answered</p>
+
+          <div class="navigator-grid">
+            @for (q of quiz.questions; track q.id; let i = $index) {
+              <button
+                type="button"
+                class="navigator-item"
+                [class.current]="i === currentQuestionIndex()"
+                [class.answered]="isAnswered(q.id)"
+                (click)="goToQuestion(i)"
+              >
+                {{ i + 1 }}
+              </button>
+            }
+          </div>
+
+          <div class="attempt-summary">
+            <h3>Attempt summary</h3>
+            <dl class="detail-grid single">
+              <div>
+                <dt>Passing score</dt>
+                <dd>{{ quiz.passingScore }}%</dd>
+              </div>
+              <div>
+                <dt>Duration</dt>
+                <dd>{{ quiz.durationMinutes }} minutes</dd>
+              </div>
+              <div>
+                <dt>Max attempts</dt>
+                <dd>{{ quiz.maxAttempts }}</dd>
+              </div>
+            </dl>
+          </div>
+
+          <app-button
+            class="full-width"
+            variant="primary"
+            [disabled]="!attemptId() || isSubmitting()"
+            (clicked)="openSubmitModal()"
+          >
+            Submit quiz
+          </app-button>
+        </aside>
+      </div>
+    </section>
+  }
+}
+
+<app-modal
+  [open]="showSubmitModal()"
+  title="Submit quiz?"
+  confirmLabel="Submit"
+  [loading]="isSubmitting()"
+  (close)="closeSubmitModal()"
+  (confirm)="confirmSubmit()"
+>
+  <p>
+    You have answered {{ answeredCount() }} of {{ totalQuestions() }} questions. Once submitted, you
+    cannot change your answers.
+  </p>
+  @if (submitError()) {
+    <div class="mt-4 p-3 bg-danger/10 text-danger rounded-md text-sm font-medium">
+      {{ submitError() }}
+    </div>
+  }
+</app-modal>

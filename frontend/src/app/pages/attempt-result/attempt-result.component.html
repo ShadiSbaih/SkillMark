@@ -1,29 +1,100 @@
-<section class="page">
-  <header class="page-heading">
-    <div>
-      <p class="breadcrumb">Attempts / Result</p>
-      <h1>Attempt result</h1>
-      <p>Your submitted answers were scored and certificate eligibility was checked.</p>
-    </div>
-    <a class="button button-primary" [routerLink]="['/certificates', certificate.id]">View certificate</a>
-  </header>
+@if (attemptQuery.isPending() || quizQuery.isPending()) {
+  <app-loading-state message="Loading result..." />
+} @else if (attemptQuery.isError()) {
+  <app-error-state
+    [message]="attemptQuery.error().message ?? 'Failed to load attempt result'"
+    (retry)="attemptQuery.refetch()"
+  />
+} @else if (quizQuery.isError()) {
+  <app-error-state
+    [message]="quizQuery.error().message ?? 'Failed to load quiz details'"
+    (retry)="quizQuery.refetch()"
+  />
+} @else {
+  @let attempt = attemptQuery.data();
+  @let quiz = quizQuery.data();
 
-  <div class="two-column">
-    <article class="panel result-panel">
-      <span class="status status-active">PASSED</span>
-      <h2>{{ attempt.score }}%</h2>
-      <p>{{ attempt.participant }} passed {{ attempt.quizTitle }}.</p>
-      <div class="progress-track"><span [style.width.%]="attempt.score"></span></div>
-    </article>
-    <article class="panel">
-      <h2>Certificate issued</h2>
-      <p class="muted">Automatic certificate issue mode created a public verification record.</p>
-      <dl class="detail-grid single">
-        <div><dt>Recipient</dt><dd>{{ certificate.recipientName }}</dd></div>
-        <div><dt>Verification code</dt><dd>{{ certificate.verificationCode }}</dd></div>
-        <div><dt>Status</dt><dd><span class="status status-active">{{ certificate.status }}</span></dd></div>
-      </dl>
-      <a class="button button-secondary full-width" [routerLink]="['/verify', certificate.verificationCode]">Public verification</a>
-    </article>
-  </div>
-</section>
+  @if (attempt) {
+    <app-page-header
+      title="Attempt Result"
+      [subtitle]="quiz?.description ?? 'View your score and certificate status'"
+      [hasActions]="true"
+    >
+      <ng-container actions>
+        <app-button variant="secondary" (clicked)="backToAttempts()">
+          Back
+        </app-button>
+      </ng-container>
+    </app-page-header>
+
+    <app-card>
+      <div class="space-y-6">
+        <div class="flex flex-col gap-1">
+          <h2 class="text-xl font-semibold text-ink">
+            {{ quiz?.title ?? 'Untitled Quiz' }}
+          </h2>
+          @if (quiz?.description) {
+            <p class="text-sm text-ink-mute">{{ quiz?.description }}</p>
+          }
+        </div>
+
+        <div class="flex items-end gap-3">
+          <span class="text-5xl font-bold text-ink">
+            {{ attempt.earnedPoints }} / {{ attempt.totalPoints }}
+          </span>
+          <span class="mb-1 text-xl font-medium text-ink-mute">
+            ({{ attempt.scorePercentage }}%)
+          </span>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3 text-sm">
+          <app-badge [variant]="attempt.status === 'SUBMITTED' ? (attempt.passed ? 'success' : 'danger') : attempt.status === 'IN_PROGRESS' ? 'warning' : 'default'">
+            @if (attempt.status === 'IN_PROGRESS') {
+              In Progress
+            } @else if (attempt.status === 'EXPIRED') {
+              Expired
+            } @else if (attempt.status === 'CANCELLED') {
+              Cancelled
+            } @else {
+              {{ attempt.passed ? 'Passed' : 'Failed' }}
+            }
+          </app-badge>
+          <span class="text-ink-mute">
+            Status:
+            <span class="font-medium text-ink">{{ attempt.status }}</span>
+          </span>
+          @if (attempt.submittedAt) {
+            <span class="text-ink-mute">
+              Submitted:
+              <span class="font-medium text-ink">
+                {{ attempt.submittedAt | date: 'medium' }}
+              </span>
+            </span>
+          }
+          <span class="text-ink-mute">
+            Attempt #{{ attempt.attemptNumber }}
+          </span>
+        </div>
+      </div>
+    </app-card>
+
+    @if (attempt.passed && attempt.certificateId) {
+      <div class="mt-6">
+        <app-card>
+          <div class="certificate-section">
+            <h3 class="text-lg font-semibold text-ink">Certificate</h3>
+            <p class="mt-1 text-sm text-ink-mute">
+              Your certificate has been issued.
+            </p>
+            <a
+              class="button button-primary mt-4 inline-flex"
+              [routerLink]="['/certificates', attempt.certificateId]"
+            >
+              View certificate
+            </a>
+          </div>
+        </app-card>
+      </div>
+    }
+  }
+}

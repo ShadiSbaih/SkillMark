@@ -13,7 +13,7 @@ public record CreateQuestionRequest(
         @NotBlank String text,
         @NotNull QuestionType type,
         @NotNull @Min(1) Integer points,
-        @NotNull @Min(1) Integer position,
+        @NotNull @Min(0) Integer position,
         @NotEmpty @Valid List<CreateOptionRequest> options
 ) {
 }

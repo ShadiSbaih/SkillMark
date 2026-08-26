@@ -10,6 +10,7 @@ import java.util.UUID;
 public record AttemptResponse(
         UUID attemptId,
         UUID quizId,
+        String quizTitle,
         UUID userId,
         Integer attemptNumber,
         Instant expiresAt,
@@ -25,6 +26,7 @@ public record AttemptResponse(
         return new AttemptResponse(
                 attempt.getId(),
                 attempt.getQuiz().getId(),
+                attempt.getQuiz().getTitle(),
                 attempt.getUser().getId(),
                 attempt.getAttemptNumber(),
                 attempt.getExpiresAt(),

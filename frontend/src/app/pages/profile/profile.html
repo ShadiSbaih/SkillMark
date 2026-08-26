@@ -1,0 +1,95 @@
+@if (meQuery.isPending()) {
+  <app-loading-state message="Loading profile..." />
+} @else if (meQuery.isError()) {
+  <app-error-state
+    [message]="meQuery.error().message ?? 'Failed to load profile'"
+    (retry)="meQuery.refetch()"
+  />
+} @else if (!meQuery.data()) {
+  <app-empty-state
+    title="Profile not found"
+    description="We couldn't load your profile. Please try again."
+    actionLabel="Retry"
+    (action)="meQuery.refetch()"
+  />
+} @else {
+  <app-page-header title="Profile" subtitle="Manage your account" />
+
+  <app-card>
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
+      <div class="flex items-center gap-4">
+        <app-avatar
+          [src]="avatarUrl()"
+          [name]="displayName()"
+          [fallback]="displayName()"
+          size="xl"
+        />
+        <div>
+          <p class="text-lg font-medium text-ink">{{ displayName() || 'Your profile' }}</p>
+          <p class="text-sm text-ink-mute">{{ email() }}</p>
+        </div>
+      </div>
+
+      <app-form-field
+        id="name"
+        label="Display name"
+        [error]="form.get('name')?.invalid && form.get('name')?.touched ? 'Name is required and must be 100 characters or less.' : ''"
+      >
+        <input
+          id="name"
+          type="text"
+          formControlName="name"
+          class="form-input"
+          placeholder="Your name"
+        />
+      </app-form-field>
+
+      <app-form-field
+        id="email"
+        label="Email"
+        hint="Your email is managed through your authentication provider."
+      >
+        <input
+          id="email"
+          type="email"
+          [value]="email()"
+          disabled
+          class="form-input cursor-not-allowed"
+        />
+      </app-form-field>
+
+      <app-form-field
+        id="userId"
+        label="User ID"
+        hint="Share this ID with the administrator so they can enroll you in programs."
+      >
+        <input
+          id="userId"
+          type="text"
+          [value]="userId()"
+          readonly
+          class="form-input bg-canvas-soft"
+          onclick="this.select()"
+        />
+      </app-form-field>
+
+      <div class="flex justify-end gap-3">
+        <app-button
+          type="button"
+          variant="ghost"
+          (clicked)="form.reset({ name: meQuery.data()?.name ?? '' })"
+          [disabled]="usersService.updateMeMutation.isPending()"
+        >
+          Reset
+        </app-button>
+        <app-button
+          type="submit"
+          [loading]="usersService.updateMeMutation.isPending()"
+          [disabled]="form.invalid || usersService.updateMeMutation.isPending()"
+        >
+          Save changes
+        </app-button>
+      </div>
+    </form>
+  </app-card>
+}

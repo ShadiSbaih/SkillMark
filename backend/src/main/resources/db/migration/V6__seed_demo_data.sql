@@ -1,9 +1,9 @@
-INSERT INTO users (id, clerk_user_id, name, email, avatar_url, status, created_at, updated_at)
+INSERT INTO users (id, name, email, avatar_url, status, created_at, updated_at)
 VALUES
-    ('00000000-0000-0000-0000-000000000101', 'user_seed_owner', 'Maya Carter', 'maya.owner@skillmark.local', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330', 'ACTIVE', now(), now()),
-    ('00000000-0000-0000-0000-000000000102', 'user_seed_learner_1', 'Omar Haddad', 'omar.learner@skillmark.local', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e', 'ACTIVE', now(), now()),
-    ('00000000-0000-0000-0000-000000000103', 'user_seed_learner_2', 'Lina Mansour', 'lina.learner@skillmark.local', 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80', 'ACTIVE', now(), now())
-ON CONFLICT (clerk_user_id) DO UPDATE
+    ('00000000-0000-0000-0000-000000000101', 'Maya Carter', 'maya.owner@skillmark.local', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330', 'ACTIVE', now(), now()),
+    ('00000000-0000-0000-0000-000000000102', 'Omar Haddad', 'omar.learner@skillmark.local', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e', 'ACTIVE', now(), now()),
+    ('00000000-0000-0000-0000-000000000103', 'Lina Mansour', 'lina.learner@skillmark.local', 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80', 'ACTIVE', now(), now())
+ON CONFLICT (id) DO UPDATE
 SET name = EXCLUDED.name,
     email = EXCLUDED.email,
     avatar_url = EXCLUDED.avatar_url,
@@ -154,8 +154,7 @@ SET title = EXCLUDED.title,
 INSERT INTO quiz_questions (id, quiz_id, text, type, points, position, created_at, updated_at)
 VALUES
     ('00000000-0000-0000-0000-000000000701', '00000000-0000-0000-0000-000000000601', 'Which setting is required for a Neon PostgreSQL production connection?', 'SINGLE_CHOICE', 1, 1, now(), now()),
-    ('00000000-0000-0000-0000-000000000702', '00000000-0000-0000-0000-000000000601', 'What should own schema changes in this backend?', 'SINGLE_CHOICE', 1, 2, now(), now()),
-    ('00000000-0000-0000-0000-000000000703', '00000000-0000-0000-0000-000000000601', 'Why does the backend store users with clerk_user_id?', 'SINGLE_CHOICE', 1, 3, now(), now())
+    ('00000000-0000-0000-0000-000000000702', '00000000-0000-0000-0000-000000000601', 'What should own schema changes in this backend?', 'SINGLE_CHOICE', 1, 2, now(), now())
 ON CONFLICT (id) DO UPDATE
 SET text = EXCLUDED.text,
     type = EXCLUDED.type,
@@ -170,10 +169,7 @@ VALUES
     ('00000000-0000-0000-0000-000000000803', '00000000-0000-0000-0000-000000000701', 'Using an embedded H2 database in production', false, 3, now(), now()),
     ('00000000-0000-0000-0000-000000000804', '00000000-0000-0000-0000-000000000702', 'Flyway migrations committed with the backend', true, 1, now(), now()),
     ('00000000-0000-0000-0000-000000000805', '00000000-0000-0000-0000-000000000702', 'Manual edits in the Neon console only', false, 2, now(), now()),
-    ('00000000-0000-0000-0000-000000000806', '00000000-0000-0000-0000-000000000702', 'Hibernate create-drop in production', false, 3, now(), now()),
-    ('00000000-0000-0000-0000-000000000807', '00000000-0000-0000-0000-000000000703', 'Clerk is the identity provider, while the backend stores app-specific user records', true, 1, now(), now()),
-    ('00000000-0000-0000-0000-000000000808', '00000000-0000-0000-0000-000000000703', 'The backend stores Clerk passwords locally', false, 2, now(), now()),
-    ('00000000-0000-0000-0000-000000000809', '00000000-0000-0000-0000-000000000703', 'The app does not need local users', false, 3, now(), now())
+    ('00000000-0000-0000-0000-000000000806', '00000000-0000-0000-0000-000000000702', 'Hibernate create-drop in production', false, 3, now(), now())
 ON CONFLICT (id) DO UPDATE
 SET text = EXCLUDED.text,
     is_correct = EXCLUDED.is_correct,
@@ -220,7 +216,7 @@ VALUES (
     '00000000-0000-0000-0000-000000001101',
     '00000000-0000-0000-0000-000000000601',
     '00000000-0000-0000-0000-000000000103',
-    3,
+    2,
     100.00,
     true,
     'SUBMITTED',
@@ -230,8 +226,8 @@ VALUES (
     now() - INTERVAL '1 day',
     1,
     now() - INTERVAL '1 day 30 minutes',
-    3,
-    3,
+    2,
+    2,
     true
 )
 ON CONFLICT (id) DO UPDATE
@@ -250,8 +246,7 @@ INSERT INTO quiz_attempt_answers (
 )
 VALUES
     ('00000000-0000-0000-0000-000000001201', '00000000-0000-0000-0000-000000001101', '00000000-0000-0000-0000-000000000701', '00000000-0000-0000-0000-000000000801', true, 1, now() - INTERVAL '1 day'),
-    ('00000000-0000-0000-0000-000000001202', '00000000-0000-0000-0000-000000001101', '00000000-0000-0000-0000-000000000702', '00000000-0000-0000-0000-000000000804', true, 1, now() - INTERVAL '1 day'),
-    ('00000000-0000-0000-0000-000000001203', '00000000-0000-0000-0000-000000001101', '00000000-0000-0000-0000-000000000703', '00000000-0000-0000-0000-000000000807', true, 1, now() - INTERVAL '1 day')
+    ('00000000-0000-0000-0000-000000001202', '00000000-0000-0000-0000-000000001101', '00000000-0000-0000-0000-000000000702', '00000000-0000-0000-0000-000000000804', true, 1, now() - INTERVAL '1 day')
 ON CONFLICT (attempt_id, question_id) DO UPDATE
 SET selected_option_id = EXCLUDED.selected_option_id,
     is_correct = EXCLUDED.is_correct,

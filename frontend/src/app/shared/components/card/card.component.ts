@@ -1,9 +1,17 @@
-import { Component } from '@angular/core';
+import { Component, input } from '@angular/core';
 
 @Component({
   selector: 'app-card',
   standalone: true,
-  templateUrl: './card.component.html',
-  styleUrl: './card.component.scss',
+  template: `<ng-content />`,
+  host: {
+    '[class]': 'classes()',
+  },
 })
-export class CardComponent {}
+export class CardComponent {
+  readonly interactive = input(false);
+
+  readonly classes = () => {
+    return `block p-6 app-card ${this.interactive() ? 'app-card-interactive' : ''}`;
+  };
+}

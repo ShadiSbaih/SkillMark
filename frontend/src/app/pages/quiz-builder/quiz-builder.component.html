@@ -1,58 +1,331 @@
-<section class="page">
-  <header class="page-heading">
-    <div>
-      <p class="breadcrumb">Programs / Git Foundations / Quizzes / Builder</p>
-      <h1>Quiz builder</h1>
-      <p>Create questions and options, confirm publish readiness, and control participant visibility.</p>
+@if (quizQuery.isPending()) {
+  <app-loading-state message="Loading quiz..." />
+} @else if (quizQuery.isError()) {
+  <app-error-state
+    [message]="quizQuery.error()?.message || 'Failed to load quiz'"
+    (retry)="quizQuery.refetch()"
+  />
+} @else {
+  @let quiz = quizQuery.data();
+
+  @if (!quiz) {
+    <app-empty-state title="Quiz not found" description="This quiz could not be loaded." />
+  } @else {
+    <app-page-header
+      [title]="'Builder: ' + quiz.title"
+      subtitle="Add questions and options, then publish your quiz."
+      [hasActions]="true"
+    >
+      <ng-container actions>
+        <app-button variant="secondary" (clicked)="goBack()">Back</app-button>
+        <app-button
+          [disabled]="!canPublish()"
+          [loading]="quizzesService.publishMutation.isPending()"
+          (clicked)="publish()"
+        >
+          Publish quiz
+        </app-button>
+      </ng-container>
+    </app-page-header>
+
+    <div class="mb-6 flex items-center gap-3">
+      <app-badge [variant]="badgeVariant()">{{ quiz.status }}</app-badge>
+      @if (isPublished()) {
+        <span class="text-sm text-ink-mute"
+          >This quiz is published. Questions cannot be edited.</span
+        >
+      }
     </div>
-    <div class="button-row">
-      <button class="button button-secondary" type="button">Save draft</button>
-      <button class="button button-primary" type="button">Publish quiz</button>
-    </div>
-  </header>
 
-  <div class="two-column wide-left">
-    <article class="panel form-panel">
-      <h2>Quiz settings</h2>
-      <label><span>Title *</span><input [(ngModel)]="title" name="title" required maxlength="120" /></label>
-      <div class="form-grid">
-        <label><span>Passing score</span><input type="number" [value]="quiz.passingScore" /></label>
-        <label><span>Duration</span><input type="number" [value]="quiz.durationMinutes" /></label>
-        <label><span>Max attempts</span><input type="number" [value]="quiz.maxAttempts" /></label>
-      </div>
-      <label><span>Certificate issue mode</span><select><option>{{ quiz.certificateIssueMode }}</option><option>MANUAL</option><option>NONE</option></select></label>
-    </article>
+    <div class="grid gap-6 lg:grid-cols-3">
+      <div class="lg:col-span-2 space-y-6">
+        <app-card>
+          <h2 class="mb-4 text-lg font-semibold">
+            {{ editingQuestionId() ? 'Edit question' : 'New question' }}
+          </h2>
 
-    <article class="panel">
-      <div class="panel-header"><h2>Publish checklist</h2><span class="status status-published">{{ quiz.status }}</span></div>
-      <ul class="check-list">
-        <li>Quiz has a title and description</li>
-        <li>At least one question has options</li>
-        <li>Each question has a correct answer</li>
-        <li>Passing score and duration are set</li>
-      </ul>
-    </article>
-  </div>
+          <div class="form-panel space-y-6">
+            <app-form-field
+              label="Question text *"
+              id="question-text"
+              [error]="isQuestionTextInvalid() ? 'Question text is required.' : ''"
+            >
+              <input
+                id="question-text"
+                type="text"
+                [ngModel]="questionText()"
+                (ngModelChange)="updateQuestionText($event)"
+                placeholder="e.g. What is the capital of France?"
+                [disabled]="isPublished()"
+              />
+            </app-form-field>
 
-  <div class="stack">
-    @for (question of quiz.questions; track question.id) {
-      <article class="panel question-card">
-        <div class="panel-header">
-          <h2>{{ question.text }}</h2>
-          <span class="numeric">{{ question.points }} pts</span>
-        </div>
-        <div class="option-grid">
-          @for (option of question.options; track option.id) {
-            <label class="option-card">
-              <input type="radio" [checked]="option.isCorrect" />
-              <span>{{ option.text }}</span>
-              @if (option.isCorrect) {
-                <em class="status status-active">Correct</em>
+            <app-form-field
+              label="Points *"
+              id="question-points"
+            >
+              <input
+                id="question-points"
+                type="number"
+                min="1"
+                [ngModel]="questionPoints()"
+                (ngModelChange)="updateQuestionPoints(+$event)"
+                [disabled]="isPublished()"
+              />
+            </app-form-field>
+
+            <div>
+              <div class="mb-4 flex items-center justify-between">
+                <span class="text-sm font-medium text-ink">Options *</span>
+                <app-button
+                  variant="secondary"
+                  size="sm"
+                  [disabled]="isPublished()"
+                  (clicked)="addOption()"
+                >
+                  Add option
+                </app-button>
+              </div>
+
+              <div class="space-y-2">
+                @for (option of options(); track trackByOption($index); let i = $index) {
+                  <div
+                    class="group relative flex items-center gap-3 rounded-lg border px-4 py-3 transition-all focus-within:ring-2 focus-within:ring-primary/20"
+                    [class.border-primary]="option.isCorrect"
+                    [class.bg-canvas-soft]="option.isCorrect"
+                    [class.border-hairline]="!option.isCorrect"
+                  >
+                    <label class="relative flex cursor-pointer items-center justify-center">
+                      <input
+                        type="radio"
+                        name="correctOption"
+                        class="peer sr-only"
+                        [checked]="option.isCorrect"
+                        (change)="setCorrectOption(i)"
+                        [disabled]="isPublished()"
+                        title="Mark as correct"
+                      />
+                      <div
+                        class="flex h-5 w-5 items-center justify-center rounded-full border-2 transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-1"
+                        [class.border-primary]="option.isCorrect"
+                        [class.border-ink-mute]="!option.isCorrect"
+                      >
+                        @if (option.isCorrect) {
+                          <div class="h-2.5 w-2.5 rounded-full bg-primary"></div>
+                        }
+                      </div>
+                    </label>
+
+                    <input
+                      class="flex-1 bg-transparent p-0 text-sm focus:ring-0 focus-visible:outline-none placeholder:text-ink-mute"
+                      type="text"
+                      [ngModel]="option.text"
+                      (ngModelChange)="updateOptionText(i, $event)"
+                      placeholder="Enter option text..."
+                      [disabled]="isPublished()"
+                      style="border: none !important; box-shadow: none !important; outline: none !important; background: transparent !important;"
+                    />
+
+                    <button
+                      type="button"
+                      class="icon-button group-hover:opacity-100 focus:opacity-100 disabled:opacity-50"
+                      (click)="removeOption(i)"
+                      [disabled]="isPublished()"
+                      title="Remove option"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                }
+              </div>
+
+              @if (isOptionsInvalid()) {
+                <p class="text-sm text-danger mt-2">All options need text.</p>
               }
-            </label>
+              @if (!hasCorrectOption() && touched()) {
+                <p class="text-sm text-danger mt-2">Mark at least one option as correct.</p>
+              }
+            </div>
+
+            <div class="button-row">
+              <app-button
+                type="button"
+                [disabled]="isPublished() || !canSaveQuestion()"
+                [loading]="quizzesService.addQuestionMutation.isPending() || quizzesService.updateQuestionMutation.isPending()"
+                (clicked)="saveQuestion()"
+              >
+                {{ editingQuestionId() ? 'Update question' : 'Save question' }}
+              </app-button>
+              <app-button
+                type="button"
+                variant="secondary"
+                [disabled]="isPublished()"
+                (clicked)="resetEditor()"
+              >
+                Clear
+              </app-button>
+            </div>
+          </div>
+        </app-card>
+
+        <app-card>
+          <h2 class="mb-4 text-lg font-semibold">Questions</h2>
+
+          @if (quiz.questions.length === 0) {
+            <app-empty-state
+              title="No questions yet"
+              description="Add questions and options to build your quiz."
+            />
+          } @else {
+            <div class="space-y-4">
+              @for (question of quiz.questions; track trackByQuestion($index, question); let i = $index) {
+                <div class="rounded-lg border border-hairline p-4">
+                  <div class="mb-3 flex flex-col items-start justify-between gap-3 sm:flex-row">
+                    <div class="min-w-0">
+                      <p class="font-medium">{{ i + 1 }}. {{ question.text }}</p>
+                      <p class="text-xs text-ink-mute">
+                        {{ question.points }} pts · {{ question.type }}
+                      </p>
+                    </div>
+                    <div class="flex w-full flex-wrap gap-2 sm:w-auto">
+                      <app-button
+                        class="w-full sm:w-auto"
+                        variant="secondary"
+                        size="sm"
+                        [disabled]="isPublished()"
+                        (clicked)="editQuestion(question)"
+                      >
+                        Edit
+                      </app-button>
+                      <app-button
+                        class="w-full sm:w-auto"
+                        variant="danger"
+                        size="sm"
+                        [disabled]="isPublished()"
+                        [loading]="quizzesService.deleteQuestionMutation.isPending()"
+                        (clicked)="deleteQuestion(question)"
+                      >
+                        Delete
+                      </app-button>
+                    </div>
+                  </div>
+                  <div class="grid gap-2 sm:grid-cols-2">
+                    @for (option of question.options; track option.id) {
+                      <div
+                        class="flex items-center gap-2 rounded-md border px-3 py-2 text-sm"
+                        [class.border-primary]="option.isCorrect"
+                        [class.bg-canvas-soft]="option.isCorrect"
+                        [class.border-hairline]="!option.isCorrect"
+                      >
+                        <span
+                          class="h-2 w-2 rounded-full"
+                          [class.bg-primary]="option.isCorrect"
+                          [class.bg-hairline-input]="!option.isCorrect"
+                        ></span>
+                        <span>{{ option.text }}</span>
+                        @if (option.isCorrect) {
+                          <span class="option-correct">Correct</span>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
           }
-        </div>
-      </article>
-    }
-  </div>
-</section>
+        </app-card>
+      </div>
+
+      <div class="space-y-6">
+        <app-card>
+          <h2 class="mb-4 text-lg font-semibold">Settings summary</h2>
+          <dl class="detail-grid single">
+            <div>
+              <dt>Passing score</dt>
+              <dd>{{ quiz.passingScore }}%</dd>
+            </div>
+            <div>
+              <dt>Duration</dt>
+              <dd>{{ quiz.durationMinutes }} minutes</dd>
+            </div>
+            <div>
+              <dt>Max attempts</dt>
+              <dd>{{ quiz.maxAttempts }}</dd>
+            </div>
+            <div>
+              <dt>Certificates</dt>
+              <dd>
+                {{ quiz.certificateEnabled ? 'Enabled' : 'Disabled' }} ({{ quiz.certificateIssueMode }})
+              </dd>
+            </div>
+          </dl>
+          <div class="mt-4">
+            <app-button
+              variant="secondary"
+              size="sm"
+              (clicked)="router.navigate(['/quizzes', quiz.id, 'settings'])"
+            >
+              Edit settings
+            </app-button>
+          </div>
+        </app-card>
+
+        <app-card>
+          <h2 class="mb-4 text-lg font-semibold">Publish checklist</h2>
+          <ul class="space-y-2 text-sm">
+            <li
+              class="flex items-center gap-2"
+              [class.text-success]="publishChecklist().hasTitle"
+              [class.text-ink-mute]="!publishChecklist().hasTitle"
+            >
+              <span>{{ publishChecklist().hasTitle ? '✓' : '○' }}</span>
+              <span>Quiz has a title</span>
+            </li>
+            <li
+              class="flex items-center gap-2"
+              [class.text-success]="publishChecklist().hasQuestions"
+              [class.text-ink-mute]="!publishChecklist().hasQuestions"
+            >
+              <span>{{ publishChecklist().hasQuestions ? '✓' : '○' }}</span>
+              <span>At least one question</span>
+            </li>
+            <li
+              class="flex items-center gap-2"
+              [class.text-success]="publishChecklist().allQuestionsHaveOptions"
+              [class.text-ink-mute]="!publishChecklist().allQuestionsHaveOptions"
+            >
+              <span>{{ publishChecklist().allQuestionsHaveOptions ? '✓' : '○' }}</span>
+              <span>Every question has options</span>
+            </li>
+            <li
+              class="flex items-center gap-2"
+              [class.text-success]="publishChecklist().allQuestionsHaveCorrectAnswer"
+              [class.text-ink-mute]="!publishChecklist().allQuestionsHaveCorrectAnswer"
+            >
+              <span>{{ publishChecklist().allQuestionsHaveCorrectAnswer ? '✓' : '○' }}</span>
+              <span>Every question has a correct answer</span>
+            </li>
+            <li
+              class="flex items-center gap-2"
+              [class.text-success]="publishChecklist().passingScoreSet"
+              [class.text-ink-mute]="!publishChecklist().passingScoreSet"
+            >
+              <span>{{ publishChecklist().passingScoreSet ? '✓' : '○' }}</span>
+              <span>Passing score is set</span>
+            </li>
+            <li
+              class="flex items-center gap-2"
+              [class.text-success]="publishChecklist().durationSet"
+              [class.text-ink-mute]="!publishChecklist().durationSet"
+            >
+              <span>{{ publishChecklist().durationSet ? '✓' : '○' }}</span>
+              <span>Duration is set</span>
+            </li>
+          </ul>
+        </app-card>
+      </div>
+    </div>
+  }
+}

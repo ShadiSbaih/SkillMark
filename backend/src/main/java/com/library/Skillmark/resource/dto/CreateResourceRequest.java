@@ -13,6 +13,6 @@ public record CreateResourceRequest(
         String url,
         StorageProvider storageProvider,
         String objectKey,
-        @Min(0) int position
+        @Min(0) Integer position
 ) {
 }

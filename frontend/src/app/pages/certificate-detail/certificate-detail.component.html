@@ -1,37 +1,123 @@
-<section class="page">
-  <header class="page-heading">
-    <div>
-      <p class="breadcrumb">Certificates / {{ certificate.id }}</p>
-      <h1>Certificate detail</h1>
-      <p>Download, verify, or revoke a certificate record.</p>
-    </div>
-    <div class="button-row">
-      <button class="button button-secondary" type="button">Download PDF</button>
-      <a class="button button-primary" [routerLink]="['/verify', certificate.verificationCode]">Verify publicly</a>
-    </div>
-  </header>
+@if (query.isPending()) {
+  <app-loading-state message="Loading certificate..." />
+} @else if (query.isError()) {
+  <app-error-state [message]="query.error()?.message || 'Failed to load certificate details'" (retry)="query.refetch()" />
+} @else {
+  @let cert = certificate();
 
-  <article class="certificate-display">
-    <div class="certificate-border">
-      <p class="eyebrow">{{ certificate.organizationName }}</p>
-      <h2>Certificate of Completion</h2>
-      <p>This certifies that</p>
-      <h3>{{ certificate.recipientName }}</h3>
-      <p>completed {{ certificate.programTitle }} and passed {{ certificate.quizTitle }}.</p>
-      <div class="certificate-footer">
-        <span>Issued {{ certificate.issuedAt }}</span>
-        <span>{{ certificate.verificationCode }}</span>
+  @if (cert) {
+    <app-page-header
+      [title]="cert.certificateNumber"
+      subtitle="Certificate details and verification"
+      [hasActions]="true"
+    >
+      <ng-container actions>
+        <app-button class="no-print" (clicked)="openPdf()">
+          Download PDF
+        </app-button>
+        <app-button (clicked)="router.navigate(['/verify', cert.verificationCode])">
+          Verify
+        </app-button>
+      </ng-container>
+    </app-page-header>
+
+    <div class="certificate-container">
+      <div class="certificate-paper" [class.is-revoked]="cert.status === 'REVOKED'">
+        <!-- Micro-Guilloche / Corner Geometry Accents -->
+        <div class="corner-accent top-left"></div>
+        <div class="corner-accent top-right"></div>
+        <div class="corner-accent bottom-left"></div>
+        <div class="corner-accent bottom-right"></div>
+
+        <!-- Top Accent Bar -->
+        <div class="top-accent-bar"></div>
+
+        <!-- Certificate Header -->
+        <div class="cert-header">
+          <div class="brand-badge">
+            <img src="/logo.png" alt="Skillmark Logo" class="brand-logo-img" />
+            <span class="brand-title">SKILLMARK</span>
+          </div>
+
+          <!-- Official Gold Emblem Badge moved to top right header -->
+          <div class="emblem-badge" [class.emblem-revoked]="cert.status === 'REVOKED'">
+            <div class="emblem-ring">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                @if (cert.status === 'REVOKED') {
+                  <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+                } @else {
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                }
+              </svg>
+            </div>
+            <div class="emblem-text-group">
+              <span class="emblem-title">{{ cert.status === 'REVOKED' ? 'REVOKED' : 'VERIFIED' }}</span>
+              <span class="emblem-sub">OFFICIAL CREDENTIAL</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Certificate Body Content -->
+        <div class="cert-body">
+          <div class="cert-title-block">
+            <span class="title-kicker">CERTIFICATE OF ACHIEVEMENT</span>
+            <h1 class="cert-heading">Program Completion</h1>
+          </div>
+
+          <div class="recipient-block">
+            <p class="presented-to">THIS IS PROUDLY PRESENTED TO</p>
+            <h2 class="recipient-name">{{ cert.participantNameSnapshot }}</h2>
+            <div class="recipient-divider"></div>
+          </div>
+
+          <div class="details-block">
+            <p class="fulfillment-text">
+              For successfully completing all requirements and demonstrating technical proficiency in
+            </p>
+            <h3 class="program-title">{{ cert.programTitleSnapshot }}</h3>
+            
+            <div class="assessment-pill">
+              <span class="quiz-label">Assessment:</span>
+              <span class="quiz-title">{{ cert.quizTitleSnapshot }}</span>
+              @if (cert.scoreSnapshot != null) {
+                <span class="score-chip">Score: {{ cert.scoreSnapshot | number:'1.1-1' }}%</span>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Certificate Footer -->
+        <div class="cert-footer">
+          <!-- Left Meta Block -->
+          <div class="footer-meta">
+            <div class="meta-col">
+              <span class="meta-label">Issued Date</span>
+              <span class="meta-val">{{ cert.issuedAt | date:'longDate' }}</span>
+            </div>
+            <div class="meta-col">
+              <span class="meta-label">Certificate ID</span>
+              <span class="meta-val code-font">{{ cert.certificateNumber }}</span>
+            </div>
+            <div class="meta-col">
+              <span class="meta-label">Verification Code</span>
+              <span class="meta-val code-font">{{ cert.verificationCode }}</span>
+            </div>
+          </div>
+
+          <!-- Right Signature Block -->
+          <div class="footer-signature">
+            <div class="signature-line"></div>
+            <p class="signer-name">{{ cert.ownerNameSnapshot || 'Authorized Administrator' }}</p>
+            <p class="signer-title">Program Director & Instructor</p>
+          </div>
+        </div>
       </div>
     </div>
-    <aside>
-      <span class="status status-active">{{ certificate.status }}</span>
-      <dl class="detail-grid single">
-        <div><dt>Recipient</dt><dd>{{ certificate.recipientName }}</dd></div>
-        <div><dt>Program</dt><dd>{{ certificate.programTitle }}</dd></div>
-        <div><dt>Quiz</dt><dd>{{ certificate.quizTitle }}</dd></div>
-        <div><dt>Organization</dt><dd>{{ certificate.organizationName }}</dd></div>
-      </dl>
-      <button class="ghost-button danger" type="button">Revoke certificate</button>
-    </aside>
-  </article>
-</section>
+  } @else {
+    <app-page-header title="Certificate not found" />
+    <app-empty-state
+      title="Certificate not found"
+      description="The requested certificate could not be loaded."
+    />
+  }
+}

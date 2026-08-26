@@ -47,9 +47,6 @@ public class Quiz {
     @Column(name = "max_attempts", nullable = false)
     private Integer maxAttempts = 1;
 
-    @Column(name = "certificate_enabled", nullable = false)
-    private boolean certificateEnabled;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "certificate_issue_mode", nullable = false, length = 30)
     private CertificateIssueMode certificateIssueMode = CertificateIssueMode.NONE;
@@ -98,8 +95,6 @@ public class Quiz {
     public void setDurationMinutes(Integer durationMinutes) { this.durationMinutes = durationMinutes; }
     public Integer getMaxAttempts() { return maxAttempts; }
     public void setMaxAttempts(Integer maxAttempts) { this.maxAttempts = maxAttempts; }
-    public boolean isCertificateEnabled() { return certificateEnabled; }
-    public void setCertificateEnabled(boolean certificateEnabled) { this.certificateEnabled = certificateEnabled; }
     public CertificateIssueMode getCertificateIssueMode() { return certificateIssueMode; }
     public void setCertificateIssueMode(CertificateIssueMode certificateIssueMode) { this.certificateIssueMode = certificateIssueMode; }
     public boolean isPublished() { return status == QuizStatus.PUBLISHED; }

@@ -76,6 +76,18 @@ $env:JWT_EXPIRATION="86400000"
 - Swagger UI: `http://localhost:8080/swagger-ui.html`
 - OpenAPI JSON: `http://localhost:8080/v3/api-docs`
 
+## Domain Model
+
+The API is organized around the following domain concepts (see `backend/docs/PRD.md` for full details):
+
+- **Organization** — top-level tenant that owns programs and members.
+- **Program** — a published course or workshop within an organization.
+- **Quiz** — an assessment attached to a program; supports questions, options, publishing, and visibility toggles.
+- **Attempt** — a participant's quiz submission (also referred to as `QuizAttempt`).
+- **InvitationLink** — an invitation used to join a program.
+- **Certificate** — issued automatically or manually after a passing attempt; supports revocation and public verification.
+- **Roles**: `OWNER` (full management) and `PARTICIPANT` (enroll, attempt, view own certificates).
+
 ## Prerequisites
 
 Install the following before running the project:

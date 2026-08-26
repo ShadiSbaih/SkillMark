@@ -1,0 +1,94 @@
+<section class="auth-layout">
+  <div class="auth-content">
+
+      <div class="auth-header">
+        <h1>Create your account</h1>
+        <p class="auth-subtitle">Join Skillmark and start tracking skills.</p>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="auth-form">
+        <app-form-field
+          label="Full name"
+          id="name"
+          [error]="form.get('name')?.touched && form.get('name')?.invalid ? 'Name is required.' : undefined"
+        >
+          <input
+            id="name"
+            type="text"
+            formControlName="name"
+            placeholder="Jane Doe"
+            autocomplete="name"
+            class="input"
+          />
+        </app-form-field>
+
+        <app-form-field
+          label="Email address"
+          id="email"
+          [error]="form.get('email')?.touched && form.get('email')?.invalid ? 'Please enter a valid email.' : undefined"
+        >
+          <input
+            id="email"
+            type="email"
+            formControlName="email"
+            placeholder="you@example.com"
+            autocomplete="email"
+            class="input"
+          />
+        </app-form-field>
+
+        <div class="grid grid-cols-2 gap-4">
+          <app-form-field
+            label="Password"
+            id="password"
+            [error]="form.get('password')?.touched && form.get('password')?.invalid ? 'Password must be at least 8 characters.' : undefined"
+          >
+            <input
+              id="password"
+              type="password"
+              formControlName="password"
+              placeholder="••••••••"
+              autocomplete="new-password"
+              class="input"
+            />
+          </app-form-field>
+
+          <app-form-field
+            label="Confirm"
+            id="confirmPassword"
+            [error]="form.get('confirmPassword')?.touched && form.get('confirmPassword')?.invalid ? 'Please confirm your password.' : undefined"
+          >
+            <input
+              id="confirmPassword"
+              type="password"
+              formControlName="confirmPassword"
+              placeholder="••••••••"
+              autocomplete="new-password"
+              class="input"
+            />
+          </app-form-field>
+        </div>
+
+
+
+        @if (error()) {
+          <div class="auth-error">{{ error() }}</div>
+        }
+
+        <div class="mt-2">
+          <app-button type="submit" variant="primary" [loading]="isLoading()" [disabled]="isLoading()" [fullWidth]="true">
+            Create account
+          </app-button>
+        </div>
+      </form>
+
+      <div class="auth-footer">
+        <span>Already have an account? <a routerLink="/sign-in" [queryParams]="redirect() ? { redirect: redirect() } : null">Sign in</a></span>
+      </div>
+
+  </div>
+
+  <div class="auth-visual">
+    <img src="/undraw_sign-up_qamz.svg" alt="Sign up for Skillmark" style="max-width: 80%; height: auto;" />
+  </div>
+</section>

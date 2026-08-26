@@ -1,0 +1,7 @@
+ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(30) NOT NULL DEFAULT 'STUDENT';
+
+ALTER TABLE programs ALTER COLUMN organization_id DROP NOT NULL;
+ALTER TABLE programs ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES users(id);
+
+ALTER TABLE certificates ALTER COLUMN organization_id DROP NOT NULL;
+ALTER TABLE certificates ALTER COLUMN organization_name_snapshot DROP NOT NULL;

@@ -1,0 +1,37 @@
+.funnel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.funnel-step-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.375rem;
+}
+
+.funnel-step-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.funnel-step-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ink-mute);
+}
+
+.funnel-step-track {
+  height: 0.75rem;
+  background-color: var(--canvas-soft);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.funnel-step-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}

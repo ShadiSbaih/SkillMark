@@ -1,22 +1,97 @@
-import { Component } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import {
-  attempts,
-  certificates,
-  organizationStats,
-  programs,
-} from '../../shared/models/skillmark-demo-data';
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+} from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { DatePipe, DecimalPipe } from '@angular/common';
+import { AuthService } from '../../core/auth/auth.service';
+import { CertificatesService } from '../../services/certificates.service';
+import { AttemptsService } from '../../services/attempts.service';
+import { CardComponent } from '../../shared/components/card/card.component';
+import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
+import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
+import { ErrorStateComponent } from '../../shared/components/error-state/error-state.component';
+import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
+import { StatusBadgeComponent } from '../../shared/components/status-badge/status-badge';
+import { KpiCardComponent } from '../../shared/components/kpi-card/kpi-card';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [RouterLink],
+  imports: [
+    RouterLink,
+    DatePipe,
+    DecimalPipe,
+    CardComponent,
+    PageHeaderComponent,
+    EmptyStateComponent,
+    ErrorStateComponent,
+    LoadingStateComponent,
+    StatusBadgeComponent,
+    KpiCardComponent,
+  ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DashboardComponent {
-  readonly stats = organizationStats;
-  readonly programs = programs;
-  readonly attempts = attempts;
-  readonly certificates = certificates;
+  private readonly authService = inject(AuthService);
+  private readonly certificatesService = inject(CertificatesService);
+
+  readonly isAdmin = this.authService.isAdmin;
+  private readonly attemptsService = inject(AttemptsService);
+
+  readonly certificatesQuery = this.certificatesService.myCertificatesQuery;
+  readonly certificates = computed(
+    () => this.certificatesQuery.data()?.items ?? []
+  );
+
+  readonly attemptsQuery = this.attemptsService.myAttemptsQuery;
+  readonly attempts = computed(() => this.attemptsQuery.data()?.items ?? []);
+
+  readonly hasAnyError = computed(
+    () =>
+      !!this.certificatesQuery.error() ||
+      !!this.attemptsQuery.error()
+  );
+
+  readonly firstErrorMessage = computed(() => {
+    const messages = [
+      this.certificatesQuery.error(),
+      this.attemptsQuery.error(),
+    ]
+      .filter(Boolean)
+      .map((err) =>
+        err instanceof Error ? err.message : 'Failed to load dashboard'
+      );
+    return messages[0] ?? 'Failed to load dashboard';
+  });
+
+  readonly allPending = computed(
+    () =>
+      this.certificatesQuery.isPending() &&
+      this.attemptsQuery.isPending()
+  );
+
+  readonly stats = computed(() => {
+    const certs = this.certificates();
+    const attempts = this.attempts();
+    const submitted = attempts.filter((a) => a.status === 'SUBMITTED');
+    const passed = submitted.filter((a) => a.passed).length;
+    const passRate = submitted.length ? (passed / submitted.length) * 100 : 0;
+    return {
+      certificates: certs.length,
+      attempts: attempts.length,
+      passRate,
+    };
+  });
+
+  readonly passRatePercentage = computed(() => Math.round(this.stats().passRate));
+
+  retryAll(): void {
+    this.certificatesQuery.refetch();
+    this.attemptsQuery.refetch();
+  }
 }

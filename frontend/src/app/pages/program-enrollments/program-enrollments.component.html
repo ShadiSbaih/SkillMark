@@ -1,30 +1,95 @@
 <section class="page">
-  <header class="page-heading">
-    <div>
-      <p class="breadcrumb">Programs / Git Foundations / Enrollments</p>
-      <h1>Enrollments</h1>
-      <p>Review participants, quiz outcomes, completion status, and certificate eligibility.</p>
-    </div>
-    <button class="button button-primary" type="button">Invite participants</button>
-  </header>
+  <p class="breadcrumb">Program / Enrollments</p>
 
-  <article class="panel">
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Participant</th><th>Joined</th><th>Status</th><th>Latest score</th><th>Passed</th><th></th></tr></thead>
-        <tbody>
-          @for (enrollment of enrollments; track enrollment.id) {
-            <tr>
-              <td>{{ enrollment.participant }}</td>
-              <td>{{ enrollment.joined }}</td>
-              <td><span class="status" [class.status-completed]="enrollment.status === 'COMPLETED'" [class.status-progress]="enrollment.status === 'IN_PROGRESS'">{{ enrollment.status }}</span></td>
-              <td class="numeric">{{ enrollment.score }}%</td>
-              <td>{{ enrollment.passed ? 'Yes' : 'No' }}</td>
-              <td><button class="ghost-button" type="button">Remove</button></td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-  </article>
+  <app-page-header [title]="pageTitle()" />
+
+  @switch (enrollmentsQuery.status()) {
+    @case ('pending') {
+      <app-loading-state message="Loading enrollments..." />
+    }
+    @case ('error') {
+      <app-error-state
+        [message]="enrollmentsQuery.error()?.message ?? 'Failed to load enrollments'"
+        (retry)="enrollmentsQuery.refetch()"
+      />
+    }
+    @default {
+      @if (filteredEnrollments().length === 0) {
+        <app-card>
+          <app-empty-state
+            title="No enrollments yet"
+            description="There are no participants enrolled in this program."
+          />
+        </app-card>
+      } @else {
+        <app-card>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Participant</th>
+                  <th>Enrolled date</th>
+                  <th class="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (enrollment of filteredEnrollments(); track trackById($index, enrollment)) {
+                  <tr>
+                    <td>
+                      <div class="flex items-center gap-3">
+                        <app-avatar
+                          [name]="enrollment.userName"
+                          [fallback]="enrollment.userEmail ?? enrollment.userId"
+                          [src]="enrollment.userAvatarUrl ?? undefined"
+                          size="sm"
+                        />
+                        <div>
+                          <p class="font-medium text-ink">{{ enrollment.userName }}</p>
+                          @if (enrollment.userEmail) {
+                            <p class="text-sm text-ink-mute">{{ enrollment.userEmail }}</p>
+                          }
+                        </div>
+                      </div>
+                    </td>
+                    <td>{{ enrollment.enrolledAt | date: 'mediumDate' }}</td>
+                    <td class="text-right">
+                      <app-button
+                        variant="danger"
+                        size="sm"
+                        (clicked)="confirmRemove(enrollment.userId)"
+                      >
+                        Remove
+                      </app-button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <app-pagination
+            class="mt-4 block"
+            [page]="pageInfo().page"
+            [size]="pageInfo().size"
+            [totalElements]="pageInfo().totalElements"
+            [totalPages]="pageInfo().totalPages"
+            [hasNext]="pageInfo().hasNext"
+            [hasPrevious]="pageInfo().hasPrevious"
+            (pageChange)="goToPage($event)"
+          />
+        </app-card>
+      }
+    }
+  }
 </section>
+
+<app-modal
+  [open]="removingUserId() !== null"
+  title="Remove enrollment?"
+  confirmLabel="Remove"
+  confirmVariant="danger"
+  (close)="cancelRemove()"
+  (confirm)="removeEnrollment()"
+>
+  This participant will be removed from the program.
+</app-modal>

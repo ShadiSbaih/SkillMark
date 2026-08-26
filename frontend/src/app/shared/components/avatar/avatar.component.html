@@ -1,0 +1,11 @@
+<div
+  [class]="containerClasses()"
+  role="img"
+  [attr.aria-label]="ariaLabel()"
+>
+  @if (src() && !imgError()) {
+    <img [src]="src()" [alt]="alt()" (error)="onImageError()" />
+  } @else {
+    <span class="avatar-initials">{{ initials() }}</span>
+  }
+</div>

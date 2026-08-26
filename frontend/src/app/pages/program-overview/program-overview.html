@@ -1,0 +1,92 @@
+@if (programQuery.error()) {
+  <app-error-state [message]="programQuery.error()?.message ?? 'Failed to load program'" (retry)="programQuery.refetch()" />
+} @else if (programQuery.isPending()) {
+  <app-loading-state message="Loading program..." />
+} @else {
+  <app-breadcrumb [items]="[
+    { label: 'Programs', route: ['/programs'] },
+    { label: program().title }
+  ]" />
+
+  <app-page-header [title]="program().title" [subtitle]="program().description || 'Program overview'" [hasActions]="true">
+    <div actions class="button-row">
+      <a class="button button-secondary font-semibold text-indigo-600 border-indigo-200 hover:bg-indigo-50" [routerLink]="['/programs', programId(), 'analytics']">
+        <svg class="w-4 h-4 mr-1.5 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        View Analytics
+      </a>
+      <a class="button button-secondary" [routerLink]="['/programs', programId(), 'settings']">Settings</a>
+      @if (isAdmin()) {
+        <a class="button button-primary flex items-center gap-1.5" [routerLink]="['/programs', programId(), 'learn']">
+          <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+          Preview as learner
+        </a>
+      } @else {
+        <a class="button button-primary" [routerLink]="['/programs', programId(), 'learn']">Start learning</a>
+      }
+    </div>
+  </app-page-header>
+
+  @if (program().coverImageUrl) {
+    <div class="mt-6 mb-6" style="margin-top: 24px; margin-bottom: 24px;">
+      <img [src]="program().coverImageUrl" alt="Cover" class="w-full object-cover rounded-xl border border-hairline" style="width: 100%; height: 250px; object-fit: cover; border-radius: 12px;" />
+    </div>
+  }
+
+  <div class="kpi-grid-4">
+    <app-kpi-card label="Status" [value]="program().status" icon="status" [status]="program().status" entity="program" color="indigo" />
+    <app-kpi-card label="Enrollments" [value]="stats()?.totalEnrollments ?? 0" icon="users" color="indigo" />
+    <app-kpi-card label="Active" [value]="stats()?.activeEnrollments ?? 0" icon="active" color="emerald" />
+    <app-kpi-card label="Resources" [value]="stats()?.resourcesCount ?? resources().length" icon="resources" color="sky" />
+    <app-kpi-card label="Quizzes" [value]="stats()?.quizzesCount ?? quizzes().length" icon="quizzes" color="violet" />
+    <app-kpi-card label="Attempts" [value]="stats()?.attemptsCount ?? 0" icon="attempts" color="amber" />
+    <app-kpi-card label="Passed Users" [value]="stats()?.passedParticipants ?? 0" icon="passed" color="emerald" />
+    <app-kpi-card label="Certificates" [value]="stats()?.certificatesIssued ?? 0" icon="certificate" color="rose" />
+  </div>
+
+  <div class="two-column mt-6">
+    <app-card>
+      <div class="panel-header">
+        <h2>Resources</h2>
+        <a class="link" [routerLink]="['/programs', programId(), 'resources']">View all</a>
+      </div>
+      @if (resources().length === 0) {
+        <app-empty-state message="No resources yet." />
+      } @else {
+        <div class="stack">
+          @for (r of resources().slice(0, 5); track r.id) {
+            <div class="list-row-link">
+              <div class="flex-grow min-w-0 pr-4">
+                <p class="font-medium text-ink mb-0.5 text-base">{{ r.title }}</p>
+                <p class="text-sm text-ink-mute mb-0">{{ r.type }}</p>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </app-card>
+
+    <app-card>
+      <div class="panel-header">
+        <h2>Quizzes</h2>
+        <a class="link" [routerLink]="['/programs', programId(), 'quizzes']">View all</a>
+      </div>
+      @if (quizzes().length === 0) {
+        <app-empty-state message="No quizzes yet." />
+      } @else {
+        <div class="stack">
+          @for (q of quizzes().slice(0, 5); track q.id) {
+            <a [routerLink]="['/quizzes', q.id]" class="list-row-link">
+              <div class="flex-grow min-w-0 pr-4">
+                <p class="font-medium text-ink mb-0.5 text-base">{{ q.title }}</p>
+                <p class="text-sm text-ink-mute mb-0">Passing: {{ q.passingScore }}%</p>
+              </div>
+              <div class="shrink-0">
+                <app-status-badge entity="quiz" [status]="q.status" />
+              </div>
+            </a>
+          }
+        </div>
+      }
+    </app-card>
+  </div>
+}

@@ -1,0 +1,15 @@
+<div class="app-form-field">
+  @if (label()) {
+    <label [attr.for]="id()" class="app-form-field-label">{{ label() }}</label>
+  }
+
+  <div class="app-form-field-control">
+    <ng-content select="input, select, textarea"></ng-content>
+  </div>
+
+  @if (error()) {
+    <span class="app-form-field-error">{{ error() }}</span>
+  } @else if (hint()) {
+    <span class="app-form-field-hint">{{ hint() }}</span>
+  }
+</div>

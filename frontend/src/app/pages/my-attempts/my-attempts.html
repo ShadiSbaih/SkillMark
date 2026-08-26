@@ -1,0 +1,87 @@
+<app-page-header
+  title="My attempts"
+  subtitle="Your quiz attempts across all programs."
+/>
+
+@if (query.isPending()) {
+  <app-loading-state message="Loading attempts..." />
+} @else if (query.isError()) {
+  <app-error-state
+    [message]="query.error().message ?? 'Failed to load attempts.'"
+    (retry)="query.refetch()"
+  />
+} @else {
+  @let pageData = data();
+
+  @if (!pageData || pageData.items.length === 0) {
+    <app-card>
+          <app-empty-state
+            title="No attempts yet"
+            description="You have not taken any quizzes yet. Go to your enrollments to start learning."
+            actionLabel="View Enrollments"
+            actionLink="/my-enrollments"
+          />
+    </app-card>
+  } @else {
+    <app-card>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Quiz</th>
+              <th>Score</th>
+              <th>Status</th>
+              <th>Submitted</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (attempt of pageData.items; track attempt.attemptId) {
+              <tr>
+                <td>
+                  <a
+                    class="link"
+                    [routerLink]="['/attempts', attempt.attemptId, 'result']"
+                  >
+                    {{ attempt.quizTitle }}
+                  </a>
+                </td>
+                <td class="tabular-nums">
+                  @if (attempt.status === 'SUBMITTED') {
+                    {{ attempt.scorePercentage | number:'1.1-1' }}%
+                  } @else {
+                    <span class="muted">—</span>
+                  }
+                </td>
+                <td>
+                  <app-status-badge
+                    entity="attempt"
+                    [status]="attempt.status"
+                  />
+                </td>
+                <td class="text-ink-mute">
+                  @if (attempt.submittedAt) {
+                    {{ attempt.submittedAt | date:'mediumDate' }}
+                  } @else {
+                    <span class="muted">—</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (pageData.totalPages > 1) {
+        <app-pagination
+          [page]="page() + 1"
+          [size]="pageData.size"
+          [totalElements]="pageData.totalElements"
+          [totalPages]="pageData.totalPages"
+          [hasPrevious]="page() > 0"
+          [hasNext]="page() < pageData.totalPages - 1"
+          (pageChange)="onPageChange($event)"
+        />
+      }
+    </app-card>
+  }
+}

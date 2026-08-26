@@ -5,12 +5,8 @@ import com.library.Skillmark.audit.service.AuditLogService;
 import com.library.Skillmark.common.exception.BusinessRuleException;
 import com.library.Skillmark.common.exception.NotFoundException;
 import com.library.Skillmark.common.response.PageResponse;
-import com.library.Skillmark.organization.repository.OrganizationRepository;
 import com.library.Skillmark.enrollment.enums.EnrollmentStatus;
 import com.library.Skillmark.enrollment.repository.ProgramEnrollmentRepository;
-import com.library.Skillmark.membership.enums.MembershipRole;
-import com.library.Skillmark.membership.enums.MembershipStatus;
-import com.library.Skillmark.membership.repository.OrganizationMembershipRepository;
 import com.library.Skillmark.program.dto.CreateProgramRequest;
 import com.library.Skillmark.program.dto.ProgramResponse;
 import com.library.Skillmark.program.dto.UpdateProgramRequest;
@@ -18,65 +14,69 @@ import com.library.Skillmark.program.entity.Program;
 import com.library.Skillmark.program.enums.ProgramStatus;
 import com.library.Skillmark.program.repository.ProgramRepository;
 import com.library.Skillmark.security.service.AuthorizationService;
+import com.library.Skillmark.user.entity.User;
+import com.library.Skillmark.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
 
 @Service
 public class ProgramService {
     private final ProgramRepository programRepository;
-    private final OrganizationRepository organizationRepository;
     private final ProgramEnrollmentRepository enrollmentRepository;
-    private final OrganizationMembershipRepository membershipRepository;
     private final AuthorizationService authorizationService;
     private final AuditLogService auditLogService;
+    private final UserRepository userRepository;
 
     public ProgramService(ProgramRepository programRepository,
-                          OrganizationRepository organizationRepository,
                           ProgramEnrollmentRepository enrollmentRepository,
-                          OrganizationMembershipRepository membershipRepository,
                           AuthorizationService authorizationService,
-                          AuditLogService auditLogService) {
+                          AuditLogService auditLogService,
+                          UserRepository userRepository) {
         this.programRepository = programRepository;
-        this.organizationRepository = organizationRepository;
         this.enrollmentRepository = enrollmentRepository;
-        this.membershipRepository = membershipRepository;
         this.authorizationService = authorizationService;
         this.auditLogService = auditLogService;
+        this.userRepository = userRepository;
     }
 
     @Transactional
-    public ProgramResponse create(UUID organizationId, CreateProgramRequest request, UUID actorId) {
-        authorizationService.ensureOrganizationOwner(organizationId, actorId);
-        var organization = organizationRepository.findById(organizationId)
-                .orElseThrow(() -> new NotFoundException("Organization not found"));
+    public ProgramResponse create(CreateProgramRequest request, UUID actorId) {
+        authorizationService.ensureAdmin(actorId);
+        User creator = userRepository.findById(actorId).orElseThrow(() -> new NotFoundException("User not found"));
         Program program = new Program();
-        program.setOrganization(organization);
+        program.setCreatedBy(creator);
         apply(program, request.title(), request.description(), request.coverImageUrl(), request.startDate(), request.endDate());
         Program saved = programRepository.save(program);
-        auditLogService.record(actorId, organizationId, AuditAction.PROGRAM_CREATED, "Program", saved.getId());
+        auditLogService.record(actorId, null, AuditAction.PROGRAM_CREATED, "Program", saved.getId());
         return ProgramResponse.from(saved);
     }
 
+    @Transactional
+    public ProgramResponse create(UUID ignoredOrgId, CreateProgramRequest request, UUID actorId) {
+        return create(request, actorId);
+    }
+
     @Transactional(readOnly = true)
-    public PageResponse<ProgramResponse> list(UUID organizationId, UUID actorId, int page, int size) {
-        authorizationService.ensureOrganizationMember(organizationId, actorId);
-        boolean owner = membershipRepository.existsByOrganizationIdAndUserIdAndRoleAndStatus(
-                organizationId, actorId, MembershipRole.OWNER, MembershipStatus.ACTIVE);
-        var programs = owner
-                ? programRepository.findByOrganizationIdAndDeletedAtIsNull(organizationId).stream()
-                : enrollmentRepository.findByUserIdAndStatus(actorId, EnrollmentStatus.ACTIVE).stream()
-                .map(enrollment -> enrollment.getProgram())
-                .filter(program -> program.getOrganization().getId().equals(organizationId))
-                .filter(program -> program.getDeletedAt() == null);
-        return PageResponse.fromList(programs
+    public PageResponse<ProgramResponse> list(UUID actorId, int page, int size) {
+        boolean admin = authorizationService.isAdmin(actorId);
+        List<Program> programs = admin
+                ? programRepository.findByDeletedAtIsNull()
+                : programRepository.findByStatusAndDeletedAtIsNull(ProgramStatus.PUBLISHED);
+        return PageResponse.fromList(programs.stream()
                 .sorted(Comparator.comparing(Program::getCreatedAt).reversed())
                 .map(ProgramResponse::from)
                 .toList(), page, size);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<ProgramResponse> list(UUID ignoredOrgId, UUID actorId, int page, int size) {
+        return list(actorId, page, size);
     }
 
     @Transactional(readOnly = true)
@@ -88,7 +88,7 @@ public class ProgramService {
     public ProgramResponse update(UUID programId, UpdateProgramRequest request, UUID actorId) {
         Program program = authorizationService.ensureProgramOwner(programId, actorId);
         apply(program, request.title(), request.description(), request.coverImageUrl(), request.startDate(), request.endDate());
-        auditLogService.record(actorId, program.getOrganization().getId(), AuditAction.PROGRAM_UPDATED, "Program", programId);
+        auditLogService.record(actorId, null, AuditAction.PROGRAM_UPDATED, "Program", programId);
         return ProgramResponse.from(program);
     }
 
@@ -96,7 +96,7 @@ public class ProgramService {
     public ProgramResponse publish(UUID programId, UUID actorId) {
         Program program = authorizationService.ensureProgramOwner(programId, actorId);
         program.setStatus(ProgramStatus.PUBLISHED);
-        auditLogService.record(actorId, program.getOrganization().getId(), AuditAction.PROGRAM_PUBLISHED, "Program", programId);
+        auditLogService.record(actorId, null, AuditAction.PROGRAM_PUBLISHED, "Program", programId);
         return ProgramResponse.from(program);
     }
 
@@ -104,7 +104,7 @@ public class ProgramService {
     public ProgramResponse archive(UUID programId, UUID actorId) {
         Program program = authorizationService.ensureProgramOwner(programId, actorId);
         program.setStatus(ProgramStatus.ARCHIVED);
-        auditLogService.record(actorId, program.getOrganization().getId(), AuditAction.PROGRAM_ARCHIVED, "Program", programId);
+        auditLogService.record(actorId, null, AuditAction.PROGRAM_ARCHIVED, "Program", programId);
         return ProgramResponse.from(program);
     }
 

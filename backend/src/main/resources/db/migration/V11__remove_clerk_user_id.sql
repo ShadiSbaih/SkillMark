@@ -1,0 +1,2 @@
+-- Native authentication is now the source of identity; the legacy external
+-- identity column was removed when the schema was re-based in V1.

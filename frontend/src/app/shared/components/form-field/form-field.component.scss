@@ -1,0 +1,28 @@
+.app-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.app-form-field-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.app-form-field-control ::ng-deep input,
+.app-form-field-control ::ng-deep select,
+.app-form-field-control ::ng-deep textarea {
+  width: 100%;
+}
+
+.app-form-field-hint {
+  font-size: 13px;
+  color: var(--ink-mute);
+}
+
+.app-form-field-error {
+  font-size: 13px;
+  color: var(--ruby);
+}

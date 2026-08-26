@@ -1,0 +1,25 @@
+@if (show()) {
+  <div class="app-pagination">
+    <app-button
+      variant="secondary"
+      size="sm"
+      [disabled]="!hasPrevious()"
+      (clicked)="goToPrevious()"
+    >
+      Previous
+    </app-button>
+
+    <span class="app-pagination-info">
+      Page {{ page() }} of {{ totalPages() }}
+    </span>
+
+    <app-button
+      variant="secondary"
+      size="sm"
+      [disabled]="!hasNext()"
+      (clicked)="goToNext()"
+    >
+      Next
+    </app-button>
+  </div>
+}

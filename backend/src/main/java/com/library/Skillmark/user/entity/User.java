@@ -18,8 +18,12 @@ public class User {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "clerk_user_id", nullable = false, unique = true)
-    private String clerkUserId;
+    @Column(name = "password_hash", length = 255)
+    private String passwordHash;
+
+    @Column(name = "email_verified_at")
+    private Instant emailVerifiedAt;
+
 
     @Column(nullable = false, length = 150)
     private String name;
@@ -33,6 +37,10 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private UserStatus status = UserStatus.ACTIVE;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private UserRole role = UserRole.STUDENT;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -55,8 +63,11 @@ public class User {
     }
 
     public UUID getId() { return id; }
-    public String getClerkUserId() { return clerkUserId; }
-    public void setClerkUserId(String clerkUserId) { this.clerkUserId = clerkUserId; }
+    public void setId(UUID id) { this.id = id; }
+    public String getPasswordHash() { return passwordHash; }
+    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+    public Instant getEmailVerifiedAt() { return emailVerifiedAt; }
+    public void setEmailVerifiedAt(Instant emailVerifiedAt) { this.emailVerifiedAt = emailVerifiedAt; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
     public String getEmail() { return email; }
@@ -65,6 +76,8 @@ public class User {
     public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
     public UserStatus getStatus() { return status; }
     public void setStatus(UserStatus status) { this.status = status; }
+    public UserRole getRole() { return role; }
+    public void setRole(UserRole role) { this.role = role; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 }

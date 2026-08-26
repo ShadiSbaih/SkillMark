@@ -5,14 +5,15 @@ import com.library.Skillmark.config.OpenApiConfig;
 import com.library.Skillmark.media.dto.CloudinarySignatureRequest;
 import com.library.Skillmark.media.dto.CloudinarySignatureResponse;
 import com.library.Skillmark.media.service.CloudinaryMediaService;
-import com.library.Skillmark.security.SecurityUtil;
+import com.library.Skillmark.security.AuthUser;
 import com.library.Skillmark.security.service.AuthorizationService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.security.core.Authentication;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
+@RequestMapping("/api/v1")
 @Tag(name = "Media")
 @SecurityRequirement(name = OpenApiConfig.BEARER_AUTH)
 public class MediaController {
@@ -24,19 +25,13 @@ public class MediaController {
         this.authorizationService = authorizationService;
     }
 
-    @PostMapping("/api/v1/media/cloudinary/signature")
-    ApiResponse<CloudinarySignatureResponse> signature(@RequestBody CloudinarySignatureRequest request,
-                                                       Authentication authentication) {
-        if (request.organizationId() != null && request.programId() != null) {
-            throw new com.library.Skillmark.common.exception.BadRequestException("Provide either organizationId or programId, not both");
+    @PostMapping("/media/signatures")
+    ApiResponse<CloudinarySignatureResponse> signature(@Valid @RequestBody CloudinarySignatureRequest request,
+                                                       AuthUser currentUser) {
+        if (request.programId() == null) {
+            throw new com.library.Skillmark.common.exception.BadRequestException("programId is required");
         }
-        if (request.programId() != null) {
-            authorizationService.ensureProgramOwner(request.programId(), SecurityUtil.userId(authentication));
-        } else if (request.organizationId() != null) {
-            authorizationService.ensureOrganizationOwner(request.organizationId(), SecurityUtil.userId(authentication));
-        } else {
-            throw new com.library.Skillmark.common.exception.BadRequestException("organizationId or programId is required");
-        }
+        authorizationService.ensureProgramOwner(request.programId(), currentUser.id());
         return ApiResponse.success("Cloudinary signature created successfully",
                 cloudinaryMediaService.signUpload(request.params()));
     }

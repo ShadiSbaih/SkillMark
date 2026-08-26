@@ -1,0 +1,8 @@
+<div class="space-y-2">
+  <label class="block text-sm font-medium text-gray-700">{{ label() }}</label>
+  <label class="flex items-center justify-center w-full px-4 py-6 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-gray-400"
+         [class.opacity-50]="disabled()" [class.cursor-not-allowed]="disabled()">
+    <input type="file" class="sr-only" [accept]="accept()" [multiple]="multiple()" [disabled]="disabled()" (change)="onFilesSelected($event)">
+    <span class="text-sm text-gray-600">Click or drag files here</span>
+  </label>
+</div>

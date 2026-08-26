@@ -1,11 +1,5 @@
 package com.library.Skillmark.quiz.service;
 
-import com.library.Skillmark.quiz.controller.*;
-import com.library.Skillmark.quiz.dto.*;
-import com.library.Skillmark.quiz.entity.*;
-import com.library.Skillmark.quiz.enums.*;
-import com.library.Skillmark.quiz.repository.*;
-import com.library.Skillmark.quiz.service.*;
 import com.library.Skillmark.audit.enums.AuditAction;
 import com.library.Skillmark.audit.service.AuditLogService;
 import com.library.Skillmark.attempt.repository.QuizAttemptRepository;
@@ -13,17 +7,14 @@ import com.library.Skillmark.common.exception.BadRequestException;
 import com.library.Skillmark.common.exception.BusinessRuleException;
 import com.library.Skillmark.common.exception.NotFoundException;
 import com.library.Skillmark.common.response.PageResponse;
-import com.library.Skillmark.membership.controller.*;
-import com.library.Skillmark.membership.dto.*;
-import com.library.Skillmark.membership.entity.*;
-import com.library.Skillmark.membership.enums.*;
-import com.library.Skillmark.membership.repository.*;
-import com.library.Skillmark.membership.service.*;
-import com.library.Skillmark.organization.repository.OrganizationRepository;
 import com.library.Skillmark.enrollment.enums.EnrollmentStatus;
 import com.library.Skillmark.enrollment.repository.ProgramEnrollmentRepository;
 import com.library.Skillmark.program.entity.Program;
 import com.library.Skillmark.program.repository.ProgramRepository;
+import com.library.Skillmark.quiz.dto.*;
+import com.library.Skillmark.quiz.entity.*;
+import com.library.Skillmark.quiz.enums.*;
+import com.library.Skillmark.quiz.repository.*;
 import com.library.Skillmark.security.service.AuthorizationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,7 +30,6 @@ public class QuizService {
     private final QuizAttemptRepository attemptRepository;
     private final ProgramRepository programRepository;
     private final ProgramEnrollmentRepository enrollmentRepository;
-    private final OrganizationMembershipRepository membershipRepository;
     private final AuthorizationService authorizationService;
     private final AuditLogService auditLogService;
 
@@ -49,7 +39,6 @@ public class QuizService {
                        QuizAttemptRepository attemptRepository,
                        ProgramRepository programRepository,
                        ProgramEnrollmentRepository enrollmentRepository,
-                       OrganizationMembershipRepository membershipRepository,
                        AuthorizationService authorizationService,
                        AuditLogService auditLogService) {
         this.quizRepository = quizRepository;
@@ -58,7 +47,6 @@ public class QuizService {
         this.attemptRepository = attemptRepository;
         this.programRepository = programRepository;
         this.enrollmentRepository = enrollmentRepository;
-        this.membershipRepository = membershipRepository;
         this.authorizationService = authorizationService;
         this.auditLogService = auditLogService;
     }
@@ -66,7 +54,6 @@ public class QuizService {
     @Transactional
     public QuizResponse create(UUID programId, CreateQuizRequest request, UUID actorId) {
         Program program = authorizationService.ensureProgramOwner(programId, actorId);
-        validateCertificateMode(request.certificateEnabled(), request.certificateIssueMode());
         Quiz quiz = new Quiz();
         quiz.setProgram(program);
         quiz.setTitle(request.title().trim());
@@ -74,60 +61,54 @@ public class QuizService {
         quiz.setPassingScore(request.passingScore());
         quiz.setDurationMinutes(request.durationMinutes());
         quiz.setMaxAttempts(request.maxAttempts());
-        quiz.setCertificateEnabled(Boolean.TRUE.equals(request.certificateEnabled()));
-        quiz.setCertificateIssueMode(mode(request.certificateEnabled(), request.certificateIssueMode()));
+        quiz.setCertificateIssueMode(request.certificateIssueMode() == null ? CertificateIssueMode.NONE : request.certificateIssueMode());
         Quiz saved = quizRepository.save(quiz);
-        auditLogService.record(actorId, program.getOrganization().getId(), AuditAction.QUIZ_CREATED, "Quiz", saved.getId());
+        auditLogService.record(actorId, null, AuditAction.QUIZ_CREATED, "Quiz", saved.getId());
         return toResponse(saved, true);
     }
 
     @Transactional(readOnly = true)
     public PageResponse<QuizResponse> listAccessible(UUID actorId, int page, int size) {
-        var quizzes = membershipRepository.findByUserIdAndStatus(actorId, MembershipStatus.ACTIVE).stream()
-                .flatMap(membership -> quizzesForOwnerMembership(membership).stream())
-                .distinct()
-                .map(quiz -> toResponse(quiz, true))
-                .toList();
-        var enrolledQuizzes = enrollmentRepository.findByUserIdAndStatus(actorId, EnrollmentStatus.ACTIVE).stream()
-            .flatMap(enrollment -> quizRepository.findByProgramIdAndStatusAndVisibleToParticipantsTrueAndDeletedAtIsNull(
-                enrollment.getProgram().getId(), QuizStatus.PUBLISHED).stream())
-                .distinct()
+        boolean admin = authorizationService.isAdmin(actorId);
+        List<Quiz> quizzes;
+        if (admin) {
+            quizzes = quizRepository.findByDeletedAtIsNull();
+        } else {
+            quizzes = enrollmentRepository.findByUserIdAndStatus(actorId, EnrollmentStatus.ACTIVE).stream()
+                    .flatMap(enrollment -> quizRepository.findByProgramIdAndStatusAndVisibleToParticipantsTrueAndDeletedAtIsNull(
+                            enrollment.getProgram().getId(), QuizStatus.PUBLISHED).stream())
+                    .distinct()
+                    .toList();
+        }
+        return PageResponse.fromList(quizzes.stream()
                 .sorted(Comparator.comparing(Quiz::getCreatedAt).reversed())
-                .map(quiz -> toResponse(quiz, membershipRepository.existsByOrganizationIdAndUserIdAndRoleAndStatus(
-                        quiz.getProgram().getOrganization().getId(), actorId, MembershipRole.OWNER, MembershipStatus.ACTIVE)))
-                .toList();
-        return PageResponse.fromList(java.util.stream.Stream.concat(quizzes.stream(), enrolledQuizzes.stream())
-                .distinct()
-                .sorted(Comparator.comparing(QuizResponse::createdAt).reversed())
+                .map(quiz -> toResponse(quiz, admin))
                 .toList(), page, size);
     }
 
     @Transactional(readOnly = true)
     public PageResponse<QuizResponse> listByProgram(UUID programId, UUID actorId, int page, int size) {
-        Program program = authorizationService.ensureProgramAccessible(programId, actorId);
-        boolean owner = membershipRepository.existsByOrganizationIdAndUserIdAndRoleAndStatus(
-                program.getOrganization().getId(), actorId, MembershipRole.OWNER, MembershipStatus.ACTIVE);
-        List<Quiz> quizzes = owner
+        authorizationService.ensureProgramAccessible(programId, actorId);
+        boolean admin = authorizationService.isAdmin(actorId);
+        List<Quiz> quizzes = admin
                 ? quizRepository.findByProgramIdAndDeletedAtIsNull(programId)
-            : quizRepository.findByProgramIdAndStatusAndVisibleToParticipantsTrueAndDeletedAtIsNull(programId, QuizStatus.PUBLISHED);
+                : quizRepository.findByProgramIdAndStatusAndVisibleToParticipantsTrueAndDeletedAtIsNull(programId, QuizStatus.PUBLISHED);
         return PageResponse.fromList(quizzes.stream()
                 .sorted(Comparator.comparing(Quiz::getCreatedAt).reversed())
-                .map(quiz -> toResponse(quiz, owner))
+                .map(quiz -> toResponse(quiz, admin))
                 .toList(), page, size);
     }
 
     @Transactional(readOnly = true)
     public QuizResponse get(UUID quizId, UUID actorId) {
         Quiz quiz = authorizationService.ensureQuizAccessible(quizId, actorId);
-        boolean owner = membershipRepository.existsByOrganizationIdAndUserIdAndRoleAndStatus(
-                quiz.getProgram().getOrganization().getId(), actorId, MembershipRole.OWNER, MembershipStatus.ACTIVE);
-        return toResponse(quiz, owner);
+        boolean admin = authorizationService.isAdmin(actorId);
+        return toResponse(quiz, admin);
     }
 
     @Transactional
     public QuizResponse update(UUID quizId, UpdateQuizRequest request, UUID actorId) {
         Quiz quiz = authorizationService.ensureQuizOwner(quizId, actorId);
-        validateCertificateMode(request.certificateEnabled(), request.certificateIssueMode());
         if (attemptRepository.existsByQuizId(quizId) && protectedSettingsChanged(quiz, request)) {
             throw new BusinessRuleException("Only title and description can be changed after attempts exist");
         }
@@ -136,9 +117,8 @@ public class QuizService {
         quiz.setPassingScore(request.passingScore());
         quiz.setDurationMinutes(request.durationMinutes());
         quiz.setMaxAttempts(request.maxAttempts());
-        quiz.setCertificateEnabled(Boolean.TRUE.equals(request.certificateEnabled()));
-        quiz.setCertificateIssueMode(mode(request.certificateEnabled(), request.certificateIssueMode()));
-        auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.QUIZ_UPDATED, "Quiz", quizId);
+        quiz.setCertificateIssueMode(request.certificateIssueMode() == null ? CertificateIssueMode.NONE : request.certificateIssueMode());
+        auditLogService.record(actorId, null, AuditAction.QUIZ_UPDATED, "Quiz", quizId);
         return toResponse(quiz, true);
     }
 
@@ -146,7 +126,7 @@ public class QuizService {
     public QuizResponse updateVisibility(UUID quizId, boolean visibleToParticipants, UUID actorId) {
         Quiz quiz = authorizationService.ensureQuizOwner(quizId, actorId);
         quiz.setVisibleToParticipants(visibleToParticipants);
-        auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.QUIZ_UPDATED, "Quiz", quizId);
+        auditLogService.record(actorId, null, AuditAction.QUIZ_UPDATED, "Quiz", quizId);
         return toResponse(quiz, true);
     }
 
@@ -154,7 +134,7 @@ public class QuizService {
     public QuizResponse archive(UUID quizId, UUID actorId) {
         Quiz quiz = authorizationService.ensureQuizOwner(quizId, actorId);
         quiz.setStatus(QuizStatus.ARCHIVED);
-        auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.QUIZ_ARCHIVED, "Quiz", quizId);
+        auditLogService.record(actorId, null, AuditAction.QUIZ_ARCHIVED, "Quiz", quizId);
         return toResponse(quiz, true);
     }
 
@@ -174,7 +154,7 @@ public class QuizService {
         Quiz quiz = authorizationService.ensureQuizOwner(quizId, actorId);
         quiz.setStatus(QuizStatus.ARCHIVED);
         quiz.setDeletedAt(Instant.now());
-        auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.QUIZ_ARCHIVED, "Quiz", quizId);
+        auditLogService.record(actorId, null, AuditAction.QUIZ_ARCHIVED, "Quiz", quizId);
     }
 
     @Transactional
@@ -207,10 +187,9 @@ public class QuizService {
     }
 
     @Transactional
-    public QuestionResponse updateQuestion(UUID questionId, CreateQuestionRequest request, UUID actorId) {
-        QuizQuestion question = questionRepository.findById(questionId)
-                .orElseThrow(() -> new NotFoundException("Question not found"));
-        Quiz quiz = authorizationService.ensureQuizOwner(question.getQuiz().getId(), actorId);
+    public QuestionResponse updateQuestion(UUID quizId, UUID questionId, CreateQuestionRequest request, UUID actorId) {
+        Quiz quiz = authorizationService.ensureQuizOwner(quizId, actorId);
+        QuizQuestion question = requireQuestionInQuiz(quizId, questionId);
         ensureQuizStructureMutable(quiz);
         if (request.type() != QuestionType.SINGLE_CHOICE) {
             throw new BadRequestException("MVP supports SINGLE_CHOICE questions only");
@@ -235,26 +214,24 @@ public class QuizService {
             option.setPosition(optionRequest.position());
             optionRepository.save(option);
         });
-        auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.QUIZ_UPDATED, "QuizQuestion", questionId);
+        auditLogService.record(actorId, null, AuditAction.QUIZ_UPDATED, "QuizQuestion", questionId);
         return toQuestionResponse(question, true);
     }
 
     @Transactional
-    public void deleteQuestion(UUID questionId, UUID actorId) {
-        QuizQuestion question = questionRepository.findById(questionId)
-                .orElseThrow(() -> new NotFoundException("Question not found"));
-        Quiz quiz = authorizationService.ensureQuizOwner(question.getQuiz().getId(), actorId);
+    public void deleteQuestion(UUID quizId, UUID questionId, UUID actorId) {
+        Quiz quiz = authorizationService.ensureQuizOwner(quizId, actorId);
+        QuizQuestion question = requireQuestionInQuiz(quizId, questionId);
         ensureQuizStructureMutable(quiz);
         optionRepository.findByQuestionIdOrderByPositionAsc(questionId).forEach(optionRepository::delete);
         questionRepository.delete(question);
-        auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.QUIZ_UPDATED, "QuizQuestion", questionId);
+        auditLogService.record(actorId, null, AuditAction.QUIZ_UPDATED, "QuizQuestion", questionId);
     }
 
     @Transactional
-    public OptionResponse addOption(UUID questionId, CreateOptionRequest request, UUID actorId) {
-        QuizQuestion question = questionRepository.findById(questionId)
-                .orElseThrow(() -> new NotFoundException("Question not found"));
-        Quiz quiz = authorizationService.ensureQuizOwner(question.getQuiz().getId(), actorId);
+    public OptionResponse addOption(UUID quizId, UUID questionId, CreateOptionRequest request, UUID actorId) {
+        Quiz quiz = authorizationService.ensureQuizOwner(quizId, actorId);
+        QuizQuestion question = requireQuestionInQuiz(quizId, questionId);
         ensureQuizStructureMutable(quiz);
         boolean duplicatePosition = optionRepository.findByQuestionIdOrderByPositionAsc(questionId).stream()
                 .anyMatch(existing -> existing.getPosition().equals(request.position()));
@@ -267,17 +244,16 @@ public class QuizService {
         option.setCorrect(request.isCorrect());
         option.setPosition(request.position());
         QuizOption saved = optionRepository.save(option);
-        auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.QUIZ_UPDATED, "QuizOption", saved.getId());
+        auditLogService.record(actorId, null, AuditAction.QUIZ_UPDATED, "QuizOption", saved.getId());
         return OptionResponse.from(saved, true);
     }
 
     @Transactional
-    public OptionResponse updateOption(UUID optionId, CreateOptionRequest request, UUID actorId) {
-        QuizOption option = optionRepository.findById(optionId)
-                .orElseThrow(() -> new NotFoundException("Option not found"));
-        Quiz quiz = authorizationService.ensureQuizOwner(option.getQuestion().getQuiz().getId(), actorId);
+    public OptionResponse updateOption(UUID quizId, UUID questionId, UUID optionId, CreateOptionRequest request, UUID actorId) {
+        QuizOption option = requireOptionInQuestion(quizId, questionId, optionId);
+        Quiz quiz = authorizationService.ensureQuizOwner(quizId, actorId);
         ensureQuizStructureMutable(quiz);
-        boolean duplicatePosition = optionRepository.findByQuestionIdOrderByPositionAsc(option.getQuestion().getId()).stream()
+        boolean duplicatePosition = optionRepository.findByQuestionIdOrderByPositionAsc(questionId).stream()
                 .anyMatch(existing -> existing.getPosition().equals(request.position()) && !existing.getId().equals(optionId));
         if (duplicatePosition) {
             throw new BadRequestException("Option position already exists for this question");
@@ -285,18 +261,17 @@ public class QuizService {
         option.setText(request.text().trim());
         option.setCorrect(request.isCorrect());
         option.setPosition(request.position());
-        auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.QUIZ_UPDATED, "QuizOption", optionId);
+        auditLogService.record(actorId, null, AuditAction.QUIZ_UPDATED, "QuizOption", optionId);
         return OptionResponse.from(option, true);
     }
 
     @Transactional
-    public void deleteOption(UUID optionId, UUID actorId) {
-        QuizOption option = optionRepository.findById(optionId)
-                .orElseThrow(() -> new NotFoundException("Option not found"));
-        Quiz quiz = authorizationService.ensureQuizOwner(option.getQuestion().getQuiz().getId(), actorId);
+    public void deleteOption(UUID quizId, UUID questionId, UUID optionId, UUID actorId) {
+        QuizOption option = requireOptionInQuestion(quizId, questionId, optionId);
+        Quiz quiz = authorizationService.ensureQuizOwner(quizId, actorId);
         ensureQuizStructureMutable(quiz);
         optionRepository.delete(option);
-        auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.QUIZ_UPDATED, "QuizOption", optionId);
+        auditLogService.record(actorId, null, AuditAction.QUIZ_UPDATED, "QuizOption", optionId);
     }
 
     @Transactional
@@ -304,19 +279,29 @@ public class QuizService {
         Quiz quiz = authorizationService.ensureQuizOwner(quizId, actorId);
         validatePublishable(quiz);
         quiz.setStatus(QuizStatus.PUBLISHED);
-        auditLogService.record(actorId, quiz.getProgram().getOrganization().getId(), AuditAction.QUIZ_PUBLISHED, "Quiz", quizId);
+        auditLogService.record(actorId, null, AuditAction.QUIZ_PUBLISHED, "Quiz", quizId);
         return toResponse(quiz, true);
     }
 
-    private List<Quiz> quizzesForOwnerMembership(OrganizationMembership membership) {
-        UUID organizationId = membership.getOrganization().getId();
-        if (membership.getRole() == MembershipRole.OWNER) {
-            return programRepository.findByOrganizationIdAndDeletedAtIsNull(organizationId)
-                    .stream()
-                    .flatMap(program -> quizRepository.findByProgramIdAndDeletedAtIsNull(program.getId()).stream())
-                    .toList();
+    private QuizQuestion requireQuestionInQuiz(UUID quizId, UUID questionId) {
+        QuizQuestion question = questionRepository.findById(questionId)
+                .orElseThrow(() -> new NotFoundException("Question not found"));
+        if (!question.getQuiz().getId().equals(quizId)) {
+            throw new NotFoundException("Question not found for this quiz");
         }
-        return List.of();
+        return question;
+    }
+
+    private QuizOption requireOptionInQuestion(UUID quizId, UUID questionId, UUID optionId) {
+        QuizOption option = optionRepository.findById(optionId)
+                .orElseThrow(() -> new NotFoundException("Option not found"));
+        if (!option.getQuestion().getId().equals(questionId)) {
+            throw new NotFoundException("Option not found for this question");
+        }
+        if (!option.getQuestion().getQuiz().getId().equals(quizId)) {
+            throw new NotFoundException("Option not found for this quiz");
+        }
+        return option;
     }
 
     private void validatePublishable(Quiz quiz) {
@@ -364,34 +349,20 @@ public class QuizService {
         }
     }
 
-    private void validateCertificateMode(Boolean enabled, CertificateIssueMode issueMode) {
-        if (!Boolean.TRUE.equals(enabled) && issueMode != null && issueMode != CertificateIssueMode.NONE) {
-            throw new BadRequestException("Certificate issue mode must be NONE when certificates are disabled");
-        }
-    }
-
-    private CertificateIssueMode mode(Boolean enabled, CertificateIssueMode issueMode) {
-        if (!Boolean.TRUE.equals(enabled)) {
-            return CertificateIssueMode.NONE;
-        }
-        return issueMode == null ? CertificateIssueMode.AUTO : issueMode;
-    }
-
     private boolean protectedSettingsChanged(Quiz quiz, UpdateQuizRequest request) {
         return !Objects.equals(quiz.getPassingScore(), request.passingScore())
                 || !Objects.equals(quiz.getDurationMinutes(), request.durationMinutes())
                 || !Objects.equals(quiz.getMaxAttempts(), request.maxAttempts())
-                || quiz.isCertificateEnabled() != Boolean.TRUE.equals(request.certificateEnabled())
-                || quiz.getCertificateIssueMode() != mode(request.certificateEnabled(), request.certificateIssueMode());
+                || quiz.getCertificateIssueMode() != (request.certificateIssueMode() == null ? CertificateIssueMode.NONE : request.certificateIssueMode());
     }
 
     private QuizResponse toResponse(Quiz quiz, boolean includeCorrectAnswers) {
         List<QuestionResponse> questions = questionRepository.findByQuizIdOrderByPositionAsc(quiz.getId()).stream()
                 .map(question -> toQuestionResponse(question, includeCorrectAnswers))
                 .toList();
-        return new QuizResponse(quiz.getId(), quiz.getProgram().getId(), quiz.getProgram().getOrganization().getId(), quiz.getTitle(), quiz.getDescription(),
-            quiz.getPassingScore(), quiz.getDurationMinutes(), quiz.getMaxAttempts(), quiz.isCertificateEnabled(),
-            quiz.getCertificateIssueMode(), quiz.isVisibleToParticipants(), quiz.isPublished(), quiz.getStatus(), quiz.getCreatedAt(), questions);
+        return new QuizResponse(quiz.getId(), quiz.getProgram().getId(), quiz.getTitle(), quiz.getDescription(),
+            quiz.getPassingScore(), quiz.getDurationMinutes(), quiz.getMaxAttempts(), quiz.getCertificateIssueMode(),
+            quiz.isVisibleToParticipants(), quiz.isPublished(), quiz.getStatus(), quiz.getCreatedAt(), questions);
     }
 
     private QuestionResponse toQuestionResponse(QuizQuestion question, boolean includeCorrectAnswers) {

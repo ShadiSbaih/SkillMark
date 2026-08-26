@@ -1,0 +1,74 @@
+<section class="page">
+  <app-page-header title="My programs" subtitle="Programs you are enrolled in." />
+
+  @switch (query.status()) {
+    @case ('pending') {
+      <app-loading-state message="Loading enrollments..." />
+    }
+    @case ('error') {
+      <app-error-state
+        [message]="query.error()?.message ?? 'Failed to load enrollments'"
+        (retry)="query.refetch()"
+      />
+    }
+    @default {
+      @if (enrollments().length === 0) {
+        <app-card>
+          <app-empty-state
+            title="No enrollments"
+            description="You are not enrolled in any programs yet. Browse our programs to start learning."
+            actionLabel="Browse Programs"
+            actionLink="/join"
+          />
+        </app-card>
+      } @else {
+        <div class="space-y-4">
+          @for (enrollment of enrollments(); track enrollment.id) {
+            <a
+              [routerLink]="['/programs', enrollment.programId, 'learn']"
+              class="block"
+            >
+              <app-card [interactive]="true">
+                <div
+                  class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+                >
+                  <div>
+                    <h3 class="text-lg font-semibold text-ink flex items-center gap-2">
+                      {{ enrollment.programTitle || enrollment.programId }}
+                      @if (enrollment.status === 'COMPLETED') {
+                        <span class="inline-flex items-center rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium text-success ring-1 ring-inset ring-success/20">
+                          Completed
+                        </span>
+                      } @else {
+                        <span class="inline-flex items-center rounded-full bg-info/10 px-2 py-0.5 text-xs font-medium text-info ring-1 ring-inset ring-info/20">
+                          Active
+                        </span>
+                      }
+                    </h3>
+                    <p class="text-sm text-ink-mute mt-1">
+                      Enrolled on {{ enrollment.enrolledAt | date: 'longDate' }}
+                    </p>
+                  </div>
+                  <div class="text-sm">
+                    <span class="text-brand font-medium group-hover:underline">Continue learning &rarr;</span>
+                  </div>
+                </div>
+              </app-card>
+            </a>
+          }
+        </div>
+
+        <app-pagination
+          class="mt-6 block"
+          [page]="page()"
+          [size]="size()"
+          [totalElements]="totalElements()"
+          [totalPages]="totalPages()"
+          [hasPrevious]="hasPrevious()"
+          [hasNext]="hasNext()"
+          (pageChange)="goToPage($event)"
+        />
+      }
+    }
+  }
+</section>

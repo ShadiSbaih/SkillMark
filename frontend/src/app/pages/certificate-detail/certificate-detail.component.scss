@@ -1,61 +1,420 @@
-.certificate-display {
-	border: 1px solid var(--hairline);
-	border-radius: var(--radius-lg);
-	background: var(--canvas);
-	box-shadow: var(--shadow-1);
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) 300px;
-	gap: 24px;
-	padding: 24px;
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,400;1,600&family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+.certificate-container {
+  display: flex;
+  justify-content: center;
+  background: var(--canvas-soft, #f8fafc);
+  padding: 40px 20px;
+  overflow-x: auto;
 }
 
-.certificate-border {
-	min-height: 460px;
-	display: grid;
-	align-content: center;
-	justify-items: center;
-	border: 2px solid var(--hairline-input);
-	border-radius: var(--radius-lg);
-	background:
-		linear-gradient(90deg, rgba(245, 233, 212, 0.58), transparent 34%, rgba(185, 185, 249, 0.28)),
-		var(--canvas);
-	padding: 48px;
-	text-align: center;
+.certificate-paper {
+  position: relative;
+  width: 1056px; /* Exact US Letter Landscape width at 96 DPI */
+  height: 740px; /* Modern aspect ratio */
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 
+    0 20px 40px -15px rgba(15, 23, 42, 0.08),
+    0 0 0 1px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+  padding: 56px 64px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+
+  &.is-revoked {
+    border-top: 4px solid #ef4444;
+  }
 }
 
-.certificate-border h2 {
-	font-size: 38px;
+/* -------------------------------------- */
+/* Top Gradient Accent Bar */
+/* -------------------------------------- */
+.top-accent-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: linear-gradient(90deg, #4f46e5 0%, #6366f1 40%, #a855f7 70%, #eab308 100%);
 }
 
-.certificate-border h3 {
-	font-size: 44px;
+.is-revoked .top-accent-bar {
+  background: #ef4444;
 }
 
-.certificate-footer {
-	width: 100%;
-	display: flex;
-	justify-content: space-between;
-	gap: 16px;
-	margin-top: 48px;
-	color: var(--ink-mute);
-	font-feature-settings: "tnum";
+/* -------------------------------------- */
+/* Micro Corner Accents */
+/* -------------------------------------- */
+.corner-accent {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  pointer-events: none;
+  opacity: 0.35;
+
+  &.top-left {
+    top: 24px;
+    left: 24px;
+    border-top: 2px solid #4f46e5;
+    border-left: 2px solid #4f46e5;
+  }
+  &.top-right {
+    top: 24px;
+    right: 24px;
+    border-top: 2px solid #4f46e5;
+    border-right: 2px solid #4f46e5;
+  }
+  &.bottom-left {
+    bottom: 24px;
+    left: 24px;
+    border-bottom: 2px solid #4f46e5;
+    border-left: 2px solid #4f46e5;
+  }
+  &.bottom-right {
+    bottom: 24px;
+    right: 24px;
+    border-bottom: 2px solid #4f46e5;
+    border-right: 2px solid #4f46e5;
+  }
 }
 
-@media (max-width: 1024px) {
-	.certificate-display {
-		grid-template-columns: 1fr;
-	}
+/* -------------------------------------- */
+/* Certificate Header */
+/* -------------------------------------- */
+.cert-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 24px;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
 }
 
-@media (max-width: 768px) {
-	.certificate-border {
-		min-height: 360px;
-		padding: 28px;
-	}
-
-	.certificate-footer {
-		flex-direction: column;
-		align-items: center;
-	}
+.brand-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
+.brand-logo-img {
+  height: 36px;
+  width: 36px;
+  object-fit: contain;
+}
+
+.brand-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: #0f172a;
+}
+
+/* Gold Emblem Badge moved to Header */
+.emblem-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  background: rgba(254, 240, 138, 0.15);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+
+  &.emblem-revoked {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.3);
+
+    .emblem-ring {
+      background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+    }
+    .emblem-title {
+      color: #ef4444;
+    }
+    .emblem-sub {
+      color: #f87171;
+    }
+  }
+}
+
+.emblem-ring {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fef08a 0%, #eab308 50%, #ca8a04 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 10px rgba(234, 179, 8, 0.25);
+  border: 2px solid #ffffff;
+  flex-shrink: 0;
+}
+
+.emblem-text-group {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.emblem-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #ca8a04;
+  line-height: 1.1;
+}
+
+.emblem-sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #854d0e;
+  text-transform: uppercase;
+}
+
+/* -------------------------------------- */
+/* Body Content */
+/* -------------------------------------- */
+.cert-body {
+  text-align: center;
+  margin: auto 0;
+  padding: 20px 0;
+}
+
+.cert-title-block {
+  margin-bottom: 28px;
+}
+
+.title-kicker {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  color: #64748b;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.cert-heading {
+  font-family: 'Outfit', sans-serif;
+  font-size: 42px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+  margin: 0;
+  line-height: 1.1;
+}
+
+.recipient-block {
+  margin-bottom: 32px;
+}
+
+.presented-to {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: #94a3b8;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.recipient-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 58px;
+  font-weight: 600;
+  font-style: italic;
+  color: #0f172a;
+  margin: 0 0 12px 0;
+  line-height: 1.1;
+}
+
+.recipient-divider {
+  width: 140px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #4f46e5, transparent);
+  margin: 0 auto;
+}
+
+.details-block {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.fulfillment-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  color: #475569;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.program-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 20px 0;
+  letter-spacing: -0.01em;
+}
+
+.assessment-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 8px 18px;
+  border-radius: 9999px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+
+  .quiz-label {
+    color: #64748b;
+    font-weight: 500;
+  }
+  .quiz-title {
+    color: #0f172a;
+    font-weight: 600;
+  }
+  .score-chip {
+    background: rgba(79, 70, 229, 0.1);
+    color: #4f46e5;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 12px;
+  }
+}
+
+/* -------------------------------------- */
+/* Footer Layout */
+/* -------------------------------------- */
+.cert-footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding-top: 24px;
+  border-top: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.footer-meta {
+  display: flex;
+  gap: 32px;
+  text-align: left;
+}
+
+.meta-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.meta-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+}
+
+.meta-val {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e293b;
+
+  &.code-font {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    color: #475569;
+  }
+}
+
+.footer-signature {
+  text-align: right;
+  width: 220px;
+}
+
+.signature-line {
+  height: 1px;
+  background: #cbd5e1;
+  margin-bottom: 12px;
+}
+
+.signer-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 20px;
+  font-style: italic;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 0 0 2px 0;
+}
+
+.signer-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  margin: 0;
+}
+
+/* -------------------------------------- */
+/* Print Styles */
+/* -------------------------------------- */
+@media print {
+  ::ng-deep {
+    body * {
+      visibility: hidden !important;
+    }
+
+    @page {
+      size: landscape;
+      margin: 0;
+    }
+
+    .certificate-container, 
+    .certificate-container * {
+      visibility: visible !important;
+    }
+
+    .certificate-container {
+      position: absolute !important;
+      left: 0 !important;
+      top: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      background: white !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      z-index: 9999 !important;
+    }
+
+    .certificate-paper {
+      width: 1056px !important;
+      height: 740px !important;
+      box-shadow: none !important;
+      border: none !important;
+      border-radius: 0 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    .no-print, .no-print * {
+      display: none !important;
+      visibility: hidden !important;
+    }
+  }
+}

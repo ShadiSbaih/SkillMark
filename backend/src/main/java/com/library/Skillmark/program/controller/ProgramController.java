@@ -8,18 +8,18 @@ import com.library.Skillmark.program.dto.ProgramResponse;
 import com.library.Skillmark.program.dto.UpdateProgramRequest;
 import com.library.Skillmark.program.dto.UpdateProgramStatusRequest;
 import com.library.Skillmark.program.service.ProgramService;
-import com.library.Skillmark.security.SecurityUtil;
+import com.library.Skillmark.security.AuthUser;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
 @RestController
+@RequestMapping("/api/v1")
 @Tag(name = "Programs")
 @SecurityRequirement(name = OpenApiConfig.BEARER_AUTH)
 public class ProgramController {
@@ -29,63 +29,51 @@ public class ProgramController {
         this.programService = programService;
     }
 
-    @PostMapping("/api/v1/organizations/{organizationId}/programs")
-    ResponseEntity<ApiResponse<ProgramResponse>> create(@PathVariable UUID organizationId,
-                                                        @Valid @RequestBody CreateProgramRequest request,
-                                                        Authentication authentication) {
+    @PostMapping("/programs")
+    ResponseEntity<ApiResponse<ProgramResponse>> create(@Valid @RequestBody CreateProgramRequest request,
+                                                        AuthUser currentUser) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Program created successfully",
-                programService.create(organizationId, request, SecurityUtil.userId(authentication))));
+                programService.create(request, currentUser.id())));
     }
 
-    @GetMapping("/api/v1/organizations/{organizationId}/programs")
-    ApiResponse<PageResponse<ProgramResponse>> list(@PathVariable UUID organizationId,
-                                                    Authentication authentication,
+
+
+    @GetMapping("/programs")
+    ApiResponse<PageResponse<ProgramResponse>> list(AuthUser currentUser,
                                                     @RequestParam(defaultValue = "0") int page,
                                                     @RequestParam(defaultValue = "10") int size) {
         return ApiResponse.success("Programs retrieved successfully",
-                programService.list(organizationId, SecurityUtil.userId(authentication), page, size));
+                programService.list(currentUser.id(), page, size));
     }
 
-    @GetMapping("/api/v1/programs/{programId}")
-    ApiResponse<ProgramResponse> get(@PathVariable UUID programId, Authentication authentication) {
+
+
+    @GetMapping("/programs/{programId}")
+    ApiResponse<ProgramResponse> get(@PathVariable UUID programId, AuthUser currentUser) {
         return ApiResponse.success("Program retrieved successfully",
-                programService.get(programId, SecurityUtil.userId(authentication)));
+                programService.get(programId, currentUser.id()));
     }
 
-    @PutMapping("/api/v1/programs/{programId}")
+    @PutMapping("/programs/{programId}")
     ApiResponse<ProgramResponse> update(@PathVariable UUID programId,
                                         @Valid @RequestBody UpdateProgramRequest request,
-                                        Authentication authentication) {
+                                        AuthUser currentUser) {
         return ApiResponse.success("Program updated successfully",
-                programService.update(programId, request, SecurityUtil.userId(authentication)));
+                programService.update(programId, request, currentUser.id()));
     }
 
-    @PostMapping("/api/v1/programs/{programId}/publish")
-    ApiResponse<ProgramResponse> publish(@PathVariable UUID programId, Authentication authentication) {
-        return ApiResponse.success("Program published successfully",
-                programService.updateStatus(programId, com.library.Skillmark.program.enums.ProgramStatus.PUBLISHED,
-                        SecurityUtil.userId(authentication)));
-    }
-
-    @PostMapping("/api/v1/programs/{programId}/archive")
-    ApiResponse<ProgramResponse> archive(@PathVariable UUID programId, Authentication authentication) {
-        return ApiResponse.success("Program archived successfully",
-                programService.updateStatus(programId, com.library.Skillmark.program.enums.ProgramStatus.ARCHIVED,
-                        SecurityUtil.userId(authentication)));
-    }
-
-    @PatchMapping("/api/v1/programs/{programId}/status")
+    @PatchMapping("/programs/{programId}/status")
     @io.swagger.v3.oas.annotations.Operation(summary = "Update program status", description = "Updates program status. Status is the source of truth; isPublished is derived from status == PUBLISHED.")
     ApiResponse<ProgramResponse> updateStatus(@PathVariable UUID programId,
                                               @Valid @RequestBody UpdateProgramStatusRequest request,
-                                              Authentication authentication) {
+                                              AuthUser currentUser) {
         return ApiResponse.success("Program status updated successfully",
-                programService.updateStatus(programId, request.status(), SecurityUtil.userId(authentication)));
+                programService.updateStatus(programId, request.status(), currentUser.id()));
     }
 
-    @DeleteMapping("/api/v1/programs/{programId}")
-    ApiResponse<Void> delete(@PathVariable UUID programId, Authentication authentication) {
-        programService.delete(programId, SecurityUtil.userId(authentication));
+    @DeleteMapping("/programs/{programId}")
+    ApiResponse<Void> delete(@PathVariable UUID programId, AuthUser currentUser) {
+        programService.delete(programId, currentUser.id());
         return ApiResponse.success("Program deleted successfully", null);
     }
 }

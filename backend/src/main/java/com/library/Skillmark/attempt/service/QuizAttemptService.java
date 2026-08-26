@@ -1,11 +1,9 @@
 package com.library.Skillmark.attempt.service;
 
-import com.library.Skillmark.attempt.controller.*;
 import com.library.Skillmark.attempt.dto.*;
 import com.library.Skillmark.attempt.entity.*;
 import com.library.Skillmark.attempt.enums.*;
 import com.library.Skillmark.attempt.repository.*;
-import com.library.Skillmark.attempt.service.*;
 import com.library.Skillmark.audit.enums.AuditAction;
 import com.library.Skillmark.audit.service.AuditLogService;
 import com.library.Skillmark.certificate.service.CertificateService;
@@ -14,12 +12,10 @@ import com.library.Skillmark.common.exception.BusinessRuleException;
 import com.library.Skillmark.common.exception.ConflictException;
 import com.library.Skillmark.common.exception.NotFoundException;
 import com.library.Skillmark.common.response.PageResponse;
-import com.library.Skillmark.quiz.controller.*;
 import com.library.Skillmark.quiz.dto.*;
 import com.library.Skillmark.quiz.entity.*;
 import com.library.Skillmark.quiz.enums.*;
 import com.library.Skillmark.quiz.repository.*;
-import com.library.Skillmark.quiz.service.*;
 import com.library.Skillmark.security.service.AuthorizationService;
 import com.library.Skillmark.user.repository.UserRepository;
 import org.slf4j.Logger;
@@ -77,8 +73,15 @@ public class QuizAttemptService {
             throw new BusinessRuleException("Quiz is not open for attempts");
         }
         authorizationService.ensureProgramEnrollment(quiz.getProgram().getId(), userId);
-        if (attemptRepository.existsByQuizIdAndUserIdAndStatus(quizId, userId, AttemptStatus.IN_PROGRESS)) {
-            throw new ConflictException("An in-progress attempt already exists for this quiz");
+        Optional<QuizAttempt> inProgressOpt = attemptRepository.findByQuizIdAndUserIdAndStatus(quizId, userId, AttemptStatus.IN_PROGRESS);
+        if (inProgressOpt.isPresent()) {
+            QuizAttempt inProgress = inProgressOpt.get();
+            if (Instant.now().isAfter(inProgress.getExpiresAt())) {
+                inProgress.setStatus(AttemptStatus.EXPIRED);
+                attemptRepository.save(inProgress);
+            } else {
+                return StartAttemptResponse.from(inProgress);
+            }
         }
         long priorAttempts = attemptRepository.countByQuizIdAndUserId(quizId, userId);
         if (priorAttempts >= quiz.getMaxAttempts()) {
@@ -149,7 +152,7 @@ public class QuizAttemptService {
         attempt.setPassed(passed);
         attempt.setStatus(AttemptStatus.SUBMITTED);
         attempt.setSubmittedAt(Instant.now());
-        auditLogService.record(userId, attempt.getQuiz().getProgram().getOrganization().getId(), AuditAction.ATTEMPT_SUBMITTED, "QuizAttempt", attemptId);
+        auditLogService.record(userId, null, AuditAction.ATTEMPT_SUBMITTED, "QuizAttempt", attemptId);
 
         Optional<com.library.Skillmark.certificate.entity.Certificate> certificate = Optional.empty();
         try {

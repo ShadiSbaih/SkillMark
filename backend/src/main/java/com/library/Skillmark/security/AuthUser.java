@@ -7,10 +7,20 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
-public record AuthUser(UUID id, String clerkUserId, String email) implements UserDetails {
+import com.library.Skillmark.user.enums.UserRole;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+
+public record AuthUser(UUID id, String email, UserRole role) implements UserDetails {
+    public AuthUser(UUID id, String email) {
+        this(id, email, UserRole.STUDENT);
+    }
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of();
+        if (role == null) {
+            return List.of();
+        }
+        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
 
     @Override

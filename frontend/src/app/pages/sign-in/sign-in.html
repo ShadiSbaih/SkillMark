@@ -1,0 +1,71 @@
+<section class="auth-layout">
+  <div class="auth-content">
+    <div class="auth-header">
+      <h1>Welcome back</h1>
+      <p class="auth-subtitle">Sign in to continue your Skillmark journey.</p>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="auth-form">
+      <app-form-field
+        label="Email address"
+        id="email"
+        [error]="form.get('email')?.touched && form.get('email')?.invalid ? 'Please enter a valid email.' : undefined"
+      >
+        <input
+          id="email"
+          type="email"
+          formControlName="email"
+          placeholder="you@example.com"
+          autocomplete="email"
+          class="input"
+        />
+      </app-form-field>
+
+      <app-form-field
+        label="Password"
+        id="password"
+        [error]="form.get('password')?.touched && form.get('password')?.invalid ? 'Password must be at least 8 characters.' : undefined"
+      >
+        <input
+          id="password"
+          type="password"
+          formControlName="password"
+          placeholder="••••••••"
+          autocomplete="current-password"
+          class="input"
+        />
+      </app-form-field>
+
+      @if (error()) {
+        <div class="auth-error">{{ error() }}</div>
+      }
+
+      <div class="mt-2 flex flex-col gap-3">
+        <app-button type="submit" variant="primary" [loading]="isLoading()" [disabled]="isLoading()" [fullWidth]="true">
+          Sign in
+        </app-button>
+
+        <div class="relative py-2 flex items-center justify-center">
+          <div class="border-t border-border absolute w-full left-0"></div>
+          <span class="bg-surface text-ink-mute text-xs px-2 relative z-10 font-medium tracking-wide uppercase">or try a demo</span>
+        </div>
+
+        <app-button type="button" variant="secondary" (clicked)="loginAsAdminDemo()" [disabled]="isLoading()" [fullWidth]="true">
+          Log in as admin demo
+        </app-button>
+        
+        <app-button type="button" variant="secondary" (clicked)="loginAsStudentDemo()" [disabled]="isLoading()" [fullWidth]="true">
+          Login as student demo
+        </app-button>
+      </div>
+    </form>
+
+    <div class="auth-footer">
+      <span>Don't have an account? <a routerLink="/sign-up" [queryParams]="redirectUrl() ? { redirect: redirectUrl() } : null">Sign up</a></span>
+    </div>
+  </div>
+
+  <div class="auth-visual">
+    <img src="/undraw_sign-up_qamz.svg" alt="Sign in to Skillmark" style="max-width: 80%; height: auto;" />
+  </div>
+</section>

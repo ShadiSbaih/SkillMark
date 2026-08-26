@@ -10,7 +10,6 @@ import java.util.UUID;
 
 public record ProgramResponse(
         UUID id,
-        UUID organizationId,
         String title,
         String description,
         String coverImageUrl,
@@ -24,7 +23,6 @@ public record ProgramResponse(
     public static ProgramResponse from(Program program) {
         return new ProgramResponse(
                 program.getId(),
-                program.getOrganization().getId(),
                 program.getTitle(),
                 program.getDescription(),
                 program.getCoverImageUrl(),

@@ -17,9 +17,9 @@
 ## Core Rules (Never Violate)
 
 **1. Authentication & Identity**
-* Clerk handles all auth. Backend only verifies JWTs.
-* Link local users via `users.clerk_user_id`.
-* NEVER store passwords, refresh tokens, or reset tokens.
+* Native JWT auth. Users register with email + password; the backend issues and validates its own JWTs.
+* Local user identity lives in the `users` table (`id`, `password_hash`, email verification, password reset).
+* Passwords are hashed (never stored in plaintext) using Spring Security `BCryptPasswordEncoder`.
 
 **2. Authorization (Multi-Tenancy)**
 * NO global user roles (`users.role` is forbidden).
@@ -65,7 +65,7 @@ Always use service-level guards before executing logic:
 **HTTP Status Codes:**
 * `200/201/204`: Success
 * `400`: Validation error (DTO structure)
-* `401`: Invalid/missing Clerk token
+* `401`: Invalid/missing JWT token
 * `403`: Authenticated, but lacks permission
 * `404`: Not found (Use instead of 403 to hide resource existence from unauthorized users)
 * `409`: Conflict (e.g., duplicate enrollment)

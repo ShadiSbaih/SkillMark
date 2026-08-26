@@ -17,3 +17,9 @@
 .env
 .env.*
 !.env.example
+
+.agents/*
+.kimchi/*
+.worktrees/
+
+.jdk/*

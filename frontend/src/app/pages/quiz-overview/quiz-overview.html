@@ -1,0 +1,120 @@
+@if (quizQuery.isPending()) {
+  <app-loading-state message="Loading quiz overview..." />
+} @else if (quizQuery.isError()) {
+  <app-error-state
+    [message]="quizQuery.error()?.message || 'Failed to load quiz.'"
+    (retry)="quizQuery.refetch()"
+  />
+} @else {
+  @let quiz = quizQuery.data();
+
+  @if (!quiz) {
+    <app-empty-state
+      title="Quiz not found"
+      description="The quiz you are looking for does not exist or is unavailable."
+    />
+  } @else {
+    <app-breadcrumb [items]="breadcrumbs()" />
+
+    <app-page-header
+      [title]="quiz.title"
+      [subtitle]="quiz.description ?? 'Quiz overview and actions'"
+      [hasActions]="true"
+    >
+      <ng-container actions>
+        <app-button variant="secondary" (clicked)="navigateToBuilder()">Builder</app-button>
+        <app-button variant="secondary" (clicked)="navigateToSettings()">Settings</app-button>
+        <app-button variant="secondary" (clicked)="navigateToPreview()">Preview</app-button>
+        <app-button variant="secondary" (clicked)="navigateToAnalytics()">Analytics</app-button>
+        @if (quiz.status !== 'PUBLISHED') {
+          <app-button (clicked)="openPublishModal()">Publish</app-button>
+        }
+      </ng-container>
+    </app-page-header>
+
+    <div class="kpi-grid-5">
+      <app-kpi-card label="Status" [value]="quiz.status" icon="status" [status]="quiz.status" entity="quiz" color="indigo" />
+      <app-kpi-card label="Questions" [value]="quiz.questions.length" icon="quizzes" color="sky" />
+      <app-kpi-card label="Passing Score" [value]="quiz.passingScore + '%'" [percentage]="quiz.passingScore" color="violet" />
+
+      @if (!statsQuery.isPending() && !statsQuery.isError() && statsQuery.data()) {
+        @let stats = statsQuery.data();
+        <app-kpi-card label="Total Attempts" [value]="stats?.attemptsCount ?? 0" icon="attempts" color="amber" />
+        <app-kpi-card label="Submitted" [value]="submittedAttempts()" icon="attempts" color="indigo" />
+        <app-kpi-card label="Passed" [value]="passCount()" icon="passed" color="emerald" />
+        <app-kpi-card label="Failed" [value]="failCount()" icon="failed" color="rose" />
+        <app-kpi-card label="Pass Rate" [value]="passRatePercentage() + '%'" [percentage]="passRatePercentage()" color="emerald" />
+        <app-kpi-card label="Average Score" [value]="avgScorePercentage() + '%'" [percentage]="avgScorePercentage()" color="indigo" />
+        <app-kpi-card label="Highest Score" [value]="highestScore().toFixed(1) + '%'" icon="score" color="amber" />
+      }
+    </div>
+
+    <app-card class="mt-8">
+      <div class="panel-header">
+        <h2>Questions preview</h2>
+        @if (quiz.questions.length > 0) {
+          <span class="text-sm text-ink-mute">
+            Showing {{ previewQuestions().length }} of {{ quiz.questions.length }}
+          </span>
+        }
+      </div>
+
+      @if (quiz.questions.length === 0) {
+        <app-empty-state
+          title="No questions yet"
+          description="Add questions in the builder before publishing."
+          actionLabel="Open builder"
+          (action)="navigateToBuilder()"
+        />
+      } @else {
+        <div class="stack">
+          @for (question of previewQuestions(); track question.id; let i = $index) {
+            <div class="rounded-lg border border-hairline p-4">
+              <div class="mb-3 flex items-center justify-between gap-4">
+                <p class="font-medium">{{ i + 1 }}. {{ question.text }}</p>
+                <app-badge variant="info">{{ question.points }} pts</app-badge>
+              </div>
+              <div class="grid gap-2 sm:grid-cols-2">
+                @for (option of question.options; track option.id) {
+                  <div
+                    class="flex items-center gap-2 rounded-md border px-3 py-2 text-sm"
+                    [class.border-primary]="option.isCorrect"
+                    [class.bg-canvas-soft]="option.isCorrect"
+                  >
+                    @if (option.isCorrect) {
+                      <span class="text-primary">&#10003;</span>
+                    } @else {
+                      <span class="h-2 w-2 rounded-full bg-hairline-input"></span>
+                    }
+                    <span>{{ option.text }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        @if (hasMoreQuestions()) {
+          <div class="mt-4 text-center">
+            <app-button variant="secondary" (clicked)="navigateToBuilder()">
+              View all questions in builder
+            </app-button>
+          </div>
+        }
+      }
+    </app-card>
+  }
+}
+
+<app-modal
+  [open]="showPublishModal()"
+  title="Publish quiz?"
+  confirmLabel="Publish"
+  (close)="closePublishModal()"
+  (confirm)="confirmPublish()"
+>
+  <p>
+    Once published, participants will be able to view and attempt this quiz. You will still be able
+    to edit some settings.
+  </p>
+</app-modal>

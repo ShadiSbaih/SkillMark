@@ -1,80 +1,102 @@
-<section class="page">
-  <header class="page-heading">
-    <div>
-      <p class="breadcrumb">Home / Dashboard</p>
-      <h1>Role-aware dashboard</h1>
-      <p>Track programs, quiz performance, certificates, and participant activity across CS Club.</p>
-    </div>
-    <div class="button-row">
-      <a class="button button-secondary" routerLink="/organizations/org-cs/programs/new">Create program</a>
-      <a class="button button-primary" routerLink="/programs/program-git/quizzes">Create quiz</a>
-    </div>
-  </header>
+@if (hasAnyError()) {
+<app-error-state [message]="firstErrorMessage()" (retry)="retryAll()" />
+}
 
-  <div class="metric-grid">
-    <article class="metric-card"><span>Programs</span><strong>{{ stats.totalPrograms }}</strong></article>
-    <article class="metric-card"><span>Members</span><strong>{{ stats.totalMembers }}</strong></article>
-    <article class="metric-card"><span>Attempts</span><strong>{{ stats.totalAttempts }}</strong></article>
-    <article class="metric-card"><span>Pass rate</span><strong>{{ stats.passRate }}%</strong></article>
+@if (allPending() && !hasAnyError()) {
+<app-loading-state message="Loading dashboard..." />
+}
+
+@if (!hasAnyError() && !allPending()) {
+<app-page-header title="Dashboard" subtitle="Track your quiz performance, certificates, and activity."
+  [hasActions]="true">
+  @if (isAdmin()) {
+  <div actions class="flex items-center gap-2">
+    <a class="button button-secondary" routerLink="/programs">
+      View Programs
+    </a>
+    <a class="button button-primary" routerLink="/programs/new">
+      Create program
+    </a>
   </div>
+  }
+</app-page-header>
 
-  <div class="two-column">
-    <article class="panel">
-      <div class="panel-header">
-        <h2>Active programs</h2>
-        <a routerLink="/organizations/org-cs">View all</a>
-      </div>
-      <div class="stack">
-        @for (program of programs; track program.id) {
-          <a class="list-row" [routerLink]="['/programs', program.id]">
-            <div>
-              <strong>{{ program.title }}</strong>
-              <span>{{ program.description }}</span>
-            </div>
-            <em class="status" [class.status-published]="program.status === 'PUBLISHED'" [class.status-draft]="program.status === 'DRAFT'">{{ program.status }}</em>
-          </a>
-        }
-      </div>
-    </article>
+<section class="kpi-grid-3" aria-label="Dashboard metrics">
+  <app-kpi-card label="Certificates" [value]="stats().certificates" icon="certificate" color="rose" />
+  <app-kpi-card label="Attempts" [value]="stats().attempts" icon="attempts" color="indigo" />
+  <app-kpi-card label="Pass Rate" [value]="passRatePercentage() + '%'" [percentage]="passRatePercentage()"
+    color="emerald" />
+</section>
 
-    <article class="panel dark-panel">
-      <div class="panel-header">
-        <h2>Quiz outcomes</h2>
-        <a routerLink="/my-attempts">Attempts</a>
-      </div>
-      <div class="chart-bars" aria-label="Score distribution">
-        <span style="height: 42%"></span>
-        <span style="height: 58%"></span>
-        <span style="height: 76%"></span>
-        <span style="height: 88%"></span>
-        <span style="height: 64%"></span>
-      </div>
-      <p>{{ stats.averageScore }}% average score across recent submitted attempts.</p>
-    </article>
-  </div>
+<section class="dashboard-lists" aria-label="Recent activity">
+  <app-card class="dashboard-list-card">
+    <div class="panel-header">
+      <h2>Recent certificates</h2>
+      <a class="link" routerLink="/my-certificates">View all</a>
+    </div>
+    @if (certificates().length === 0) {
+    <app-empty-state title="No certificates" description="You have not earned any certificates yet." />
+    } @else {
+    <ul class="dashboard-list flex-grow">
+      @for (cert of certificates().slice(0, 5); track cert.id) {
+      <li>
+        <a class="list-row-link" [routerLink]="['/certificates', cert.id]">
+          <div class="flex-grow min-w-0 pr-4">
+            <p class="font-medium text-ink mb-0.5 text-base">{{ cert.title }}</p>
+            <p class="text-sm text-ink-mute mb-0 truncate">{{ cert.programTitleSnapshot }} / {{ cert.quizTitleSnapshot
+              }}</p>
+          </div>
+          <div class="shrink-0">
+            <app-status-badge entity="certificate" [status]="cert.status" />
+          </div>
+        </a>
+      </li>
+      }
+    </ul>
+    }
+  </app-card>
 
-  <article class="panel">
+  <app-card class="dashboard-list-card">
     <div class="panel-header">
       <h2>Recent attempts</h2>
-      <a routerLink="/programs/program-git/enrollments">Manage enrollments</a>
+      <a class="link" routerLink="/my-attempts">View all</a>
     </div>
+    @if (attempts().length === 0) {
+    <app-empty-state title="No attempts" description="You have not started any quizzes yet." />
+    } @else {
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>Participant</th><th>Quiz</th><th>Score</th><th>Status</th><th>Submitted</th></tr>
+          <tr>
+            <th>Quiz</th>
+            <th>Score</th>
+            <th>Status</th>
+            <th>Submitted</th>
+          </tr>
         </thead>
         <tbody>
-          @for (attempt of attempts; track attempt.id) {
-            <tr>
-              <td>{{ attempt.participant }}</td>
-              <td>{{ attempt.quizTitle }}</td>
-              <td class="numeric">{{ attempt.score }}%</td>
-              <td><span class="status status-submitted">{{ attempt.status }}</span></td>
-              <td>{{ attempt.submittedAt }}</td>
-            </tr>
+          @for (attempt of attempts().slice(0, 5); track attempt.attemptId) {
+          <tr>
+            <td class="font-medium text-ink">{{ attempt.quizTitle }}</td>
+            <td>
+              @if (attempt.status === 'SUBMITTED') {
+              {{ attempt.scorePercentage | number:'1.0-1' }}%
+              } @else {
+              -
+              }
+            </td>
+            <td>
+              <app-status-badge entity="attempt" [status]="attempt.status" />
+            </td>
+            <td class="text-ink-mute">
+              {{ attempt.submittedAt ? (attempt.submittedAt | date:'mediumDate') : '-' }}
+            </td>
+          </tr>
           }
         </tbody>
       </table>
     </div>
-  </article>
+    }
+  </app-card>
 </section>
+}

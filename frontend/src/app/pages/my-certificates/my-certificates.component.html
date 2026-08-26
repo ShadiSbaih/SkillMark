@@ -1,27 +1,81 @@
-<section class="page">
-  <header class="page-heading">
-    <div>
-      <p class="breadcrumb">Certificates</p>
-      <h1>Certificates</h1>
-      <p>Browse issued certificates, status, verification codes, and public verification pages.</p>
-    </div>
-  </header>
+<app-page-header title="My certificates" subtitle="Browse your issued certificates, status, and verification details." />
 
-  <div class="certificate-grid">
-    @for (certificate of certificates; track certificate.id) {
-      <article class="certificate-tile" [class.revoked]="certificate.status === 'REVOKED'">
-        <span class="status" [class.status-active]="certificate.status === 'ACTIVE'" [class.status-revoked]="certificate.status === 'REVOKED'">{{ certificate.status }}</span>
-        <h2>{{ certificate.recipientName }}</h2>
-        <p>{{ certificate.programTitle }} / {{ certificate.quizTitle }}</p>
-        <dl class="detail-grid single">
-          <div><dt>Issued</dt><dd>{{ certificate.issuedAt }}</dd></div>
-          <div><dt>Code</dt><dd>{{ certificate.verificationCode }}</dd></div>
-        </dl>
-        <div class="button-row">
-          <a class="button button-secondary" [routerLink]="['/certificates', certificate.id]">Details</a>
-          <a class="button button-primary" [routerLink]="['/verify', certificate.verificationCode]">Verify</a>
-        </div>
-      </article>
-    }
-  </div>
-</section>
+@if (query.isPending()) {
+  <app-loading-state message="Loading certificates..." />
+} @else if (query.isError()) {
+  <app-error-state [message]="query.error().message ?? 'Failed to load certificates'" (retry)="query.refetch()" />
+} @else {
+  @let pageData = data();
+
+  @if (!pageData || pageData.items.length === 0) {
+    <app-card>
+      <app-empty-state
+        title="No certificates"
+        description="You have not received any certificates yet. Complete quizzes to earn certificates."
+        actionLabel="Take a Quiz"
+        actionLink="/my-enrollments"
+      />
+    </app-card>
+  } @else {
+    <app-card>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Number</th>
+              <th>Program</th>
+              <th>Quiz</th>
+              <th>Score</th>
+              <th>Status</th>
+              <th>PDF</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (certificate of pageData.items; track certificate.id) {
+              <tr>
+                <td>
+                  <a class="link" [routerLink]="['/certificates', certificate.id]">
+                    {{ certificate.certificateNumber }}
+                  </a>
+                </td>
+                <td>{{ certificate.programTitleSnapshot }}</td>
+                <td>{{ certificate.quizTitleSnapshot }}</td>
+                <td class="tabular-nums">
+                  @if (certificate.scoreSnapshot != null) {
+                    {{ certificate.scoreSnapshot | number:'1.1-1' }}%
+                  } @else {
+                    <span class="muted">—</span>
+                  }
+                </td>
+                <td>
+                  <app-status-badge entity="certificate" [status]="certificate.status" />
+                </td>
+                <td>
+                  @if (certificate.pdfUrl) {
+                    <app-button size="sm" (clicked)="openPdf(certificate.pdfUrl)">
+                      PDF
+                    </app-button>
+                  } @else {
+                    <span class="muted">—</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (pageData.totalPages > 1) {
+        <app-pagination
+          [page]="page() + 1"
+          [size]="pageData.size"
+          [totalElements]="pageData.totalElements"
+          [totalPages]="pageData.totalPages"
+          [hasPrevious]="page() > 0"
+          [hasNext]="page() < pageData.totalPages - 1"
+          (pageChange)="onPageChange($event)"
+        />
+      }
+    </app-card>
+  }
+}

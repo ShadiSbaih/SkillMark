@@ -1,13 +1,7 @@
 package com.library.Skillmark.certificate.entity;
 
-import com.library.Skillmark.certificate.controller.*;
-import com.library.Skillmark.certificate.dto.*;
-import com.library.Skillmark.certificate.entity.*;
-import com.library.Skillmark.certificate.enums.*;
-import com.library.Skillmark.certificate.repository.*;
-import com.library.Skillmark.certificate.service.*;
 import com.library.Skillmark.attempt.entity.QuizAttempt;
-import com.library.Skillmark.organization.entity.Organization;
+import com.library.Skillmark.certificate.enums.CertificateStatus;
 import com.library.Skillmark.program.entity.Program;
 import com.library.Skillmark.quiz.entity.Quiz;
 import com.library.Skillmark.user.entity.User;
@@ -28,10 +22,6 @@ public class Certificate {
 
     @Column(name = "verification_code", nullable = false, unique = true, length = 150)
     private String verificationCode;
-
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "organization_id", nullable = false)
-    private Organization organization;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "program_id", nullable = false)
@@ -61,8 +51,8 @@ public class Certificate {
     @Column(name = "program_title_snapshot", nullable = false)
     private String programTitleSnapshot;
 
-    @Column(name = "organization_name_snapshot", nullable = false, length = 200)
-    private String organizationNameSnapshot;
+    @Column(name = "owner_name_snapshot", length = 150)
+    private String ownerNameSnapshot;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
@@ -115,8 +105,6 @@ public class Certificate {
     public void setCertificateNumber(String certificateNumber) { this.certificateNumber = certificateNumber; }
     public String getVerificationCode() { return verificationCode; }
     public void setVerificationCode(String verificationCode) { this.verificationCode = verificationCode; }
-    public Organization getOrganization() { return organization; }
-    public void setOrganization(Organization organization) { this.organization = organization; }
     public Program getProgram() { return program; }
     public void setProgram(Program program) { this.program = program; }
     public Quiz getQuiz() { return quiz; }
@@ -133,8 +121,8 @@ public class Certificate {
     public void setQuizTitleSnapshot(String quizTitleSnapshot) { this.quizTitleSnapshot = quizTitleSnapshot; }
     public String getProgramTitleSnapshot() { return programTitleSnapshot; }
     public void setProgramTitleSnapshot(String programTitleSnapshot) { this.programTitleSnapshot = programTitleSnapshot; }
-    public String getOrganizationNameSnapshot() { return organizationNameSnapshot; }
-    public void setOrganizationNameSnapshot(String organizationNameSnapshot) { this.organizationNameSnapshot = organizationNameSnapshot; }
+    public String getOwnerNameSnapshot() { return ownerNameSnapshot; }
+    public void setOwnerNameSnapshot(String ownerNameSnapshot) { this.ownerNameSnapshot = ownerNameSnapshot; }
     public CertificateStatus getStatus() { return status; }
     public void setStatus(CertificateStatus status) { this.status = status; }
     public Instant getIssuedAt() { return issuedAt; }

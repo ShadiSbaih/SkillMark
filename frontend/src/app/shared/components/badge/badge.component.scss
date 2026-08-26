@@ -1,0 +1,127 @@
+.app-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-pill);
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+/* Legacy variants kept for backwards compatibility */
+.app-badge-default {
+  background: var(--gray-bg);
+  color: var(--ink-secondary);
+  border: 1px solid var(--hairline);
+}
+
+.app-badge-success {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.app-badge-warning {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.app-badge-danger {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.app-badge-info {
+  background: var(--blue-bg);
+  color: var(--blue);
+}
+
+/* New color + style combinations */
+.app-badge--green-subtle {
+  background: var(--success-bg);
+  color: var(--success);
+  border: 1px solid transparent;
+}
+
+.app-badge--green-solid {
+  background: var(--success);
+  color: var(--on-primary);
+  border: 1px solid transparent;
+}
+
+.app-badge--green-outline {
+  background: transparent;
+  color: var(--success);
+  border: 1px solid var(--success);
+}
+
+.app-badge--amber-subtle {
+  background: var(--warning-bg);
+  color: var(--warning);
+  border: 1px solid transparent;
+}
+
+.app-badge--amber-solid {
+  background: var(--warning);
+  color: var(--on-primary);
+  border: 1px solid transparent;
+}
+
+.app-badge--amber-outline {
+  background: transparent;
+  color: var(--warning);
+  border: 1px solid var(--warning);
+}
+
+.app-badge--red-subtle {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid transparent;
+}
+
+.app-badge--red-solid {
+  background: var(--danger);
+  color: var(--on-primary);
+  border: 1px solid transparent;
+}
+
+.app-badge--red-outline {
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+
+.app-badge--gray-subtle {
+  background: var(--gray-bg);
+  color: var(--ink-secondary);
+  border: 1px solid transparent;
+}
+
+.app-badge--gray-solid {
+  background: var(--ink-secondary);
+  color: var(--on-primary);
+  border: 1px solid transparent;
+}
+
+.app-badge--gray-outline {
+  background: transparent;
+  color: var(--ink-secondary);
+  border: 1px solid var(--ink-secondary);
+}
+
+.app-badge--blue-subtle {
+  background: var(--blue-bg);
+  color: var(--blue);
+  border: 1px solid transparent;
+}
+
+.app-badge--blue-solid {
+  background: var(--blue);
+  color: var(--on-primary);
+  border: 1px solid transparent;
+}
+
+.app-badge--blue-outline {
+  background: transparent;
+  color: var(--blue);
+  border: 1px solid var(--blue);
+}

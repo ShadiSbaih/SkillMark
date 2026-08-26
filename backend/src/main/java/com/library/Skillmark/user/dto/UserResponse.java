@@ -11,21 +11,21 @@ import java.util.UUID;
 
 public record UserResponse(
         UUID id,
-        String clerkUserId,
         String name,
         String email,
         String avatarUrl,
         UserStatus status,
+        UserRole role,
         Instant createdAt
 ) {
     public static UserResponse from(User user) {
         return new UserResponse(
                 user.getId(),
-                user.getClerkUserId(),
                 user.getName(),
                 user.getEmail(),
                 user.getAvatarUrl(),
                 user.getStatus(),
+                user.getRole(),
                 user.getCreatedAt()
         );
     }

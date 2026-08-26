@@ -1,0 +1,58 @@
+<app-page-header
+  title="Create quiz"
+  subtitle="Set up the quiz details. You can add questions next."
+/>
+
+<app-card>
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-panel">
+    <label>
+      <span>Title *</span>
+      <input formControlName="title" placeholder="e.g. Git Basics Quiz" maxlength="120" />
+      @if (form.get('title')?.invalid && form.get('title')?.touched) {
+        <p class="text-sm text-danger">Title is required.</p>
+      }
+    </label>
+
+    <label>
+      <span>Description</span>
+      <textarea formControlName="description" rows="4" placeholder="What is this quiz about?"></textarea>
+    </label>
+
+    <div class="form-grid">
+      <label>
+        <span>Passing score (%) *</span>
+        <input type="number" formControlName="passingScore" min="0" max="100" />
+      </label>
+
+      <label>
+        <span>Duration (minutes) *</span>
+        <input type="number" formControlName="durationMinutes" min="1" />
+      </label>
+
+      <label>
+        <span>Max attempts *</span>
+        <input type="number" formControlName="maxAttempts" min="1" />
+      </label>
+    </div>
+
+    <div class="list-row">
+      <div>
+        <p class="font-medium">Issue certificates</p>
+        <p class="muted text-sm">Award a certificate when the participant passes.</p>
+      </div>
+      <input type="checkbox" formControlName="certificateEnabled" class="!w-auto" />
+    </div>
+
+    <div class="button-row">
+      <app-button
+        type="submit"
+        [loading]="quizzesService.createMutation.isPending()"
+      >
+        Create quiz
+      </app-button>
+      <app-button variant="secondary" (clicked)="router.navigate(['/programs', programId(), 'quizzes'])">
+        Cancel
+      </app-button>
+    </div>
+  </form>
+</app-card>

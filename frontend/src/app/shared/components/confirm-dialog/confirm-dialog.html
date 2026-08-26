@@ -1,0 +1,11 @@
+<app-modal
+  [open]="open()"
+  [title]="title()"
+  [confirmLabel]="confirmText()"
+  [cancelLabel]="cancelText()"
+  [confirmVariant]="confirmVariant()"
+  (close)="onCancel()"
+  (confirm)="onConfirm()"
+>
+  <p class="confirm-message">{{ message() }}</p>
+</app-modal>

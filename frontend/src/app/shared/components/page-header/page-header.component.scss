@@ -1,1 +1,34 @@
+:host {
+  display: block;
+}
 
+.page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 32px;
+
+  @media (min-width: 640px) {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.page-header h1 {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.page-header p {
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--ink-mute);
+}
+
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}

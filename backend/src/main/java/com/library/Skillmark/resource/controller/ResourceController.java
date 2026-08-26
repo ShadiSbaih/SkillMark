@@ -7,18 +7,18 @@ import com.library.Skillmark.resource.dto.CreateResourceRequest;
 import com.library.Skillmark.resource.dto.ResourceResponse;
 import com.library.Skillmark.resource.dto.UpdateResourceVisibilityRequest;
 import com.library.Skillmark.resource.service.ResourceService;
-import com.library.Skillmark.security.SecurityUtil;
+import com.library.Skillmark.security.AuthUser;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
 @RestController
+@RequestMapping("/api/v1")
 @Tag(name = "Resources")
 @SecurityRequirement(name = OpenApiConfig.BEARER_AUTH)
 public class ResourceController {
@@ -28,48 +28,48 @@ public class ResourceController {
         this.resourceService = resourceService;
     }
 
-    @PostMapping("/api/v1/programs/{programId}/resources")
+    @PostMapping("/programs/{programId}/resources")
     ResponseEntity<ApiResponse<ResourceResponse>> create(@PathVariable UUID programId,
                                                          @Valid @RequestBody CreateResourceRequest request,
-                                                         Authentication authentication) {
+                                                         AuthUser currentUser) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Resource created successfully",
-                resourceService.create(programId, request, SecurityUtil.userId(authentication))));
+                resourceService.create(programId, request, currentUser.id())));
     }
 
-    @GetMapping("/api/v1/programs/{programId}/resources")
+    @GetMapping("/programs/{programId}/resources")
     ApiResponse<PageResponse<ResourceResponse>> list(@PathVariable UUID programId,
-                                                     Authentication authentication,
+                                                     AuthUser currentUser,
                                                      @RequestParam(defaultValue = "0") int page,
                                                      @RequestParam(defaultValue = "10") int size) {
         return ApiResponse.success("Resources retrieved successfully",
-                resourceService.list(programId, SecurityUtil.userId(authentication), page, size));
+                resourceService.list(programId, currentUser.id(), page, size));
     }
 
-    @GetMapping("/api/v1/resources/{resourceId}")
-    ApiResponse<ResourceResponse> get(@PathVariable UUID resourceId, Authentication authentication) {
+    @GetMapping("/resources/{resourceId}")
+    ApiResponse<ResourceResponse> get(@PathVariable UUID resourceId, AuthUser currentUser) {
         return ApiResponse.success("Resource retrieved successfully",
-                resourceService.get(resourceId, SecurityUtil.userId(authentication)));
+                resourceService.get(resourceId, currentUser.id()));
     }
 
-    @PutMapping("/api/v1/resources/{resourceId}")
+    @PutMapping("/resources/{resourceId}")
     ApiResponse<ResourceResponse> update(@PathVariable UUID resourceId,
                                          @Valid @RequestBody CreateResourceRequest request,
-                                         Authentication authentication) {
+                                         AuthUser currentUser) {
         return ApiResponse.success("Resource updated successfully",
-                resourceService.update(resourceId, request, SecurityUtil.userId(authentication)));
+                resourceService.update(resourceId, request, currentUser.id()));
     }
 
-    @DeleteMapping("/api/v1/resources/{resourceId}")
-    ApiResponse<Void> archive(@PathVariable UUID resourceId, Authentication authentication) {
-        resourceService.archive(resourceId, SecurityUtil.userId(authentication));
+    @DeleteMapping("/resources/{resourceId}")
+    ApiResponse<Void> archive(@PathVariable UUID resourceId, AuthUser currentUser) {
+        resourceService.archive(resourceId, currentUser.id());
         return ApiResponse.success("Resource archived successfully", null);
     }
 
-    @PatchMapping("/api/v1/resources/{resourceId}/visibility")
+    @PatchMapping("/resources/{resourceId}/visibility")
     ApiResponse<ResourceResponse> updateVisibility(@PathVariable UUID resourceId,
                                                    @Valid @RequestBody UpdateResourceVisibilityRequest request,
-                                                   Authentication authentication) {
+                                                   AuthUser currentUser) {
         return ApiResponse.success("Resource visibility updated successfully",
-                resourceService.updateVisibility(resourceId, request.visibleToParticipants(), SecurityUtil.userId(authentication)));
+                resourceService.updateVisibility(resourceId, request.visibleToParticipants(), currentUser.id()));
     }
 }

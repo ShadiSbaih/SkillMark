@@ -11,13 +11,11 @@ import java.util.UUID;
 public record QuizResponse(
         UUID id,
         UUID programId,
-        UUID organizationId,
         String title,
         String description,
         Integer passingScore,
         Integer durationMinutes,
         Integer maxAttempts,
-        boolean certificateEnabled,
         CertificateIssueMode certificateIssueMode,
         boolean visibleToParticipants,
         @Schema(description = "Compatibility field derived from status == PUBLISHED. Do not treat as an independent state.")

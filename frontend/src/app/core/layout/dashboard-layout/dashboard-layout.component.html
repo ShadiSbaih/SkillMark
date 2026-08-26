@@ -1,45 +1,125 @@
-<div class="app-shell">
-  <header class="top-nav">
-    <a class="brand" routerLink="/">
-      <span class="brand-mark">S</span>
-      <span>Skillmark</span>
-    </a>
-
-    <label class="org-select">
-      <span>Organization</span>
-      <select aria-label="Current organization">
-        <option>CS Club</option>
-        <option>Data Guild</option>
-      </select>
-    </label>
-
-    <div class="top-actions">
-      <a class="icon-button" routerLink="/verify/A3FX9KL2MN8PQR7Z" aria-label="Verify certificate">?</a>
-      <div class="avatar" aria-label="Signed in user">HD</div>
+<div class="dashboard-shell">
+  <!-- Sidebar -->
+  <aside
+    class="dashboard-sidebar"
+    [class.open]="mobileOpen()"
+    aria-label="Dashboard navigation"
+  >
+    <div class="sidebar-header">
+      <a class="brand" routerLink="/dashboard" style="display: flex; align-items: center; gap: 10px;">
+        <img src="/logo.png" alt="Skillmark Logo" style="height: 32px; width: 32px; object-fit: contain;" />
+        <span>Skillmark</span>
+      </a>
     </div>
-  </header>
 
-  <aside class="sidebar">
-    <nav aria-label="Owner navigation">
-      <p class="sidebar-label">Owner</p>
-      @for (link of ownerLinks; track link.route) {
-        <a [routerLink]="link.route" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
-          {{ link.label }}
-        </a>
+    <div class="sidebar-body">
+      @if (isAdmin()) {
+        <nav aria-label="Admin navigation">
+          <p class="nav-group-title">Admin</p>
+          @for (link of adminLinks; track link.route) {
+            <a
+              [routerLink]="link.route"
+              routerLinkActive="active"
+              [routerLinkActiveOptions]="{
+                exact: link.route === '/dashboard'
+              }"
+              class="nav-link"
+              (click)="closeMobile()"
+            >
+              {{ link.label }}
+            </a>
+          }
+        </nav>
+      } @else {
+        <nav aria-label="Student navigation">
+          <p class="nav-group-title">Student</p>
+          @for (link of studentLinks; track link.route) {
+            <a
+              [routerLink]="link.route"
+              routerLinkActive="active"
+              [routerLinkActiveOptions]="{ exact: link.route === '/dashboard' }"
+              class="nav-link"
+              (click)="closeMobile()"
+            >
+              {{ link.label }}
+            </a>
+          }
+        </nav>
       }
-    </nav>
 
-    <nav aria-label="Participant navigation">
-      <p class="sidebar-label">Participant</p>
-      @for (link of participantLinks; track link.route) {
-        <a [routerLink]="link.route" routerLinkActive="active">
-          {{ link.label }}
-        </a>
-      }
-    </nav>
+      <nav aria-label="Account navigation">
+        <p class="nav-group-title">Account</p>
+        @for (link of accountLinks; track link.route) {
+          <a
+            [routerLink]="link.route"
+            routerLinkActive="active"
+            class="nav-link"
+            (click)="closeMobile()"
+          >
+            {{ link.label }}
+          </a>
+        }
+      </nav>
+    </div>
   </aside>
 
-  <main class="workspace">
-    <router-outlet />
-  </main>
+  <!-- Mobile drawer backdrop -->
+  @if (mobileOpen()) {
+    <div
+      class="sidebar-backdrop"
+      (click)="closeMobile()"
+      aria-hidden="true"
+    ></div>
+  }
+
+  <!-- Main area -->
+  <div class="dashboard-main">
+    <header class="dashboard-topbar">
+      <div class="topbar-left">
+        <button
+          class="menu-button"
+          type="button"
+          (click)="toggleMobile()"
+          aria-label="Toggle navigation"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="topbar-right">
+        @if (user(); as currentUser) {
+          <div class="user-menu">
+            <span class="user-name">{{ currentUser.name || currentUser.email }}</span>
+            <span class="role-badge" [class.role-badge--admin]="isAdmin()">
+              {{ isAdmin() ? 'Admin' : 'Student' }}
+            </span>
+            <button
+              type="button"
+              class="logout-button"
+              (click)="logout()"
+            >
+              Log out
+            </button>
+          </div>
+        }
+      </div>
+    </header>
+
+    <main class="dashboard-content">
+      <router-outlet />
+    </main>
+  </div>
 </div>

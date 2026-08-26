@@ -1,0 +1,61 @@
+<section class="page">
+  <app-page-header title="Discover Programs" subtitle="Find and join a new learning program." />
+
+  @switch (query.status()) {
+    @case ('pending') {
+      <app-loading-state message="Loading programs..." />
+    }
+    @case ('error') {
+      <app-error-state
+        [message]="query.error()?.message ?? 'Failed to load programs'"
+        (retry)="query.refetch()"
+      />
+    }
+    @default {
+      @if (programs().length === 0) {
+        <app-card>
+          <app-empty-state
+            title="No programs found"
+            description="There are currently no programs available to join."
+          />
+        </app-card>
+      } @else {
+        <div class="space-y-4">
+          @for (program of programs(); track program.id) {
+            <app-card>
+              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h3 class="text-lg font-semibold text-ink">
+                    {{ program.title }}
+                  </h3>
+                  <p class="text-sm text-ink-mute mt-1">
+                    {{ program.description || 'No description provided.' }}
+                  </p>
+                </div>
+                <div class="shrink-0">
+                  <app-button 
+                    (clicked)="enroll(program.id)" 
+                    [loading]="enrolling() === program.id" 
+                    [disabled]="enrolling() !== null">
+                    Join Program
+                  </app-button>
+                </div>
+              </div>
+            </app-card>
+          }
+        </div>
+
+        <app-pagination
+          class="mt-6 block"
+          [page]="page()"
+          [size]="size()"
+          [totalElements]="totalElements()"
+          [totalPages]="totalPages()"
+          [hasPrevious]="hasPrevious()"
+          [hasNext]="hasNext()"
+          (pageChange)="goToPage($event)"
+        />
+      }
+    }
+  }
+</section>
